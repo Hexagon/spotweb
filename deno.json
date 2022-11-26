@@ -1,0 +1,16 @@
+{
+  "tasks": {
+    "dev": "deno run -A --watch=static/,routes/ dev.ts",
+    "prod": "deno run --allow-run --allow-read --allow-write --allow-net --allow-env main.ts"
+  },
+  "importMap": "./import_map.json",
+  "fmt": {
+    "options": {
+      "lineWidth": 150
+    }
+  },
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
+  }
+}

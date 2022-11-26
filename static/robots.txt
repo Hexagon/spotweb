@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /api/*
+Sitemap: https://spot.56k.guru/sitemap.xml

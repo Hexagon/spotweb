@@ -1,0 +1,43 @@
+.bg-color-1 {
+    background-color: rgba(224, 255, 24, 0.3) !important;
+}
+.bg-color-2 {
+    background-color: rgba(24, 255, 124, 0.3) !important;
+}
+.bg-color-3 {
+    background-color: rgb(24 144 255 / 30%) !important;
+}
+.bg-color-4 {
+    background-color: rgba(232, 24, 255, 0.3) !important;
+}
+.bg-color-5 {
+    color: rgba(255, 224, 124, 0.3) !important;
+}
+.link-color-1 {
+    color: rgba(224, 255, 24, 1) !important;
+}
+.link-color-2 {
+    color: rgba(24, 255, 124, 1) !important;
+}
+.link-color-3 {
+    color: rgb(24, 144, 255, 1) !important;
+}
+.link-color-4 {
+    color: rgba(232, 24, 255, 1) !important;
+}
+.link-color-5 {
+    color: rgba(255, 224, 124, 1) !important;
+}
+.extra-pad {
+    padding: 5px !important;
+}
+.hidden {
+    display: none !important;
+}
+.price-display {
+    font-size: 6.4rem !important;
+    color:antiquewhite;
+    line-height: 6.4rem;
+    font-family: 'Seven Segment', sans-serif;
+}
+

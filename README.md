@@ -2,11 +2,18 @@
 
 ### Development
 
-Start the project:
+Start the project (in windows powershell):
 
 ```
-cd src
-deno task start
+$env:API_TOKEN="your-entsoe-api-token"; deno task dev
+```
+
+This will watch the project directory and restart as necessary.
+
+To update fresh framework:
+
+```
+deno run -A -r https://fresh.deno.dev/update .
 ```
 
 ### Build docker container
@@ -24,7 +31,11 @@ docker build . --tag=local-spotweb
 Expose only to localhost
 
 ```
-docker run -d -p 127.0.0.1:8135:8000 -e TZ=Europe/Stockholm--mount type=bind,source=/local/path/to/cache,target=/spotprice/cache --name="spotweb" local-spotweb
+docker run -d -p 127.0.0.1:8135:8000 -e API_TOKEN="your-entsoe-api-token" -e TZ='Europe/Stockholm' --name="spotweb" local-spotweb
 ```
 
-This will watch the project directory and restart as necessary.
+To use persistant cache in a host folder, add this parameter to the `docker run` command
+
+```
+-v /path/on/host/spotweb/cache:/spotweb/cache
+```
