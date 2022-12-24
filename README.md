@@ -1,4 +1,6 @@
-# fresh project
+# spotweb
+
+Source code of https://spot.56k.guru - dockerized open source Deno application that gets and caches electricity prices (spot price) from ENTSO-e.
 
 ### Development
 
