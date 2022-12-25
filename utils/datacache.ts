@@ -3,7 +3,7 @@ import { resolve } from "std/path/mod.ts";
 import { deflateRaw, inflateRaw } from "compress/zlib/mod.ts";
 
 interface IDataCache {
-  source: Date;
+  source: string;
   dt: Date;
   timeLeft: number;
   valid: boolean;
@@ -55,6 +55,8 @@ const DataCachePolicy = {
   },
 };
 
+const MemCache = new Map();
+
 const DataCache = async (params: unknown, baseId: string, policy: string, liveFetch: unknown) => {
   // Check cache policy
   const usedPolicy: IDataCachePolicy = DataCachePolicy[policy];
@@ -68,14 +70,36 @@ const DataCache = async (params: unknown, baseId: string, policy: string, liveFe
   // Check for cache
   let cacheContent;
   try {
-    // Cache
-    cacheContent = await Deno.readFile(resolve(Deno.cwd(), `./cache/${baseId}.${paramHash}.cache`));
-    const cacheInflated = inflateRaw(cacheContent),
-      cacheResult = new TextDecoder().decode(cacheInflated),
-      cacheJSON: IDataCacheParsed | IDataCache = JSON.parse(cacheResult);
+    let cacheJSON: IDataCacheParsed | IDataCache | undefined;
+    // Memcache
+    if (MemCache.has(paramHash)) {
 
-    // Parse date time
-    cacheJSON.dt = new Date(Date.parse(cacheJSON.dt as string));
+      cacheJSON = MemCache.get(paramHash);
+   
+      if (cacheJSON) {
+        cacheJSON.source = "memcache";
+      }
+
+    // diskCache
+    } else {
+
+      cacheContent = await Deno.readFile(resolve(Deno.cwd(), `./cache/${baseId}.${paramHash}.cache`));
+      if (cacheContent) {
+        const cacheInflated = inflateRaw(cacheContent),
+        cacheResult = new TextDecoder().decode(cacheInflated);
+        cacheJSON = JSON.parse(cacheResult);
+        if( cacheJSON) {
+           // Parse date time
+           cacheJSON.dt = new Date(Date.parse(cacheJSON.dt as string));      
+        }
+
+        // Hoist to memcache
+        MemCache.set(paramHash, cacheJSON);
+      }
+    }
+
+    if (!cacheJSON) throw new Error("Could not read cache");
+    if (typeof cacheJSON.dt === "string") throw new Error("Could not read cache");
 
     // Append time left
     const timeLeft = Math.round(
@@ -100,6 +124,8 @@ const DataCache = async (params: unknown, baseId: string, policy: string, liveFe
       ...result,
     };
 
+    MemCache.set(paramHash,resultObj);
+    
     const resultStr: string = JSON.stringify(resultObj);
     const resultBytes = new TextEncoder().encode(resultStr);
     const compressedResult = deflateRaw(resultBytes);
