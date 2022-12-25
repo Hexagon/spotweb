@@ -22,6 +22,7 @@ export const handler: Handlers = {
     // Render all areas in country
     return ctx.render({
       country: ctx.params.country,
+      countryObj: country,
       lang: ctx.state.lang,
     });
   },
@@ -30,7 +31,7 @@ export const handler: Handlers = {
 export default function Index(props: PageProps) {
   return (
     <>
-      <SwHead></SwHead>
+      <SwHead title={props.data.countryObj.name + " - " + props.data.countryObj.areas.map(a => a.name).join(', ')}></SwHead>
       <body lang={props.data.lang}>
         <IndexIsland {...props}></IndexIsland>
       </body>

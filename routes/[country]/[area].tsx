@@ -28,6 +28,8 @@ export const handler: Handlers = {
     return ctx.render({
       area: ctx.params.area,
       country: ctx.params.country,
+      areaObj: area,
+      countryObj: country,
       lang: ctx.state.lang,
     });
   },
@@ -36,7 +38,7 @@ export const handler: Handlers = {
 export default function Area(props: PageProps) {
   return (
     <>
-      <SwHead></SwHead>
+      <SwHead title={props.data.countryObj.name + " - " + props.data.areaObj.name + " (" + props.data.areaObj.long + ")"}></SwHead>
       <body lang={props.data.lang}>
         <ElomradeIsland {...props}></ElomradeIsland>
       </body>

@@ -1,9 +1,12 @@
 import { Head } from "$fresh/runtime.ts";
 
-export default function SwHead() {
+interface HeadProps {
+  title: string;
+}
+export default function SwHead(props: HeadProps) {
   return (
     <Head>
-      <title>Elpriset just nu - spot.56k.guru</title>
+      <title>Elpriset just nu - { props.title }</title>
       <link rel="icon" type="image/png" href="/icon-192x192.png"></link>
 
       <meta http-equiv="refresh" content="160"></meta>
