@@ -1,4 +1,4 @@
-import type { Options } from "https://deno.land/x/freshlate/mod.ts";
+import type { Options } from "freshlate";
 import * as translations from "./lang/index.js";
 
 export default {
