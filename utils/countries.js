@@ -3,10 +3,10 @@ const countries = [
     name: "Sverige",
     id: "sv",
     areas: [
-      { name: "SE1", "id": "BZN|SE1", "long": "Luleå", color: 1 },
-      { name: "SE2", "id": "BZN|SE2", "long": "Sundsvall", color: 2 },
-      { name: "SE3", "id": "BZN|SE3", "long": "Stockholm", color: 3 },
-      { name: "SE4", "id": "BZN|SE4", "long": "Malmö", color: 4 },
+      { name: "SE1", "id": "BZN|SE1", "long": "Norra Sverige", color: 1 },
+      { name: "SE2", "id": "BZN|SE2", "long": "Norra Mellansverige", color: 2 },
+      { name: "SE3", "id": "BZN|SE3", "long": "Södra Mellansverige", color: 3 },
+      { name: "SE4", "id": "BZN|SE4", "long": "Södra sverige", color: 4 },
     ],
   },
   {
