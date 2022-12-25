@@ -31,8 +31,8 @@ const countries = [
     name: "Danmark",
     id: "dk",
     areas: [
-      { name: "DK1", "id": "DK1", "long": "Jylland", color: 1 },
-      { name: "DK2", "id": "DK2", "long": "Sjaelland", color: 2 },
+      { name: "DK1", "id": "IBA|DK1", "long": "Jylland", color: 1 },
+      { name: "DK2", "id": "IBA|DK2", "long": "Sjaelland", color: 2 },
     ],
   },
 ];
