@@ -36,7 +36,16 @@ const entsoeSpotprice = async (area: string, startDate: Date, endDate: Date) => 
   const output: EntsoeApiRow[] = [];
   let resultJson;
   try {
-    resultJson = await Query(Deno.env.get("API_TOKEN"), "A44", area, area, startDate, endDate);
+    resultJson = await Query(
+      Deno.env.get("API_TOKEN"),
+      {
+        documentType: "A44", 
+        inDomain: area, 
+        outDomain: area, 
+        startDateTime: startDate, 
+        endDateTime: endDate
+      }
+    );
   } catch (_e) {
     // Ignore
   }

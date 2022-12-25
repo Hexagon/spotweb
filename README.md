@@ -12,11 +12,20 @@ $env:API_TOKEN="your-entsoe-api-token"; deno task dev
 
 This will watch the project directory and restart as necessary.
 
-To update fresh framework:
+To update fresh framework using recommended method:
 
 ```
 deno run -A -r https://fresh.deno.dev/update .
 ```
+
+To check for general dependency updates:
+
+```
+deno run --allow-read=. --allow-write=. --allow-net https://deno.land/x/udd/main.ts --dry-run import_map.json
+```
+
+Apply the updates manually!
+
 
 ### Build docker container
 
