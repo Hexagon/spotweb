@@ -1,7 +1,9 @@
 const fi = {
   "common": {
     "header": {
-      "title": "Tuntihinta juuri nyt, muuttuva hinta tässä kuussa ja historialliset hinnat"
+      "title": "Tuntihinta juuri nyt, muuttuva hinta tässä kuussa ja historialliset hinnat",
+      "avg_today": "Keskimääräinen spot-hinta tänään",
+      "avg_month": "Keskimääräinen spot-hinta tähän mennessä tässä kuussa"
     },
     "warning": {
       "actual_price": "Todellinen sähkön hinta",
