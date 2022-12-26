@@ -55,6 +55,8 @@ export default function IndexIsland(props: PageProps) {
     );
   });
 
+  const titleEntries = country?.areas.map((a, idx) => a.name + " - " + a.long).join(", ");
+
   return (
     <div>
       <div class="page-wrapper with-navbar with-sidebar" data-sidebar-hidden="hidden">
@@ -78,6 +80,8 @@ export default function IndexIsland(props: PageProps) {
         >
         </Sidebar>
         <div class="content-wrapper">
+          <h1 class="noshow" data-t-key="common.header.title" lang={commonprops.lang}>Timpris just nu, rörligt pris hittills i månaden och historiska priser</h1>
+          <h2 class="noshow">{titleEntries}</h2>
           <div class="content mt-0 mb-0 pr-0 mr-0 ml-20">
             <PriceFactorWarning priceFactor={!!priceFactor} factor={factor} extra={extra} lang={props.data.lang}></PriceFactorWarning>
             <div class="row">

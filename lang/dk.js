@@ -1,5 +1,8 @@
 const dk = {
   "common": {
+    "header": {
+      "title": "Timepris lige nu, variabel pris indtil videre i denne måned og historiske priser"
+    },
     "warning": {
       "actual_price": "Faktisk elpris",
       "actual_price_text":

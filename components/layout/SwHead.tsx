@@ -9,7 +9,7 @@ export default function SwHead(props: HeadProps) {
       <title>Elpriset just nu - { props.title }</title>
       <link rel="icon" type="image/png" href="/icon-192x192.png"></link>
 
-      <meta http-equiv="refresh" content="160"></meta>
+      <meta name="description" content={"Se aktuellt timpris och månadspris i " + props.title + ". Visar både spotpris eller faktiskt pris."} />
 
       <link
         href="https://cdn.jsdelivr.net/npm/halfmoon@1.1.1/css/halfmoon.min.css"

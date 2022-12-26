@@ -31,7 +31,7 @@
 .extra-pad {
     padding: 5px !important;
 }
-.hidden {
+.hidden, .noshow {
     display: none !important;
 }
 .price-display {

@@ -1,5 +1,8 @@
 const fi = {
   "common": {
+    "header": {
+      "title": "Tuntihinta juuri nyt, muuttuva hinta tässä kuussa ja historialliset hinnat"
+    },
     "warning": {
       "actual_price": "Todellinen sähkön hinta",
       "actual_price_text":

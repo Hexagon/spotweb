@@ -1,5 +1,8 @@
 const sv = {
   "common": {
+    "header": {
+      "title": "Timpris just nu, rörligt pris hittills i månaden och historiska priser"
+    },
     "warning": {
       "actual_price": "Faktiskt elpris",
       "actual_price_text":

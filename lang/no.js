@@ -1,5 +1,8 @@
 const no = {
   "common": {
+    "header": {
+      "title": "Timepris akkurat nå, variabel pris så langt denne måneden og historiske priser"
+    },
     "warning": {
       "actual_price": "Faktisk strømpris",
       "actual_price_text":
