@@ -30,7 +30,7 @@ export const handler: Handlers = {
       country: ctx.params.country,
       areaObj: area,
       countryObj: country,
-      lang: ctx.state.lang,
+      lang: ctx.state.lang || ctx.params.country,
     });
   },
 };

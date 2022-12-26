@@ -2,7 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { ExrateApiParsedResult } from "../routes/api/exrate.ts";
 import { EntsoeApiParsedResult } from "../routes/api/entsoe.ts";
 import { applyExchangeRate, avgPrice, getExchangeRates, maxPrice, minPrice, nowPrice, processPrice } from "../utils/price.ts";
-import { formatHhMm, generateUrl, monthName } from "../utils/common.ts";
+import { generateUrl, monthName } from "../utils/common.ts";
 
 interface AreaViewProps {
   unit: string;

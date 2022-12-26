@@ -5,6 +5,7 @@ import { countries } from "../../utils/countries.js";
 
 export const handler: Handlers = {
   GET(_req, ctx) {
+
     // Check country or return not found
     const country = countries.find((c) => c.id === ctx.params.country);
     if (!country) {
@@ -23,7 +24,7 @@ export const handler: Handlers = {
     return ctx.render({
       country: ctx.params.country,
       countryObj: country,
-      lang: ctx.state.lang,
+      lang: ctx.state.lang || ctx.params.country,
     });
   },
 };
