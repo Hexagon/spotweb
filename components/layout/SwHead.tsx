@@ -9,8 +9,6 @@ export default function SwHead(props: HeadProps) {
       <title>Elpriset just nu - { props.title }</title>
       <link rel="icon" type="image/png" href="/icon-192x192.png"></link>
 
-      <meta name="msvalidate.01" content="061CFD64915789189179DA473A0B64D0" />
-      
       <meta http-equiv="refresh" content="160"></meta>
 
       <link
