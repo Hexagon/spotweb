@@ -137,7 +137,7 @@ export default function SingleAreaOverview(props: AreaViewProps) {
                 <div class="row mt-15">
                   <div class="col-7">
                     <h5 class="mb-0">
-                      <span data-t-key="common.overview.so_far">So far in</span>&nbsp;{rsMonth?.data[0]?.startTime
+                      <span data-t-key="common.overview.so_far" lang={props.lang}>So far in</span>&nbsp;{rsMonth?.data[0]?.startTime
                         ? monthName(new Date(Date.parse(rsMonth.data[0].startTime)))
                         : ""}
                     </h5>
