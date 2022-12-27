@@ -15,7 +15,7 @@ const dateText = (d: Date) => {
 };
 
 const generateExchangeRateUrl = () => {
-  const url = window.location,
+  const url = window.location || new URL("https://spot.56k.guru/"),
     inPath = "api/exrate",
     fullUrl = url.protocol + "//" + url.host + "/" +
       (inPath ? inPath : "") + "?" +
@@ -26,12 +26,32 @@ const generateExchangeRateUrl = () => {
 const generateUrl = (area: string, startDate: Date, endDate: Date, limitCache?: boolean) => {
   const params: unknown = { currency: "SEK", area: area, period: "hourly", startDate: startDate.toISOString(), endDate: endDate.toISOString() };
   if (limitCache) params.limitCache = true;
-  const url = window.location,
+  const url = window.location || new URL("https://spot.56k.guru/"),
     inPath = "api/entsoe",
     fullUrl = url.protocol + "//" + url.host + "/" +
       (inPath ? inPath : "") + "?" +
       new URLSearchParams(params).toString();
   return fullUrl;
+};
+
+// Get datasets
+const getDataDay = async (areaId: string, date: Date) => {
+  const startDate = new Date(date.getTime()),
+    endDate = new Date(date.getTime());
+  startDate.setHours(0,0,0,0);
+  endDate.setHours(23,0,0,0);
+  const response = await fetch(generateUrl(areaId, startDate, endDate));
+  return await response.json();
+};
+
+const getDataMonth = async (areaId: string, date: Date) => {
+  const startDate = new Date(date.getTime()),
+    endDate = new Date(date.getTime());
+  startDate.setDate(1);
+  startDate.setHours(0,0,0,0);
+  endDate.setHours(23,0,0,0);
+  const response = await fetch(generateUrl(areaId, startDate, endDate));
+  return await response.json();
 };
 
 const monthName = (d: Date): string => {
@@ -78,4 +98,4 @@ const langFromUrl = (url: URL) => {
     return "sv";
   }
 };
-export { dateText, formatHhMm, generateExchangeRateUrl, generateUrl, langFromUrl, monthName };
+export { dateText, formatHhMm, generateExchangeRateUrl, generateUrl, langFromUrl, monthName, getDataDay, getDataMonth };

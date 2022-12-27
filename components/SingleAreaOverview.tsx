@@ -1,8 +1,8 @@
 import { useEffect, useState } from "preact/hooks";
-import { ExrateApiParsedResult } from "../routes/api/exrate.ts";
-import { EntsoeApiParsedResult } from "../routes/api/entsoe.ts";
+import { ExrateApiParsedResult, ExrateApiResult } from "../routes/api/exrate.ts";
+import { EntsoeApiParsedResult, EntsoeApiResult } from "../routes/api/entsoe.ts";
 import { applyExchangeRate, avgPrice, getExchangeRates, maxPrice, minPrice, nowPrice, processPrice } from "../utils/price.ts";
-import { generateUrl, monthName } from "../utils/common.ts";
+import { formatHhMm, generateUrl, getDataDay, getDataMonth, monthName } from "../utils/common.ts";
 
 interface AreaViewProps {
   unit: string;
@@ -14,6 +14,11 @@ interface AreaViewProps {
   currency: string;
   decimals: number;
   highlight: string;
+  dataToday: EntsoeApiParsedResult;
+  dataTomorrow?: EntsoeApiParsedResult;
+  dataMonth?: EntsoeApiParsedResult;
+  dataPrevMonth?: EntsoeApiParsedResult;
+  dataEr: ExrateApiResult;
   date: string;
   detailed?: boolean;
   dateT: string;
@@ -30,66 +35,26 @@ interface ChartSeries {
 }
 
 export default function SingleAreaOverview(props: AreaViewProps) {
-  const [rsToday, setRSToday] = useState<EntsoeApiParsedResult>(),
+
+  const 
+    [rsToday, setRSToday] = useState<EntsoeApiParsedResult>(),
     [rsTomorrow, setRSTomorrow] = useState<EntsoeApiParsedResult>(),
     [rsMonth, setRSMonth] = useState<EntsoeApiParsedResult>(),
-    [rsPrevMonth, setRSPrevMonth] = useState<EntsoeApiParsedResult>(),
-    [rsER, setRSER] = useState<ExrateApiParsedResult>();
+    [rsPrevMonth, setRSPrevMonth] = useState<EntsoeApiParsedResult>();
 
-  const getDataOne = async (date: string) => {
-    const startDate = new Date(Date.parse(date)),
-      endDate = new Date(Date.parse(date));
-    endDate.setHours(23);
-    const response = await fetch(generateUrl(props.areaId, startDate, endDate));
-    return await response.json();
-  };
-
-  const getDataMonth = async (date: string) => {
-    const startDate = new Date(Date.parse(date)),
-      endDate = new Date(Date.parse(date));
-    startDate.setDate(1);
-    endDate.setHours(23);
-
-    const response = await fetch(generateUrl(props.areaId, startDate, endDate));
-    return await response.json();
-  };
-
-  const getDataPrevMonth = async (date: string) => {
-    const startDate = new Date(Date.parse(date));
-    startDate.setMonth(startDate.getMonth() - 1);
-    startDate.setDate(1);
-    const endDate = new Date(Date.parse(date));
-    endDate.setDate(0);
-    endDate.setHours(23);
-    const response = await fetch(generateUrl(props.areaId, startDate, endDate));
-    return await response.json();
-  };
-
-  const tryGetData = async () => {
-    let dataToday = await getDataOne(props.date),
-      dataTomorrow = await getDataOne(props.dateT),
-      dataMonth,
-      dataPrevMonth;
-
-    const dataER = await getExchangeRates();
-
-    if (props.detailed) {
-      dataMonth = await getDataMonth(props.date);
-      dataPrevMonth = await getDataPrevMonth(props.date);
-    }
-
+  const tryGetData = () => {
+    console.log('get',props.dataToday);
     // Apply exchange rate if needed
-    dataToday = applyExchangeRate(dataToday, dataER, props.currency);
-    dataTomorrow = applyExchangeRate(dataTomorrow, dataER, props.currency);
-    if (dataMonth) dataMonth = applyExchangeRate(dataMonth, dataER, props.currency);
-    if (dataPrevMonth) dataPrevMonth = applyExchangeRate(dataPrevMonth, dataER, props.currency);
+    const dataToday = applyExchangeRate(props.dataToday, props.dataEr, props.currency);
+    const dataTomorrow = applyExchangeRate(props.dataTomorrow, props.dataEr, props.currency);
+    const dataMonth = props.dataMonth ? applyExchangeRate(props.dataMonth, props.dataEr, props.currency) : undefined;
+    const dataPrevMonth = props.dataPrevMonth ? applyExchangeRate(props.dataPrevMonth, props.dataEr, props.currency) : undefined;
 
     // Set preact states
     setRSToday(dataToday);
     setRSTomorrow(dataTomorrow);
     if (dataMonth) setRSMonth(dataMonth);
     if (dataPrevMonth) setRSPrevMonth(dataPrevMonth);
-    setRSER(dataER);
   };
 
   useEffect(() => {
@@ -137,7 +102,7 @@ export default function SingleAreaOverview(props: AreaViewProps) {
                 <div class="row mt-15">
                   <div class="col-7">
                     <h5 class="mb-0">
-                      <span data-t-key="common.overview.so_far" lang={props.lang}>So far in</span>&nbsp;{rsMonth?.data[0]?.startTime
+                      <span data-t-key="common.overview.so_far">So far in</span>&nbsp;{rsMonth?.data[0]?.startTime
                         ? monthName(new Date(Date.parse(rsMonth.data[0].startTime)))
                         : ""}
                     </h5>

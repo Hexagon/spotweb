@@ -1,10 +1,13 @@
 import { Handlers, PageProps } from "$fresh/server.ts";
 import SwHead from "../../components/layout/SwHead.tsx";
 import IndexIsland from "../../islands/IndexIsland.tsx";
+import { generateUrl, getDataDay, getDataMonth } from "../../utils/common.ts";
 import { countries } from "../../utils/countries.js";
+import { preferences } from "../../utils/preferences.js";
+import { applyExchangeRate, getExchangeRates } from "../../utils/price.ts";
 
 export const handler: Handlers = {
-  GET(_req, ctx) {
+  async GET(_req, ctx) {
 
     // Check country or return not found
     const country = countries.find((c) => c.id === ctx.params.country);
@@ -20,10 +23,28 @@ export const handler: Handlers = {
       });
     }
 
+    const er = await getExchangeRates();
+
+    const 
+      areaData = [],
+      todayDate = new Date(),
+      tomorrowDate = new Date();
+    tomorrowDate.setDate(tomorrowDate.getDate()+1);
+    for(const area of country.areas) {
+      areaData.push({
+        ...area,
+        dataToday: await getDataDay(area.id, todayDate),
+        dataTomorrow: await getDataDay(area.id, tomorrowDate),
+        dataMonth: await getDataMonth(area.id, todayDate),
+      });
+    }
+
     // Render all areas in country
     return ctx.render({
       country: ctx.params.country,
       countryObj: country,
+      areaData: areaData,
+      erData: er,
       lang: ctx.state.lang || ctx.params.country,
     });
   },

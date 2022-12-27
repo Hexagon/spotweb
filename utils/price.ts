@@ -91,20 +91,23 @@ const nowPrice = (rs: EntsoeApiParsedResult | undefined): number | null => {
 const applyExchangeRate = (rs: EntsoeApiParsedResult | undefined, ex: ExrateApiParsedResult, currency: string) => {
   // Treat "öre" as "SEK"
   if (currency === "öre") currency = "SEK";
-
+  const rsCopy = {...rs};
+  rsCopy.data = [];
   if (rs) {
     for (const d of rs.data) {
+      const dCopy = {...d};
       if (d.unit.includes("EUR")) {
         if (!d.unit.includes(currency)) {
           // Convert!
-          d.spotPrice = d.spotPrice * ex.data.entries[currency];
-          d.unit.replace("EUR", currency);
+          dCopy.spotPrice = d.spotPrice * ex.data.entries[currency];
+          dCopy.unit.replace("EUR", currency);
         }
       }
+      rsCopy.data.push(dCopy);
     }
   }
 
-  return rs;
+  return rsCopy;
 };
 
 const getExchangeRates = async () => {

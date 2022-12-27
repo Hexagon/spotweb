@@ -2,11 +2,10 @@ import { useEffect, useState } from "preact/hooks";
 import { ExrateApiParsedResult } from "../routes/api/exrate.ts";
 import { EntsoeApiParsedResult } from "../routes/api/entsoe.ts";
 import { liveViewChartOptions } from "../utils/charts/liveview.js";
-import { applyExchangeRate, avgPrice, getExchangeRates, maxPrice, minPrice, nowPrice, processPrice } from "../utils/price.ts";
+import { applyExchangeRate, processPrice } from "../utils/price.ts";
 import { formatHhMm, generateExchangeRateUrl, generateUrl } from "../utils/common.ts";
-import { countries } from "../utils/countries.js";
 
-interface LiveViewProps {
+interface AllAreaChartProps {
   unit: string;
   extra: number;
   factor: number;
@@ -16,8 +15,9 @@ interface LiveViewProps {
   date: string;
   title: string;
   priceFactor: boolean;
-  country: string;
   lang: string;
+  data: unknown;
+  erData: ExrateApiParsedResult;
 }
 
 interface EntsoeApiParsedResultArrayItem {
@@ -25,12 +25,10 @@ interface EntsoeApiParsedResultArrayItem {
   result: EntsoeApiParsedResult;
 }
 
-export default function AllAreaChart(props: LiveViewProps) {
-  const country = countries.find((c) => c.id === props.country),
-    [rsArr, setRSArr] = useState<EntsoeApiParsedResultArrayItem[]>(),
+export default function AllAreaChart(props: AllAreaChartProps) {
+  const 
     [chartElm, setChartElm] = useState(),
-    [randomChartId] = useState((Math.random() * 10000).toFixed(0)),
-    [rsER, setRSER] = useState<ExrateApiParsedResult>();
+    [randomChartId] = useState((Math.random() * 10000).toFixed(0));
 
   const renderChart = (seriesInput: EntsoeApiParsedResultArrayItem[], props: LiveViewProps) => {
     // Inject series into chart configuration
@@ -79,40 +77,25 @@ export default function AllAreaChart(props: LiveViewProps) {
     chart.render();
     setChartElm(chart);
   };
-
-  const getData = async (area: string) => {
-    const startDate = new Date(Date.parse(props.date)),
-      endDate = new Date(Date.parse(props.date));
-    endDate.setHours(23);
-    const response = await fetch(generateUrl(area, startDate, endDate));
-    return await response.json();
-  };
-
-  const tryGetData = async () => {
-    const dataER = await getExchangeRates();
-
-    const dataArr: EntsoeApiParsedResultArrayItem[] = [];
-    if (country?.areas) {
-      for (const area of country.areas) {
-        const resultSet: EntsoeApiParsedResult = await getData(area.id);
-        applyExchangeRate(resultSet, dataER, props.currency);
-        dataArr.push({ area: area.name, result: resultSet });
+  
+  const dataArr: EntsoeApiParsedResultArrayItem[] = [];
+  if (props.areaData) {
+    for (const area of props.areaData) {
+      let dataSet;
+      if (props.title=="today") {
+        dataSet = applyExchangeRate(area.dataToday, props.erData, props.currency);
+      } else {
+        dataSet = applyExchangeRate(area.dataTomorrow, props.erData, props.currency);
       }
+      dataArr.push({ area: area.name, result: dataSet });
     }
-
-    setRSArr(dataArr);
-    setRSER(dataER);
-  };
+  }
 
   useEffect(() => {
-    tryGetData();
-  }, []);
-
-  useEffect(() => {
-    if (rsArr?.length) {
-      renderChart(rsArr, props);
+    if (dataArr?.length) {
+      renderChart(dataArr, props);
     }
-  }, [rsArr, props.priceFactor]);
+  }, [props.priceFactor]);
 
   return (
     <div class="col-md m-0 p-0">
@@ -124,12 +107,12 @@ export default function AllAreaChart(props: LiveViewProps) {
             </h2>
           </div>
           <div class="content px-card m-0 p-0 bg-very-dark">
-            {!(rsArr) && (
+            {!(dataArr) && (
               <div class="col-lg text-center" style="height: 315px;">
                 <h6 style="margin:auto;">Uppdaterad data kommer kring 13:00</h6>
               </div>
             )}
-            {(rsArr) && <div class="col-lg" id={"chart_" + randomChartId}></div>}
+            {(dataArr) && <div class="col-lg" id={"chart_" + randomChartId}></div>}
           </div>
         </div>
       </div>

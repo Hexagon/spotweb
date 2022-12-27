@@ -9,8 +9,10 @@ import InformationPane from "../components/InformationPane.tsx";
 import { countries } from "../utils/countries.js";
 import { preferences } from "../utils/preferences.js";
 import PriceFactorWarning from "../components/PriceFactorWarning.tsx";
+import { applyExchangeRate, avgPrice, processPrice } from "../utils/price.ts";
 
 export default function IndexIsland(props: PageProps) {
+  
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
   const [factor, setFactor] = useState(preferences.factor(props.data.lang));
@@ -38,7 +40,7 @@ export default function IndexIsland(props: PageProps) {
     ...props.data,
   };
 
-  const countryElms = country?.areas.map((a, idx) => {
+  const countryElms = props.data.areaData.map((a, idx) => {
     return (
       <SingleAreaOverview
         key={idx}
@@ -47,6 +49,9 @@ export default function IndexIsland(props: PageProps) {
         areaName={a.name}
         areaId={a.id}
         cols={3}
+        dataToday={a.dataToday}
+        dataMonth={a.dataMonth}
+        dataEr={props.data.erData}
         date={dToday}
         dateT={dTomorrow}
         {...commonprops}
@@ -55,7 +60,19 @@ export default function IndexIsland(props: PageProps) {
     );
   });
 
-  const titleEntries = country?.areas.map((a, idx) => a.name + " - " + a.long).join(", ");
+  const areaDayPriceListItems = props.data.areaData.map((a, idx) => {
+    const dataTodayExchanged = applyExchangeRate(a.dataToday,props.data.erData,currency);
+    return (
+      <li>{a.name} - {a.long}: {processPrice(avgPrice(dataTodayExchanged),{...commonprops, priceFactor: false})} {currency}/{unit}</li>
+    )
+  });
+
+  const areaMonthPriceListItems = props.data.areaData.map((a, idx) => {    
+    const dataMonthExchanged = applyExchangeRate(a.dataMonth,props.data.erData,currency);
+    return (
+      <li>{a.name} - {a.long}: {processPrice(avgPrice(dataMonthExchanged), {...commonprops, priceFactor: false})} {currency}/{unit}</li>
+    )
+  });
 
   return (
     <div>
@@ -81,7 +98,10 @@ export default function IndexIsland(props: PageProps) {
         </Sidebar>
         <div class="content-wrapper">
           <h1 class="noshow" data-t-key="common.header.title" lang={commonprops.lang}>Timpris just nu, rörligt pris hittills i månaden och historiska priser</h1>
-          <h2 class="noshow">{titleEntries}</h2>
+          <h2 class="noshow" data-t-key="common.header.avg_today" lang={commonprops.lang}>Genomsnittligt spotpris idag</h2>
+          <ul class="noshow">{areaDayPriceListItems}</ul>
+          <h2 class="noshow" data-t-key="common.header.avg_month" lang={commonprops.lang}>Genomsnittligt spotpris hittills i månaden</h2>
+          <ul class="noshow">{areaMonthPriceListItems}</ul>
           <div class="content mt-0 mb-0 pr-0 mr-0 ml-20">
             <PriceFactorWarning priceFactor={!!priceFactor} factor={factor} extra={extra} lang={props.data.lang}></PriceFactorWarning>
             <div class="row">
@@ -94,7 +114,8 @@ export default function IndexIsland(props: PageProps) {
                 title="today"
                 priceFactor={priceFactor}
                 highlight="color-5"
-                date={dToday}
+                erData={props.data.erData}
+                data={props.data.areaData}
                 country={props.data.country}
                 {...commonprops}
               >
@@ -102,7 +123,8 @@ export default function IndexIsland(props: PageProps) {
               <AllAreaChart
                 title="tomorrow"
                 highlight="color-6"
-                date={dTomorrow}
+                erData={props.data.erData}
+                data={props.data.areaData}
                 country={props.data.country}
                 {...commonprops}
               >
