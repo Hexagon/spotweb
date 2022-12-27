@@ -28,33 +28,11 @@ interface ChartSeries {
 
 export default function SingleAreaOverview(props: AreaViewProps) {
 
-  const 
-    [rsToday, setRSToday] = useState<EntsoeApiParsedResult>(),
-    [rsTomorrow, setRSTomorrow] = useState<EntsoeApiParsedResult>(),
-    [rsMonth, setRSMonth] = useState<EntsoeApiParsedResult>(),
-    [rsPrevMonth, setRSPrevMonth] = useState<EntsoeApiParsedResult>();
-
-  const tryGetData = () => {
-
-    // Apply exchange rate if needed
-    const dataToday = applyExchangeRate(props.area.dataToday, props.er, props.currency);
-    const dataTomorrow = applyExchangeRate(props.area.dataTomorrow, props.er, props.currency);
-    const dataMonth = props.area.dataMonth ? applyExchangeRate(props.area.dataMonth, props.er, props.currency) : undefined;
-    const dataPrevMonth = props.area.dataPrevMonth ? applyExchangeRate(props.area.dataPrevMonth, props.er, props.currency) : undefined;
-
-    // Set preact states
-    setRSToday(dataToday);
-    setRSTomorrow(dataTomorrow);
-    if (dataMonth) setRSMonth(dataMonth);
-    if (dataPrevMonth) setRSPrevMonth(dataPrevMonth);
-  };
-
-  useEffect(() => {
-    tryGetData();
-  }, []);
-
-  
-  //tryGetData();
+  // Apply exchange rate if needed
+  const rsToday = applyExchangeRate(props.area.dataToday, props.er, props.currency);
+  const rsTomorrow = applyExchangeRate(props.area.dataTomorrow, props.er, props.currency);
+  const rsMonth = props.area.dataMonth ? applyExchangeRate(props.area.dataMonth, props.er, props.currency) : undefined;
+  const rsPrevMonth = props.area.dataPrevMonth ? applyExchangeRate(props.area.dataPrevMonth, props.er, props.currency) : undefined;
 
   return (
     <div class={`col-lg-${props.cols} m-0 p-0`}>

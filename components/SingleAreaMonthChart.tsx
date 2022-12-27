@@ -9,8 +9,7 @@ interface AreaViewProps {
   unit: string;
   extra: number;
   factor: number;
-  area: string;
-  areaId: string;
+  area: unknown;
   cols: number;
   currency: string;
   decimals: number;

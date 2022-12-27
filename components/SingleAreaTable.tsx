@@ -16,6 +16,7 @@ interface AreaTableProps {
   date: string;
   priceFactor: boolean;
   lang: string;
+  er: ExrateApiParsedResult;
 }
 
 interface ChartSeries {
@@ -24,10 +25,8 @@ interface ChartSeries {
 }
 
 export default function SingleAreaTable(props: AreaTableProps) {
-  const [rsToday, setRSToday] = useState<EntsoeApiParsedResult>(),
-    [rsER, setRSER] = useState<ExrateApiParsedResult>(),
-    [dayMax, setDayMax] = useState<number | null>(-Infinity),
-    [dayMin, setDayMin] = useState<number | null>(Infinity),
+  const 
+    [rsToday, setRSToday] = useState<EntsoeApiParsedResult>(),
     [dayHigh, setDayHigh] = useState<number | null>(-Infinity),
     [dayMid, setDayMid] = useState<number | null>(-Infinity),
     [dayLow, setDayLow] = useState<number | null>(Infinity);
@@ -43,10 +42,8 @@ export default function SingleAreaTable(props: AreaTableProps) {
   const tryGetData = async () => {
     let dataToday: EntsoeApiParsedResult = await getData(props.date);
 
-    const dataER = await getExchangeRates();
-
     // Apply exchange rate if needed¨
-    dataToday = applyExchangeRate(dataToday, dataER, props.currency);
+    dataToday = applyExchangeRate(dataToday, props.er, props.currency);
 
     // Filter data set
     dataToday.data = dataToday.data.filter((e) => new Date(Date.parse(e.startTime)) >= new Date(new Date().getTime() - 3600 * 1000));
@@ -62,8 +59,6 @@ export default function SingleAreaTable(props: AreaTableProps) {
     // Store day min/max
     const dayMaxVal = maxPrice(dataToday),
       dayMinVal = minPrice(dataToday);
-    setDayMax(dayMaxVal);
-    setDayMin(dayMinVal);
     if (dayMaxVal !== null && dayMinVal !== null) {
       setDayHigh(topThreeThreshold);
       setDayMid(topSixThreshold);
@@ -72,7 +67,6 @@ export default function SingleAreaTable(props: AreaTableProps) {
 
     // Set preact states
     setRSToday(dataToday);
-    setRSER(dataER);
   };
 
   useEffect(() => {

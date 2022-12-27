@@ -3,7 +3,7 @@ import { ExrateApiParsedResult } from "../routes/api/exrate.ts";
 import { EntsoeApiParsedResult } from "../routes/api/entsoe.ts";
 import { liveViewChartOptions } from "../utils/charts/liveview.js";
 import { applyExchangeRate, processPrice } from "../utils/price.ts";
-import { formatHhMm, generateExchangeRateUrl, generateUrl } from "../utils/common.ts";
+import { formatHhMm } from "../utils/common.ts";
 
 interface AllAreaChartProps {
   unit: string;

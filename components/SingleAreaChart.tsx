@@ -9,14 +9,11 @@ interface SingleAreaChartProps {
   unit: string;
   extra: number;
   factor: number;
-  area: string;
-  areaId: string;
+  area: unknown;
   cols: number;
   currency: string;
   decimals: number;
   highlight: string;
-  date: string;
-  dateT: string;
   title: string;
   priceFactor: boolean;
   lang: string;
@@ -28,11 +25,10 @@ interface ChartSeries {
 }
 
 export default function SingleAreaChart(props: SingleAreaChartProps) {
-  const [rsToday, setRSToday] = useState<EntsoeApiParsedResult>(),
-    [rsTomorrow, setRSTomorrow] = useState<EntsoeApiParsedResult>(),
+
+  const 
     [randomChartId] = useState((Math.random() * 10000).toFixed(0)),
-    [chartElm, setChartElm] = useState(),
-    [rsER, setRSER] = useState<ExrateApiParsedResult>();
+    [chartElm, setChartElm] = useState();
 
   const renderChart = (seriesInput: ChartSeries[], props: SingleAreaChartProps) => {
     // Inject series into chart configuration
@@ -80,32 +76,10 @@ export default function SingleAreaChart(props: SingleAreaChartProps) {
     setChartElm(chart);
   };
 
-  const getData = async (date: string) => {
-    const startDate = new Date(Date.parse(date)),
-      endDate = new Date(new Date(startDate).setHours(23));
-    const response = await fetch(generateUrl(props.areaId, startDate, endDate));
-    return await response.json();
-  };
-
-  const tryGetData = async () => {
-    let dataToday = await getData(props.date),
-      dataTomorrow = await getData(props.dateT);
-
-    const dataER = await getExchangeRates();
-
-    // Apply exchange rate if needed
-    dataToday = applyExchangeRate(dataToday, dataER, props.currency);
-    dataTomorrow = applyExchangeRate(dataTomorrow, dataER, props.currency);
-
-    // Set preact states
-    setRSToday(dataToday);
-    setRSTomorrow(dataTomorrow);
-    setRSER(dataER);
-  };
-
-  useEffect(() => {
-    tryGetData();
-  }, []);
+  // Apply exchange rate if needed
+  const
+      rsToday = applyExchangeRate(props.area.dataToday, props.er, props.currency),
+      rsTomorrow = applyExchangeRate(props.area.dataTomorrow, props.er, props.currency);
 
   useEffect(() => {
     if (rsToday?.valid && rsTomorrow?.valid) {
@@ -118,7 +92,7 @@ export default function SingleAreaChart(props: SingleAreaChartProps) {
         { name: "Idag", data: rsToday },
       ], props);
     }
-  }, [rsToday, rsTomorrow, props.priceFactor]);
+  }, [props.priceFactor, props.currency]);
 
   return (
     <div class={`col-lg-${props.cols} m-0 p-0`}>

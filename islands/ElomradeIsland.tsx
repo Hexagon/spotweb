@@ -77,7 +77,6 @@ export default function IndexIsland(props: PageProps) {
                   highlight={"color-" + area.color}
                   cols={3}
                   area={area}
-                  er={props.data.er}
                   detailed={true}
                   {...commonprops}
                 >
@@ -94,9 +93,7 @@ export default function IndexIsland(props: PageProps) {
                 title={area.name + " - " + area.long}
                 highlight={"color-" + area.color}
                 cols={6}
-                areaId={area.id}
-                date={dToday}
-                dateT={dTomorrow}
+                area={area}
                 {...commonprops}
               >
               </SingleAreaChart>
