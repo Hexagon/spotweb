@@ -1,7 +1,7 @@
 import { Handlers, PageProps } from "$fresh/server.ts";
 import SwHead from "../../components/layout/SwHead.tsx";
 import IndexIsland from "../../islands/IndexIsland.tsx";
-import { generateUrl, getDataDay, getDataMonth } from "../../utils/common.ts";
+import { getDataDay, getDataMonth } from "../../utils/common.ts";
 import { countries } from "../../utils/countries.js";
 import { preferences } from "../../utils/preferences.js";
 import { applyExchangeRate, getExchangeRates } from "../../utils/price.ts";
@@ -30,6 +30,7 @@ export const handler: Handlers = {
       todayDate = new Date(),
       tomorrowDate = new Date();
     tomorrowDate.setDate(tomorrowDate.getDate()+1);
+
     for(const area of country.areas) {
       areaData.push({
         ...area,
@@ -41,8 +42,7 @@ export const handler: Handlers = {
 
     // Render all areas in country
     return ctx.render({
-      country: ctx.params.country,
-      countryObj: country,
+      country: country,
       areaData: areaData,
       erData: er,
       lang: ctx.state.lang || ctx.params.country,
@@ -53,7 +53,7 @@ export const handler: Handlers = {
 export default function Index(props: PageProps) {
   return (
     <>
-      <SwHead title={props.data.countryObj.name + " - " + props.data.countryObj.areas.map(a => a.name).join(', ')}></SwHead>
+      <SwHead title={props.data.country.name + " - " + props.data.country.areas.map(a => a.name).join(', ')}></SwHead>
       <body lang={props.data.lang}>
         <IndexIsland {...props}></IndexIsland>
       </body>

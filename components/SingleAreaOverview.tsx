@@ -2,30 +2,22 @@ import { useEffect, useState } from "preact/hooks";
 import { ExrateApiParsedResult, ExrateApiResult } from "../routes/api/exrate.ts";
 import { EntsoeApiParsedResult, EntsoeApiResult } from "../routes/api/entsoe.ts";
 import { applyExchangeRate, avgPrice, getExchangeRates, maxPrice, minPrice, nowPrice, processPrice } from "../utils/price.ts";
-import { formatHhMm, generateUrl, getDataDay, getDataMonth, monthName } from "../utils/common.ts";
+import { monthName } from "../utils/common.ts";
 
 interface AreaViewProps {
   unit: string;
   extra: number;
   factor: number;
-  area: string;
-  areaId: string;
   cols: number;
   currency: string;
   decimals: number;
   highlight: string;
-  dataToday: EntsoeApiParsedResult;
-  dataTomorrow?: EntsoeApiParsedResult;
-  dataMonth?: EntsoeApiParsedResult;
-  dataPrevMonth?: EntsoeApiParsedResult;
-  dataEr: ExrateApiResult;
-  date: string;
+  area: unknown;
+  er: ExrateApiResult;
   detailed?: boolean;
-  dateT: string;
   title: string;
   priceFactor: boolean;
   country: string;
-  areaName?: string;
   lang: string;
 }
 
@@ -43,12 +35,12 @@ export default function SingleAreaOverview(props: AreaViewProps) {
     [rsPrevMonth, setRSPrevMonth] = useState<EntsoeApiParsedResult>();
 
   const tryGetData = () => {
-    console.log('get',props.dataToday);
+
     // Apply exchange rate if needed
-    const dataToday = applyExchangeRate(props.dataToday, props.dataEr, props.currency);
-    const dataTomorrow = applyExchangeRate(props.dataTomorrow, props.dataEr, props.currency);
-    const dataMonth = props.dataMonth ? applyExchangeRate(props.dataMonth, props.dataEr, props.currency) : undefined;
-    const dataPrevMonth = props.dataPrevMonth ? applyExchangeRate(props.dataPrevMonth, props.dataEr, props.currency) : undefined;
+    const dataToday = applyExchangeRate(props.area.dataToday, props.er, props.currency);
+    const dataTomorrow = applyExchangeRate(props.area.dataTomorrow, props.er, props.currency);
+    const dataMonth = props.area.dataMonth ? applyExchangeRate(props.area.dataMonth, props.er, props.currency) : undefined;
+    const dataPrevMonth = props.area.dataPrevMonth ? applyExchangeRate(props.area.dataPrevMonth, props.er, props.currency) : undefined;
 
     // Set preact states
     setRSToday(dataToday);
@@ -60,6 +52,9 @@ export default function SingleAreaOverview(props: AreaViewProps) {
   useEffect(() => {
     tryGetData();
   }, []);
+
+  
+  //tryGetData();
 
   return (
     <div class={`col-lg-${props.cols} m-0 p-0`}>
@@ -125,8 +120,8 @@ export default function SingleAreaOverview(props: AreaViewProps) {
           </div>
           {!props.detailed && (
             <div class="content px-card m-0 p-5 pr-10 bg-very-dark text-right">
-              <a href={"/" + props.country + "/" + props.areaName} class={"link-" + props.highlight}>
-                <span data-t-key="common.overview.more_about" lang={props.lang}>More about</span> {props.areaName} &gt;
+              <a href={"/" + props.country.id + "/" + props.area.name} class={"link-" + props.highlight}>
+                <span data-t-key="common.overview.more_about" lang={props.lang}>More about</span> {props.area.name} &gt;
               </a>
             </div>
           )}

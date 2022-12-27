@@ -9,7 +9,6 @@ import SingleAreaMonthChart from "../components/SingleAreaMonthChart.tsx";
 import InformationPane from "../components/InformationPane.tsx";
 import SingleAreaTable from "../components/SingleAreaTable.tsx";
 import { preferences } from "../utils/preferences.js";
-import { countries } from "../utils/countries.js";
 
 export default function IndexIsland(props: PageProps) {
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
@@ -27,9 +26,6 @@ export default function IndexIsland(props: PageProps) {
   const dToday = new Date().toLocaleDateString("sv-SE");
   const dTomorrow = new Date(new Date().getTime() + 24 * 3600 * 1000).toLocaleDateString("sv-SE");
 
-  const country = countries.find((c) => c.id === props.data.country);
-  const area = country?.areas.find((a) => a.name === props.data.area);
-
   const commonprops = {
     unit,
     factor,
@@ -39,6 +35,10 @@ export default function IndexIsland(props: PageProps) {
     priceFactor,
     ...props.data,
   };
+
+  const 
+    area = props.data.area,
+    country = props.data.country;
 
   if (!area || !country) {
     return <></>;
@@ -51,7 +51,7 @@ export default function IndexIsland(props: PageProps) {
           page={area.name}
           priceFactor={priceFactor}
           setPriceFactor={setPriceFactorStored}
-          country={props.data.country}
+          country={props.data.country.name}
           lang={props.data.lang}
         >
         </Navbar>
@@ -72,19 +72,16 @@ export default function IndexIsland(props: PageProps) {
             <h1 class="noshow" data-t-key="common.header.title" lang={commonprops.lang}>Timpris just nu, rörligt pris hittills i månaden och historiska priser</h1>
             <h2 class="noshow">{country.name} - {area.name} {area.long}</h2>
               <div class="sticky-alerts"></div>
-              <SingleAreaOverview
-                title={area.name + " - " + area.long}
-                highlight={"color-" + area.color}
-                cols={3}
-                areaName={area.name}
-                areaId={area.id}
-                date={dToday}
-                dateT={dTomorrow}
-                detailed={true}
-                country={props.data.country}
-                {...commonprops}
-              >
-              </SingleAreaOverview>
+                <SingleAreaOverview
+                  title={area.name + " - " + area.long}
+                  highlight={"color-" + area.color}
+                  cols={3}
+                  area={area}
+                  er={props.data.er}
+                  detailed={true}
+                  {...commonprops}
+                >
+                </SingleAreaOverview>
               <SingleAreaTable
                 priceFactor={priceFactor}
                 cols={3}

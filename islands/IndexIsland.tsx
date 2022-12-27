@@ -6,7 +6,6 @@ import Sidebar from "../components/layout/Sidebar.tsx";
 import AllAreaChart from "../components/AllAreaChart.tsx";
 import SingleAreaOverview from "../components/SingleAreaOverview.tsx";
 import InformationPane from "../components/InformationPane.tsx";
-import { countries } from "../utils/countries.js";
 import { preferences } from "../utils/preferences.js";
 import PriceFactorWarning from "../components/PriceFactorWarning.tsx";
 import { applyExchangeRate, avgPrice, processPrice } from "../utils/price.ts";
@@ -24,12 +23,7 @@ export default function IndexIsland(props: PageProps) {
     localStorage.setItem("sw_pricefactor", pf ? "true" : "false");
     setPriceFactor(pf);
   };
-
-  const country = countries.find((c) => props.data.country === c.id);
-
-  const dToday = new Date().toLocaleDateString("sv-SE");
-  const dTomorrow = new Date(new Date().getTime() + 24 * 3600 * 1000).toLocaleDateString("sv-SE");
-
+  
   const commonprops = {
     unit,
     factor,
@@ -46,14 +40,9 @@ export default function IndexIsland(props: PageProps) {
         key={idx}
         title={a.name + " - " + a.long}
         highlight={"color-" + a.color}
-        areaName={a.name}
-        areaId={a.id}
         cols={3}
-        dataToday={a.dataToday}
-        dataMonth={a.dataMonth}
-        dataEr={props.data.erData}
-        date={dToday}
-        dateT={dTomorrow}
+        area={a}
+        er={props.data.erData}
         {...commonprops}
       >
       </SingleAreaOverview>
@@ -81,7 +70,7 @@ export default function IndexIsland(props: PageProps) {
           page="index"
           priceFactor={priceFactor}
           setPriceFactor={setPriceFactorStored}
-          country={props.data.country}
+          country={props.data.country.name}
           lang={props.data.lang}
         >
         </Navbar>
@@ -118,8 +107,7 @@ export default function IndexIsland(props: PageProps) {
                 data={props.data.areaData}
                 country={props.data.country}
                 {...commonprops}
-              >
-              </AllAreaChart>
+              ></AllAreaChart>
               <AllAreaChart
                 title="tomorrow"
                 highlight="color-6"
@@ -127,8 +115,7 @@ export default function IndexIsland(props: PageProps) {
                 data={props.data.areaData}
                 country={props.data.country}
                 {...commonprops}
-              >
-              </AllAreaChart>
+              ></AllAreaChart>
             </div>
           </div>
           <div class="content mt-0 mr-0 ml-20">
