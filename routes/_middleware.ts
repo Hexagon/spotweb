@@ -22,10 +22,8 @@ export const handler = [
         lang = "fi";
       } else if (firstLang.includes("no")) {
         lang = "no";
-      } else if (firstLang.includes("en")) {
-        lang = "en";
-      } else {
-        lang = langFromUrl(new URL(req.url));
+      } else if (firstLang.includes("dk")) {
+        lang = "dk";
       }
     }
 
@@ -33,6 +31,11 @@ export const handler = [
     const urlParsed = new URL(req.url);
     if (urlParsed.searchParams.has("lang")) {
       lang = urlParsed.searchParams.get("lang");
+    }
+
+    // If lang is still not set to a valid value, default to sv
+    if (!(lang && ["sv","fi","no","dk"].includes(lang))) {
+      lang = "sv"
     }
 
     ctx.state.lang = lang;

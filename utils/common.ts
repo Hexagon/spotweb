@@ -74,8 +74,8 @@ const langFromUrl = (url: URL) => {
     return "fi";
   } else if (url?.pathname?.startsWith("/dk")) {
     return "dk";
+  } else {
+    return "sv";
   }
-
-  return "sv";
 };
 export { dateText, formatHhMm, generateExchangeRateUrl, generateUrl, langFromUrl, monthName };
