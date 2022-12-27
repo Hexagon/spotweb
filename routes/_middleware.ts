@@ -24,7 +24,11 @@ export const handler = [
         lang = "no";
       } else if (firstLang.includes("dk")) {
         lang = "dk";
+      } else {
+        lang = langFromUrl(new URL(req.url));
       }
+    } else {
+      lang = langFromUrl(new URL(req.url));
     }
 
     // Allow overriding by ?lang=<lang> in URL
