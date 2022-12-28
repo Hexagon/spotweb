@@ -7,9 +7,9 @@
     "@preact/signals": "https://esm.sh/*@preact/signals@1.0.3",
     "@preact/signals-core": "https://esm.sh/*@preact/signals-core@1.0.1",
     "sha256": "https://deno.land/x/sha256@v1.0.2/mod.ts?source",
-    "std/": "https://deno.land/std@0.166.0/",
+    "std/": "https://deno.land/std@0.170.0/",
     "compress/": "https://deno.land/x/compress@v0.4.5/",
-    "entsoe_api_client": "https://deno.land/x/entsoe_api_client@0.1.4/mod.ts",
+    "entsoe_api_client": "https://deno.land/x/entsoe_api_client@0.1.5/mod.ts",
     "fresh_seo": "https://deno.land/x/fresh_seo@0.2.1/mod.ts",
     "freshlate": "./vendor/freshlate/mod.ts"
   }

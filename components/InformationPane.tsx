@@ -42,7 +42,7 @@ export default function InformationPane(props: InformationPaneProps) {
               {rsER ? (rsER.data.entries[props.currency == "öre" ? "SEK" : props.currency]) : ""} {props.currency == "öre" ? "SEK" : props.currency}.
             </p>
             <p data-t-key="common.information.disclaimer_and_private_use" lang={props.lang}>Only for private use, no guarantees provided.</p>
-            <div style="display: none;">
+            <div>
               <p>Läs gärna på om timpris, rörligt pris, skatter och avgifter under respektive kategori här nedanför.</p>
               <details class="collapse-panel mw-full">
                 <summary class="collapse-header">
