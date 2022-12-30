@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
+Disallow: /_frsh/alive
 Sitemap: https://spot.56k.guru/sitemap.xml
