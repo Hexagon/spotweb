@@ -1,3 +1,4 @@
 cache
 db
+!backend/db
 deno.lock
