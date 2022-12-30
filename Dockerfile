@@ -13,7 +13,7 @@ RUN rm -rf /var/cache/apk/*
 
 # Copy spotweb script
 RUN mkdir /spotweb
-RUN mkdir /spotweb/cache
+RUN mkdir /spotweb/db
 COPY . /spotweb/
 
 # Copy entrypoint

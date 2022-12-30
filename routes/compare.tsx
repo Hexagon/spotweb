@@ -1,5 +1,5 @@
-import { Handlers, PageProps } from "$fresh/server.ts";
-import CompareIsland from "../islands/CompareIsland.tsx";
+import { Handlers, PageProps } from "fresh/server.ts";
+import CompareIsland from "islands/CompareIsland.tsx";
 
 export const handler: Handlers = {
   GET(req, ctx) {

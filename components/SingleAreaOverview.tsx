@@ -1,8 +1,7 @@
-import { useEffect, useState } from "preact/hooks";
-import { ExrateApiParsedResult, ExrateApiResult } from "../routes/api/exrate.ts";
-import { EntsoeApiParsedResult, EntsoeApiResult } from "../routes/api/entsoe.ts";
-import { applyExchangeRate, avgPrice, getExchangeRates, maxPrice, minPrice, nowPrice, processPrice } from "../utils/price.ts";
-import { monthName } from "../utils/common.ts";
+import { ExrateApiResult } from "routes/api/exrate.ts";
+import { EntsoeApiParsedResult } from "routes/api/entsoe.ts";
+import { applyExchangeRate, avgPrice, maxPrice, minPrice, nowPrice, processPrice } from "utils/price.ts";
+import { monthName } from "utils/common.ts";
 
 interface AreaViewProps {
   unit: string;
@@ -27,7 +26,6 @@ interface ChartSeries {
 }
 
 export default function SingleAreaOverview(props: AreaViewProps) {
-
   // Apply exchange rate if needed
   const rsToday = applyExchangeRate(props.area.dataToday, props.er, props.currency);
   const rsTomorrow = applyExchangeRate(props.area.dataTomorrow, props.er, props.currency);
@@ -75,8 +73,8 @@ export default function SingleAreaOverview(props: AreaViewProps) {
                 <div class="row mt-15">
                   <div class="col-7">
                     <h5 class="mb-0">
-                      <span data-t-key="common.overview.so_far">So far in</span>&nbsp;{rsMonth?.data[0]?.startTime
-                        ? monthName(new Date(Date.parse(rsMonth.data[0].startTime)))
+                      <span data-t-key="common.overview.so_far">So far in</span>&nbsp;{rsMonth[0]?.time
+                        ? monthName(new Date(Date.parse(rsMonth[0].time)))
                         : ""}
                     </h5>
                     <div class="mt-5 mb-5">
@@ -86,7 +84,7 @@ export default function SingleAreaOverview(props: AreaViewProps) {
                     <span>Spann: {processPrice(minPrice(rsMonth), props)} - {processPrice(maxPrice(rsMonth), props)}</span>
                   </div>
                   <div class="col-5 text-right">
-                    <h5 class="mb-0">{monthName(new Date(Date.parse(rsPrevMonth?.data[0]?.startTime)))}</h5>
+                    <h5 class="mb-0">{monthName(new Date(Date.parse(rsPrevMonth[0]?.time)))}</h5>
                     <div class="mt-5 mb-5">
                       <span class="font-size-24">{processPrice(avgPrice(rsPrevMonth), props)}</span>
                     </div>

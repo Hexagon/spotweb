@@ -1,9 +1,9 @@
 import { useState } from "preact/hooks";
-import { PageProps } from "$fresh/server.ts";
-import Navbar from "../components/layout/NavBar.tsx";
-import Sidebar from "../components/layout/Sidebar.tsx";
-import Comparison from "../components/Comparison.tsx";
-import { preferences } from "../utils/preferences.js";
+import { PageProps } from "fresh/server.ts";
+import Navbar from "components/layout/NavBar.tsx";
+import Sidebar from "components/layout/Sidebar.tsx";
+import Comparison from "components/Comparison.tsx";
+import { preferences } from "config/preferences.js";
 
 export default function IndexIsland(props: PageProps) {
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));

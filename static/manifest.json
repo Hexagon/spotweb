@@ -4,7 +4,7 @@
   "display": "standalone",
   "scope": "https://spot.56k.guru/",
   "id": "/",
-  "start_url": "https://spot.56k.guru/?accessKey=194174147afnuspwa",
+  "start_url": "https://spot.56k.guru/",
   "name": "Elpriset just nu",
   "short_name": "Elpris",
   "description": "Aktuella och historiska spotpriser från spot.56k.guru",

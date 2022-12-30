@@ -1,16 +1,26 @@
 {
   "imports": {
-    "$fresh/": "https://deno.land/x/fresh@1.1.2/",
+    "std/": "https://deno.land/std@0.170.0/",
+    "fresh/": "https://deno.land/x/fresh@1.1.2/",
     "preact": "https://esm.sh/preact@10.11.0",
     "preact/": "https://esm.sh/preact@10.11.0/",
     "preact-render-to-string": "https://esm.sh/*preact-render-to-string@5.2.4",
     "@preact/signals": "https://esm.sh/*@preact/signals@1.0.3",
     "@preact/signals-core": "https://esm.sh/*@preact/signals-core@1.0.1",
+    "config/": "./config/",
+    "backend/": "./backend/",
+    "components/": "./components/",
+    "islands/": "./islands/",
+    "utils/": "./utils/",
+    "routes/": "./routes/",
     "sha256": "https://deno.land/x/sha256@v1.0.2/mod.ts?source",
-    "std/": "https://deno.land/std@0.170.0/",
-    "compress/": "https://deno.land/x/compress@v0.4.5/",
     "entsoe_api_client": "https://deno.land/x/entsoe_api_client@0.1.5/mod.ts",
     "fresh_seo": "https://deno.land/x/fresh_seo@0.2.1/mod.ts",
-    "freshlate": "./vendor/freshlate/mod.ts"
+    "freshlate": "./vendor/freshlate/mod.ts",
+    "croner": "https://deno.land/x/croner@5.3.5/src/croner.js",
+    "sqlite": "https://deno.land/x/sqlite@v3.7.0/mod.ts",
+    "sleep": "https://deno.land/x/sleep@v1.2.1/mod.ts",
+    "xml": "https://deno.land/x/xml@2.0.4/mod.ts",
+    "$fresh/": "https://deno.land/x/fresh@1.1.2/"
   }
 }

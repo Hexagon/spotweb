@@ -10,10 +10,11 @@ import * as $3 from "./routes/_500.tsx";
 import * as $4 from "./routes/_middleware.ts";
 import * as $5 from "./routes/api/entsoe.ts";
 import * as $6 from "./routes/api/exrate.ts";
-import * as $7 from "./routes/compare.tsx";
-import * as $8 from "./routes/custom.tsx";
-import * as $9 from "./routes/index.tsx";
-import * as $10 from "./routes/sitemap.xml.ts";
+import * as $7 from "./routes/api/v2/spot.tsx";
+import * as $8 from "./routes/compare.tsx";
+import * as $9 from "./routes/custom.tsx";
+import * as $10 from "./routes/index.tsx";
+import * as $11 from "./routes/sitemap.xml.ts";
 import * as $$0 from "./islands/CompareIsland.tsx";
 import * as $$1 from "./islands/CustomIsland.tsx";
 import * as $$2 from "./islands/ElomradeIsland.tsx";
@@ -28,10 +29,11 @@ const manifest = {
     "./routes/_middleware.ts": $4,
     "./routes/api/entsoe.ts": $5,
     "./routes/api/exrate.ts": $6,
-    "./routes/compare.tsx": $7,
-    "./routes/custom.tsx": $8,
-    "./routes/index.tsx": $9,
-    "./routes/sitemap.xml.ts": $10,
+    "./routes/api/v2/spot.tsx": $7,
+    "./routes/compare.tsx": $8,
+    "./routes/custom.tsx": $9,
+    "./routes/index.tsx": $10,
+    "./routes/sitemap.xml.ts": $11,
   },
   islands: {
     "./islands/CompareIsland.tsx": $$0,

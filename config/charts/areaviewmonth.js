@@ -43,7 +43,7 @@ const areaViewMonthChartOptions = {
     theme: "dark",
     followCursor: true,
     x: {
-      format: "yyyy MM dd HH:mm",
+      format: "yyyy MM dd",
     },
   },
   grid: {

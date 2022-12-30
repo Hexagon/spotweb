@@ -1,4 +1,4 @@
-import { Head } from "$fresh/runtime.ts";
+import { Head } from "fresh/runtime.ts";
 
 interface HeadProps {
   title: string;
@@ -6,7 +6,7 @@ interface HeadProps {
 export default function SwHead(props: HeadProps) {
   return (
     <Head>
-      <title>Elpriset just nu - { props.title }</title>
+      <title>Elpriset just nu - {props.title}</title>
       <link rel="icon" type="image/png" href="/icon-192x192.png"></link>
 
       <meta name="description" content={"Se aktuellt timpris och månadspris i " + props.title + ". Visar både spotpris eller faktiskt pris."} />
@@ -35,7 +35,6 @@ export default function SwHead(props: HeadProps) {
       <link rel="manifest" href="/manifest.json"></link>
       <link href="https://fonts.cdnfonts.com/css/seven-segment" rel="stylesheet"></link>
       <link rel="stylesheet" href="/css/custom.css"></link>
-      <script src="/js/custom.js"></script>
     </Head>
   );
 }

@@ -1,5 +1,7 @@
-import { Handlers, PageProps } from "$fresh/server.ts";
-import CustomIsland from "../islands/CustomIsland.tsx";
+import { Handlers, PageProps } from "fresh/server.ts";
+import SwHead from "components/layout/SwHead.tsx";
+import CustomIsland from "islands/CustomIsland.tsx";
+import { GetExchangeRates } from "backend/db/index.ts";
 
 export const handler: Handlers = {
   GET(req, ctx) {
@@ -10,6 +12,8 @@ export const handler: Handlers = {
       startDate = url.searchParams.get("startDate"),
       endDate = url.searchParams.get("endDate");
 
+    const er = GetExchangeRates();
+
     // Fetch if input data is sane
     return ctx.render({
       permission: ctx.state.data,
@@ -18,10 +22,19 @@ export const handler: Handlers = {
       period,
       startDate,
       endDate,
+      er,
+      lang: ctx.state.lang,
     });
   },
 };
 
 export default function Home(props: PageProps) {
-  return <CustomIsland {...props}></CustomIsland>;
+  return (
+    <>
+      <SwHead title={" - Anpassad period"}></SwHead>
+      <body lang={props.data.lang} class="dark-mode">
+        <CustomIsland {...props}></CustomIsland>
+      </body>
+    </>
+  );
 }

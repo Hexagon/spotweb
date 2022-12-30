@@ -1,6 +1,4 @@
-import { useEffect, useState } from "preact/hooks";
-import { ExrateApiParsedResult } from "../routes/api/exrate.ts";
-import { getExchangeRates } from "../utils/price.ts";
+import { ExrateApiParsedResult } from "routes/api/exrate.ts";
 
 interface InformationPaneProps {
   unit: string;
@@ -11,19 +9,11 @@ interface InformationPaneProps {
   decimals: number;
   priceFactor: boolean;
   lang: string;
+  er: ExrateApiParsedResult;
 }
 
 export default function InformationPane(props: InformationPaneProps) {
-  const [rsER, setRSER] = useState<ExrateApiParsedResult>();
-
-  const tryGetData = async () => {
-    const dataER = await getExchangeRates();
-    setRSER(dataER);
-  };
-
-  useEffect(() => {
-    tryGetData();
-  }, []);
+  const rsER = props.er;
 
   return (
     <div class={`col-lg-${props.cols} m-0 p-0`}>
@@ -39,7 +29,7 @@ export default function InformationPane(props: InformationPaneProps) {
             </p>
             <p>
               <span data-t-key="common.information.all_values_from" lang={props.lang}>All values converted from EUR</span>{" "}
-              {rsER ? (rsER.data.entries[props.currency == "öre" ? "SEK" : props.currency]) : ""} {props.currency == "öre" ? "SEK" : props.currency}.
+              {rsER ? (rsER.entries[props.currency == "öre" ? "SEK" : props.currency]) : ""} {props.currency == "öre" ? "SEK" : props.currency}.
             </p>
             <p data-t-key="common.information.disclaimer_and_private_use" lang={props.lang}>Only for private use, no guarantees provided.</p>
             <div class="hidden">

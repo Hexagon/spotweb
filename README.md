@@ -1,6 +1,7 @@
 # spotweb
 
-Source code of [https://spot.56k.guru](https://spot.56k.guru) - dockerized open source Deno application that gets and caches electricity prices (spot price) from ENTSO-e. Currently available in Swedish, Finnish, Danish and Norwegian.
+Source code of [https://spot.56k.guru](https://spot.56k.guru) - dockerized open source Deno application that gets and caches electricity prices (spot
+price) from ENTSO-e. Currently available in Swedish, Finnish, Danish and Norwegian.
 
 ### Development
 
@@ -26,7 +27,6 @@ deno run --allow-read=. --allow-write=. --allow-net https://deno.land/x/udd/main
 
 Apply the updates manually!
 
-
 ### Build docker container
 
 ```
@@ -45,8 +45,8 @@ Expose only to localhost
 docker run -d -p 127.0.0.1:8135:8000 -e API_TOKEN="your-entsoe-api-token" -e TZ='Europe/Stockholm' --name="spotweb" local-spotweb
 ```
 
-To use persistant cache in a host folder, add this parameter to the `docker run` command
+To use persistant database in a host folder, add this parameter to the `docker run` command
 
 ```
--v /path/on/host/spotweb/cache:/spotweb/cache
+-v /path/on/host/spotweb/db:/spotweb/db
 ```

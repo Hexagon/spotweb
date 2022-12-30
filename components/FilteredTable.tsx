@@ -1,8 +1,9 @@
 import { useEffect, useState } from "preact/hooks";
-import Table from "../components/Table.tsx";
-import { ExrateApiParsedResult } from "../routes/api/exrate.ts";
-import { generateUrl } from "../utils/common.ts";
-import { applyExchangeRate, getExchangeRates } from "../utils/price.ts";
+import Table from "components/Table.tsx";
+import { ExrateApiParsedResult } from "routes/api/exrate.ts";
+import { generateUrl } from "utils/common.ts";
+import { GetExchangeRates } from "backend/db/index.ts";
+import { applyExchangeRate } from "utils/price.ts";
 
 interface FilterProps {
   period: string;
@@ -33,22 +34,18 @@ export default function FilteredTable(props: FilterProps) {
 
   const [loading, setLoading] = useState(false);
 
-  const [rsER, setRSER] = useState<ExrateApiParsedResult>();
-
   const getData = async () => {
     setLoading(true);
     setResultSet(undefined);
     // Fetch if input data is sane
     if (ensureLocalProps()) {
-      const url = generateUrl(area, new Date(Date.parse(startDate)), new Date(new Date(Date.parse(endDate)).setHours(23)));
+      const url = generateUrl(area, new Date(Date.parse(startDate)), new Date(new Date(Date.parse(endDate))), period);
       if (url) {
         //setPermalink(generatePermalink("custom") as string);
         setPermalinkJson(url as string);
-        const dataER = await getExchangeRates();
-        setRSER(dataER);
         const response = await fetch(url);
         let result = await response.json();
-        result = applyExchangeRate(result, dataER, currency);
+        result = applyExchangeRate(result.data, props.er, currency);
         setResultSet(result);
       }
     }

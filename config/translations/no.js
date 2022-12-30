@@ -3,7 +3,7 @@ const no = {
     "header": {
       "title": "Timepris akkurat nå, variabel pris så langt denne måneden og historiske priser",
       "avg_today": "Gjennomsnittlig spotpris i dag",
-      "avg_month": "Gjennomsnittlig spotpris så langt denne måneden"
+      "avg_month": "Gjennomsnittlig spotpris så langt denne måneden",
     },
     "warning": {
       "actual_price": "Faktisk strømpris",

@@ -1,16 +1,9 @@
 import { sha256 } from "sha256";
-import { resolve } from "std/path/mod.ts";
-import { deflateRaw, inflateRaw } from "compress/zlib/mod.ts";
 
 interface IDataCache {
   source: string;
   dt: Date;
   timeLeft: number;
-  valid: boolean;
-  data: unknown;
-}
-
-interface IDataCacheLiveResponse {
   valid: boolean;
   data: unknown;
 }
@@ -57,44 +50,26 @@ const DataCachePolicy = {
 
 const MemCache = new Map();
 
-const DataCache = async (params: unknown, baseId: string, policy: string, liveFetch: unknown) => {
+const DataCache = async (params: unknown, policy: string, liveFetch: unknown) => {
   // Check cache policy
   const usedPolicy: IDataCachePolicy = DataCachePolicy[policy];
 
-  if (!usedPolicy) throw new Error("Invalid cache policy");
+  if (!usedPolicy) throw new Error("Invalid cache policy " + policy);
 
   // Make checksum of parameters
   const paramString = new URLSearchParams({ ...params }).toString(),
     paramHash = sha256(paramString, "utf8", "hex");
 
   // Check for cache
-  let cacheContent;
+
   try {
     let cacheJSON: IDataCacheParsed | IDataCache | undefined;
     // Memcache
     if (MemCache.has(paramHash)) {
-
       cacheJSON = MemCache.get(paramHash);
-   
+
       if (cacheJSON) {
         cacheJSON.source = "memcache";
-      }
-
-    // diskCache
-    } else {
-
-      cacheContent = await Deno.readFile(resolve(Deno.cwd(), `./cache/${baseId}.${paramHash}.cache`));
-      if (cacheContent) {
-        const cacheInflated = inflateRaw(cacheContent),
-        cacheResult = new TextDecoder().decode(cacheInflated);
-        cacheJSON = JSON.parse(cacheResult);
-        if( cacheJSON) {
-           // Parse date time
-           cacheJSON.dt = new Date(Date.parse(cacheJSON.dt as string));      
-        }
-
-        // Hoist to memcache
-        MemCache.set(paramHash, cacheJSON);
       }
     }
 
@@ -124,19 +99,7 @@ const DataCache = async (params: unknown, baseId: string, policy: string, liveFe
       ...result,
     };
 
-    MemCache.set(paramHash,resultObj);
-    
-    const resultStr: string = JSON.stringify(resultObj);
-    const resultBytes = new TextEncoder().encode(resultStr);
-    const compressedResult = deflateRaw(resultBytes);
-    try {
-      Deno.writeFile(
-        resolve(Deno.cwd(), `./cache/${baseId}.${paramHash}.cache`),
-        compressedResult,
-      );
-    } catch (_e) {
-      console.log("Failed to write cache");
-    }
+    MemCache.set(paramHash, resultObj);
 
     // Respond
     return {

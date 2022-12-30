@@ -1,9 +1,9 @@
 import { useEffect, useState } from "preact/hooks";
-import { ExrateApiParsedResult } from "../routes/api/exrate.ts";
-import { EntsoeApiParsedResult } from "../routes/api/entsoe.ts";
-import { areaViewMonthChartOptions } from "../utils/charts/areaviewmonth.js";
-import { applyExchangeRate, getExchangeRates, processPrice } from "../utils/price.ts";
-import { generateUrl } from "../utils/common.ts";
+import { ExrateApiParsedResult } from "routes/api/exrate.ts";
+import { EntsoeApiParsedResult } from "routes/api/entsoe.ts";
+import { areaViewMonthChartOptions } from "config/charts/areaviewmonth.js";
+import { applyExchangeRate, processPrice } from "utils/price.ts";
+import { generateUrl } from "utils/common.ts";
 
 interface AreaViewProps {
   unit: string;
@@ -19,6 +19,7 @@ interface AreaViewProps {
   title: string;
   priceFactor: boolean;
   lang: string;
+  er: ExrateApiParsedResult;
 }
 
 interface ChartSeries {
@@ -31,15 +32,14 @@ export default function SingleAreaMonthChart(props: AreaViewProps) {
   const [rsMonth, setRSMonth] = useState<EntsoeApiParsedResult>(),
     [rsComparison, setRSComparison] = useState<EntsoeApiParsedResult>(),
     [randomChartId] = useState((Math.random() * 10000).toFixed(0)),
-    [chartElm, setChartElm] = useState(),
-    [rsER, setRSER] = useState<ExrateApiParsedResult>();
+    [chartElm, setChartElm] = useState();
 
   const [comparison, setComparison] = useState<string | undefined>();
 
   const getData30d = async (area: string, date: Date) => {
     const startDate = new Date(date.getTime() - 30 * 24 * 60 * 60 * 1000),
       endDate = new Date(new Date(date).setDate(date.getDate() + 1));
-    const response = await fetch(generateUrl(area, startDate, endDate));
+    const response = await fetch(generateUrl(area, startDate, endDate, "daily"));
     return await response.json();
   };
 
@@ -49,8 +49,8 @@ export default function SingleAreaMonthChart(props: AreaViewProps) {
     for (const s of seriesInput) {
       series.push(
         {
-          data: s.data.data.map((e) => {
-            return { x: new Date(Date.parse(e.startTime)).getTime(), y: processPrice(e.spotPrice, props) };
+          data: s.data.map((e) => {
+            return { x: Date.parse(e.time), y: processPrice(e.price, props) };
           }),
           name: s.name,
           type: s.type,
@@ -66,13 +66,13 @@ export default function SingleAreaMonthChart(props: AreaViewProps) {
     if (seriesInput.length > 1) chartOptions.fill = {};
 
     // Inject annotations for now
-    const hourNow = new Date();
-    hourNow.setMinutes(0);
+    const dateMow = new Date();
+    dateMow.setHours(0, 0, 0, 0);
 
     chartOptions.annotations = {
       xaxis: [
         {
-          x: hourNow.getTime(),
+          x: dateMow.getTime(),
           seriesIndex: 0,
           borderColor: "#ff7Da0",
           label: {
@@ -94,13 +94,10 @@ export default function SingleAreaMonthChart(props: AreaViewProps) {
   };
 
   const tryGetData = async () => {
-    const dataER = await getExchangeRates();
-    setRSER(dataER);
-    if (!(rsMonth?.valid)) {
-      let dataMonth = await getData30d(props.areaId, new Date(Date.parse(props.date)));
-
+    if (!rsMonth) {
+      let dataMonth = await getData30d(props.area.name, new Date(Date.parse(props.date)));
       // Apply exchange rate if needed
-      dataMonth = applyExchangeRate(dataMonth, dataER, props.currency);
+      dataMonth = applyExchangeRate(dataMonth.data, props.er, props.currency);
       // Set preact states
       setRSMonth(dataMonth);
     }
@@ -108,7 +105,7 @@ export default function SingleAreaMonthChart(props: AreaViewProps) {
       let dataMonth = await getData30d(comparison, new Date(Date.parse(props.date)));
 
       // Apply exchange rate if needed
-      dataMonth = applyExchangeRate(dataMonth, dataER, props.currency);
+      dataMonth = applyExchangeRate(dataMonth.data, props.er, props.currency);
       // Set preact states
       setRSComparison(dataMonth);
     }
@@ -123,14 +120,14 @@ export default function SingleAreaMonthChart(props: AreaViewProps) {
   }, [comparison]);
 
   useEffect(() => {
-    if (rsMonth?.valid && comparison && rsComparison?.valid) {
+    if (rsMonth && comparison && rsComparison) {
       renderChart([
-        { name: props.area, data: rsMonth, type: "line" },
+        { name: props.area.name, data: rsMonth, type: "line" },
         { name: comparison, data: rsComparison, type: "line" },
       ], props);
-    } else if (rsMonth?.valid) {
+    } else if (rsMonth) {
       renderChart([
-        { name: props.area, data: rsMonth, type: "line" },
+        { name: props.area.name, data: rsMonth, type: "line" },
       ], props);
     }
   }, [rsMonth, rsComparison, props.priceFactor]);
@@ -158,14 +155,14 @@ export default function SingleAreaMonthChart(props: AreaViewProps) {
                   <option value="SE2">SE2</option>
                   <option value="SE3">SE3</option>
                   <option value="SE4">SE4</option>
-                  <option value="IBA|NO1">NO1</option>
-                  <option value="IBA|NO2">NO2</option>
-                  <option value="IBA|NO3">NO3</option>
-                  <option value="IBA|NO4">NO4</option>
-                  <option value="IBA|NO5">NO5</option>
-                  <option value="IPA|DK1">DK1</option>
-                  <option value="IPA|DK2">DK2</option>
-                  <option value="BZN|FI">FI</option>
+                  <option value="NO1">NO1</option>
+                  <option value="NO2">NO2</option>
+                  <option value="NO3">NO3</option>
+                  <option value="NO4">NO4</option>
+                  <option value="NO5">NO5</option>
+                  <option value="DK1">DK1</option>
+                  <option value="DK2">DK2</option>
+                  <option value="FI">FI</option>
                 </select>
               </div>
             </div>

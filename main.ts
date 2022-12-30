@@ -7,11 +7,13 @@
 import languagePlugin from "freshlate";
 import languageConfig from "./translate.config.ts";
 
-import { start } from "$fresh/server.ts";
+import { start } from "fresh/server.ts";
 import manifest from "./fresh.gen.ts";
 import { langFromUrl } from "./utils/common.ts";
+import { scheduler } from "./backend/scheduler/index.ts";
 
-await start(
+// Start front end
+start(
   manifest,
   {
     plugins: [languagePlugin({ ...languageConfig })],
@@ -22,3 +24,6 @@ await start(
     },
   },
 );
+
+// Start back end
+scheduler.start();

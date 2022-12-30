@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { countries } from "../../utils/countries.js";
+import { countries } from "config/countries.js";
 
 interface NavbarProps {
   page: string;

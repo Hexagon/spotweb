@@ -1,9 +1,9 @@
 import { useEffect, useState } from "preact/hooks";
-import { ExrateApiParsedResult } from "../routes/api/exrate.ts";
-import { EntsoeApiParsedResult } from "../routes/api/entsoe.ts";
-import { areaViewChartOptions } from "../utils/charts/areaview.js";
-import { applyExchangeRate, getExchangeRates, processPrice } from "../utils/price.ts";
-import { formatHhMm, generateUrl } from "../utils/common.ts";
+import { ExrateApiParsedResult } from "routes/api/exrate.ts";
+import { EntsoeApiParsedResult } from "routes/api/entsoe.ts";
+import { areaViewChartOptions } from "config/charts/areaview.js";
+import { applyExchangeRate, processPrice } from "utils/price.ts";
+import { formatHhMm, generateUrl } from "utils/common.ts";
 
 interface SingleAreaChartProps {
   unit: string;
@@ -25,9 +25,7 @@ interface ChartSeries {
 }
 
 export default function SingleAreaChart(props: SingleAreaChartProps) {
-
-  const 
-    [randomChartId] = useState((Math.random() * 10000).toFixed(0)),
+  const [randomChartId] = useState((Math.random() * 10000).toFixed(0)),
     [chartElm, setChartElm] = useState();
 
   const renderChart = (seriesInput: ChartSeries[], props: SingleAreaChartProps) => {
@@ -36,8 +34,8 @@ export default function SingleAreaChart(props: SingleAreaChartProps) {
     for (const s of seriesInput) {
       series.push(
         {
-          data: s.data.data.map((e) => {
-            return { x: formatHhMm(new Date(Date.parse(e.startTime))), y: processPrice(e.spotPrice, props) };
+          data: s.data.map((e) => {
+            return { x: formatHhMm(new Date(Date.parse(e.time))), y: processPrice(e.price, props) };
           }),
           name: s.name,
         },
@@ -77,17 +75,16 @@ export default function SingleAreaChart(props: SingleAreaChartProps) {
   };
 
   // Apply exchange rate if needed
-  const
-      rsToday = applyExchangeRate(props.area.dataToday, props.er, props.currency),
-      rsTomorrow = applyExchangeRate(props.area.dataTomorrow, props.er, props.currency);
+  const rsToday = applyExchangeRate(props.area.dataToday, props.er, props.currency),
+    rsTomorrow = applyExchangeRate(props.area.dataTomorrow, props.er, props.currency);
 
   useEffect(() => {
-    if (rsToday?.valid && rsTomorrow?.valid) {
+    if (rsToday && rsTomorrow) {
       renderChart([
         { name: "Idag", data: rsToday },
         { name: "Imorgon", data: rsTomorrow },
       ], props);
-    } else if (rsToday?.valid) {
+    } else if (rsToday) {
       renderChart([
         { name: "Idag", data: rsToday },
       ], props);

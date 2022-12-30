@@ -1,9 +1,8 @@
-import { Handlers, PageProps } from "$fresh/server.ts";
-import SwHead from "../../components/layout/SwHead.tsx";
-import ElomradeIsland from "../../islands/ElomradeIsland.tsx";
-import { getDataDay, getDataMonth } from "../../utils/common.ts";
-import { countries } from "../../utils/countries.js";
-import { getExchangeRates } from "../../utils/price.ts";
+import { Handlers, PageProps } from "fresh/server.ts";
+import SwHead from "components/layout/SwHead.tsx";
+import ElomradeIsland from "islands/ElomradeIsland.tsx";
+import { GetDataDay, GetDataMonth, GetExchangeRates } from "backend/db/index.ts";
+import { countries } from "config/countries.js";
 
 export const handler: Handlers = {
   async GET(_req, ctx) {
@@ -26,23 +25,22 @@ export const handler: Handlers = {
     if (!foundArea) {
       return ctx.renderNotFound();
     }
-  
-      const er = await getExchangeRates();
-  
-      const 
-        todayDate = new Date(),
-        tomorrowDate = new Date(),
-        prevMonthDate = new Date();
-      tomorrowDate.setDate(tomorrowDate.getDate()+1);
-      prevMonthDate.setMonth(prevMonthDate.getMonth()-1);
-      const area = {
-        ...foundArea,
-        dataToday: await getDataDay(foundArea.id, todayDate),
-        dataTomorrow: await getDataDay(foundArea.id, tomorrowDate),
-        dataMonth: await getDataMonth(foundArea.id, todayDate),
-        dataPrevMonth: await getDataMonth(foundArea.id, prevMonthDate),
-      };
-    
+
+    const er = await GetExchangeRates();
+
+    const todayDate = new Date(),
+      tomorrowDate = new Date(),
+      prevMonthDate = new Date();
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+    const area = {
+      ...foundArea,
+      dataToday: await GetDataDay(foundArea.name, todayDate),
+      dataTomorrow: await GetDataDay(foundArea.name, tomorrowDate),
+      dataMonth: await GetDataMonth(foundArea.name, todayDate),
+      dataPrevMonth: await GetDataMonth(foundArea.name, prevMonthDate),
+    };
+
     return ctx.render({
       area: area,
       country: country,
@@ -56,7 +54,7 @@ export default function Area(props: PageProps) {
   return (
     <>
       <SwHead title={props.data.area.name + " - " + props.data.area.long}></SwHead>
-      <body lang={props.data.lang}>
+      <body lang={props.data.lang} class="dark-mode">
         <ElomradeIsland {...props}></ElomradeIsland>
       </body>
     </>

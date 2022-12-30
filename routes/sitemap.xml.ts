@@ -1,6 +1,6 @@
-import { Handlers } from "$fresh/server.ts";
+import { Handlers } from "fresh/server.ts";
 import { SitemapContext } from "fresh_seo";
-import { countries } from "../utils/countries.js";
+import { countries } from "config/countries.js";
 import manifest from "../fresh.gen.ts";
 
 export const handler: Handlers = {
@@ -8,6 +8,8 @@ export const handler: Handlers = {
     const sitemap = new SitemapContext("https://spot.56k.guru", manifest);
 
     // Remove "secrets"
+
+    sitemap.remove("/api/v2/spot");
     sitemap.remove("/api/entsoe");
     sitemap.remove("/api/exrate");
     sitemap.remove("/compare");

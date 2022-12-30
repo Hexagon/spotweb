@@ -3,7 +3,7 @@ const sv = {
     "header": {
       "title": "Timpris just nu, rörligt pris hittills i månaden och historiska priser",
       "avg_today": "Genomsnittligt spotpris idag",
-      "avg_month": "Genomsnittligt spotpris hittills i månaden"
+      "avg_month": "Genomsnittligt spotpris hittills i månaden",
     },
     "warning": {
       "actual_price": "Faktiskt elpris",

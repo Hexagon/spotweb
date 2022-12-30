@@ -1,6 +1,6 @@
 import { assertEquals, assertObjectMatch } from "https://deno.land/std@0.160.0/testing/asserts.ts";
 
-import { LanguageService } from "../freshlate/translation.ts";
+import { LanguageService } from "freshlate/translation.ts";
 
 Deno.test("Add empty language", () => {
   const svc = new LanguageService();

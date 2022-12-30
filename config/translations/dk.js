@@ -3,7 +3,7 @@ const dk = {
     "header": {
       "title": "Timepris lige nu, variabel pris indtil videre i denne måned og historiske priser",
       "avg_today": "Gennemsnitlig spotpris i dag",
-      "avg_month": "Gennemsnitlig spotpris indtil videre i denne måned"
+      "avg_month": "Gennemsnitlig spotpris indtil videre i denne måned",
     },
     "warning": {
       "actual_price": "Faktisk elpris",

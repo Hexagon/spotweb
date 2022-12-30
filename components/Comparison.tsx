@@ -1,9 +1,10 @@
 import { useEffect, useState } from "preact/hooks";
-import { ExrateApiParsedResult } from "../routes/api/exrate.ts";
-import { comparisonChartOptions } from "../utils/charts/comparison.js";
-import { applyExchangeRate, getExchangeRates, processPrice } from "../utils/price.ts";
-import { generateUrl } from "../utils/common.ts";
-import { EntsoeApiParsedResult } from "../routes/api/entsoe.ts";
+import { ExrateApiParsedResult } from "routes/api/exrate.ts";
+import { comparisonChartOptions } from "config/charts/comparison.js";
+import { applyExchangeRate, processPrice } from "utils/price.ts";
+import { generateUrl } from "utils/common.ts";
+import { EntsoeApiParsedResult } from "routes/api/entsoe.ts";
+import { GetExchangeRates } from "backend/db/index.ts";
 
 interface ComparisonProps {
   period: string;
@@ -66,7 +67,7 @@ export default function Comparison(props: ComparisonProps) {
       if (ensureLocalProps()) {
         const url = generateUrl(a, new Date(Date.parse(startDate)), new Date(Date.parse(endDate)));
         if (url) {
-          const dataER = await getExchangeRates();
+          const dataER = await GetExchangeRates();
           setRSER(dataER);
           const response = await fetch(url);
           let result = await response.json();

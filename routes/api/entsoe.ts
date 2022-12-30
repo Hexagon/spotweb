@@ -1,77 +1,6 @@
-import { HandlerContext } from "$fresh/server.ts";
-import { Query } from "entsoe_api_client";
-import { DataCache, IDataCache } from "../../utils/datacache.ts";
-
-interface EntsoeApiRow {
-  startTime: Date;
-  endTime: Date;
-  areaCode: string;
-  spotPrice: number;
-  unit: string;
-}
-
-interface EntsoeApiParsedRow {
-  startTime: string;
-  endTime: string;
-  areaCode: string;
-  spotPrice: number;
-  unit: string;
-}
-
-interface EntsoeApiResult {
-  source: string;
-  valid: boolean;
-  dt: Date;
-  data: EntsoeApiRow[];
-}
-
-interface EntsoeApiParsedResult {
-  source: string;
-  valid: boolean;
-  dt: string;
-  data: EntsoeApiParsedRow[];
-}
-
-const entsoeSpotprice = async (area: string, startDate: Date, endDate: Date) => {
-  const output: EntsoeApiRow[] = [];
-  let resultJson;
-  try {
-    resultJson = await Query(
-      Deno.env.get("API_TOKEN"),
-      {
-        documentType: "A44", 
-        inDomain: area, 
-        outDomain: area, 
-        startDateTime: startDate, 
-        endDateTime: endDate
-      }
-    );
-  } catch (_e) {
-    // Ignore
-  }
-  if (resultJson) {
-    try {
-      for (const ts of resultJson.TimeSeries) {
-        const baseDate = new Date(ts.Period.timeInterval.start);
-        for (const p of ts.Period.Point) {
-          output.push({
-            startTime: new Date(baseDate.getTime() + (parseInt(p.position, 10) - 1) * 3600 * 1000),
-            endTime: new Date(baseDate.getTime() + (parseInt(p.position, 10)) * 3600 * 1000),
-            areaCode: area,
-            spotPrice: parseFloat(p["price.amount"]),
-            unit: "EUR/MWh",
-          });
-        }
-      }
-    } catch (_e) {
-      console.error(_e);
-    }
-  }
-
-  return output;
-};
-
-export type { EntsoeApiParsedResult, EntsoeApiParsedRow, EntsoeApiResult, EntsoeApiRow };
+import { HandlerContext } from "fresh/server.ts";
+import { DataCache, IDataCache } from "utils/datacache.ts";
+import { EntsoeApiRow, EntsoeSpotprice } from "backend/integrations/entsoe.ts";
 
 // deno-lint-ignore no-explicit-any
 export const handler = async (req: Request, _ctx: HandlerContext<any, Record<string, any>>): Promise<Response> => {
@@ -125,11 +54,11 @@ export const handler = async (req: Request, _ctx: HandlerContext<any, Record<str
 
   // Get actual result
   const params = { period, area, currency, startDate: isoStartDate, endDate: isoEndDate },
-    result: IDataCache = await DataCache(params, "entsoe", limitCache === "true" ? "hour-2" : "hour-6", async () => {
+    result: IDataCache = await DataCache(params, limitCache === "true" ? "hour-2" : "hour-6", async () => {
       // Get result
       let data: EntsoeApiRow[] = [];
       try {
-        data = await entsoeSpotprice(area, parsedStartDate, parsedEndDate);
+        data = await EntsoeSpotprice(area, parsedStartDate, parsedEndDate);
       } catch (e) {
         throw new Error("Entsoe request failed", e);
       }

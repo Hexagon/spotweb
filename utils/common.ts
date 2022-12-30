@@ -14,20 +14,15 @@ const dateText = (d: Date) => {
   else return d.toLocaleDateString();
 };
 
-const generateExchangeRateUrl = () => {
+const generateUrl = (area: string, startDate: Date, endDate: Date, period?: string) => {
+  const params: unknown = {
+    area: area,
+    period: period ? period : "hourly",
+    startDate: startDate.toLocaleDateString("sv-SE"),
+    endDate: endDate.toLocaleDateString("sv-SE"),
+  };
   const url = window.location || new URL("https://spot.56k.guru/"),
-    inPath = "api/exrate",
-    fullUrl = url.protocol + "//" + url.host + "/" +
-      (inPath ? inPath : "") + "?" +
-      new URLSearchParams({}).toString();
-  return fullUrl;
-};
-
-const generateUrl = (area: string, startDate: Date, endDate: Date, limitCache?: boolean) => {
-  const params: unknown = { currency: "SEK", area: area, period: "hourly", startDate: startDate.toISOString(), endDate: endDate.toISOString() };
-  if (limitCache) params.limitCache = true;
-  const url = window.location || new URL("https://spot.56k.guru/"),
-    inPath = "api/entsoe",
+    inPath = "api/v2/spot",
     fullUrl = url.protocol + "//" + url.host + "/" +
       (inPath ? inPath : "") + "?" +
       new URLSearchParams(params).toString();
@@ -38,8 +33,6 @@ const generateUrl = (area: string, startDate: Date, endDate: Date, limitCache?: 
 const getDataDay = async (areaId: string, date: Date) => {
   const startDate = new Date(date.getTime()),
     endDate = new Date(date.getTime());
-  startDate.setHours(0,0,0,0);
-  endDate.setHours(23,0,0,0);
   const response = await fetch(generateUrl(areaId, startDate, endDate));
   return await response.json();
 };
@@ -48,8 +41,6 @@ const getDataMonth = async (areaId: string, date: Date) => {
   const startDate = new Date(date.getTime()),
     endDate = new Date(date.getTime());
   startDate.setDate(1);
-  startDate.setHours(0,0,0,0);
-  endDate.setHours(23,0,0,0);
   const response = await fetch(generateUrl(areaId, startDate, endDate));
   return await response.json();
 };
@@ -98,4 +89,4 @@ const langFromUrl = (url: URL) => {
     return "sv";
   }
 };
-export { dateText, formatHhMm, generateExchangeRateUrl, generateUrl, langFromUrl, monthName, getDataDay, getDataMonth };
+export { dateText, formatHhMm, generateUrl, getDataDay, getDataMonth, langFromUrl, monthName };

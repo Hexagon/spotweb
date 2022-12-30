@@ -1,7 +1,7 @@
 import { useEffect } from "preact/hooks";
-import { EntsoeApiParsedResult } from "../routes/api/entsoe.ts";
-import { tableChartOptions } from "../utils/charts/table.js";
-import { avgPrice, maxPrice, minPrice, processPrice } from "../utils/price.ts";
+import { EntsoeApiParsedResult } from "routes/api/entsoe.ts";
+import { tableChartOptions } from "config/charts/table.js";
+import { avgPrice, maxPrice, minPrice, processPrice } from "utils/price.ts";
 
 interface TableProps {
   unit: string;
@@ -19,12 +19,13 @@ export default function Table(props: TableProps) {
   const randomChartId = (Math.random() * 10000).toFixed(0);
 
   const renderChart = (result: EntsoeApiParsedResult) => {
-    if (result.data.length > 24 * 30) return;
+    if (result.length > 24 * 30) return;
     const chartOptions = { ...tableChartOptions },
       chartSeries = [];
+    console.log(result);
     chartSeries.push({
-      data: result.data.flatMap(({ startTime, spotPrice, unit }) => {
-        if (spotPrice !== null) return [[new Date(Date.parse(startTime)).getTime(), processPrice(spotPrice, props, unit)]];
+      data: result.flatMap(({ time, price, unit }) => {
+        if (price !== null) return [[new Date(Date.parse(time)).getTime(), processPrice(price, props, unit)]];
         return [];
       }),
       name: "",
@@ -48,14 +49,6 @@ export default function Table(props: TableProps) {
               {props.permalink && <a href={props.permalink}>Permalink 🔗</a>}
               <span>|</span>
               {props.permalinkJson && <a href={props.permalinkJson}>Json-data 🔗</a>}
-            </div>
-          </div>
-        </div>
-
-        <div class="row mb-10">
-          <div class="col-sm">
-            <div class={"alert alert-" + (props.resultSet.source === "live" ? "primary" : "success")} role="alert">
-              Pulled from {props.resultSet.source} at {props.resultSet.dt.toLocaleString()}
             </div>
           </div>
         </div>
@@ -92,19 +85,17 @@ export default function Table(props: TableProps) {
               <thead>
                 <tr>
                   <th scope="col">Start Date</th>
-                  <th scope="col">End Date</th>
                   <th scope="col">Area</th>
                   <th scope="col">Spot price</th>
                   <th scope="col">Unit</th>
                 </tr>
               </thead>
               <tbody>
-                {props.resultSet.data.length < 24 * 30 && props.resultSet.data.map((e) => {
-                  const price = processPrice(e.spotPrice, props, e.unit);
+                {props.resultSet.length < 24 * 30 && props.resultSet.map((e) => {
+                  const price = processPrice(e.price, props, e.unit);
                   return (
                     <tr>
-                      <td>{new Date(Date.parse(e.startTime)).toLocaleString()}</td>
-                      <td>{new Date(Date.parse(e.endTime)).toLocaleString()}</td>
+                      <td>{new Date(Date.parse(e.time)).toLocaleString()}</td>
                       <td>{e.areaCode}</td>
                       <td>{price}</td>
                       <td>{props.currency}/{props.unit}</td>

@@ -1,6 +1,6 @@
 // routes/_middleware.ts
-import { MiddlewareHandlerContext } from "$fresh/server.ts";
-import { langFromUrl } from "../utils/common.ts";
+import { MiddlewareHandlerContext } from "fresh/server.ts";
+import { langFromUrl } from "utils/common.ts";
 
 export const handler = [
   function languageMiddleware(
@@ -38,8 +38,8 @@ export const handler = [
     }
 
     // If lang is still not set to a valid value, default to sv
-    if (!(lang && ["sv","fi","no","dk"].includes(lang))) {
-      lang = "sv"
+    if (!(lang && ["sv", "fi", "no", "dk"].includes(lang))) {
+      lang = "sv";
     }
 
     ctx.state.lang = lang;

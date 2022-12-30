@@ -1,6 +1,5 @@
-import { EntsoeApiParsedResult } from "../routes/api/entsoe.ts";
-import { ExrateApiParsedResult } from "../routes/api/exrate.ts";
-import { generateExchangeRateUrl } from "./common.ts";
+import { ExchangeRateRow } from "backend/db/index.ts";
+import { ExrateApiParsedResult } from "routes/api/exrate.ts";
 
 interface PriceProcessorProps {
   unit: string;
@@ -45,8 +44,8 @@ const processPrice = (
 };
 
 const maxPrice = (rs: EntsoeApiParsedResult | undefined): number | null => {
-  if (rs && rs.data) {
-    const result = Math.max(...rs.data.filter((e) => e.spotPrice !== null).map((e) => e.spotPrice));
+  if (rs && rs.length) {
+    const result = Math.max(...rs.filter((e) => e.price !== null).map((e) => e.price));
     if (result !== Infinity && result !== -Infinity) {
       return result;
     } else {
@@ -58,8 +57,8 @@ const maxPrice = (rs: EntsoeApiParsedResult | undefined): number | null => {
 };
 
 const minPrice = (rs: EntsoeApiParsedResult | undefined): number | null => {
-  if (rs && rs.data) {
-    const result = Math.min(...rs.data.filter((e) => e.spotPrice !== null).map((e) => e.spotPrice));
+  if (rs && rs.length) {
+    const result = Math.min(...rs.filter((e) => e.price !== null).map((e) => e.price));
     if (result !== Infinity && result !== -Infinity) {
       return result;
     } else {
@@ -71,49 +70,42 @@ const minPrice = (rs: EntsoeApiParsedResult | undefined): number | null => {
 };
 
 const avgPrice = (rs: EntsoeApiParsedResult | undefined): number | null => {
-  if (rs && rs.data && rs.data.length > 0) {
-    const filtered = rs.data.filter((e) => e.spotPrice !== null);
-    return filtered.reduce((a, b) => a + b.spotPrice, 0) / filtered.length;
+  if (rs && rs.length) {
+    const filtered = rs.filter((e) => e.price !== null);
+    return filtered.reduce((a, b) => a + b.price, 0) / filtered.length;
   } else {
     return null;
   }
 };
 
 const nowPrice = (rs: EntsoeApiParsedResult | undefined): number | null => {
-  if (rs && rs.data && rs.data.length > 0) {
-    const result = rs.data.find((e) => Date.parse(e.startTime) <= new Date().getTime() && Date.parse(e.endTime) >= new Date().getTime());
-    return result ? result.spotPrice : null;
+  if (rs && rs.length > 0) {
+    const result = rs.find((e) => Date.parse(e.time) <= new Date().getTime() && Date.parse(e.time) + 3600 * 1000 >= new Date().getTime());
+
+    return result ? result.price : null;
   } else {
     return null;
   }
 };
 
-const applyExchangeRate = (rs: EntsoeApiParsedResult | undefined, ex: ExrateApiParsedResult, currency: string) => {
+const applyExchangeRate = (rs: EntsoeApiParsedResult | undefined, ex: ExrateApiParsedResult | ExchangeRateRow[], currency: string) => {
+  // Do not process EUR
+  if (currency === "EUR") return rs;
+
   // Treat "öre" as "SEK"
   if (currency === "öre") currency = "SEK";
-  const rsCopy = {...rs};
-  rsCopy.data = [];
+
+  const rsCopy = [];
+
   if (rs) {
-    for (const d of rs.data) {
-      const dCopy = {...d};
-      if (d.unit.includes("EUR")) {
-        if (!d.unit.includes(currency)) {
-          // Convert!
-          dCopy.spotPrice = d.spotPrice * ex.data.entries[currency];
-          dCopy.unit.replace("EUR", currency);
-        }
-      }
-      rsCopy.data.push(dCopy);
+    for (const d of rs) {
+      const dCopy = { ...d };
+      dCopy.price = dCopy.price * ex.entries[currency];
+      rsCopy.push(dCopy);
     }
   }
 
   return rsCopy;
 };
 
-const getExchangeRates = async () => {
-  const response = await fetch(generateExchangeRateUrl()),
-    responseJson = await response.json();
-  return responseJson;
-};
-
-export { applyExchangeRate, avgPrice, getExchangeRates, maxPrice, minPrice, nowPrice, processPrice };
+export { applyExchangeRate, avgPrice, maxPrice, minPrice, nowPrice, processPrice };

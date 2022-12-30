@@ -1,14 +1,14 @@
-import { PageProps } from "$fresh/server.ts";
+import { PageProps } from "fresh/server.ts";
 import { useState } from "preact/hooks";
 
-import Navbar from "../components/layout/NavBar.tsx";
-import Sidebar from "../components/layout/Sidebar.tsx";
-import SingleAreaOverview from "../components/SingleAreaOverview.tsx";
-import SingleAreaChart from "../components/SingleAreaChart.tsx";
-import SingleAreaMonthChart from "../components/SingleAreaMonthChart.tsx";
-import InformationPane from "../components/InformationPane.tsx";
-import SingleAreaTable from "../components/SingleAreaTable.tsx";
-import { preferences } from "../utils/preferences.js";
+import Navbar from "components/layout/NavBar.tsx";
+import Sidebar from "components/layout/Sidebar.tsx";
+import SingleAreaOverview from "components/SingleAreaOverview.tsx";
+import SingleAreaChart from "components/SingleAreaChart.tsx";
+import SingleAreaMonthChart from "components/SingleAreaMonthChart.tsx";
+import InformationPane from "components/InformationPane.tsx";
+import SingleAreaTable from "components/SingleAreaTable.tsx";
+import { preferences } from "config/preferences.js";
 
 export default function IndexIsland(props: PageProps) {
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
@@ -24,7 +24,6 @@ export default function IndexIsland(props: PageProps) {
   };
 
   const dToday = new Date().toLocaleDateString("sv-SE");
-  const dTomorrow = new Date(new Date().getTime() + 24 * 3600 * 1000).toLocaleDateString("sv-SE");
 
   const commonprops = {
     unit,
@@ -36,8 +35,7 @@ export default function IndexIsland(props: PageProps) {
     ...props.data,
   };
 
-  const 
-    area = props.data.area,
+  const area = props.data.area,
     country = props.data.country;
 
   if (!area || !country) {
@@ -69,18 +67,20 @@ export default function IndexIsland(props: PageProps) {
         <div class="content-wrapper">
           <div class="content pr-0 mr-0 ml-20 mt-0">
             <div class="row mt-0">
-            <h1 class="noshow" data-t-key="common.header.title" lang={commonprops.lang}>Timpris just nu, rörligt pris hittills i månaden och historiska priser</h1>
-            <h2 class="noshow">{country.name} - {area.name} {area.long}</h2>
+              <h1 class="noshow" data-t-key="common.header.title" lang={commonprops.lang}>
+                Timpris just nu, rörligt pris hittills i månaden och historiska priser
+              </h1>
+              <h2 class="noshow">{country.name} - {area.name} {area.long}</h2>
               <div class="sticky-alerts"></div>
-                <SingleAreaOverview
-                  title={area.name + " - " + area.long}
-                  highlight={"color-" + area.color}
-                  cols={3}
-                  area={area}
-                  detailed={true}
-                  {...commonprops}
-                >
-                </SingleAreaOverview>
+              <SingleAreaOverview
+                title={area.name + " - " + area.long}
+                highlight={"color-" + area.color}
+                cols={3}
+                area={area}
+                detailed={true}
+                {...commonprops}
+              >
+              </SingleAreaOverview>
               <SingleAreaTable
                 priceFactor={priceFactor}
                 cols={3}

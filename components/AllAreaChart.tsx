@@ -1,9 +1,9 @@
 import { useEffect, useState } from "preact/hooks";
-import { ExrateApiParsedResult } from "../routes/api/exrate.ts";
-import { EntsoeApiParsedResult } from "../routes/api/entsoe.ts";
-import { liveViewChartOptions } from "../utils/charts/liveview.js";
-import { applyExchangeRate, processPrice } from "../utils/price.ts";
-import { formatHhMm } from "../utils/common.ts";
+import { ExrateApiParsedResult } from "routes/api/exrate.ts";
+import { EntsoeApiParsedResult } from "routes/api/entsoe.ts";
+import { liveViewChartOptions } from "config/charts/liveview.js";
+import { applyExchangeRate, processPrice } from "utils/price.ts";
+import { formatHhMm } from "utils/common.ts";
 
 interface AllAreaChartProps {
   unit: string;
@@ -26,8 +26,7 @@ interface EntsoeApiParsedResultArrayItem {
 }
 
 export default function AllAreaChart(props: AllAreaChartProps) {
-  const 
-    [chartElm, setChartElm] = useState(),
+  const [chartElm, setChartElm] = useState(),
     [randomChartId] = useState((Math.random() * 10000).toFixed(0));
 
   const renderChart = (seriesInput: EntsoeApiParsedResultArrayItem[], props: LiveViewProps) => {
@@ -36,8 +35,8 @@ export default function AllAreaChart(props: AllAreaChartProps) {
     for (const s of seriesInput) {
       series.push(
         {
-          data: s.result.data.map((e) => {
-            return { x: formatHhMm(new Date(Date.parse(e.startTime))), y: processPrice(e.spotPrice, props) };
+          data: s.result.map((e) => {
+            return { x: formatHhMm(new Date(Date.parse(e.time))), y: processPrice(e.price, props) };
           }),
           name: s.area,
         },
@@ -77,15 +76,15 @@ export default function AllAreaChart(props: AllAreaChartProps) {
     chart.render();
     setChartElm(chart);
   };
-  
+
   const dataArr: EntsoeApiParsedResultArrayItem[] = [];
-  if (props.areaData) {
-    for (const area of props.areaData) {
+  if (props.areas) {
+    for (const area of props.areas) {
       let dataSet;
-      if (props.title=="today") {
-        dataSet = applyExchangeRate(area.dataToday, props.erData, props.currency);
+      if (props.title == "today") {
+        dataSet = applyExchangeRate(area.dataToday, props.er, props.currency);
       } else {
-        dataSet = applyExchangeRate(area.dataTomorrow, props.erData, props.currency);
+        dataSet = applyExchangeRate(area.dataTomorrow, props.er, props.currency);
       }
       dataArr.push({ area: area.name, result: dataSet });
     }
