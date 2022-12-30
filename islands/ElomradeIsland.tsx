@@ -59,7 +59,7 @@ export default function IndexIsland(props: PageProps) {
           setExtra={setExtra}
           setFactor={setFactor}
           setDecimals={setDecimals}
-          setPriceFactor={setPriceFactor}
+          setPriceFactor={setPriceFactorStored}
           setCurrency={setCurrency}
           {...commonprops}
         >

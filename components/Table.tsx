@@ -22,7 +22,6 @@ export default function Table(props: TableProps) {
     if (result.length > 24 * 30) return;
     const chartOptions = { ...tableChartOptions },
       chartSeries = [];
-    console.log(result);
     chartSeries.push({
       data: result.flatMap(({ time, price, unit }) => {
         if (price !== null) return [[new Date(Date.parse(time)).getTime(), processPrice(price, props, unit)]];

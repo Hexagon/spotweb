@@ -15,7 +15,7 @@ const processPrice = (
   props: PriceProcessorProps,
   eUnit?: string,
 ) => {
-  if (price === null || price === undefined || price === 0) return "-";
+  if (price === null || price === undefined) return "-";
 
   // Default eUnit to MWh
   if (!eUnit) eUnit = "MWh";
