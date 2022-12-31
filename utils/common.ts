@@ -124,6 +124,8 @@ const langFromUrl = (url: URL) => {
     return "dk";
   } else if (url?.pathname?.startsWith("/de")) {
     return "de";
+  } else if (url?.pathname?.startsWith("/at")) {
+    return "de";
   } else {
     return "sv";
   }

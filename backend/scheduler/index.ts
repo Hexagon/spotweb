@@ -78,6 +78,8 @@ const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/
                   row.startTime.getTime(),
                   row.startTime.toLocaleDateString("sv-SE"),
                 ]);
+
+                // Sleep one millisecond between each row to allow clients to fetch data
                 await sleep(1);
               }
 
@@ -116,7 +118,12 @@ const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/
     }
 
     // Delete duplicated
-    /* DELETE FROM media_items WHERE id NOT IN (SELECT MIN(id) FROM media_items GROUP BY hints); */
+    log("info", "Cleaning up.");
+    database.query("DELETE FROM spotprice WHERE id NOT IN (SELECT MAX(id) FROM spotprice GROUP BY area,country,period)");
+    if(database.totalChanges) {
+      log("info", "Deleted " + database.totalChanges + " duplicate rows.");
+    }
+
   } catch (e) {
     log("error", "Error occured while updating data, skipping. Error: " + e);
   }

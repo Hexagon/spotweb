@@ -58,10 +58,17 @@ const countries = [
     ],
   },
   {
-    name: "Germany",
+    name: "Deutschland",
     id: "de",
     areas: [
       { name: "DE-LU", "id": "BZN|DE-LU", "long": "Deutschland", color: 1 },
+    ],
+  },
+  {
+    name: "Österreich",
+    id: "at",
+    areas: [
+      { name: "AT", "id": "BZN|AT", "long": "Österreich", color: 1 },
     ],
   },
 ];

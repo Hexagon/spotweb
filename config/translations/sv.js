@@ -46,7 +46,8 @@ const sv = {
       "no": "Norge",
       "fi": "Finland",
       "dk": "Danmark",
-      "de": "Tyskland"
+      "de": "Tyskland",
+      "at": "Österrike"
     },
     "chart": {
       "today_and_tomorrow": "Idag och imorgon",

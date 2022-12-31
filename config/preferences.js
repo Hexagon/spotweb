@@ -3,7 +3,7 @@ const defaultCurrency = (lang) => {
     return "öre";
   } else if (lang == "no") {
     return "NOK";
-  } else if (lang == "fi" || lang == "de") {
+  } else if (lang == "fi" || lang == "de" || lang=="at") {
     return "EUR";
   } else if (lang == "dk") {
     return "DKK";

@@ -46,7 +46,8 @@ const de = {
         "no": "Norwegen",
         "fi": "Finnland",
         "dk": "Dänemark",
-        "de": "Deutschland"
+        "de": "Deutschland",
+        "at": "Österreich"
       },
       "chart": {
         "today_and_tomorrow": "Heute und morgen",
