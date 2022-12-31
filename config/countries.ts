@@ -57,6 +57,13 @@ const countries = [
       { name: "DK2", "id": "IBA|DK2", "long": "Sjaelland", color: 2 },
     ],
   },
+  {
+    name: "Germany",
+    id: "de",
+    areas: [
+      { name: "DE-LU", "id": "BZN|DE-LU", "long": "Deutschland", color: 1 },
+    ],
+  },
 ];
 
 export type { Area, Country, DataArea };

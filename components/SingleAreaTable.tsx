@@ -30,9 +30,9 @@ export default function SingleAreaTable(props: AreaTableProps) {
     // Make copy of data set, filter and sort
     dataToday.sort((a, b) => b.price - a.price);
 
-    const topThreeThreshold = dataToday[Math.min(dataToday.length, 2)].price,
-      topSixThreshold = dataToday[Math.min(dataToday.length, 5)].price,
-      bottomSixThreshold = dataToday[Math.max(dataToday.length - 5, 0)].price;
+    const topThreeThreshold = dataToday[Math.min(dataToday.length, 2)]?.price,
+      topSixThreshold = dataToday[Math.min(dataToday.length, 5)]?.price,
+      bottomSixThreshold = dataToday[Math.max(dataToday.length - 5, 0)]?.price;
 
     // Store day min/max
     const dayMaxVal = maxPrice(dataToday),

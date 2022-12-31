@@ -82,6 +82,7 @@ const getDataMonth = async (areaId: string, date: Date) => {
 };
 
 const monthName = (d: Date): string => {
+  if (!d) return "-";
   const m = d.getMonth();
   switch (m) {
     case 0:
@@ -121,9 +122,14 @@ const langFromUrl = (url: URL) => {
     return "fi";
   } else if (url?.pathname?.startsWith("/dk")) {
     return "dk";
+  } else if (url?.pathname?.startsWith("/de")) {
+    return "de";
   } else {
     return "sv";
   }
 };
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export type { ChartSeries, CommonProps, ExtPageProps };
-export { dateText, formatHhMm, generateUrl, getDataDay, getDataMonth, langFromUrl, monthName, processResultSet };
+export { dateText, formatHhMm, generateUrl, getDataDay, getDataMonth, langFromUrl, monthName, processResultSet, sleep };

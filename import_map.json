@@ -18,7 +18,6 @@
     "freshlate": "./vendor/freshlate/mod.ts",
     "croner": "https://deno.land/x/croner@5.3.5/src/croner.js",
     "sqlite": "https://deno.land/x/sqlite@v3.7.0/mod.ts",
-    "sleep": "https://deno.land/x/sleep@v1.2.1/mod.ts",
     "xml": "https://deno.land/x/xml@2.0.4/mod.ts",
     "$fresh/": "https://deno.land/x/fresh@1.1.2/"
   }

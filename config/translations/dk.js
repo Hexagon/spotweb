@@ -46,6 +46,7 @@ const dk = {
       "no": "Norge",
       "fi": "Finland",
       "dk": "Danmark",
+      "de": "Tyskland"
     },
     "chart": {
       "today_and_tomorrow": "I dag og i morgen",

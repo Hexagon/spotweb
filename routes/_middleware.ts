@@ -24,6 +24,8 @@ export const handler = [
         lang = "no";
       } else if (firstLang.includes("dk")) {
         lang = "dk";
+      } else if (firstLang.includes("de")) {
+        lang = "de";
       } else {
         lang = langFromUrl(new URL(req.url));
       }
@@ -38,7 +40,7 @@ export const handler = [
     }
 
     // If lang is still not set to a valid value, default to sv
-    if (!(lang && ["sv", "fi", "no", "dk"].includes(lang))) {
+    if (!(lang && ["sv", "fi", "no", "dk", "de"].includes(lang))) {
       lang = "sv";
     }
 
