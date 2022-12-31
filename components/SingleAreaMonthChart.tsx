@@ -1,59 +1,42 @@
 import { useEffect, useState } from "preact/hooks";
-import { ExrateApiParsedResult } from "routes/api/exrate.ts";
-import { EntsoeApiParsedResult } from "routes/api/entsoe.ts";
 import { areaViewMonthChartOptions } from "config/charts/areaviewmonth.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
-import { generateUrl } from "utils/common.ts";
+import { ChartSeries, CommonProps, generateUrl, processResultSet } from "utils/common.ts";
+import { SpotApiParsedRow, SpotApiRow } from "backend/db/index.ts";
 
-interface AreaViewProps {
-  unit: string;
-  extra: number;
-  factor: number;
-  area: unknown;
+interface SingleAreaMonthChartProps extends CommonProps {
   cols: number;
-  currency: string;
-  decimals: number;
   highlight: string;
   date: string;
-  dateT: string;
   title: string;
-  priceFactor: boolean;
-  lang: string;
-  er: ExrateApiParsedResult;
 }
 
-interface ChartSeries {
-  name: string;
-  data: EntsoeApiParsedResult;
-  type: string;
-}
-
-export default function SingleAreaMonthChart(props: AreaViewProps) {
-  const [rsMonth, setRSMonth] = useState<EntsoeApiParsedResult>(),
-    [rsComparison, setRSComparison] = useState<EntsoeApiParsedResult>(),
+export default function SingleAreaMonthChart(props: SingleAreaMonthChartProps) {
+  const [rsMonth, setRSMonth] = useState<SpotApiParsedRow[]>(),
+    [rsComparison, setRSComparison] = useState<SpotApiParsedRow[]>(),
     [randomChartId] = useState((Math.random() * 10000).toFixed(0)),
     [chartElm, setChartElm] = useState();
 
   const [comparison, setComparison] = useState<string | undefined>();
 
-  const getData30d = async (area: string, date: Date) => {
+  const getData30d = async (area: string, date: Date): Promise<SpotApiParsedRow[]> => {
     const startDate = new Date(date.getTime() - 30 * 24 * 60 * 60 * 1000),
       endDate = new Date(new Date(date).setDate(date.getDate() + 1));
     const response = await fetch(generateUrl(area, startDate, endDate, "daily"));
-    return await response.json();
+    const resultSet = await response.json();
+    return processResultSet(resultSet.data);
   };
 
-  const renderChart = (seriesInput: ChartSeries[], props: AreaViewProps) => {
+  const renderChart = (seriesInput: ChartSeries[], props: SingleAreaMonthChartProps) => {
     // Inject series into chart configuration
     const series = [];
     for (const s of seriesInput) {
       series.push(
         {
           data: s.data.map((e) => {
-            return { x: Date.parse(e.time), y: processPrice(e.price, props) };
+            return { x: e.time, y: processPrice(e.price, props) };
           }),
           name: s.name,
-          type: s.type,
         },
       );
     }
@@ -94,10 +77,10 @@ export default function SingleAreaMonthChart(props: AreaViewProps) {
   };
 
   const tryGetData = async () => {
-    if (!rsMonth) {
+    if (!rsMonth && props.area) {
       let dataMonth = await getData30d(props.area.name, new Date(Date.parse(props.date)));
       // Apply exchange rate if needed
-      dataMonth = applyExchangeRate(dataMonth.data, props.er, props.currency);
+      dataMonth = applyExchangeRate(dataMonth, props.er, props.currency);
       // Set preact states
       setRSMonth(dataMonth);
     }
@@ -105,7 +88,7 @@ export default function SingleAreaMonthChart(props: AreaViewProps) {
       let dataMonth = await getData30d(comparison, new Date(Date.parse(props.date)));
 
       // Apply exchange rate if needed
-      dataMonth = applyExchangeRate(dataMonth.data, props.er, props.currency);
+      dataMonth = applyExchangeRate(dataMonth, props.er, props.currency);
       // Set preact states
       setRSComparison(dataMonth);
     }
@@ -122,12 +105,12 @@ export default function SingleAreaMonthChart(props: AreaViewProps) {
   useEffect(() => {
     if (rsMonth && comparison && rsComparison) {
       renderChart([
-        { name: props.area.name, data: rsMonth, type: "line" },
-        { name: comparison, data: rsComparison, type: "line" },
+        { name: props.area?.name || "", data: rsMonth },
+        { name: comparison, data: rsComparison },
       ], props);
     } else if (rsMonth) {
       renderChart([
-        { name: props.area.name, data: rsMonth, type: "line" },
+        { name: props.area?.name || "", data: rsMonth },
       ], props);
     }
   }, [rsMonth, rsComparison, props.priceFactor]);

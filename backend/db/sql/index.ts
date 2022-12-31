@@ -1,5 +1,6 @@
-const sqlGroupBy = {
+const sqlGroupBy: Record<string, string> = {
   total: "'total'",
+  yearly: "strftime('%Y-01-01 00:00:00',spotprice.period/1000,'unixepoch','localtime')",
   monthly: "strftime('%Y-%m-01 00:00:00',spotprice.period/1000,'unixepoch','localtime')",
   daily: "strftime('%Y-%m-%d 00:00:00',spotprice.period/1000,'unixepoch','localtime')",
   hourly: "datetime(spotprice.period/1000,'unixepoch','localtime')",
@@ -34,9 +35,9 @@ WITH er AS (
 )
 SELECT 
     [[groupby]],
-    ROUND(MIN(spotprice)*er.value) as avg,
-    ROUND(MAX(spotprice)*er.value) as min,
-    ROUND(avg(spotprice)*er.value) as max
+    MIN(spotprice)*er.value as avg,
+    MAX(spotprice)*er.value as min,
+    avg(spotprice)*er.value as max
 FROM 
     spotprice 
     LEFT JOIN er 

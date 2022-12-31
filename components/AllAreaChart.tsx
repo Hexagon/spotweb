@@ -1,44 +1,29 @@
 import { useEffect, useState } from "preact/hooks";
-import { ExrateApiParsedResult } from "routes/api/exrate.ts";
-import { EntsoeApiParsedResult } from "routes/api/entsoe.ts";
 import { liveViewChartOptions } from "config/charts/liveview.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
-import { formatHhMm } from "utils/common.ts";
+import { ChartSeries, CommonProps, formatHhMm, processResultSet } from "utils/common.ts";
+import { SpotApiRow } from "../backend/db/index.ts";
 
-interface AllAreaChartProps {
-  unit: string;
-  extra: number;
-  factor: number;
+interface AllAreaChartProps extends CommonProps {
   highlight: string;
-  currency: string;
-  decimals: number;
-  date: string;
   title: string;
-  priceFactor: boolean;
-  lang: string;
-  data: unknown;
-  erData: ExrateApiParsedResult;
-}
-
-interface EntsoeApiParsedResultArrayItem {
-  area: string;
-  result: EntsoeApiParsedResult;
 }
 
 export default function AllAreaChart(props: AllAreaChartProps) {
   const [chartElm, setChartElm] = useState(),
     [randomChartId] = useState((Math.random() * 10000).toFixed(0));
 
-  const renderChart = (seriesInput: EntsoeApiParsedResultArrayItem[], props: LiveViewProps) => {
+  const renderChart = (seriesInput: ChartSeries[], props: AllAreaChartProps) => {
+
     // Inject series into chart configuration
     const series = [];
     for (const s of seriesInput) {
       series.push(
         {
-          data: s.result.map((e) => {
-            return { x: formatHhMm(new Date(Date.parse(e.time))), y: processPrice(e.price, props) };
+          data: s.data.map((e) => {
+            return { x: formatHhMm(e.time), y: processPrice(e.price, props) };
           }),
-          name: s.area,
+          name: s.name,
         },
       );
     }
@@ -48,7 +33,7 @@ export default function AllAreaChart(props: AllAreaChartProps) {
     chartOptions.series = series;
 
     // Inject annotations for now
-    if (props.date === new Date().toLocaleDateString()) {
+    if (props.title === "today") {
       const hourNow = new Date();
       hourNow.setMinutes(0);
 
@@ -77,16 +62,16 @@ export default function AllAreaChart(props: AllAreaChartProps) {
     setChartElm(chart);
   };
 
-  const dataArr: EntsoeApiParsedResultArrayItem[] = [];
+  const dataArr: ChartSeries[] = [];
   if (props.areas) {
     for (const area of props.areas) {
       let dataSet;
       if (props.title == "today") {
-        dataSet = applyExchangeRate(area.dataToday, props.er, props.currency);
+        dataSet = applyExchangeRate(processResultSet(area.dataToday), props.er, props.currency);
       } else {
-        dataSet = applyExchangeRate(area.dataTomorrow, props.er, props.currency);
+        dataSet = applyExchangeRate(processResultSet(area.dataTomorrow), props.er, props.currency);
       }
-      dataArr.push({ area: area.name, result: dataSet });
+      if (dataSet) dataArr.push({ name: area.name, data: dataSet });
     }
   }
 

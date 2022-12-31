@@ -1,4 +1,4 @@
-import { Query } from "entsoe_api_client";
+import { Query, QueryResult } from "entsoe_api_client";
 
 interface EntsoeApiRow {
   startTime: Date;
@@ -8,34 +8,12 @@ interface EntsoeApiRow {
   unit: string;
 }
 
-interface EntsoeApiParsedRow {
-  startTime: string;
-  endTime: string;
-  areaCode: string;
-  spotPrice: number;
-  unit: string;
-}
-
-interface EntsoeApiResult {
-  source: string;
-  valid: boolean;
-  dt: Date;
-  data: EntsoeApiRow[];
-}
-
-interface EntsoeApiParsedResult {
-  source: string;
-  valid: boolean;
-  dt: string;
-  data: EntsoeApiParsedRow[];
-}
-
-const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date) => {
+const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Promise<EntsoeApiRow[]> => {
   const output: EntsoeApiRow[] = [];
-  let resultJson;
+  let resultJson: QueryResult | undefined;
   try {
     resultJson = await Query(
-      Deno.env.get("API_TOKEN"),
+      Deno.env.get("API_TOKEN") || "",
       {
         documentType: "A44",
         inDomain: area,
@@ -43,7 +21,7 @@ const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date) => 
         startDateTime: startDate,
         endDateTime: endDate,
       },
-    );
+    ) as unknown as QueryResult;
   } catch (_e) {
     // Ignore
   }
@@ -70,4 +48,4 @@ const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date) => 
 };
 
 export { EntsoeSpotprice };
-export type { EntsoeApiParsedResult, EntsoeApiParsedRow, EntsoeApiResult, EntsoeApiRow };
+export type { EntsoeApiRow };

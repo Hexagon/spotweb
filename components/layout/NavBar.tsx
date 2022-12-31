@@ -1,13 +1,11 @@
 import { useEffect, useState } from "preact/hooks";
-import { countries } from "config/countries.js";
+import { countries } from "config/countries.ts";
+import { CommonProps } from "../../utils/common.ts";
 
-interface NavbarProps {
+interface NavbarProps extends CommonProps {
   page: string;
-  priceFactor: boolean;
   // deno-lint-ignore ban-types
   setPriceFactor: Function;
-  country: string;
-  lang: string;
 }
 
 export default function Navbar(props: NavbarProps) {

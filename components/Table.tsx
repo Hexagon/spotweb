@@ -1,30 +1,25 @@
 import { useEffect } from "preact/hooks";
-import { EntsoeApiParsedResult } from "routes/api/entsoe.ts";
 import { tableChartOptions } from "config/charts/table.js";
 import { avgPrice, maxPrice, minPrice, processPrice } from "utils/price.ts";
+import { SpotApiRow } from "../backend/db/index.ts";
+import { CommonProps } from "../utils/common.ts";
 
-interface TableProps {
-  unit: string;
-  extra: number;
-  factor: number;
-  decimals: number;
-  currency: string;
-  resultSet: EntsoeApiParsedResult;
+interface TableProps extends CommonProps {
+  resultSet: SpotApiRow[];
   permalink: string;
   permalinkJson: string;
-  priceFactor: boolean;
 }
 
 export default function Table(props: TableProps) {
   const randomChartId = (Math.random() * 10000).toFixed(0);
 
-  const renderChart = (result: EntsoeApiParsedResult) => {
+  const renderChart = (result: SpotApiRow[]) => {
     if (result.length > 24 * 30) return;
     const chartOptions = { ...tableChartOptions },
       chartSeries = [];
     chartSeries.push({
-      data: result.flatMap(({ time, price, unit }) => {
-        if (price !== null) return [[new Date(Date.parse(time)).getTime(), processPrice(price, props, unit)]];
+      data: result.flatMap(({ time, price }) => {
+        if (price !== null) return [[time.getTime(), processPrice(price, props)]];
         return [];
       }),
       name: "",
@@ -91,10 +86,10 @@ export default function Table(props: TableProps) {
               </thead>
               <tbody>
                 {props.resultSet.length < 24 * 30 && props.resultSet.map((e) => {
-                  const price = processPrice(e.price, props, e.unit);
+                  const price = processPrice(e.price, props, props.unit);
                   return (
                     <tr>
-                      <td>{new Date(Date.parse(e.time)).toLocaleString()}</td>
+                      <td>{e.time.toLocaleString()}</td>
                       <td>{e.areaCode}</td>
                       <td>{price}</td>
                       <td>{props.currency}/{props.unit}</td>

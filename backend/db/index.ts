@@ -1,19 +1,28 @@
-import { DB } from "sqlite";
+import { DB, Row } from "sqlite";
 import { resolve } from "std/path/mod.ts";
-import { sqlConverted, sqlCreateExchangeRate, sqlCreateSpotprice, sqlExchangeRates, sqlGroupBy, sqlRaw } from "./sql/index.js";
+import { sqlConverted, sqlCreateExchangeRate, sqlCreateSpotprice, sqlExchangeRates, sqlGroupBy, sqlRaw } from "backend/db/sql/index.ts";
 
 interface SpotApiRow {
-  time: Date;
+  time: string;
   price: number;
+  min?: number;
+  max?: number;
 }
 
-interface ExchangeRateRow {
-  date: string,
-  entries: Record<string,number>
+interface SpotApiParsedRow {
+  time: Date;
+  price: number;
+  min?: number;
+  max?: number;
+}
+
+interface ExchangeRateResult {
+  date: string;
+  entries: Record<string, number>;
 }
 
 // Try creating/opening database
-let database : DB;
+let database: DB;
 try {
   const path = resolve(Deno.cwd(), "./db/"),
     fileName = resolve(path, "main.db");
@@ -50,8 +59,8 @@ const GetDataDay = (areaName: string, date: Date) => {
     "hourly",
     date.toLocaleDateString("sv-SE"),
     date.toLocaleDateString("sv-SE"),
-  ).map((r: SpotApiRow) => {
-    return { time: new Date(Date.parse(r[0])), price: r[1] };
+  ).map((r) => {
+    return { time: new Date(Date.parse(r.at(0) as string)), price: r.at(1) as number };
   });
   return result;
 };
@@ -62,24 +71,28 @@ const GetDataMonth = (areaName: string, date: Date) => {
   startDate.setDate(1);
   endDate.setMonth(endDate.getMonth() + 1);
   endDate.setDate(0);
+
   return GetSpotprice(
     areaName,
     "hourly",
     startDate.toLocaleDateString("sv-SE"),
     endDate.toLocaleDateString("sv-SE"),
-  ).map((r: SpotApiRow) => {
-    return { time: new Date(Date.parse(r[0])), price: r[1] };
+  ).map((r) => {
+    return {
+      time: new Date(Date.parse(r.at(0) as string)),
+      price: (r.at(1) as number),
+    };
   });
 };
 
 const GetExchangeRates = () => {
   const result = database.query(sqlExchangeRates),
-    entries : Record<string,number> = {};
+    entries: Record<string, number> = {};
   for (const row of result) {
-    entries[row[0]] = row[1];
+    entries[row[0] as string] = row[1] as number;
   }
 
-  const outut : ExchangeRateRow = {
+  const outut: ExchangeRateResult = {
     date: new Date().toLocaleDateString("sv-SE"),
     entries,
   };
@@ -87,5 +100,5 @@ const GetExchangeRates = () => {
   return outut;
 };
 
-export type { SpotApiRow, ExchangeRateRow };
+export type { ExchangeRateResult, Row, SpotApiParsedRow, SpotApiRow };
 export { database, GetDataDay, GetDataMonth, GetExchangeRates, GetSpotprice };

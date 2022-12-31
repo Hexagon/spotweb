@@ -1,6 +1,6 @@
 import { Handlers } from "fresh/server.ts";
 import { GetSpotprice, SpotApiRow } from "backend/db/index.ts";
-import { sqlGroupBy } from "backend/db/sql/index.js";
+import { sqlGroupBy } from "backend/db/sql/index.ts";
 
 export const handler: Handlers = {
   GET(req, _ctx) {
@@ -29,7 +29,21 @@ export const handler: Handlers = {
         JSON.stringify({
           status: "ok",
           data: result.map((r: Array<unknown>) => {
-            return { time: r[0], price: r[1] };
+            // Hourly is not aggregated
+            if (period === "hourly") {
+              return {
+                time: r[0],
+                price: r[1],
+              };
+              // All other options are aggregated, pass min and max
+            } else {
+              return {
+                time: r[0],
+                price: r[1],
+                min: r[2],
+                max: r[3],
+              };
+            }
           }),
         }),
         { status: 200 },

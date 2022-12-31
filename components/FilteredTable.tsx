@@ -1,29 +1,18 @@
 import { useEffect, useState } from "preact/hooks";
 import Table from "components/Table.tsx";
-import { ExrateApiParsedResult } from "routes/api/exrate.ts";
-import { generateUrl } from "utils/common.ts";
-import { GetExchangeRates } from "backend/db/index.ts";
+import { CommonProps, generateUrl } from "utils/common.ts";
 import { applyExchangeRate } from "utils/price.ts";
 
-interface FilterProps {
-  period: string;
-  currency: string;
+interface FilterProps extends CommonProps {
   startDate: string;
   endDate: string;
-  area: string;
-  unit: string;
-  extra: number;
-  factor: number;
-  decimals: number;
-  priceFactor: boolean;
+  period: string;
 }
-
-export type { FilterProps };
 
 export default function FilteredTable(props: FilterProps) {
   const [resultSet, setResultSet] = useState();
 
-  const [area, setArea] = useState(props.area || "SE1");
+  const [area, setArea] = useState(props.area?.name || "SE1");
   const [currency, setCurrency] = useState(props.currency || "SEK");
   const [period, setPeriod] = useState(props.period || "hourly");
   const [startDate, setStartDate] = useState(props.startDate || new Date().toISOString().split("T")[0]);
@@ -161,14 +150,9 @@ export default function FilteredTable(props: FilterProps) {
         (
           <Table
             resultSet={resultSet}
-            currency={currency}
-            unit={props.unit}
-            extra={props.extra}
-            factor={props.factor}
-            decimals={props.decimals}
             permalink={permalink}
             permalinkJson={permalinkJson}
-            priceFactor={props.priceFactor}
+            {...props}
           >
           </Table>
         )}

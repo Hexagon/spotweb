@@ -1,59 +1,38 @@
 import { useEffect, useState } from "preact/hooks";
-import { ExrateApiParsedResult } from "routes/api/exrate.ts";
-import { EntsoeApiParsedResult, EntsoeApiParsedRow } from "routes/api/entsoe.ts";
 import { applyExchangeRate, maxPrice, minPrice, processPrice } from "utils/price.ts";
-import { dateText, formatHhMm, generateUrl } from "utils/common.ts";
+import { CommonProps, dateText, formatHhMm, generateUrl, processResultSet } from "utils/common.ts";
+import { SpotApiParsedRow, SpotApiRow } from "../backend/db/index.ts";
 
-interface AreaTableProps {
-  unit: string;
-  extra: number;
-  factor: number;
-  area: string;
-  areaId: string;
+interface AreaTableProps extends CommonProps {
   cols: number;
-  currency: string;
-  decimals: number;
   date: string;
-  priceFactor: boolean;
-  lang: string;
-  er: ExrateApiParsedResult;
-}
-
-interface ChartSeries {
-  name: string;
-  data: EntsoeApiParsedResult;
 }
 
 export default function SingleAreaTable(props: AreaTableProps) {
-  const [rsToday, setRSToday] = useState<EntsoeApiParsedResult>(),
+  const [rsToday, setRSToday] = useState<SpotApiParsedRow[]>(),
     [dayHigh, setDayHigh] = useState<number | null>(-Infinity),
     [dayMid, setDayMid] = useState<number | null>(-Infinity),
     [dayLow, setDayLow] = useState<number | null>(Infinity);
 
   const getData = async (date: string) => {
+    if (!props.area?.name) return [];
     const startDate = new Date(Date.parse(date)),
       endDate = new Date(new Date(startDate).setDate(startDate.getDate() + 1));
     const response = await fetch(generateUrl(props.area.name, startDate, endDate));
     const responseJson = await response.json();
-    return responseJson.data;
+    return processResultSet(responseJson.data);
   };
 
   const tryGetData = async () => {
-    const dataInput: EntsoeApiParsedResult = await getData(props.date);
-
-    // Apply exchange rate if needed¨
-    let dataToday = applyExchangeRate(dataInput, props.er, props.currency);
-
-    // Filter data set
-    dataToday = dataToday.filter((e) => new Date(Date.parse(e.time)) >= new Date(new Date().getTime() - 3600 * 1000));
+    // Apply exchange rate if needed
+    const dataToday: SpotApiParsedRow[] = applyExchangeRate(await getData(props.date), props.er, props.currency) || [];
 
     // Make copy of data set, filter and sort
-    const sortedDataToday: SpotApiRow[] = [...dataToday];
-    sortedDataToday.sort((a, b) => b.price - a.price);
+    dataToday.sort((a, b) => b.price - a.price);
 
-    const topThreeThreshold = sortedDataToday[Math.min(sortedDataToday.length, 2)].price,
-      topSixThreshold = sortedDataToday[Math.min(sortedDataToday.length, 5)].price,
-      bottomSixThreshold = sortedDataToday[Math.max(sortedDataToday.length - 5, 0)].price;
+    const topThreeThreshold = dataToday[Math.min(dataToday.length, 2)].price,
+      topSixThreshold = dataToday[Math.min(dataToday.length, 5)].price,
+      bottomSixThreshold = dataToday[Math.max(dataToday.length - 5, 0)].price;
 
     // Store day min/max
     const dayMaxVal = maxPrice(dataToday),
@@ -85,8 +64,8 @@ export default function SingleAreaTable(props: AreaTableProps) {
             <table class="table table-striped font-size-12">
               <tbody>
                 {rsToday?.map((e, i) => {
-                  const startDate = new Date(Date.parse(e.time)),
-                    endDate = new Date(Date.parse(e.time) + 3600 * 1000);
+                  const startDate = e.time,
+                    endDate = new Date(e.time.getTime() + 3600 * 1000);
                   let classSuffix = "default";
                   if (dayLow !== null && dayLow >= e.price) classSuffix = "success";
                   else if (dayHigh !== null && dayHigh <= e.price) classSuffix = "danger";

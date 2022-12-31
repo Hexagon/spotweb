@@ -7,6 +7,9 @@
   },
   "importMap": "./import_map.json",
   "fmt": {
+    "files": {
+      "exclude": ["components/", "islands/"]
+    },
     "options": {
       "lineWidth": 150
     }

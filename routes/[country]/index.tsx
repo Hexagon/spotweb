@@ -2,7 +2,8 @@ import { Handlers, PageProps } from "fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
 import IndexIsland from "islands/IndexIsland.tsx";
 import { GetDataDay, GetDataMonth, GetExchangeRates } from "backend/db/index.ts";
-import { countries } from "config/countries.js";
+import { countries } from "config/countries.ts";
+import { ExtPageProps } from "../../utils/common.ts";
 
 export const handler: Handlers = {
   async GET(_req, ctx) {
@@ -39,16 +40,18 @@ export const handler: Handlers = {
     }
 
     // Render all areas in country
-    return ctx.render({
+    const pageProps: ExtPageProps = {
       country,
-      areas,
       er,
-      lang: ctx.state.lang || ctx.params.country,
-    });
+      areas,
+      lang: ctx.state.lang as string | undefined || ctx.params.country,
+    };
+
+    return ctx.render(pageProps);
   },
 };
 
-export default function Index(props: PageProps) {
+export default function Index(props: PageProps<ExtPageProps>) {
   return (
     <>
       <SwHead title={props.data.country.name + " - " + props.data.country.areas.map((a) => a.name).join(", ")}></SwHead>

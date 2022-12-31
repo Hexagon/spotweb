@@ -1,6 +1,6 @@
 import { Handlers } from "fresh/server.ts";
 import { SitemapContext } from "fresh_seo";
-import { countries } from "config/countries.js";
+import { countries } from "config/countries.ts";
 import manifest from "../fresh.gen.ts";
 
 export const handler: Handlers = {

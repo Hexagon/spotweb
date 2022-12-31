@@ -1,32 +1,19 @@
 import { useEffect, useState } from "preact/hooks";
-import { ExrateApiParsedResult } from "routes/api/exrate.ts";
-import { EntsoeApiParsedResult } from "routes/api/entsoe.ts";
 import { areaViewChartOptions } from "config/charts/areaview.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
-import { formatHhMm, generateUrl } from "utils/common.ts";
+import { ChartSeries, CommonProps, formatHhMm, processResultSet } from "utils/common.ts";
+import { DataArea } from "config/countries.ts";
 
-interface SingleAreaChartProps {
-  unit: string;
-  extra: number;
-  factor: number;
-  area: unknown;
+interface SingleAreaChartProps extends CommonProps {
+  area: DataArea;
   cols: number;
-  currency: string;
-  decimals: number;
   highlight: string;
   title: string;
-  priceFactor: boolean;
-  lang: string;
-}
-
-interface ChartSeries {
-  name: string;
-  data: EntsoeApiParsedResult;
 }
 
 export default function SingleAreaChart(props: SingleAreaChartProps) {
   const [randomChartId] = useState((Math.random() * 10000).toFixed(0)),
-    [chartElm, setChartElm] = useState();
+    [chartElm, setChartElm] = useState<unknown | undefined>();
 
   const renderChart = (seriesInput: ChartSeries[], props: SingleAreaChartProps) => {
     // Inject series into chart configuration
@@ -35,7 +22,7 @@ export default function SingleAreaChart(props: SingleAreaChartProps) {
       series.push(
         {
           data: s.data.map((e) => {
-            return { x: formatHhMm(new Date(Date.parse(e.time))), y: processPrice(e.price, props) };
+            return { x: formatHhMm(e.time), y: processPrice(e.price, props) };
           }),
           name: s.name,
         },
@@ -68,15 +55,15 @@ export default function SingleAreaChart(props: SingleAreaChartProps) {
       ],
     };
 
-    if (chartElm) chartElm.destroy();
+    if (chartElm && chartElm.destroy) chartElm.destroy();
     const chart = new ApexCharts(document.querySelector("#chart_" + randomChartId), chartOptions);
     chart.render();
     setChartElm(chart);
   };
 
   // Apply exchange rate if needed
-  const rsToday = applyExchangeRate(props.area.dataToday, props.er, props.currency),
-    rsTomorrow = applyExchangeRate(props.area.dataTomorrow, props.er, props.currency);
+  const rsToday = applyExchangeRate(processResultSet(props.area.dataToday), props.er, props.currency),
+    rsTomorrow = applyExchangeRate(processResultSet(props.area.dataTomorrow), props.er, props.currency);
 
   useEffect(() => {
     if (rsToday && rsTomorrow) {

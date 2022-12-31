@@ -1,7 +1,7 @@
 // deno-lint-ignore-file ban-types
 
 import { useEffect, useState } from "preact/hooks";
-import { countries } from "config/countries.js";
+import { countries } from "config/countries.ts";
 import Customize from "./Customize.tsx";
 
 interface SidebarProps {

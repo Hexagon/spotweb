@@ -2,7 +2,8 @@ import { Handlers, PageProps } from "fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
 import ElomradeIsland from "islands/ElomradeIsland.tsx";
 import { GetDataDay, GetDataMonth, GetExchangeRates } from "backend/db/index.ts";
-import { countries } from "config/countries.js";
+import { countries } from "config/countries.ts";
+import { ExtPageProps } from "../../utils/common.ts";
 
 export const handler: Handlers = {
   async GET(_req, ctx) {
@@ -32,7 +33,9 @@ export const handler: Handlers = {
       tomorrowDate = new Date(),
       prevMonthDate = new Date();
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    prevMonthDate.setDate(1);
     prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+
     const area = {
       ...foundArea,
       dataToday: await GetDataDay(foundArea.name, todayDate),
@@ -41,12 +44,14 @@ export const handler: Handlers = {
       dataPrevMonth: await GetDataMonth(foundArea.name, prevMonthDate),
     };
 
-    return ctx.render({
-      area: area,
-      country: country,
-      er: er,
-      lang: ctx.state.lang || ctx.params.country,
-    });
+    const pageProps: ExtPageProps = {
+      country,
+      area,
+      er,
+      lang: ctx.state.lang as string | undefined || ctx.params.country,
+    };
+
+    return ctx.render(pageProps);
   },
 };
 

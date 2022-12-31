@@ -1,3 +1,25 @@
+import { SpotApiRow } from "../backend/db/index.ts";
+
+interface Area {
+  name: string;
+  id: string;
+  long: string;
+  color: number;
+}
+
+interface DataArea extends Area {
+  dataToday: SpotApiParsedRow[];
+  dataTomorrow: SpotApiParsedRow[];
+  dataMonth: SpotApiParsedRow[];
+  dataPrevMonth?: SpotApiParsedRow[];
+}
+
+interface Country {
+  name: string;
+  id: string;
+  areas: Area[];
+}
+
 const countries = [
   {
     name: "Sverige",
@@ -37,4 +59,5 @@ const countries = [
   },
 ];
 
+export type { Area, Country, DataArea };
 export { countries };

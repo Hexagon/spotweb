@@ -9,12 +9,14 @@ const ExchangeRate = async () => {
   // Clean up result
   const // deno-lint-ignore no-explicit-any
   base = (resultJson["gesmes:Envelope"] as any)?.Cube?.Cube,
+    entries: Record<string, string> = {},
     data = {
       "date": base["@time"],
-      entries: {},
+      entries,
     };
-  for (const entry of base.Cube) {
-    data.entries[entry["@currency"]] = entry["@rate"];
+  let entry: Record<string, string>;
+  for (entry of base.Cube) {
+    data.entries[entry["@currency"] as string] = entry["@rate"];
   }
 
   return data;

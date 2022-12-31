@@ -4,8 +4,9 @@ import { PageProps } from "fresh/server.ts";
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
 import { preferences } from "config/preferences.js";
+import { CommonProps, ExtPageProps } from "utils/common.ts";
 
-export default function CustomIsland(props: PageProps) {
+export default function CustomIsland(props: PageProps<ExtPageProps>) {
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
   const [factor, setFactor] = useState(preferences.factor(props.data.lang));
@@ -18,7 +19,7 @@ export default function CustomIsland(props: PageProps) {
     setPriceFactor(pf);
   };
 
-  const commonprops = {
+  const commonprops: CommonProps = {
     unit,
     factor,
     extra,

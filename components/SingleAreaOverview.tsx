@@ -1,36 +1,23 @@
-import { ExrateApiResult } from "routes/api/exrate.ts";
-import { EntsoeApiParsedResult } from "routes/api/entsoe.ts";
 import { applyExchangeRate, avgPrice, maxPrice, minPrice, nowPrice, processPrice } from "utils/price.ts";
-import { monthName } from "utils/common.ts";
+import { CommonProps, monthName, processResultSet } from "utils/common.ts";
+import { Country, DataArea } from "config/countries.ts";
 
-interface AreaViewProps {
-  unit: string;
-  extra: number;
-  factor: number;
+interface AreaViewProps extends CommonProps {
   cols: number;
-  currency: string;
-  decimals: number;
   highlight: string;
-  area: unknown;
-  er: ExrateApiResult;
   detailed?: boolean;
   title: string;
-  priceFactor: boolean;
-  country: string;
-  lang: string;
-}
-
-interface ChartSeries {
-  name: string;
-  data: EntsoeApiParsedResult;
+  area: DataArea;
+  country: Country;
 }
 
 export default function SingleAreaOverview(props: AreaViewProps) {
+
   // Apply exchange rate if needed
-  const rsToday = applyExchangeRate(props.area.dataToday, props.er, props.currency);
-  const rsTomorrow = applyExchangeRate(props.area.dataTomorrow, props.er, props.currency);
-  const rsMonth = props.area.dataMonth ? applyExchangeRate(props.area.dataMonth, props.er, props.currency) : undefined;
-  const rsPrevMonth = props.area.dataPrevMonth ? applyExchangeRate(props.area.dataPrevMonth, props.er, props.currency) : undefined;
+  const rsToday = applyExchangeRate(processResultSet(props.area.dataToday), props.er, props.currency);
+  const rsTomorrow = applyExchangeRate(processResultSet(props.area.dataTomorrow), props.er, props.currency);
+  const rsMonth = props.area.dataMonth ? applyExchangeRate(processResultSet(props.area.dataMonth), props.er, props.currency) : undefined;
+  const rsPrevMonth = props.area.dataPrevMonth ? applyExchangeRate(processResultSet(props.area.dataPrevMonth), props.er, props.currency) : undefined;
 
   return (
     <div class={`col-lg-${props.cols} m-0 p-0`}>
@@ -73,9 +60,7 @@ export default function SingleAreaOverview(props: AreaViewProps) {
                 <div class="row mt-15">
                   <div class="col-7">
                     <h5 class="mb-0">
-                      <span data-t-key="common.overview.so_far">So far in</span>&nbsp;{rsMonth[0]?.time
-                        ? monthName(new Date(Date.parse(rsMonth[0].time)))
-                        : ""}
+                      <span data-t-key="common.overview.so_far" lang={props.lang}>So far in</span>&nbsp;{rsMonth && rsMonth[0]?.time ? monthName(rsMonth[0].time) : ""}
                     </h5>
                     <div class="mt-5 mb-5">
                       <span class="font-size-24">{processPrice(avgPrice(rsMonth), props)}</span>
@@ -84,7 +69,7 @@ export default function SingleAreaOverview(props: AreaViewProps) {
                     <span>Spann: {processPrice(minPrice(rsMonth), props)} - {processPrice(maxPrice(rsMonth), props)}</span>
                   </div>
                   <div class="col-5 text-right">
-                    <h5 class="mb-0">{monthName(new Date(Date.parse(rsPrevMonth[0]?.time)))}</h5>
+                    <h5 class="mb-0">{rsPrevMonth ? monthName(rsPrevMonth[0]?.time) : ""}</h5>
                     <div class="mt-5 mb-5">
                       <span class="font-size-24">{processPrice(avgPrice(rsPrevMonth), props)}</span>
                     </div>

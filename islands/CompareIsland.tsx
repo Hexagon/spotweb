@@ -4,6 +4,7 @@ import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
 import Comparison from "components/Comparison.tsx";
 import { preferences } from "config/preferences.js";
+import { CommonProps } from "../utils/common.ts";
 
 export default function IndexIsland(props: PageProps) {
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
@@ -13,7 +14,7 @@ export default function IndexIsland(props: PageProps) {
   const [decimals, setDecimals] = useState(preferences.decimals(props.data.lang));
   const [priceFactor, setPriceFactor] = useState(preferences.pricefactor(props.data.lang));
 
-  const commonprops = {
+  const commonprops: CommonProps = {
     unit,
     factor,
     extra,
@@ -41,12 +42,10 @@ export default function IndexIsland(props: PageProps) {
           setPriceFactor={setPriceFactor}
           setCurrency={setCurrency}
           {...commonprops}
-        >
-        </Sidebar>
+        ></Sidebar>
         <Comparison
           {...commonprops}
-        >
-        </Comparison>
+        ></Comparison>
       </div>
     </div>
   );

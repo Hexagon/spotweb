@@ -1,15 +1,7 @@
-import { ExrateApiParsedResult } from "routes/api/exrate.ts";
+import { CommonProps } from "../utils/common.ts";
 
-interface InformationPaneProps {
-  unit: string;
-  extra: number;
-  factor: number;
+interface InformationPaneProps extends CommonProps {
   cols: number;
-  currency: string;
-  decimals: number;
-  priceFactor: boolean;
-  lang: string;
-  er: ExrateApiParsedResult;
 }
 
 export default function InformationPane(props: InformationPaneProps) {

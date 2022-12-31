@@ -1,10 +1,10 @@
 import { Cron } from "croner";
 import { sleep } from "sleep";
 
-import { countries } from "config/countries.js";
+import { countries } from "config/countries.ts";
 import { EntsoeSpotprice } from "backend/integrations/entsoe.ts";
 import { ExchangeRate } from "backend/integrations/ecb.ts";
-import { database } from "backend/db/index.ts";
+import { database, Row } from "backend/db/index.ts";
 import { log } from "utils/log.ts";
 
 const startDate = new Date(Date.parse("2020-12-31T12:00:00Z"));
@@ -32,7 +32,7 @@ const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/
       // Get maximum date from area, or fallback to startdate
       let currentPeriod;
       const maxPeriodResult = database.query("SELECT MAX(period) as mp FROM spotprice WHERE country=(?) AND area=(?)", [country.id, area.name]);
-      currentPeriod = new Date(maxPeriodResult[0][0] ? new Date(maxPeriodResult[0][0]) : startDate);
+      currentPeriod = new Date(maxPeriodResult[0][0] && typeof maxPeriodResult[0][0] === "string" ? new Date(maxPeriodResult[0][0]) : startDate);
 
       // Loop until we are at endDate
       let errored = false;
@@ -46,7 +46,7 @@ const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/
         currentPeriod.setHours(0, 0, 0, 0);
 
         // Find next month and subtract one day
-        let endOfPeriod : Date = new Date(currentPeriod);
+        let endOfPeriod: Date = new Date(currentPeriod);
         endOfPeriod.setMonth(endOfPeriod.getMonth() + 1);
         endOfPeriod = new Date(endOfPeriod);
         endOfPeriod.setDate(endOfPeriod.getDate() - 1);
@@ -92,7 +92,7 @@ const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/
   const maxCurrencyResult = database.query("SELECT MAX(period) as mp FROM exchangerate WHERE date >= (?)", [dateToday.toLocaleDateString("sv-SE")]);
   if (maxCurrencyResult[0][0] === null) {
     const result = await ExchangeRate();
-    const entries: [string, number][] = Object.entries(result.entries);
+    const entries: [string, string][] = Object.entries(result.entries);
     for (const [currency, value] of entries) {
       database.query("INSERT INTO exchangerate (currency, value, period, date) VALUES (?,?,?,?)", [
         currency,

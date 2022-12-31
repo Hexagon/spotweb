@@ -9,8 +9,9 @@ import SingleAreaMonthChart from "components/SingleAreaMonthChart.tsx";
 import InformationPane from "components/InformationPane.tsx";
 import SingleAreaTable from "components/SingleAreaTable.tsx";
 import { preferences } from "config/preferences.js";
+import { CommonProps, ExtPageProps } from "../utils/common.ts";
 
-export default function IndexIsland(props: PageProps) {
+export default function IndexIsland(props: PageProps<ExtPageProps>) {
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
   const [factor, setFactor] = useState(preferences.factor(props.data.lang));
@@ -25,7 +26,7 @@ export default function IndexIsland(props: PageProps) {
 
   const dToday = new Date().toLocaleDateString("sv-SE");
 
-  const commonprops = {
+  const commonprops: CommonProps = {
     unit,
     factor,
     extra,
@@ -47,12 +48,9 @@ export default function IndexIsland(props: PageProps) {
       <div class="page-wrapper with-navbar with-sidebar" data-sidebar-hidden="hidden">
         <Navbar
           page={area.name}
-          priceFactor={priceFactor}
           setPriceFactor={setPriceFactorStored}
-          country={props.data.country.name}
-          lang={props.data.lang}
-        >
-        </Navbar>
+          {...commonprops}
+        ></Navbar>
         <Sidebar
           page={area.name}
           setUnit={setUnit}
@@ -62,8 +60,7 @@ export default function IndexIsland(props: PageProps) {
           setPriceFactor={setPriceFactorStored}
           setCurrency={setCurrency}
           {...commonprops}
-        >
-        </Sidebar>
+        ></Sidebar>
         <div class="content-wrapper">
           <div class="content pr-0 mr-0 ml-20 mt-0">
             <div class="row mt-0">
@@ -79,41 +76,32 @@ export default function IndexIsland(props: PageProps) {
                 area={area}
                 detailed={true}
                 {...commonprops}
-              >
-              </SingleAreaOverview>
+              ></SingleAreaOverview>
               <SingleAreaTable
-                priceFactor={priceFactor}
                 cols={3}
-                areaId={area.id}
                 date={dToday}
                 {...commonprops}
-              >
-              </SingleAreaTable>
+              ></SingleAreaTable>
               <SingleAreaChart
                 title={area.name + " - " + area.long}
                 highlight={"color-" + area.color}
                 cols={6}
                 area={area}
                 {...commonprops}
-              >
-              </SingleAreaChart>
+              ></SingleAreaChart>
             </div>
             <div class="row">
               <SingleAreaMonthChart
                 title={area.name + " - " + area.long}
                 highlight={"color-" + area.color}
                 cols={8}
-                areaId={area.id}
                 date={dToday}
                 {...commonprops}
-              >
-              </SingleAreaMonthChart>
+              ></SingleAreaMonthChart>
               <InformationPane
-                priceFactor={priceFactor}
                 cols={4}
                 {...commonprops}
-              >
-              </InformationPane>
+              ></InformationPane>
             </div>
           </div>
         </div>

@@ -1,7 +1,43 @@
+import { ExchangeRateResult, SpotApiParsedRow, SpotApiRow } from "../backend/db/index.ts";
+import { Country, DataArea } from "../config/countries.ts";
+
+interface ExtPageProps {
+  country: Country;
+  area?: DataArea;
+  areas?: DataArea[];
+  er: ExchangeRateResult;
+  lang: string;
+}
+
+interface CommonProps extends ExtPageProps {
+  unit: string;
+  factor: number;
+  extra: number;
+  decimals: number;
+  currency: string;
+  priceFactor: boolean;
+}
+
+interface ChartSeries {
+  name: string;
+  data: SpotApiParsedRow[];
+}
+
 const formatHhMm = (d: Date) => {
   const hours = ("" + d.getHours()).padStart(2, "0"),
     minutes = ("" + d.getMinutes()).padStart(2, "0");
   return `${hours}:${minutes}`;
+};
+
+const processResultSet = (rawApiResultset: SpotApiRow[]): SpotApiParsedRow[] => {
+  const out: SpotApiParsedRow[] = [];
+  for (const row of rawApiResultset) {
+    out.push({
+      ...row,
+      time: new Date(Date.parse(row.time)),
+    });
+  }
+  return out;
 };
 
 const dateText = (d: Date) => {
@@ -15,7 +51,7 @@ const dateText = (d: Date) => {
 };
 
 const generateUrl = (area: string, startDate: Date, endDate: Date, period?: string) => {
-  const params: unknown = {
+  const params: Record<string, string> = {
     area: area,
     period: period ? period : "hourly",
     startDate: startDate.toLocaleDateString("sv-SE"),
@@ -89,4 +125,5 @@ const langFromUrl = (url: URL) => {
     return "sv";
   }
 };
-export { dateText, formatHhMm, generateUrl, getDataDay, getDataMonth, langFromUrl, monthName };
+export type { ChartSeries, CommonProps, ExtPageProps };
+export { dateText, formatHhMm, generateUrl, getDataDay, getDataMonth, langFromUrl, monthName, processResultSet };

@@ -1,9 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
-import { ExrateApiParsedResult } from "routes/api/exrate.ts";
 import { comparisonChartOptions } from "config/charts/comparison.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
 import { generateUrl } from "utils/common.ts";
-import { EntsoeApiParsedResult } from "routes/api/entsoe.ts";
 import { GetExchangeRates } from "backend/db/index.ts";
 
 interface ComparisonProps {
