@@ -53,7 +53,7 @@ const GetSpotprice = (area: string, period: string, fromDate: string, toDate: st
   return result;
 };
 
-const GetDataDay = (areaName: string, date: Date) => {
+const GetDataDay = (areaName: string, date: Date) : SpotApiParsedRow[] => {
   const result = GetSpotprice(
     areaName,
     "hourly",

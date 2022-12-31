@@ -3,8 +3,8 @@ import languageConfig from "./translate.config.ts";
 
 import { start } from "fresh/server.ts";
 import manifest from "./fresh.gen.ts";
-import { langFromUrl } from "./utils/common.ts";
-import { scheduler } from "./backend/scheduler/index.ts";
+import { langFromUrl } from "utils/common.ts";
+import { scheduler } from "backend/scheduler/index.ts";
 
 // Start front end
 start(

@@ -9,7 +9,7 @@ import InformationPane from "components/InformationPane.tsx";
 import { preferences } from "config/preferences.js";
 import PriceFactorWarning from "components/PriceFactorWarning.tsx";
 import { applyExchangeRate, avgPrice, processPrice } from "utils/price.ts";
-import { CommonProps, ExtPageProps } from "utils/common.ts";
+import { CommonProps, ExtPageProps, processResultSet } from "utils/common.ts";
 
 export default function IndexIsland(props: PageProps<ExtPageProps>) {
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
@@ -48,12 +48,12 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
   });
 
   const areaDayPriceListItems = props.data.areas?.map((a) => {
-    const dataTodayExchanged = applyExchangeRate(a.dataToday, props.data.er, currency);
+    const dataTodayExchanged = applyExchangeRate(processResultSet(a.dataToday), props.data.er, currency);
     return <li>{a.name} - {a.long}: {processPrice(avgPrice(dataTodayExchanged), { ...commonprops, priceFactor: false })} {currency}/{unit}</li>;
   });
 
   const areaMonthPriceListItems = props.data.areas?.map((a) => {
-    const dataMonthExchanged = applyExchangeRate(a.dataMonth, props.data.er, currency);
+    const dataMonthExchanged = applyExchangeRate(processResultSet(a.dataMonth), props.data.er, currency);
     return <li>{a.name} - {a.long}: {processPrice(avgPrice(dataMonthExchanged), { ...commonprops, priceFactor: false })} {currency}/{unit}</li>;
   });
 

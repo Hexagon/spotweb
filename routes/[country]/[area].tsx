@@ -1,7 +1,7 @@
 import { Handlers, PageProps } from "fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
 import ElomradeIsland from "islands/ElomradeIsland.tsx";
-import { GetDataDay, GetDataMonth, GetExchangeRates } from "backend/db/index.ts";
+import { GetDataDay, GetDataMonth, GetExchangeRates, SpotApiRow } from "backend/db/index.ts";
 import { countries } from "config/countries.ts";
 import { ExtPageProps } from "../../utils/common.ts";
 

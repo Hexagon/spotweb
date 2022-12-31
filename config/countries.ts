@@ -1,4 +1,4 @@
-import { SpotApiRow } from "../backend/db/index.ts";
+import { SpotApiParsedRow, SpotApiRow } from "../backend/db/index.ts";
 
 interface Area {
   name: string;
@@ -8,10 +8,10 @@ interface Area {
 }
 
 interface DataArea extends Area {
-  dataToday: SpotApiParsedRow[];
-  dataTomorrow: SpotApiParsedRow[];
-  dataMonth: SpotApiParsedRow[];
-  dataPrevMonth?: SpotApiParsedRow[];
+  dataToday: SpotApiRow[];
+  dataTomorrow: SpotApiRow[];
+  dataMonth: SpotApiRow[];
+  dataPrevMonth?: SpotApiRow[];
 }
 
 interface Country {

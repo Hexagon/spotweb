@@ -9,7 +9,7 @@ import { log } from "utils/log.ts";
 
 const startDate = new Date(Date.parse("2020-12-31T12:00:00Z"));
 
-const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/Oslo" }, async () => {
+const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, maxRuns: 1, timezone: "Europe/Oslo" }, async () => {
   log("info", "Scheduled data update started");
 
   // Get current date
@@ -32,7 +32,7 @@ const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/
       // Get maximum date from area, or fallback to startdate
       let currentPeriod;
       const maxPeriodResult = database.query("SELECT MAX(period) as mp FROM spotprice WHERE country=(?) AND area=(?)", [country.id, area.name]);
-      currentPeriod = new Date(maxPeriodResult[0][0] && typeof maxPeriodResult[0][0] === "string" ? new Date(maxPeriodResult[0][0]) : startDate);
+      currentPeriod = new Date(maxPeriodResult[0][0] && typeof maxPeriodResult[0][0] === "number" ? new Date(maxPeriodResult[0][0]) : startDate);
 
       // Loop until we are at endDate
       let errored = false;
@@ -54,7 +54,7 @@ const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/
         endOfPeriod = new Date(Math.min(endOfPeriod.getTime(), dateTomorrow.getTime()));
 
         // Get data
-        log("info", "Getting" + area.id + " " + currentPeriod + " " + endOfPeriod);
+        log("info", "Getting" + area.id + " " + currentPeriod.toLocaleString() + " " + endOfPeriod.toLocaleString());
         try {
           const result = await EntsoeSpotprice(area.id, currentPeriod, endOfPeriod);
           if (result.length) {
@@ -74,7 +74,7 @@ const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/
             // Add one day to start date if we are not at start
             currentPeriod.setDate(currentPeriod.getDate() + 1);
           } else {
-            log("info", "No new data" + JSON.stringify(result));
+            log("info", "No new data for " + area.id);
             errored = true;
           }
         } catch (e) {
@@ -109,7 +109,7 @@ const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/
 const scheduler = {
   start: () => {
     jobs.resume();
-    log("info", "Scheduler started, next run is at " + jobs.next());
+    log("info", "Scheduler started, next run is at " + jobs.next().toLocaleString());
   },
   stop: () => {
     jobs.stop();
