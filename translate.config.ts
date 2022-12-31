@@ -1,4 +1,4 @@
-import type { Options } from "freshlate";
+import type { Options } from "localekit_fresh";
 import * as translations from "config/translations/index.js";
 
 export default {

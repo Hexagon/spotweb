@@ -1,4 +1,4 @@
-import languagePlugin from "freshlate";
+import languagePlugin from "localekit_fresh";
 import languageConfig from "./translate.config.ts";
 
 import { start } from "fresh/server.ts";
