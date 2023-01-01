@@ -26,7 +26,7 @@ const fi = {
       "thirty_day_chart": "30 päivän historia",
       "all_areas_today": "Kaikki sähköalueet - tänään",
       "all_areas_tomorrow": "Kaikki sähköalueet - Huomenna",
-      "average_today": "Hinta tänään",
+      "average_today": "Ka. tänään",
       "average_tomorrow": "huomenna",
       "right_now": "juuri nyt",
       "more_about": "Lisää",
@@ -58,6 +58,7 @@ const fi = {
       "outstanding_hours": "Erinomaiset tunnit",
       "today": "Tänään",
       "tomorrow": "Huomenna",
+      "compare_to": "Vertaile"
     },
   },
 };

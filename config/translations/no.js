@@ -58,6 +58,7 @@ const no = {
       "outstanding_hours": "Utestående timer",
       "today": "I dag",
       "tomorrow": "I morgen",
+      "compare_to": "Sammenlignet med"
     },
   },
 };

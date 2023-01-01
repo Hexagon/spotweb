@@ -2,7 +2,6 @@ import { useEffect, useState } from "preact/hooks";
 import { liveViewChartOptions } from "config/charts/liveview.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
 import { ChartSeries, CommonProps, formatHhMm, processResultSet } from "utils/common.ts";
-import { SpotApiRow } from "../backend/db/index.ts";
 
 interface AllAreaChartProps extends CommonProps {
   highlight: string;

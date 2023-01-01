@@ -58,6 +58,7 @@ const sv = {
       "outstanding_hours": "Utmärkande timmar",
       "today": "Idag",
       "tomorrow": "Imorgon",
+      "compare_to": "Jämför med"
     },
   },
 };

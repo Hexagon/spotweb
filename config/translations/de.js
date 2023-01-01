@@ -58,6 +58,7 @@ const de = {
         "outstanding_hours": "Hervorragende Stunden",
         "today": "Heute",
         "tomorrow": "Morgen",
+        "compare_to": "Vergleichen mit"
       },
     },
   };

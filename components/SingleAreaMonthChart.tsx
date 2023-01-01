@@ -133,7 +133,7 @@ export default function SingleAreaMonthChart(props: SingleAreaMonthChartProps) {
                   name="select-compare"
                   onChange={(e) => setComparison((e.target as HTMLSelectElement).value)}
                 >
-                  <option value="" selected={true} disabled={true}>Jämför med</option>
+                  <option value="" selected={true} disabled={true} data-t-key="common.chart.compare_to" lang={props.lang}>Jämför med</option>
                   <option value="SE1">SE1</option>
                   <option value="SE2">SE2</option>
                   <option value="SE3">SE3</option>
