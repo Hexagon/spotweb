@@ -1,5 +1,5 @@
 import languagePlugin from "localekit_fresh";
-import languageConfig from "./translate.config.ts";
+import languageConfig from "config/translate.config.ts";
 
 import { start } from "fresh/server.ts";
 import manifest from "./fresh.gen.ts";

@@ -1,9 +1,13 @@
 const fi = {
   "common": {
+    "page": {
+      "title": "Sähkön hinta juuri nyt"
+    },
     "header": {
       "title": "Nykyinen sähkön hinta",
       "avg_today": "Keskimääräinen spot-hinta tänään",
       "avg_month": "Keskimääräinen spot-hinta tähän mennessä tässä kuussa",
+      "avg_today_short": "Keskimääräinen spot-hinta",
     },
     "warning": {
       "actual_price": "Todellinen sähkön hinta",
@@ -22,7 +26,7 @@ const fi = {
       "thirty_day_chart": "30 päivän historia",
       "all_areas_today": "Kaikki sähköalueet - tänään",
       "all_areas_tomorrow": "Kaikki sähköalueet - Huomenna",
-      "average_today": "Leikkaa tänään",
+      "average_today": "Hinta tänään",
       "average_tomorrow": "huomenna",
       "right_now": "juuri nyt",
       "more_about": "Lisää",

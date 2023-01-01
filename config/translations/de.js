@@ -1,9 +1,13 @@
 const de = {
     "common": {
+      "page": {
+        "title": "Strompreis aktuell"
+      },
       "header": {
         "title": "Aktueller Strompreis",
         "avg_today": "Durchschnittlicher Spotpreis heute",
         "avg_month": "Durchschnittlicher Spotpreis in diesem Monat bisher",
+        "avg_today_short": "Durchschnittlicher Spotpreis",
       },
       "warning": {
         "actual_price": "Aktueller Strompreis",

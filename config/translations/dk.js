@@ -1,9 +1,13 @@
 const dk = {
   "common": {
+    "page": {
+      "title": "Elprisen lige nu"
+    },
     "header": {
       "title": "Aktuel elpris",
       "avg_today": "Gennemsnitlig spotpris i dag",
       "avg_month": "Gennemsnitlig spotpris indtil videre i denne måned",
+      "avg_today_short": "Gennemsnitlig spotpris",
     },
     "warning": {
       "actual_price": "Faktisk elpris",

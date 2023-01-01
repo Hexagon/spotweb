@@ -1,9 +1,13 @@
 const no = {
   "common": {
+    "page": {
+      "title": "Strømprisen akkurat nå"
+    },
     "header": {
       "title": "Gjeldende strømpris",
       "avg_today": "Gjennomsnittlig spotpris i dag",
       "avg_month": "Gjennomsnittlig spotpris så langt denne måneden",
+      "avg_today_short": "Gjennomsnittlig spotpris",
     },
     "warning": {
       "actual_price": "Faktisk strømpris",

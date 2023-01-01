@@ -46,7 +46,7 @@ const countries = [
     name: "Finland",
     id: "fi",
     areas: [
-      { name: "FI", "id": "FI", "long": "Soumi", color: 1 },
+      { name: "FI", "id": "FI", "long": "Suomi", color: 1 },
     ],
   },
   {

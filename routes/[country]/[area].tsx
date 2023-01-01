@@ -58,7 +58,7 @@ export const handler: Handlers = {
 export default function Area(props: PageProps) {
   return (
     <>
-      <SwHead title={props.data.area.name + " - " + props.data.area.long}></SwHead>
+      <SwHead title={props.data.area.name + " - " + props.data.area.long} {...props}></SwHead>
       <body lang={props.data.lang} class="dark-mode">
         <ElomradeIsland {...props}></ElomradeIsland>
       </body>

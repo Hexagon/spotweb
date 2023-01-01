@@ -54,7 +54,7 @@ export const handler: Handlers = {
 export default function Index(props: PageProps<ExtPageProps>) {
   return (
     <>
-      <SwHead title={props.data.country.name + " - " + props.data.country.areas.map((a) => a.name).join(", ")}></SwHead>
+      <SwHead title={props.data.country.name + " - " + props.data.country.areas.map((a) => a.name).join(", ")} {...props}></SwHead>
       <body lang={props.data.lang} class="dark-mode">
         <IndexIsland {...props}></IndexIsland>
       </body>
