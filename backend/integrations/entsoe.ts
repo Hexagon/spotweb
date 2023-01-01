@@ -29,14 +29,17 @@ const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Pr
     try {
       for (const ts of resultJson.TimeSeries) {
         const baseDate = new Date(ts.Period.timeInterval.start);
-        for (const p of ts.Period.Point) {
-          output.push({
-            startTime: new Date(baseDate.getTime() + (parseInt(p.position, 10) - 1) * 3600 * 1000),
-            endTime: new Date(baseDate.getTime() + (parseInt(p.position, 10)) * 3600 * 1000),
-            areaCode: area,
-            spotPrice: parseFloat(p["price.amount"]),
-            unit: "EUR/MWh",
-          });
+        // Only use PT60M for now
+        if (ts.Period.resolution === "PT60M") {
+          for (const p of ts.Period.Point) {
+            output.push({
+              startTime: new Date(baseDate.getTime() + (parseInt(p.position, 10) - 1) * 3600 * 1000),
+              endTime: new Date(baseDate.getTime() + (parseInt(p.position, 10)) * 3600 * 1000),
+              areaCode: area,
+              spotPrice: parseFloat(p["price.amount"]),
+              unit: "EUR/MWh",
+            });
+          }
         }
       }
     } catch (_e) {

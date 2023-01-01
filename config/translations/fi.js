@@ -1,7 +1,7 @@
 const fi = {
   "common": {
     "header": {
-      "title": "Tuntihinta juuri nyt, muuttuva hinta tässä kuussa ja historialliset hinnat",
+      "title": "Nykyinen sähkön hinta",
       "avg_today": "Keskimääräinen spot-hinta tänään",
       "avg_month": "Keskimääräinen spot-hinta tähän mennessä tässä kuussa",
     },
@@ -46,7 +46,8 @@ const fi = {
       "no": "Norja",
       "fi": "Suomi",
       "dk": "Tanska",
-      "de": "Saksa"
+      "de": "Saksa",
+      "at": "Itävalta"
     },
     "chart": {
       "today_and_tomorrow": "Tänään ja huomenna",

@@ -1,7 +1,7 @@
 const de = {
     "common": {
       "header": {
-        "title": "Stündlicher Preis im Moment, variabler Preis bisher in diesem Monat und historische Preise",
+        "title": "Aktueller Strompreis",
         "avg_today": "Durchschnittlicher Spotpreis heute",
         "avg_month": "Durchschnittlicher Spotpreis in diesem Monat bisher",
       },

@@ -65,7 +65,7 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
           <div class="content pr-0 mr-0 ml-20 mt-0">
             <div class="row mt-0">
               <h1 class="noshow" data-t-key="common.header.title" lang={commonprops.lang}>
-                Timpris just nu, rörligt pris hittills i månaden och historiska priser
+                Aktuellt elpris
               </h1>
               <h2 class="noshow">{country.name} - {area.name} {area.long}</h2>
               <div class="sticky-alerts"></div>

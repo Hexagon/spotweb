@@ -77,7 +77,7 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
         ></Sidebar>
         <div class="content-wrapper">
           <h1 class="noshow" data-t-key="common.header.title" lang={commonprops.lang}>
-            Timpris just nu, rörligt pris hittills i månaden och historiska priser
+            Aktuellt elpris
           </h1>
           <h2 class="noshow" data-t-key="common.header.avg_today" lang={commonprops.lang}>Genomsnittligt spotpris idag</h2>
           <ul class="noshow">{areaDayPriceListItems}</ul>
