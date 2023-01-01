@@ -2,6 +2,34 @@ const de = {
     "common": {
       "page": {
         "title": "Strompreis aktuell"
+      },    
+      "months": {
+        "jan": "januar",
+        "feb": "februar",
+        "mar": "märz",
+        "apr": "april",
+        "maj": "mai",
+        "jun": "juni",
+        "jul": "juli",
+        "aug": "august",
+        "sep": "september",
+        "okt": "oktober",
+        "nov": "november",
+        "dec": "dezember"
+      },
+      "months_short": {
+        "jan": "jan",
+        "feb": "feb",
+        "mar": "mär",
+        "apr": "apr",
+        "maj": "mai",
+        "jun": "jun",
+        "jul": "jul",
+        "aug": "aug",
+        "sep": "sep",
+        "okt": "okt",
+        "nov": "nov",
+        "dec": "dez"
       },
       "header": {
         "title": "Aktueller Strompreis",
@@ -26,12 +54,12 @@ const de = {
         "thirty_day_chart": "30 Tage Geschichte",
         "all_areas_today": "Alle Elektrobereiche - Heute",
         "all_areas_tomorrow": "Alle Elektrobereiche - Morgen",
-        "average_today": "Heute schneiden",
+        "average_today": "Durchs. heute",
         "average_tomorrow": "morgen",
-        "right_now": "im Augenblick",
+        "right_now": "jetzt",
         "more_about": "Mehr über",
         "span": "Spanne:",
-        "so_far": "So weit drin",
+        "so_far": "Bisher im",
       },
       "nav": {
         "actual_price_instead": "Tatsächlicher Stundenpreis statt Spotpreis",

@@ -60,7 +60,11 @@ export default function SingleAreaOverview(props: AreaViewProps) {
                 <div class="row mt-15">
                   <div class="col-7">
                     <h5 class="mb-0">
-                      <span data-t-key="common.overview.so_far" lang={props.lang}>So far in</span>&nbsp;{rsMonth && rsMonth[0]?.time ? monthName(rsMonth[0].time) : ""}
+                      <span data-t-key="common.overview.so_far" lang={props.lang}>So far in</span>
+                      &nbsp;
+                      { rsMonth && rsMonth[0]?.time && (
+                        <span data-t-key={"common.months_short."+monthName(rsMonth[0].time)} lang={props.lang}>-</span>
+                      )}
                     </h5>
                     <div class="mt-5 mb-5">
                       <span class="font-size-24">{processPrice(avgPrice(rsMonth), props)}</span>
@@ -69,7 +73,11 @@ export default function SingleAreaOverview(props: AreaViewProps) {
                     <span>Spann: {processPrice(minPrice(rsMonth), props)} - {processPrice(maxPrice(rsMonth), props)}</span>
                   </div>
                   <div class="col-5 text-right">
-                    <h5 class="mb-0">{rsPrevMonth ? monthName(rsPrevMonth[0]?.time) : ""}</h5>
+                    <h5 class="mb-0">
+                    { rsPrevMonth && rsPrevMonth[0]?.time && (
+                      <span data-t-key={"common.months_short."+monthName(rsPrevMonth[0]?.time)} lang={props.lang}>-</span>
+                    )}
+                    </h5>
                     <div class="mt-5 mb-5">
                       <span class="font-size-24">{processPrice(avgPrice(rsPrevMonth), props)}</span>
                     </div>

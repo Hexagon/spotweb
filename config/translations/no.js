@@ -3,6 +3,34 @@ const no = {
     "page": {
       "title": "Strømprisen akkurat nå"
     },
+    "months": {
+      "jan": "januar",
+      "feb": "februar",
+      "mar": "mars",
+      "apr": "april",
+      "maj": "mai",
+      "jun": "juni",
+      "jul": "juli",
+      "aug": "august",
+      "sep": "september",
+      "okt": "oktober",
+      "nov": "november",
+      "dec": "desember"
+    },
+    "months_short": {
+      "jan": "jan",
+      "feb": "feb",
+      "mar": "mar",
+      "apr": "apr",
+      "maj": "mai",
+      "jun": "jun",
+      "jul": "jul",
+      "aug": "aug",
+      "sep": "sep",
+      "okt": "okt",
+      "nov": "nov",
+      "dec": "des"
+    },
     "header": {
       "title": "Gjeldende strømpris",
       "avg_today": "Gjennomsnittlig spotpris i dag",

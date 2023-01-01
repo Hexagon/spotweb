@@ -3,6 +3,34 @@ const fi = {
     "page": {
       "title": "Sähkön hinta juuri nyt"
     },
+    "months": {
+      "jan": "tammikuu",
+      "feb": "helmikuu",
+      "mar": "maaliskuu",
+      "apr": "huhtikuu",
+      "maj": "toukokuu",
+      "jun": "kesäkuu",
+      "jul": "heinäkuu",
+      "aug": "elokuu",
+      "sep": "syyskuu",
+      "okt": "lokakuu",
+      "nov": "marraskuu",
+      "dec": "joulukuu"
+    },
+    "months_short": {
+      "jan": "tam",
+      "feb": "hel",
+      "mar": "maa",
+      "apr": "huh",
+      "maj": "tou",
+      "jun": "kes",
+      "jul": "hei",
+      "aug": "elo",
+      "sep": "syy",
+      "okt": "lok",
+      "nov": "mar",
+      "dec": "jou"
+    },
     "header": {
       "title": "Nykyinen sähkön hinta",
       "avg_today": "Keskimääräinen spot-hinta tänään",

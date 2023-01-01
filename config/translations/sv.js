@@ -3,6 +3,34 @@ const sv = {
     "page": {
       "title": "Elpriset just nu"
     },
+    "months": {
+      "jan": "januari",
+      "feb": "februari",
+      "mar": "mars",
+      "apr": "april",
+      "maj": "maj",
+      "jun": "juni",
+      "jul": "juli",
+      "aug": "augusti",
+      "sep": "september",
+      "okt": "oktober",
+      "nov": "november",
+      "dec": "december"
+    },
+    "months_short": {
+      "jan": "jan",
+      "feb": "feb",
+      "mar": "mar",
+      "apr": "apr",
+      "maj": "maj",
+      "jun": "jun",
+      "jul": "jul",
+      "aug": "aug",
+      "sep": "sep",
+      "okt": "okt",
+      "nov": "nov",
+      "dec": "dec"
+    },
     "header": {
       "title": "Aktuellt elpris, nu och historiskt",
       "avg_today": "Genomsnittligt spotpris idag",

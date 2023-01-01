@@ -3,6 +3,34 @@ const dk = {
     "page": {
       "title": "Elprisen lige nu"
     },
+    "months": {
+      "jan": "januar",
+      "feb": "februar",
+      "mar": "marts",
+      "apr": "april",
+      "maj": "maj",
+      "jun": "juni",
+      "jul": "juli",
+      "aug": "august",
+      "sep": "september",
+      "okt": "oktober",
+      "nov": "november",
+      "dec": "december"
+    },
+    "months_short": {
+      "jan": "jan",
+      "feb": "feb",
+      "mar": "mar",
+      "apr": "apr",
+      "maj": "maj",
+      "jun": "jun",
+      "jul": "jul",
+      "aug": "aug",
+      "sep": "sep",
+      "okt": "okt",
+      "nov": "nov",
+      "dec": "dec"
+    },
     "header": {
       "title": "Aktuel elpris",
       "avg_today": "Gennemsnitlig spotpris i dag",
