@@ -4,9 +4,9 @@ const sv = {
       "title": "Elpriset just nu"
     },
     "header": {
-      "title": "Timpris just nu, rörligt pris hittills i månaden och historiska priser",
+      "title": "Aktuellt elpris, nu och historiskt",
       "avg_today": "Genomsnittligt spotpris idag",
-      "avg_month": "Genomsnittligt spotpris hittills i månaden",
+      "avg_month": "Rörligt pris hittills i månaden",
       "avg_today_short": "Medelspotpris",
     },
     "warning": {

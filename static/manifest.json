@@ -5,9 +5,9 @@
   "scope": "https://spot.56k.guru/",
   "id": "/",
   "start_url": "https://spot.56k.guru/",
-  "name": "Elpriset just nu",
-  "short_name": "Elpris",
-  "description": "Aktuella och historiska spotpriser från spot.56k.guru",
+  "name": "Spot",
+  "short_name": "Spot",
+  "description": "Current and historic electricity prices from spot.56k.guru",
   "icons": [
     {
       "src": "/icon-192x192.png",
