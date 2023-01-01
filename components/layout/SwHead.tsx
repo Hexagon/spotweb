@@ -58,7 +58,9 @@ export default function SwHead(props: PageProps<ExtPageProps | HeadProps>) {
       "@context": "http://schema.org",
       "@type": "WebPage",
       "name": "${locale_kit.t("common.page.title",{ lang: props.data.lang })}",
-      "description": "${locale_kit.t("common.header.title",{ lang: props.data.lang })} - ${props.title}."
+      "description": "${locale_kit.t("common.header.title",{ lang: props.data.lang })} - ${props.title}.",
+      "datePublished": "${new Date().toLocaleDateString('sv-SE')}",
+      "dateModified": "${new Date().toLocaleDateString('sv-SE')}"
   }`;
 
   return (
