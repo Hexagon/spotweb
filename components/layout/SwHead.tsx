@@ -7,7 +7,6 @@ import { applyExchangeRate } from "../../utils/price.ts";
 import { locale_kit } from "localekit_fresh";
 import { PageProps } from "fresh/server.ts";
 import { preferences } from "../../config/preferences.js";
-import languageConfig from "config/translate.config.ts";
 
 interface HeadProps extends CommonProps {
   title: string;
@@ -25,8 +24,8 @@ export default function SwHead(props: PageProps<ExtPageProps | HeadProps>) {
     priceFactor: false
   }
 
-  let jsonLdFlag = true;
-  let jsonLdDocument = "";
+  let jsonLdPriceFlag = true;
+  let jsonLdPriceDocument = "";
 
   if (props.data.area) {
     const 
@@ -35,32 +34,39 @@ export default function SwHead(props: PageProps<ExtPageProps | HeadProps>) {
       minPriceResult = processPrice(minPrice(dataTodayExchanged), priceProps),
       avgPriceResult = processPrice(avgPrice(dataTodayExchanged), priceProps);
     
-    jsonLdFlag = true;
-    jsonLdDocument = `
-    {
-      "@context": "https://schema.org",
-      "@type": "UnitPriceSpecification",
-      "@id": "UnitPriceSpecification",
-      "maxPrice": "${maxPriceResult}",
-      "minPrice": "${minPriceResult}",
-      "name": "${locale_kit.t("common.header.avg_today_short",{ lang: props.data.lang })} ${props.data.area.name} - ${props.data.area.long}",
-      "price": "${avgPriceResult}",
-      "priceCurrency": [
-        "${priceProps.currency}"
-      ],
-      "unitCode": "${priceProps.unit}",
-      "validFrom": "${new Date().toLocaleDateString('sv-SE')}",
-      "validThrough": "${new Date().toLocaleDateString('sv-SE')}"
-    }`;
-
+    jsonLdPriceFlag = true;
+    jsonLdPriceDocument = `
+{
+  "@context": "https://schema.org",
+  "@type": "UnitPriceSpecification",
+  "@id": "UnitPriceSpecification",
+  "maxPrice": "${maxPriceResult}",
+  "minPrice": "${minPriceResult}",
+  "name": "${locale_kit.t("common.header.avg_today_short",{ lang: props.data.lang })} ${props.data.area.name} - ${props.data.area.long}",
+  "price": "${avgPriceResult}",
+  "priceCurrency": [
+    "${priceProps.currency}"
+  ],
+  "unitCode": "${priceProps.unit}",
+  "validFrom": "${new Date().toLocaleDateString('sv-SE')}",
+  "validThrough": "${new Date().toLocaleDateString('sv-SE')}"
+}`;
   }
+
+  const jsonLdPageDocument = `
+  {
+      "@context": "http://schema.org",
+      "@type": "WebPage",
+      "name": "${locale_kit.t("common.page.title",{ lang: props.data.lang })}",
+      "description": "${locale_kit.t("common.header.title",{ lang: props.data.lang })} - ${props.title}."
+  }`;
 
   return (
     <Head>
       <title>{locale_kit.t("common.page.title",{ lang: props.data.lang })}  - {props.title}</title>
       <link rel="icon" type="image/png" href="/icon-192x192.png"></link>
 
-      <meta name="description" content={"Se aktuellt timpris och månadspris i " + props.title + ". Visar både spotpris eller faktiskt pris."} />
+      <meta name="description" content={locale_kit.t("common.header.title",{ lang: props.data.lang }) + " - " + props.title} />
 
       <link
         href="https://cdn.jsdelivr.net/npm/halfmoon@1.1.1/css/halfmoon.min.css"
@@ -86,8 +92,9 @@ export default function SwHead(props: PageProps<ExtPageProps | HeadProps>) {
       <link rel="manifest" href="/manifest.json"></link>
       <link href="https://fonts.cdnfonts.com/css/seven-segment" rel="stylesheet"></link>
       <link rel="stylesheet" href="/css/custom.css"></link>
-      { jsonLdFlag && (
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdDocument }}></script>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdPageDocument }}></script>
+      { jsonLdPriceFlag && (
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdPriceDocument }}></script>
       )}
     </Head>
   );
