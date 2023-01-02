@@ -11,7 +11,7 @@
     background-color: rgba(232, 24, 255, 0.3) !important;
 }
 .bg-color-5 {
-    color: rgba(255, 224, 124, 0.3) !important;
+    background-color: rgba(224, 24, 71, 0.3) !important;
 }
 .link-color-1 {
     color: rgba(224, 255, 24, 1) !important;
@@ -26,7 +26,7 @@
     color: rgba(232, 24, 255, 1) !important;
 }
 .link-color-5 {
-    color: rgba(255, 224, 124, 1) !important;
+    color: rgba(224, 24, 71, 1) !important;
 }
 .extra-pad {
     padding: 5px !important;

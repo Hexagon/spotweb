@@ -28,7 +28,7 @@ const areaViewChartOptions = {
     forceNiceScale: true,
   },
   legend: {
-    show: false,
+    show: true,
   },
   stroke: {
     width: 3,

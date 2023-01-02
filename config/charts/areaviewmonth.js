@@ -30,7 +30,7 @@ const areaViewMonthChartOptions = {
     forceNiceScale: true,
   },
   legend: {
-    show: false,
+    show: true,
   },
   stroke: {
     width: 2,
