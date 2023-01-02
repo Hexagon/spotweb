@@ -29,6 +29,17 @@ const defaultFactor = (lang) => {
   }
 };
 
+const defaultDecimals = (lang) => {
+  const usedCurrency = (localStorage.getItem("sw_currency") ?? defaultCurrency(lang));
+  if ( usedCurrency === "öre") {
+    return "1";
+  } else if ( usedCurrency === "EUR" ) {
+    return "3";
+  } else {
+    return "2";
+  }
+}
+
 const defaultPricefactor = (lang) => {
   if (lang == "sv") {
     return true;
@@ -44,7 +55,7 @@ const preferences = {
   factor: (lang) => parseFloat(localStorage.getItem("sw_factor") ?? defaultFactor(lang)),
   extra: (lang) => parseFloat(localStorage.getItem("sw_extra") ?? defaultExtra(lang)),
   decimals: (lang) =>
-    parseInt(localStorage.getItem("sw_decimals") ?? (((localStorage.getItem("sw_currency") ?? defaultCurrency(lang)) === "öre") ? "1" : "2"), 10),
+    parseInt(localStorage.getItem("sw_decimals") ?? defaultDecimals(lang), 10),
   pricefactor: (
     lang,
   ) => (localStorage.getItem("sw_pricefactor") === "false"
