@@ -54,6 +54,7 @@ const sv = {
       "thirty_day_chart": "30 dagars historik",
       "all_areas_today": "Alla elområden - Idag",
       "all_areas_tomorrow": "Alla elområden - Imorgon",
+      "all_areas_longterm": "Alla elområden - Historik per månad",
       "average_today": "Snitt idag",
       "average_tomorrow": "imorgon",
       "right_now": "just nu",

@@ -54,6 +54,7 @@ const de = {
         "thirty_day_chart": "30 Tage Geschichte",
         "all_areas_today": "Alle Elektrobereiche - Heute",
         "all_areas_tomorrow": "Alle Elektrobereiche - Morgen",
+        "all_areas_longterm": "Alle Elektrobereiche - Verlauf pro Monat",
         "average_today": "Durchs. heute",
         "average_tomorrow": "morgen",
         "right_now": "jetzt",

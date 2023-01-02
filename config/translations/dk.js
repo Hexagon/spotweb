@@ -54,6 +54,7 @@ const dk = {
       "thirty_day_chart": "30 dages historie",
       "all_areas_today": "Alle elektriske områder - i dag",
       "all_areas_tomorrow": "Alle elektriske områder - i morgen",
+      "all_areas_longterm": "Alle elektriske områder - Historik om måneden",
       "average_today": "Pris i dag",
       "average_tomorrow": "i morgen",
       "right_now": "lige nu",

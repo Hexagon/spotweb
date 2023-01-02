@@ -10,6 +10,7 @@ import { preferences } from "config/preferences.js";
 import PriceFactorWarning from "components/PriceFactorWarning.tsx";
 import { applyExchangeRate, avgPrice, processPrice } from "utils/price.ts";
 import { CommonProps, ExtPageProps, processResultSet } from "utils/common.ts";
+import AllAreaChartLongTerm from "../components/AllAreaChartLongTerm.tsx";
 
 export default function IndexIsland(props: PageProps<ExtPageProps>) {
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
@@ -105,8 +106,11 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
           </div>
           <div class="content mt-0 mr-0 ml-20">
             <div class="row mt-0">
+              <AllAreaChartLongTerm
+                {...commonprops}
+              ></AllAreaChartLongTerm>
               <InformationPane
-                cols={12}
+                cols={6}
                 {...commonprops}
               ></InformationPane>
             </div>

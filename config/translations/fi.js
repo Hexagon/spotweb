@@ -54,6 +54,7 @@ const fi = {
       "thirty_day_chart": "30 päivän historia",
       "all_areas_today": "Kaikki sähköalueet - tänään",
       "all_areas_tomorrow": "Kaikki sähköalueet - Huomenna",
+      "all_areas_longterm": "Kaikki sähköalueet - Historia kuukaudessa",
       "average_today": "Ka. tänään",
       "average_tomorrow": "huomenna",
       "right_now": "juuri nyt",

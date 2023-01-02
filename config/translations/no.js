@@ -54,6 +54,7 @@ const no = {
       "thirty_day_chart": "30 dagers historie",
       "all_areas_today": "Alle områder - I dag",
       "all_areas_tomorrow": "Alle områder - I morgen",
+      "all_areas_longterm": "Alle områder - Historie per måned",
       "average_today": "Snitt i dag",
       "average_tomorrow": "i morgen",
       "right_now": "akkurat nå",
