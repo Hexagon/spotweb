@@ -27,6 +27,9 @@ export default function SingleAreaTable(props: AreaTableProps) {
     // Apply exchange rate if needed
     const dataToday: SpotApiParsedRow[] = applyExchangeRate(await getData(props.date), props.er, props.currency) || [];
 
+    // Filter on upcoming 
+    dataToday.filter((e) => new Date(e.time.getTime() + 3600 * 1000) < new Date()); 
+
     // Make copy of data set, filter and sort
     dataToday.sort((a, b) => b.price - a.price);
 
@@ -71,7 +74,6 @@ export default function SingleAreaTable(props: AreaTableProps) {
                   else if (dayHigh !== null && dayHigh <= e.price) classSuffix = "danger";
                   else if (dayMid !== null && dayMid <= e.price) classSuffix = "secondary";
                   else return;
-                  if (endDate < new Date()) return;
                   return (
                     <tr>
                       <td class="p-0 extra-pad" data-t-key={"common.chart." + dateText(startDate)} lang={props.lang}>
