@@ -1,4 +1,4 @@
-import { Head } from "fresh/runtime.ts";
+import { asset, Head } from "fresh/runtime.ts";
 import { DataArea } from "../../config/countries.ts";
 import { CommonProps, ExtPageProps, processResultSet } from "../../utils/common.ts";
 import { maxPrice, minPrice, processPrice } from "../../utils/price.ts";
@@ -66,7 +66,7 @@ export default function SwHead(props: PageProps<ExtPageProps | HeadProps>) {
   return (
     <Head>
       <title>{locale_kit.t("common.page.title",{ lang: props.data.lang })}  - {props.title}</title>
-      <link rel="icon" type="image/png" href="/icon-192x192.png"></link>
+      <link rel="icon" type="image/png" href={asset("/icon-192x192.png")}></link>
 
       <meta name="description" content={locale_kit.t("common.header.title",{ lang: props.data.lang }) + " - " + props.title} />
 
@@ -90,10 +90,10 @@ export default function SwHead(props: PageProps<ExtPageProps | HeadProps>) {
         referrerpolicy="no-referrer"
       >
       </script>
-      <script type="module" src="/initworker.js"></script>
-      <link rel="manifest" href="/manifest.json"></link>
+      <script type="module" src={asset("/initworker.js")}></script>
+      <link rel="manifest" href={asset("/manifest.json")}></link>
       <link href="https://fonts.cdnfonts.com/css/seven-segment" rel="stylesheet"></link>
-      <link rel="stylesheet" href="/css/custom.css"></link>
+      <link rel="stylesheet" href={asset("/css/custom.css")}></link>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdPageDocument }}></script>
       { jsonLdPriceFlag && (
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdPriceDocument }}></script>
