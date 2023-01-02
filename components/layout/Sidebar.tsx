@@ -23,38 +23,26 @@ interface SidebarProps {
 }
 
 export default function Sidebar(props: SidebarProps) {
-  const [countryItems, setCountryItems] = useState([]);
-  useEffect(() => {
-    const countryItems = [];
-    for (const country of countries) {
-      const areaItems = [];
-      for (const area of country.areas) {
-        areaItems.push(
-          <a class={"sidebar-link" + (props.page === "SE1" ? " active" : "")} href={"/" + country.id + "/" + area.name}>{area.name} - {area.long}</a>,
-        );
-      }
-      countryItems.push(
-        <>
-          <a
-            class={"nav-link" + (props.page === "index" ? " active" : "")}
-            href={"/" + country.id}
-            data-t-key={"common.countries." + country.id}
-            lang={props.lang}
-          >
-            {country.name}
-          </a>
-          {areaItems}
-        </>,
-      );
-    }
-    setCountryItems(countryItems);
-  }, []);
-
   return (
     <div class="sidebar">
       <div class="sidebar-menu">
-        <div class="sidebar-content hidden-md-and-up">
-          {countryItems}
+        <div class="sidebar-content hidden-md-and-up pt-0">
+          { countries && countries.map((country) => (
+            <>
+              <a
+                class={"nav-link mt-10" + (props.page === "index" ? " active" : "")}
+                href={"/" + country.id}
+                data-t-key={"common.countries." + country.id}
+                lang={props.lang}
+              >{country.name}</a>
+              { country.areas && country.areas.map((area) => (
+                <a 
+                  class={"sidebar-link" + (props.page === "SE1" ? " active" : "")} 
+                  href={"/" + country.id + "/" + area.name}
+                >{area.name} - {area.long}</a>
+              ))}
+            </>
+          ))}
           <a class={"sidebar-link" + (props.page === "custom" ? " active" : "") + " hidden"} href={"/custom"}>
             Anpassad period
           </a>
