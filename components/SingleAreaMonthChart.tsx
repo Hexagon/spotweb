@@ -3,6 +3,7 @@ import { areaViewMonthChartOptions } from "config/charts/areaviewmonth.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
 import { ChartSeries, CommonProps, generateUrl, processResultSet } from "utils/common.ts";
 import { SpotApiParsedRow, SpotApiRow } from "backend/db/index.ts";
+import { countries } from "../config/countries.ts";
 
 interface SingleAreaMonthChartProps extends CommonProps {
   cols: number;
@@ -12,6 +13,7 @@ interface SingleAreaMonthChartProps extends CommonProps {
 }
 
 export default function SingleAreaMonthChart(props: SingleAreaMonthChartProps) {
+
   const [rsMonth, setRSMonth] = useState<SpotApiParsedRow[]>(),
     [rsComparison, setRSComparison] = useState<SpotApiParsedRow[]>(),
     [randomChartId] = useState((Math.random() * 10000).toFixed(0)),
@@ -133,19 +135,26 @@ export default function SingleAreaMonthChart(props: SingleAreaMonthChartProps) {
                   name="select-compare"
                   onChange={(e) => setComparison((e.target as HTMLSelectElement).value)}
                 >
-                  <option value="" selected={true} disabled={true} data-t-key="common.chart.compare_to" lang={props.lang}>Jämför med</option>
-                  <option value="SE1">SE1</option>
-                  <option value="SE2">SE2</option>
-                  <option value="SE3">SE3</option>
-                  <option value="SE4">SE4</option>
-                  <option value="NO1">NO1</option>
-                  <option value="NO2">NO2</option>
-                  <option value="NO3">NO3</option>
-                  <option value="NO4">NO4</option>
-                  <option value="NO5">NO5</option>
-                  <option value="DK1">DK1</option>
-                  <option value="DK2">DK2</option>
-                  <option value="FI">FI</option>
+                  <option 
+                    value=""
+                    selected={true}
+                    disabled={true}
+                    data-t-key="common.chart.compare_to"
+                    lang={props.lang}
+                  >Jämför med</option>
+                  { countries.map((c) => (
+                    <>
+                    { c.areas.map((a) => (
+                      <>
+                      { a.name != props.area?.name && (
+                        <>
+                          <option value={a.name}>{a.name} - {a.long}</option>
+                        </>
+                      )}
+                      </>
+                    ))}
+                    </>
+                  ))};
                 </select>
               </div>
             </div>
