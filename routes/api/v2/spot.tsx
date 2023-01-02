@@ -3,7 +3,8 @@ import { GetSpotprice, SpotApiRow } from "backend/db/index.ts";
 import { sqlGroupBy } from "backend/db/sql/index.ts";
 
 export const handler: Handlers = {
-  GET(req, _ctx) {
+  async GET(req, _ctx) {
+
     // Parse URL
     const url = new URL(req.url);
 
@@ -24,30 +25,27 @@ export const handler: Handlers = {
     }
 
     try {
-      const result = GetSpotprice(area, period, startDate, endDate, currency);
-      return new Response(
-        JSON.stringify({
-          status: "ok",
-          data: result.map((r: Array<unknown>) => {
-            // Hourly is not aggregated
-            if (period === "hourly") {
-              return {
-                time: r[0],
-                price: r[1],
-              };
-              // All other options are aggregated, pass min and max
-            } else {
-              return {
-                time: r[0],
-                price: r[1],
-                min: r[2],
-                max: r[3],
-              };
-            }
-          }),
-        }),
-        { status: 200 },
-      );
+      const data = await GetSpotprice(area, period, startDate, endDate, currency);
+      return new Response(JSON.stringify({
+        status: "ok",
+        data: data.data.map((r: Array<unknown>) => {
+          // Hourly is not aggregated
+          if (period === "hourly") {
+            return {
+              time: r[0],
+              price: r[1],
+            };
+            // All other options are aggregated, pass min and max
+          } else {
+            return {
+              time: r[0],
+              price: r[1],
+              min: r[2],
+              max: r[3],
+            };
+          }
+        })
+      }), { status: 200 });
     } catch (e) {
       console.error(e);
       return new Response(
