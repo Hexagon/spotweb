@@ -53,13 +53,11 @@ const processData = (data, currency, extra, factor) => {
     return {
         updated: new Date(),
         now: processPrice(nowPrice(data),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
-        data: {
-            history: data.map((r)=>{
-                return {
-                    st: r.time,
-                    p: processPrice(r.price,{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh")
-                };
-            })
-        }
+        data: data.map((r)=>{
+            return {
+                st: r.time,
+                p: processPrice(r.price,{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh")
+            };
+        })
     };
 };
