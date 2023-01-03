@@ -20,7 +20,7 @@ export default function Navbar(props: NavbarProps) {
       </a>
       <ul class="navbar-nav d-none d-md-flex">
       { countries && countries.map((c) => (
-      <li key={c.id} class="nav-item dropdown with-arrow">
+      <li key={c.id} class={"nav-item dropdown with-arrow" + (props.page == c.id || c.areas.some(e=>e.id == props.page) ? " active": "")}>
           <a class="nav-link" data-toggle="dropdown" id="nav-link-dropdown-toggle">
             <span data-t-key={"common.countries." + c.id} lang={props.lang}>{c.name}</span>
             <i class="fa fa-angle-down ml-5" aria-hidden="true"></i>

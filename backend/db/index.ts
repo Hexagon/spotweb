@@ -70,12 +70,14 @@ const GetSpotprice = async (area: string, period: string, fromDate: string, toDa
   return result;
 };
 
-const GetDataDay = async (areaName: string, date: Date) : Promise<SpotApiParsedRow[]> => {
+const GetDataDay = async (areaName: string, date: Date, currency?: string) : Promise<SpotApiParsedRow[]> => {
+
   const result = await GetSpotprice(
     areaName,
     "hourly",
     date.toLocaleDateString("sv-SE"),
     date.toLocaleDateString("sv-SE"),
+    currency
   );
 
   return result.data.map((r) => {
@@ -83,18 +85,19 @@ const GetDataDay = async (areaName: string, date: Date) : Promise<SpotApiParsedR
   });
 };
 
-const GetDataMonth = async (areaName: string, date: Date) => {
+const GetDataMonth = async (areaName: string, date: Date, currency?: string) => {
   const startDate = new Date(date),
     endDate = new Date(date);
   startDate.setDate(1);
   endDate.setMonth(endDate.getMonth() + 1);
   endDate.setDate(0);
-
+  
   const result = await GetSpotprice(
     areaName,
     "hourly",
     startDate.toLocaleDateString("sv-SE"),
     endDate.toLocaleDateString("sv-SE"),
+    currency
   );
 
   return result.data.map((r) => {

@@ -21,3 +21,6 @@ start(
 
 // Start back end
 scheduler.start();
+
+// Instant update
+if (Deno.args.includes("--instant-update")) scheduler.instant();

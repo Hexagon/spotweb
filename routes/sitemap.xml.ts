@@ -8,7 +8,7 @@ export const handler: Handlers = {
     const sitemap = new SitemapContext("https://spot.56k.guru", manifest);
 
     // Remove "secrets"
-
+    sitemap.remove("/api/v2/hass");
     sitemap.remove("/api/v2/spot");
     sitemap.remove("/api/entsoe");
     sitemap.remove("/api/exrate");
@@ -20,11 +20,12 @@ export const handler: Handlers = {
 
     // Add all country/area endpoints
     for (const country of countries) {
-      sitemap.add("/" + country.id);
+      if ( country.areas.length > 1 ) sitemap.add("/" + country.id);
       for (const area of country.areas) {
         sitemap.add("/" + country.id + "/" + area.name);
       }
     }
+
 
     return sitemap.render();
   },

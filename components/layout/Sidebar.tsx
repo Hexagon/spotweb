@@ -30,14 +30,14 @@ export default function Sidebar(props: SidebarProps) {
           { countries && countries.map((country) => (
             <>
               <a
-                class={"nav-link mt-10" + (props.page === "index" ? " active" : "")}
+                class={"nav-link mt-10" + (props.page === country.id ? " active" : "")}
                 href={"/" + country.id}
                 data-t-key={"common.countries." + country.id}
                 lang={props.lang}
               >{country.name}</a>
               { country.areas && country.areas.map((area) => (
                 <a 
-                  class={"sidebar-link" + (props.page === "SE1" ? " active" : "")} 
+                  class={"sidebar-link" + (props.page === area.id ? " active" : "")} 
                   href={"/" + country.id + "/" + area.name}
                 >{area.name} - {area.long}</a>
               ))}

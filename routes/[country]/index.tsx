@@ -7,6 +7,7 @@ import { ExtPageProps } from "../../utils/common.ts";
 
 export const handler: Handlers = {
   async GET(_req, ctx) {
+
     // Check country or return not found
     const country = countries.find((c) => c.id === ctx.params.country);
     if (!country) {
@@ -43,6 +44,7 @@ export const handler: Handlers = {
     const pageProps: ExtPageProps = {
       country,
       er,
+      page: country.id,
       areas,
       lang: ctx.state.lang as string | undefined || ctx.params.country,
     };

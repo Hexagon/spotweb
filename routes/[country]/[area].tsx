@@ -47,6 +47,7 @@ export const handler: Handlers = {
     const pageProps: ExtPageProps = {
       country,
       area,
+      page: area.id,
       er,
       lang: ctx.state.lang as string | undefined || ctx.params.country,
     };

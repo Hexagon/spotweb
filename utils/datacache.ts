@@ -2,7 +2,6 @@ const MemCache = new Map();
 
 const DataCache = async (uniqueId: string, seconds: number, liveFetch: unknown) => {
 
-
   try {
     // Check for cache, throw if cache does not exist
     let cacheObj;
@@ -38,4 +37,9 @@ const DataCache = async (uniqueId: string, seconds: number, liveFetch: unknown) 
   }
 };
 
-export { DataCache };
+const InvalidateCache = () => {
+  MemCache.clear();
+};
+
+
+export { DataCache, InvalidateCache };

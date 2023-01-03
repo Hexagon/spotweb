@@ -4,14 +4,14 @@ import { sleep } from "utils/common.ts";
 import { countries } from "config/countries.ts";
 import { EntsoeSpotprice } from "backend/integrations/entsoe.ts";
 import { ExchangeRate } from "backend/integrations/ecb.ts";
-import { database, Row } from "backend/db/index.ts";
+import { database } from "backend/db/index.ts";
 import { log } from "utils/log.ts";
+import { InvalidateCache } from "../../utils/datacache.ts";
 
 const startDate = new Date(Date.parse("2020-12-31T12:00:00Z"));
-
 let running = false;
 
-const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/Oslo" }, async () => {
+const job = async () => {
   log("info", "Scheduled data update started");
   
   // Do not run two just simulataneously
@@ -27,6 +27,8 @@ const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/
     const dateToday = new Date(),
       dateTomorrow = new Date(),
       dateFirstOfMonth = new Date();
+
+    let gotData = false;
 
     // Set dates
     dateTomorrow.setDate(dateTomorrow.getDate() + 1);
@@ -81,6 +83,9 @@ const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/
 
                 // Sleep one millisecond between each row to allow clients to fetch data
                 await sleep(1);
+
+                // Go data
+                gotData = true;
               }
 
               currentPeriod = endOfPeriod;
@@ -124,6 +129,12 @@ const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/
       log("info", "Deleted " + database.totalChanges + " duplicate rows.");
     }
 
+    // Clear memory cache
+    if (gotData) {
+      log("info", "Database changed, clearing cache.");
+      InvalidateCache();
+    }
+
   } catch (e) {
     log("error", "Error occured while updating data, skipping. Error: " + e);
   }
@@ -131,16 +142,22 @@ const jobs = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/
   running = false;
 
   log("info", "Scheduled data update done");
-});
+};
+
+const jobScheduler = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/Oslo" }, job);
 
 const scheduler = {
   start: () => {
-    jobs.resume();
-    log("info", "Scheduler started, next run is at " + jobs.next()?.toLocaleString());
+    jobScheduler.resume();
+    log("info", "Scheduler started, next run is at " + jobScheduler.next()?.toLocaleString());
   },
   stop: () => {
-    jobs.stop();
+    jobScheduler.stop();
   },
+  instant: () => {
+    log("info", "Instant update requested");
+    job();
+  }
 };
 
 export { scheduler };

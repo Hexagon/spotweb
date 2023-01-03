@@ -12,6 +12,7 @@ import { preferences } from "config/preferences.js";
 import { CommonProps, ExtPageProps } from "../utils/common.ts";
 
 export default function IndexIsland(props: PageProps<ExtPageProps>) {
+
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
   const [factor, setFactor] = useState(preferences.factor(props.data.lang));
@@ -36,23 +37,16 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
     ...props.data,
   };
 
-  const area = props.data.area,
-    country = props.data.country;
-
-  if (!area || !country) {
-    return <></>;
-  }
-
   return (
     <div>
       <div class="page-wrapper with-navbar with-sidebar" data-sidebar-hidden="hidden">
         <Navbar
-          page={area.name}
+          page={commonprops.area.name}
           setPriceFactor={setPriceFactorStored}
           {...commonprops}
         ></Navbar>
         <Sidebar
-          page={area.name}
+          page={commonprops.area.name}
           setUnit={setUnit}
           setExtra={setExtra}
           setFactor={setFactor}
@@ -67,13 +61,12 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
               <h1 class="noshow" data-t-key="common.header.title" lang={commonprops.lang}>
                 Aktuellt elpris
               </h1>
-              <h2 class="noshow">{country.name} - {area.name} {area.long}</h2>
+              <h2 class="noshow">{commonprops.country.name} - {commonprops.area.name} {commonprops.area.long}</h2>
               <div class="sticky-alerts"></div>
               <SingleAreaOverview
-                title={area.name + " - " + area.long}
-                highlight={"color-" + area.color}
+                title={commonprops.area.name + " - " + commonprops.area.long}
+                highlight={"color-" + commonprops.area.color}
                 cols={3}
-                area={area}
                 detailed={true}
                 {...commonprops}
               ></SingleAreaOverview>
@@ -83,17 +76,16 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
                 {...commonprops}
               ></SingleAreaTable>
               <SingleAreaChart
-                title={area.name + " - " + area.long}
-                highlight={"color-" + area.color}
+                title={commonprops.area.name + " - " + commonprops.area.long}
+                highlight={"color-" + commonprops.area.color}
                 cols={6}
-                area={area}
                 {...commonprops}
               ></SingleAreaChart>
             </div>
             <div class="row">
               <SingleAreaMonthChart
-                title={area.name + " - " + area.long}
-                highlight={"color-" + area.color}
+                title={commonprops.area.name + " - " + commonprops.area.long}
+                highlight={"color-" + commonprops.area.color}
                 cols={8}
                 date={dToday}
                 {...commonprops}
