@@ -1,6 +1,6 @@
 import { Handlers } from "fresh/server.ts";
 import { GetDataDay, GetSpotprice, SpotApiRow } from "backend/db/index.ts";
-import { nowPrice, processPrice } from "../../../utils/price.ts";
+import { avgPrice, maxPrice, minPrice, nowPrice, processPrice } from "../../../utils/price.ts";
 import { processResultSet } from "../../../utils/common.ts";
 
 export const handler: Handlers = {
@@ -33,12 +33,18 @@ export const handler: Handlers = {
       dateYesterday.setDate(dateYesterday.getDate()-1);
       dateTomorrow.setDate(dateTomorrow.getDate()+1);
 
+      const 
+        tomorrow = processResultSet(await GetDataDay(area, dateTomorrow, currency)),
+        today = processResultSet(await GetDataDay(area, dateToday, currency)),
+        yesterday = processResultSet(await GetDataDay(area, dateYesterday, currency));
+
       const data = [
-        ...processResultSet(await GetDataDay(area, dateYesterday, currency)),
-        ...processResultSet(await GetDataDay(area, dateToday, currency)),
-        ...processResultSet(await GetDataDay(area, dateTomorrow, currency))
+        ...yesterday,
+        ...today,
+        ...tomorrow
       ];
-      return new Response(JSON.stringify(processData(data, currency, extra, factor)), { status: 200 });
+
+      return new Response(JSON.stringify(processData(data, yesterday, today, tomorrow, currency, extra, factor)), { status: 200 });
     } catch (e) {
       return new Response(
         JSON.stringify({ status: "error", details: "Query failed" }),
@@ -48,10 +54,19 @@ export const handler: Handlers = {
   },
 };
 
-const processData = (data, currency, extra, factor) => {
+const processData = (data, yesterday, today, tomorrow, currency, extra, factor) => {
     return {
         updated: new Date(),
-        now: processPrice(nowPrice(data),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
+        now: processPrice(nowPrice(today),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
+        avg: processPrice(avgPrice(today),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
+        min: processPrice(minPrice(today),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
+        max: processPrice(maxPrice(today),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
+        avg_tomorrow: processPrice(avgPrice(tomorrow),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
+        min_tomorrow: processPrice(minPrice(tomorrow),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
+        max_tomorrow: processPrice(maxPrice(tomorrow),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
+        avg_yesterday: processPrice(avgPrice(yesterday),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
+        min_yesterday: processPrice(minPrice(yesterday),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
+        max_yesterday: processPrice(maxPrice(yesterday),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
         data: data.map((r)=>{
             return {
                 st: r.time,
