@@ -1,6 +1,5 @@
 import { Handlers } from "fresh/server.ts";
 import { GetDataDay, GetSpotprice, SpotApiRow } from "backend/db/index.ts";
-import { sqlGroupBy } from "backend/db/sql/index.ts";
 import { nowPrice, processPrice } from "../../../utils/price.ts";
 import { processResultSet } from "../../../utils/common.ts";
 
