@@ -13,11 +13,12 @@ export const handler: Handlers = {
     const 
       area = url.searchParams.get("area")?.trim().toUpperCase(),
       currency = url.searchParams.get("currency")?.trim().toUpperCase(),
-      factor = parseFloat(url.searchParams.get("factor")?.trim() || ""),
-      extra = parseFloat(url.searchParams.get("extra")?.trim().toUpperCase() || "");
+      factor = parseFloat(url.searchParams.get("factor")?.trim() || "1"),
+      extra = parseFloat(url.searchParams.get("extra")?.trim().toUpperCase() || "0"),
+      decimals = parseInt(url.searchParams.get("decimals")?.trim().toUpperCase() || "5", 10);
 
     // Check parameters
-    if (!area || !currency || isNaN(factor) || isNaN(extra)) {
+    if (!area || !currency || isNaN(factor) || isNaN(extra) || isNaN(decimals)) {
         return new Response(
             JSON.stringify({ status: "error", details: "Missing/invalid parameters" }),
             { status: 500 },
@@ -44,7 +45,7 @@ export const handler: Handlers = {
         ...tomorrow
       ];
 
-      return new Response(JSON.stringify(processData(data, yesterday, today, tomorrow, currency, extra, factor)), { status: 200 });
+      return new Response(JSON.stringify(processData(data, yesterday, today, tomorrow, currency, extra, factor, decimals)), { status: 200 });
     } catch (e) {
       return new Response(
         JSON.stringify({ status: "error", details: "Query failed" }),
@@ -54,23 +55,23 @@ export const handler: Handlers = {
   },
 };
 
-const processData = (data, yesterday, today, tomorrow, currency, extra, factor) => {
+const processData = (data, yesterday, today, tomorrow, currency, extra, factor, decimals) => {
     return {
         updated: new Date(),
-        now: processPrice(nowPrice(today),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
-        avg: processPrice(avgPrice(today),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
-        min: processPrice(minPrice(today),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
-        max: processPrice(maxPrice(today),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
-        avg_tomorrow: processPrice(avgPrice(tomorrow),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
-        min_tomorrow: processPrice(minPrice(tomorrow),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
-        max_tomorrow: processPrice(maxPrice(tomorrow),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
-        avg_yesterday: processPrice(avgPrice(yesterday),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
-        min_yesterday: processPrice(minPrice(yesterday),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
-        max_yesterday: processPrice(maxPrice(yesterday),{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh"),
+        now: processPrice(nowPrice(today),{currency, extra, factor, unit: "kWh", decimals, priceFactor: true},"MWh"),
+        avg: processPrice(avgPrice(today),{currency, extra, factor, unit: "kWh", decimals, priceFactor: true},"MWh"),
+        min: processPrice(minPrice(today),{currency, extra, factor, unit: "kWh", decimals, priceFactor: true},"MWh"),
+        max: processPrice(maxPrice(today),{currency, extra, factor, unit: "kWh", decimals, priceFactor: true},"MWh"),
+        avg_tomorrow: processPrice(avgPrice(tomorrow),{currency, extra, factor, unit: "kWh", decimals, priceFactor: true},"MWh"),
+        min_tomorrow: processPrice(minPrice(tomorrow),{currency, extra, factor, unit: "kWh", decimals, priceFactor: true},"MWh"),
+        max_tomorrow: processPrice(maxPrice(tomorrow),{currency, extra, factor, unit: "kWh", decimals, priceFactor: true},"MWh"),
+        avg_yesterday: processPrice(avgPrice(yesterday),{currency, extra, factor, unit: "kWh", decimals, priceFactor: true},"MWh"),
+        min_yesterday: processPrice(minPrice(yesterday),{currency, extra, factor, unit: "kWh", decimals, priceFactor: true},"MWh"),
+        max_yesterday: processPrice(maxPrice(yesterday),{currency, extra, factor, unit: "kWh", decimals, priceFactor: true},"MWh"),
         data: data.map((r)=>{
             return {
                 st: r.time,
-                p: processPrice(r.price,{currency, extra, factor, unit: "kWh", decimals: 5, priceFactor: true},"MWh")
+                p: processPrice(r.price,{currency, extra, factor, unit: "kWh", decimals, priceFactor: true},"MWh")
             };
         })
     };
