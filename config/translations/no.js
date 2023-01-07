@@ -89,6 +89,25 @@ const no = {
       "tomorrow": "I morgen",
       "compare_to": "Sammenlignet med"
     },
+    "generation": {
+      "current_production": "Produksjon og forbruk",
+      "production_method": "Metode",
+      "production_share": "Del",
+      "production": "Produksjon",
+      "consumption": "Forbruk",
+      "last_updated": "Sist oppdatert",
+      "excess": "Overflødig",
+      "deficit": "Underskudd",
+      "psr_coal":"Kull",
+      "psr_oil":"Olje",
+      "psr_gas": "Gass",
+      "psr_peat": "Torv",
+      "psr_water":"Vann",
+      "psr_nuclear":"Atomkraft",
+      "psr_solar": "Solar",
+      "psr_wind": "Vind",
+      "psr_other": "Annet",
+    }
   },
 };
 export { no };

@@ -89,6 +89,25 @@ const dk = {
       "tomorrow": "I morgen",
       "compare_to": "Sammenlign med"
     },
+    "generation": {
+      "current_production": "Produktion og forbrug",
+      "production_method": "Metode",
+      "production_share": "Del",
+      "production": "Produktion",
+      "consumption": "Forbrug",
+      "last_updated": "Sidst opdateret",
+      "excess": "Overskydende",
+      "deficit": "Underskud",
+      "psr_coal":"Kul",
+      "psr_oil":"Olie",
+      "psr_gas": "Gas",
+      "psr_peat": "Tørv",
+      "psr_water":"Vand",
+      "psr_nuclear":"Atomkraft",
+      "psr_solar": "Solar",
+      "psr_wind": "Vind",
+      "psr_other": "Andet",
+    }
   },
 };
 export { dk };

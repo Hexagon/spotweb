@@ -89,6 +89,25 @@ const de = {
         "tomorrow": "Morgen",
         "compare_to": "Vergleichen mit"
       },
+      "generation": {
+        "current_production": "Produktion und Verbrauch",
+        "production_method": "Methode",
+        "production_share": "Teilen",
+        "production": "Produktion",
+        "consumption": "Verbrauch",
+        "last_updated": "Zuletzt aktualisiert",
+        "excess": "Überschuss",
+        "deficit": "Defizit",
+        "psr_coal":"Kohle",
+        "psr_oil":"Öl",
+        "psr_gas": "Gas",
+        "psr_peat":"Torf",
+        "psr_water":"Wasser",
+        "psr_nuclear":"Atomkraft",
+        "psr_solar":"Solar",
+        "psr_wind": "Wind",
+        "psr_other":"Andere",
+      }
     },
   };
   export { de };

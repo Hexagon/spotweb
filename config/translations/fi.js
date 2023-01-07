@@ -89,6 +89,25 @@ const fi = {
       "tomorrow": "Huomenna",
       "compare_to": "Vertaile"
     },
+    "generation": {
+      "current_production": "Tuotanto ja kulutus",
+      "production_method": "Menetelmä",
+      "production_share": "Jaa",
+      "production": "Tuotanto",
+      "consumption": "Kulutus",
+      "last_updated": "Viimeksi päivitetty",
+      "excess": "Liika",
+      "deficit": "alijäämä",
+      "psr_coal":"Hiili",
+      "psr_oil":"Öljy",
+      "psr_gas": "Kaasu",
+      "psr_peat":"Turve",
+      "psr_water":"Vesi",
+      "psr_nuclear":"Ydinvoima",
+      "psr_solar":"Aurinkoenergia",
+      "psr_wind": "Tuuli",
+      "psr_other":"Muu",
+    }
   },
 };
 export { fi };
