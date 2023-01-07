@@ -4,6 +4,7 @@ import IndexIsland from "islands/IndexIsland.tsx";
 import { GetDataDay, GetDataMonth, GetExchangeRates } from "backend/db/index.ts";
 import { countries } from "config/countries.ts";
 import { ExtPageProps } from "../../utils/common.ts";
+import { EntsoeGeneration, EntsoeLoad } from "../../backend/integrations/entsoe.ts";
 
 export const handler: Handlers = {
   async GET(_req, ctx) {
@@ -26,8 +27,10 @@ export const handler: Handlers = {
 
     const areas = [],
       todayDate = new Date(),
+      yesterdayDate = new Date(),
       tomorrowDate = new Date(),
       firstDayOfMonth = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate()-1);
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     firstDayOfMonth.setDate(1);
 
@@ -43,6 +46,8 @@ export const handler: Handlers = {
     // Render all areas in country
     const pageProps: ExtPageProps = {
       country,
+      generation: await EntsoeGeneration(country.cty, 1800, yesterdayDate, todayDate),
+      load: await EntsoeLoad(country.cty, 1800, yesterdayDate, todayDate),
       er,
       page: country.id,
       areas,

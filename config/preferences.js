@@ -13,20 +13,12 @@ const defaultCurrency = (lang) => {
   }
 };
 
-const defaultExtra = (lang) => {
-  if (lang == "sv") {
-    return "0.095";
-  } else {
-    return "0";
-  }
+const defaultExtra = () => {
+  return "0";
 };
 
-const defaultFactor = (lang) => {
-  if (lang == "sv") {
-    return "1.25";
-  } else {
-    return "1";
-  }
+const defaultFactor = () => {
+  return "1";
 };
 
 const defaultDecimals = (lang) => {
@@ -41,11 +33,7 @@ const defaultDecimals = (lang) => {
 }
 
 const defaultPricefactor = (lang) => {
-  if (lang == "sv") {
-    return true;
-  } else {
-    return false;
-  }
+  return false;
 };
 
 const preferences = {

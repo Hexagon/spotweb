@@ -144,19 +144,30 @@ const job = async () => {
   log("info", "Scheduled data update done");
 };
 
-const jobScheduler = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/Oslo" }, job);
+const hourlyJob = async () => {
+  const urlsToRefresh = ["/sv","/no","/fi","/dk","/de"];
+  for(const url of urlsToRefresh) {
+    const status = await fetch("http://localhost:8000"+url);
+    log("info", "Refreshed " + url + " with status code " + status.status);
+    sleep(1000);
+  }
+};
+
+const dailyUpdate = new Cron("0 */3 12,13,14 * * *", { paused: true, timezone: "Europe/Oslo" }, job);
+const hourlyRefresh = new Cron("0 30 * * * *", { paused: true, timezone: "Europe/Oslo" }, hourlyJob);
 
 const scheduler = {
   start: () => {
-    jobScheduler.resume();
-    log("info", "Scheduler started, next run is at " + jobScheduler.next()?.toLocaleString());
+    dailyUpdate.resume();
+    log("info", "Scheduler started, next run is at " + dailyUpdate.next()?.toLocaleString());
   },
   stop: () => {
-    jobScheduler.stop();
+    dailyUpdate.stop();
   },
   instant: () => {
     log("info", "Instant update requested");
     job();
+    hourlyJob();
   }
 };
 

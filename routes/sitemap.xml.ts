@@ -14,6 +14,7 @@ export const handler: Handlers = {
     sitemap.remove("/api/exrate");
     sitemap.remove("/compare");
     sitemap.remove("/custom");
+    sitemap.remove("/help");
 
     // Remove dynamic
     sitemap.remove("/[country]/");

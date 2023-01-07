@@ -5,6 +5,7 @@ interface ExtPageProps {
   country: Country;
   area?: DataArea;
   areas?: DataArea[];
+  generation: unknown;
   er: ExchangeRateResult;
   lang: string;
 }

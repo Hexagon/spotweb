@@ -4,9 +4,11 @@ import ElomradeIsland from "islands/ElomradeIsland.tsx";
 import { GetDataDay, GetDataMonth, GetExchangeRates } from "backend/db/index.ts";
 import { countries } from "config/countries.ts";
 import { ExtPageProps } from "../../utils/common.ts";
+import { EntsoeGeneration, EntsoeLoad } from "../../backend/integrations/entsoe.ts";
 
 export const handler: Handlers = {
   async GET(_req, ctx) {
+
     // Legacy url redirect
     if (ctx.params.country == "elomrade") {
       return new Response("", {
@@ -31,7 +33,9 @@ export const handler: Handlers = {
 
     const todayDate = new Date(),
       tomorrowDate = new Date(),
-      prevMonthDate = new Date();
+      prevMonthDate = new Date(),
+      yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate()-1);
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     prevMonthDate.setDate(1);
     prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
@@ -47,6 +51,8 @@ export const handler: Handlers = {
     const pageProps: ExtPageProps = {
       country,
       area,
+      generation: await EntsoeGeneration(area.id || area.id, 1800, yesterdayDate, todayDate),
+      load: await EntsoeLoad(area.id || area.id, 1800, yesterdayDate, todayDate),
       page: area.id,
       er,
       lang: ctx.state.lang as string | undefined || ctx.params.country,

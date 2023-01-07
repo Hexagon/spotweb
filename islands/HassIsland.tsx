@@ -3,14 +3,9 @@ import { useState } from "preact/hooks";
 
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
-import AllAreaChart from "components/AllAreaChart.tsx";
-import SingleAreaOverview from "components/SingleAreaOverview.tsx";
 import InformationPane from "components/InformationPane.tsx";
 import { preferences } from "config/preferences.js";
-import PriceFactorWarning from "components/PriceFactorWarning.tsx";
-import { applyExchangeRate, avgPrice, processPrice } from "utils/price.ts";
 import { CommonProps, ExtPageProps, processResultSet } from "utils/common.ts";
-import AllAreaChartLongTerm from "../components/AllAreaChartLongTerm.tsx";
 
 export default function HassIsland(props: PageProps<ExtPageProps>) {
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
@@ -34,19 +29,6 @@ export default function HassIsland(props: PageProps<ExtPageProps>) {
     priceFactor,
     ...props.data,
   };
-
-  const countryElms = props.data.areas?.map((a, idx) => {
-    return (
-      <SingleAreaOverview
-        key={idx}
-        title={a.name + " - " + a.long}
-        highlight={"color-" + a.color}
-        area={a}
-        cols={3}
-        {...commonprops}
-      ></SingleAreaOverview>
-    );
-  });
 
   return (
     <div>

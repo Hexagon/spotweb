@@ -40,7 +40,7 @@ const sv = {
     "warning": {
       "actual_price": "Faktiskt elpris",
       "actual_price_text":
-        "Du har för närvarande faktiskt elpris aktiverat, men har inte gjort några inställningar för skatter och avgifter. Klicka på hamburgermenyn och fyll i Faktor (t.ex. 1.25 för 25% moms) och din avgift (t.ex. 0.012 för 0.012 EUR/kWh innan moms).",
+        "Du har för närvarande faktiskt elpris aktiverat, men har inte gjort några inställningar för skatter och avgifter. Klicka på hamburgermenyn och fyll i Faktor (t.ex. 1.25 för 25% moms) och din avgift (t.ex. 0.095 för 9.5 öre/kWh innan moms).",
     },
     "information": {
       "title": "Information och användningsvillkor",
@@ -89,6 +89,25 @@ const sv = {
       "tomorrow": "Imorgon",
       "compare_to": "Jämför med"
     },
+    "generation": {
+      "current_production": "Produktion och förbrukning",
+      "production_method": "Metod",
+      "production_share": "Andel",
+      "production": "Produktion",
+      "consumption": "Förbrukning",
+      "last_updated": "Senast uppdaterat",
+      "excess": "Överskott",
+      "deficit": "Underskott",
+      "psr_coal":"Kol",
+      "psr_oil":"Olja",
+      "psr_gas":"Gas",
+      "psr_peat":"Torv",
+      "psr_water":"Vatten",
+      "psr_nuclear":"Kärnkraft",
+      "psr_solar":"Sol",
+      "psr_wind":"Vind",
+      "psr_other":"Övrigt",
+    }
   },
 };
 export { sv };

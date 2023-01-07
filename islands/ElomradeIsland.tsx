@@ -10,6 +10,7 @@ import InformationPane from "components/InformationPane.tsx";
 import SingleAreaTable from "components/SingleAreaTable.tsx";
 import { preferences } from "config/preferences.js";
 import { CommonProps, ExtPageProps } from "../utils/common.ts";
+import GenerationOverview from "../components/GenerationOverview.tsx";
 
 export default function IndexIsland(props: PageProps<ExtPageProps>) {
 
@@ -75,25 +76,30 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
                 date={dToday}
                 {...commonprops}
               ></SingleAreaTable>
-              <SingleAreaChart
-                title={commonprops.area.name + " - " + commonprops.area.long}
-                highlight={"color-" + commonprops.area.color}
-                cols={6}
+                          <GenerationOverview
+                cols={3}
                 {...commonprops}
-              ></SingleAreaChart>
+              ></GenerationOverview>
+                          <InformationPane
+                cols={3}
+                {...commonprops}
+              ></InformationPane>
             </div>
             <div class="row">
               <SingleAreaMonthChart
                 title={commonprops.area.name + " - " + commonprops.area.long}
                 highlight={"color-" + commonprops.area.color}
-                cols={8}
+                cols={6}
                 date={dToday}
                 {...commonprops}
               ></SingleAreaMonthChart>
-              <InformationPane
-                cols={4}
+
+<SingleAreaChart
+                title={commonprops.area.name + " - " + commonprops.area.long}
+                highlight={"color-" + commonprops.area.color}
+                cols={6}
                 {...commonprops}
-              ></InformationPane>
+              ></SingleAreaChart>
             </div>
           </div>
         </div>

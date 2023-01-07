@@ -12,14 +12,16 @@ import * as $5 from "./routes/api/v2/hass.tsx";
 import * as $6 from "./routes/api/v2/spot.tsx";
 import * as $7 from "./routes/compare.tsx";
 import * as $8 from "./routes/custom.tsx";
-import * as $9 from "./routes/homeassistant.tsx";
-import * as $10 from "./routes/index.tsx";
-import * as $11 from "./routes/sitemap.xml.ts";
+import * as $9 from "./routes/help.tsx";
+import * as $10 from "./routes/homeassistant.tsx";
+import * as $11 from "./routes/index.tsx";
+import * as $12 from "./routes/sitemap.xml.ts";
 import * as $$0 from "./islands/CompareIsland.tsx";
 import * as $$1 from "./islands/CustomIsland.tsx";
 import * as $$2 from "./islands/ElomradeIsland.tsx";
 import * as $$3 from "./islands/HassIsland.tsx";
-import * as $$4 from "./islands/IndexIsland.tsx";
+import * as $$4 from "./islands/HelpIsland.tsx";
+import * as $$5 from "./islands/IndexIsland.tsx";
 
 const manifest = {
   routes: {
@@ -32,16 +34,18 @@ const manifest = {
     "./routes/api/v2/spot.tsx": $6,
     "./routes/compare.tsx": $7,
     "./routes/custom.tsx": $8,
-    "./routes/homeassistant.tsx": $9,
-    "./routes/index.tsx": $10,
-    "./routes/sitemap.xml.ts": $11,
+    "./routes/help.tsx": $9,
+    "./routes/homeassistant.tsx": $10,
+    "./routes/index.tsx": $11,
+    "./routes/sitemap.xml.ts": $12,
   },
   islands: {
     "./islands/CompareIsland.tsx": $$0,
     "./islands/CustomIsland.tsx": $$1,
     "./islands/ElomradeIsland.tsx": $$2,
     "./islands/HassIsland.tsx": $$3,
-    "./islands/IndexIsland.tsx": $$4,
+    "./islands/HelpIsland.tsx": $$4,
+    "./islands/IndexIsland.tsx": $$5,
   },
   baseUrl: import.meta.url,
   config,

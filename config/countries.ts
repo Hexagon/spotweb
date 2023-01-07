@@ -24,6 +24,7 @@ const countries = [
   {
     name: "Sverige",
     id: "sv",
+    cty: "Sweden (SE)",
     areas: [
       { name: "SE1", "id": "BZN|SE1", "long": "Norra Sverige", color: 1 },
       { name: "SE2", "id": "BZN|SE2", "long": "Norra Mellansverige", color: 2 },
@@ -33,6 +34,7 @@ const countries = [
   },
   {
     name: "Norge",
+    cty: "Norway (NO)",
     id: "no",
     areas: [
       { name: "NO1", "id": "IBA|NO1", "long": "Oslo", color: 1 },
@@ -44,6 +46,7 @@ const countries = [
   },
   {
     name: "Finland",
+    cty: "Finland (FI)",
     id: "fi",
     areas: [
       { name: "FI", "id": "FI", "long": "Suomi", color: 1 },
@@ -51,6 +54,7 @@ const countries = [
   },
   {
     name: "Danmark",
+    cty: "Denmark (DK)",
     id: "dk",
     areas: [
       { name: "DK1", "id": "IBA|DK1", "long": "Jylland", color: 1 },
@@ -59,6 +63,7 @@ const countries = [
   },
   {
     name: "Deutschland",
+    cty: "Germany (DE)",
     id: "de",
     areas: [
       { name: "DE-LU", "id": "BZN|DE-LU", "long": "Deutschland", color: 1 },
@@ -66,6 +71,7 @@ const countries = [
   },
   {
     name: "Österreich",
+    cty: "Austria (AT)",
     id: "at",
     areas: [
       { name: "AT", "id": "BZN|AT", "long": "Österreich", color: 1 },
