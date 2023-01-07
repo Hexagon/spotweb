@@ -147,8 +147,12 @@ const job = async () => {
 const hourlyJob = async () => {
   const urlsToRefresh = ["/sv","/no","/fi","/dk","/de"];
   for(const url of urlsToRefresh) {
-    const status = await fetch("http://localhost:8000"+url);
-    log("info", "Refreshed " + url + " with status code " + status.status);
+    try {
+      const status = await fetch("http://localhost:8000"+url);
+      log("info", "Refreshed " + url + " with status code " + status.status);
+    } catch (e) {
+      log("info", "Error refreshing " + url);
+    }
     sleep(1000);
   }
 };
