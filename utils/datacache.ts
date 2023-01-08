@@ -1,13 +1,21 @@
 const MemCache = new Map();
 
-const DataCache = async (uniqueId: string, seconds: number, liveFetch: unknown) => {
+const DataCache = async (realm: string,uniqueId: string, seconds: number, liveFetch: unknown) => {
+
+  // Check for realm, or create it
+  if (!MemCache.has(realm)) {
+    MemCache.set(realm, new Map());
+  }
+
+  const currentRealm = MemCache.get(realm);
 
   try {
+
     // Check for cache, throw if cache does not exist
     let cacheObj;
 
-    if (MemCache.has(uniqueId)) {
-        cacheObj = MemCache.get(uniqueId);
+    if (currentRealm.has(uniqueId)) {
+        cacheObj = currentRealm.get(uniqueId);
     }
 
     if (!cacheObj) throw new Error("Could not read cache");
@@ -17,7 +25,7 @@ const DataCache = async (uniqueId: string, seconds: number, liveFetch: unknown) 
     );
 
     if (timeLeft <= 0) {
-      MemCache.delete(uniqueId);
+      reacurrentRealmlm.delete(uniqueId);
       throw new Error("Cache expired");
     }
 
@@ -27,7 +35,7 @@ const DataCache = async (uniqueId: string, seconds: number, liveFetch: unknown) 
     // Live
     const result = await liveFetch();
 
-    MemCache.set(uniqueId, {
+    currentRealm.set(uniqueId, {
         dt: new Date(),
         data: result,
     });
@@ -37,8 +45,11 @@ const DataCache = async (uniqueId: string, seconds: number, liveFetch: unknown) 
   }
 };
 
-const InvalidateCache = () => {
-  MemCache.clear();
+const InvalidateCache = (realm: string) => {
+  if (MemCache.has(realm)) {
+    const currentRealm = MemCache.get(realm);
+    currentRealm.clear();
+  }
 };
 
 

@@ -1,7 +1,7 @@
 import { Handlers, PageProps } from "fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
 import IndexIsland from "islands/IndexIsland.tsx";
-import { GetDataDay, GetDataMonth, GetExchangeRates } from "backend/db/index.ts";
+import { GetCurrentGeneration, GetDataDay, GetDataMonth, GetExchangeRates, GetGenerationDay, GetLoadDay } from "backend/db/index.ts";
 import { countries } from "config/countries.ts";
 import { ExtPageProps } from "../../utils/common.ts";
 import { EntsoeGeneration, EntsoeLoad } from "../../backend/integrations/entsoe.ts";
@@ -46,8 +46,8 @@ export const handler: Handlers = {
     // Render all areas in country
     const pageProps: ExtPageProps = {
       country,
-      generation: await EntsoeGeneration(country.cty, 1800, yesterdayDate, todayDate),
-      load: await EntsoeLoad(country.cty, 1800, yesterdayDate, todayDate),
+      generation: await GetCurrentGeneration(country.cty),
+      load: await GetLoadDay(country.cty, yesterdayDate, todayDate),
       er,
       page: country.id,
       areas,

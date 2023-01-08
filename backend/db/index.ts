@@ -1,6 +1,6 @@
 import { DB, Row } from "sqlite";
 import { resolve } from "std/path/mod.ts";
-import { sqlConverted, sqlCreateExchangeRate, sqlCreateSpotprice, sqlExchangeRates, sqlGroupBy, sqlRaw } from "backend/db/sql/index.ts";
+import { sqlConverted, sqlCreateExchangeRate, sqlCreateGeneration, sqlCreateLoad, sqlCreateSpotprice, sqlExchangeRates, sqlGeneration, sqlGroupBy, sqlLoad, sqlRaw } from "backend/db/sql/index.ts";
 import { DataCache } from "../../utils/datacache.ts";
 
 interface SpotApiRow {
@@ -33,6 +33,9 @@ try {
   // Create tables
   database.query(sqlCreateSpotprice);
   database.query(sqlCreateExchangeRate);
+  database.query(sqlCreateGeneration);
+  database.query(sqlCreateLoad);
+  
 } catch (_e) {
   console.error("Fatal: Could not open database");
   Deno.exit(1);
@@ -46,7 +49,7 @@ const GetSpotprice = async (area: string, period: string, fromDate: string, toDa
 
   const parameterString = new URLSearchParams({period,area,currency:currency||"",fromDate,toDate}).toString();
 
-  let cacheLength = 120;
+  let cacheLength = 86400;
 
   // If endDate is before now, use hourly cache
   if(Date.parse(toDate) < new Date().getTime()) {
@@ -58,7 +61,7 @@ const GetSpotprice = async (area: string, period: string, fromDate: string, toDa
     cacheLength = 3600*6;
   }
 
-  const result = await DataCache(parameterString,cacheLength,() => {
+  const result = await DataCache("spotprice",parameterString,cacheLength,() => {
     let data;
     if (currency) {
       data = database.query(sqlConverted.replaceAll("[[groupby]]", sqlGroupBy[period]), [currency, area, fromDate, toDate]);
@@ -71,7 +74,6 @@ const GetSpotprice = async (area: string, period: string, fromDate: string, toDa
 };
 
 const GetDataDay = async (areaName: string, date: Date, currency?: string) : Promise<SpotApiParsedRow[]> => {
-
   const result = await GetSpotprice(
     areaName,
     "hourly",
@@ -79,11 +81,67 @@ const GetDataDay = async (areaName: string, date: Date, currency?: string) : Pro
     date.toLocaleDateString("sv-SE"),
     currency
   );
-
   return result.data.map((r) => {
     return { time: new Date(Date.parse(r.at(0) as string)), price: r.at(1) as number };
   });
 };
+
+const GetLoadDay = async (area: string, fromDateIn: Date, toDateIn: Date) : Promise<unknown[]> => {
+  
+  const fromDate = new Date(fromDateIn.getTime());
+  fromDate.setHours(0,0,0,0);
+
+  const toDate = new Date(toDateIn.getTime());
+  toDate.setHours(23,59,59,0);
+
+  const parameterString = new URLSearchParams({realm:"load",area,f:fromDate.getTime().toString(),t: toDate.getTime().toString()}).toString();
+
+  const cacheLength = 86400;
+
+  const result = await DataCache("load",parameterString,cacheLength,() => {
+    const data = database.query(sqlLoad, [area, fromDate.getTime(), toDate.getTime()]);
+    return { data };
+  });
+
+  return result;
+};
+
+const GetCurrentGeneration = async (area: string) : Promise<unknown[]> => {
+  
+  const fromDate = new Date(new Date().getTime()-4*3600*1000);
+
+  const toDate = new Date();
+  toDate.setHours(23,59,59,0);
+
+  const parameterString = new URLSearchParams({realm:"curgen",area,f:fromDate.getTime().toString(),t: toDate.getTime().toString()}).toString();
+
+  const cacheLength = 86400;
+  const result = await DataCache("generation",parameterString,cacheLength,() => {
+    const data = database.query(sqlGeneration, [area, fromDate.getTime(), toDate.getTime()]);
+    return { data };
+  });
+  return result;
+};
+
+
+const GetGenerationDay = async (area: string, fromDateIn: Date, toDateIn: Date) : Promise<unknown[]> => {
+  
+  const fromDate = new Date(fromDateIn.getTime());
+  fromDate.setHours(0,0,0,0);
+
+  const toDate = new Date(toDateIn.getTime());
+  toDate.setHours(23,59,59,0);
+
+  const parameterString = new URLSearchParams({area,f:fromDate.getTime().toString(),t: toDate.getTime().toString()}).toString();
+
+  const cacheLength = 86400;
+  const result = await DataCache("generation",parameterString,cacheLength,() => {
+    const data = database.query(sqlGeneration, [area, fromDate.getTime(), toDate.getTime()]);
+    return { data };
+  });
+  return result;
+};
+
 
 const GetDataMonth = async (areaName: string, date: Date, currency?: string) => {
   const startDate = new Date(date),
@@ -110,7 +168,7 @@ const GetDataMonth = async (areaName: string, date: Date, currency?: string) => 
 
 const GetExchangeRates = async () : Promise<ExchangeRateResult> => {
 
-  const output = await DataCache("__exrate",3600,() => {
+  const output = await DataCache("exrate","__exrate",86400,() => {
     const result = database.query(sqlExchangeRates),
       entries: Record<string, number> = {};
 
@@ -130,4 +188,4 @@ const GetExchangeRates = async () : Promise<ExchangeRateResult> => {
 };
 
 export type { ExchangeRateResult, Row, SpotApiParsedRow, SpotApiRow };
-export { database, GetDataDay, GetDataMonth, GetExchangeRates, GetSpotprice };
+export { database, GetLoadDay, GetGenerationDay, GetDataDay, GetDataMonth, GetExchangeRates, GetSpotprice, GetCurrentGeneration };

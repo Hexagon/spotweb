@@ -1,5 +1,4 @@
 import { Query, QueryResult } from "entsoe_api_client/mod.ts";
-import { DataCache } from "../../utils/datacache.ts";
 
 interface EntsoeApiRow {
   startTime: Date;
@@ -9,112 +8,97 @@ interface EntsoeApiRow {
   unit: string;
 }
 
-const EntsoeGeneration = async (area: string, cacheSeconds: number, startDate: Date, endDate: Date) => {
+const EntsoeGeneration = async (area: string, startDate: Date, endDate: Date) => {
   
   // Prepare dates
   startDate.setHours(0,0,0,0);
   endDate.setHours(23,0,0,0);
-  
-  return await DataCache(
-      new URLSearchParams({uId: "gen", area, startDate, endDate}).toString(),
-      cacheSeconds,
-      async () => {
 
-    // Run ENTSO-e transparency playform query
-    const result = await Query(
-        Deno.env.get("API_TOKEN") || "", // Your entsoe api-token
-        {
-            documentType: "A75",        // A75 - Actual generation per type
-            processType: "A16",         // A16 - Realised
-            inDomain: area,         // In_Domain
-            outDomain: area,        // Out_Domain
-            startDateTime: startDate,   // Start date
-            endDateTime: endDate,  // End date
-        }
-    );
-
-    let pt60m = false;
-    for (const ts of result.TimeSeries) {
-      if (ts.Period.resolution === "PT60M") pt60m = true;
-    }
-
-    // Compose a nice result set
-    const output = {
-      period: pt60m ? "PT60M" : "PT15M",
-      data: []
-    };
-    for (const ts of result.TimeSeries) {
-      // We expect hourly data, use PT60M and ignore other periods
-      if ((pt60m && ts.Period.resolution==="PT60M") || ts.Period.resolution==="PT15M") {
-          for (const point of ts.Period.Point) {
-              const idx = point.position - 1;
-              if (output.data[idx]) {
-                  output.data[idx][ts.MktPSRType.psrType] = (output.data[idx][ts.MktPSRType.psrType] ?? 0 ) + point.quantity;
-              } else {
-                const periodLengthS = ts.Period.resolution==="PT60M" ? 3600 : 900;
-                  output.data[idx] = {
-                      date: new Date(Date.parse(ts.Period.timeInterval.start) + (periodLengthS * 1000) * idx),
-                      [ts.MktPSRType.psrType]: point.quantity
-                  }
-              }
-          }
+  // Run ENTSO-e transparency playform query
+  const result = await Query(
+      Deno.env.get("API_TOKEN") || "", // Your entsoe api-token
+      {
+          documentType: "A75",        // A75 - Actual generation per type
+          processType: "A16",         // A16 - Realised
+          inDomain: area,         // In_Domain
+          outDomain: area,        // Out_Domain
+          startDateTime: startDate,   // Start date
+          endDateTime: endDate,  // End date
       }
+  );
+
+  let pt60m = false;
+  for (const ts of result.TimeSeries) {
+    if (ts.Period.resolution === "PT60M") pt60m = true;
+  }
+
+  // Compose a nice result set
+  const output = {
+    period: pt60m ? "PT60M" : "PT15M",
+    data: []
+  };
+
+  for (const ts of result.TimeSeries) {
+    // We expect hourly data, use PT60M and ignore other periods
+    if ((pt60m && ts.Period.resolution==="PT60M") || ts.Period.resolution==="PT15M") {
+        for (const point of ts.Period.Point) {
+            const idx = point.position - 1;
+            output.data.push({
+              date: new Date(Date.parse(ts.Period.timeInterval.start) + ((pt60m ? 3600 : 900) * 1000) * idx),
+              psr: ts.MktPSRType.psrType,
+              quantity: point.quantity
+            });
+        }
     }
-    
-    return output;
-  });
+  }
+  
+  return output;
 };
 
-const EntsoeLoad = async (area: string, cacheSeconds: number, startDate: Date, endDate: Date) => {
+const EntsoeLoad = async (area: string, startDate: Date, endDate: Date) => {
 
   // Prepare dates
   startDate.setHours(0,0,0,0);
   endDate.setHours(23,0,0,0);
-  
-  return await DataCache(
-      new URLSearchParams({uId: "load", area, startDate, endDate}).toString(),
-      cacheSeconds,
-      async () => {
 
-    // Run ENTSO-e transparency playform query
-    const result = await Query(
-        Deno.env.get("API_TOKEN") || "", // Your entsoe api-token
-        {
-            documentType: "A65",        // A75 - Actual generation per type
-            processType: "A16",         // A16 - Realised
-            outBiddingZoneDomain: area,        // OutBiddingZone_Domain
-            startDateTime: startDate,   // Start date
-            endDateTime: endDate,  // End date
-        }
-    );
-
-    let pt60m = false;
-    for (const ts of result.TimeSeries) {
-      if (ts.Period.resolution === "PT60M") pt60m = true;
-    }
-
-    // Compose a nice result set
-    const output = {
-      period: pt60m ? "PT60M" : "PT15M",
-      data: []
-    };
-    for (const ts of result.TimeSeries) {
-      // We expect hourly data, use PT60M and ignore other periods
-      if ((pt60m && ts.Period.resolution==="PT60M") || ts.Period.resolution==="PT15M") {
-          for (const point of ts.Period.Point) {
-              const 
-                idx = point.position - 1,
-                periodLengthS = ts.Period.resolution==="PT60M" ? 3600 : 900;
-               output.data[idx] = {
-                  date: new Date(Date.parse(ts.Period.timeInterval.start) + (periodLengthS * 1000) * idx),
-                  quantity: point.quantity
-              }
-          }
+  // Run ENTSO-e transparency playform query
+  const result = await Query(
+      Deno.env.get("API_TOKEN") || "", // Your entsoe api-token
+      {
+          documentType: "A65",        // A75 - Actual generation per type
+          processType: "A16",         // A16 - Realised
+          outBiddingZoneDomain: area,        // OutBiddingZone_Domain
+          startDateTime: startDate,   // Start date
+          endDateTime: endDate,  // End date
       }
-    }
+  );
 
-    return output;
-  });
+  let pt60m = false;
+  for (const ts of result.TimeSeries) {
+    if (ts.Period.resolution === "PT60M") pt60m = true;
+  }
+
+  // Compose a nice result set
+  const output = {
+    period: pt60m ? "PT60M" : "PT15M",
+    data: []
+  };
+  for (const ts of result.TimeSeries) {
+    // We expect hourly data, use PT60M and ignore other periods
+    if ((pt60m && ts.Period.resolution==="PT60M") || ts.Period.resolution==="PT15M") {
+        for (const point of ts.Period.Point) {
+            const 
+              idx = point.position - 1,
+              periodLengthS = ts.Period.resolution==="PT60M" ? 3600 : 900;
+              output.data[idx] = {
+                date: new Date(Date.parse(ts.Period.timeInterval.start) + (periodLengthS * 1000) * idx),
+                quantity: point.quantity
+            }
+        }
+    }
+  }
+
+  return output;
 };
 
 const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Promise<EntsoeApiRow[]> => {

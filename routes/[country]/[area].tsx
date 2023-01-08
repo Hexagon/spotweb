@@ -1,7 +1,7 @@
 import { Handlers, PageProps } from "fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
 import ElomradeIsland from "islands/ElomradeIsland.tsx";
-import { GetDataDay, GetDataMonth, GetExchangeRates } from "backend/db/index.ts";
+import { GetCurrentGeneration, GetDataDay, GetDataMonth, GetExchangeRates, GetGenerationDay, GetLoadDay } from "backend/db/index.ts";
 import { countries } from "config/countries.ts";
 import { ExtPageProps } from "../../utils/common.ts";
 import { EntsoeGeneration, EntsoeLoad } from "../../backend/integrations/entsoe.ts";
@@ -51,8 +51,8 @@ export const handler: Handlers = {
     const pageProps: ExtPageProps = {
       country,
       area,
-      generation: await EntsoeGeneration(area.id || area.id, 1800, yesterdayDate, todayDate),
-      load: await EntsoeLoad(area.id || area.id, 1800, yesterdayDate, todayDate),
+      generation: await GetCurrentGeneration(area.id || area.id),
+      load: await GetLoadDay(area.id, yesterdayDate, todayDate),
       page: area.id,
       er,
       lang: ctx.state.lang as string | undefined || ctx.params.country,

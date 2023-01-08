@@ -1,7 +1,6 @@
-import { applyExchangeRate, avgPrice, maxPrice, minPrice, nowPrice, processPrice } from "utils/price.ts";
-import { CommonProps, monthName, processResultSet } from "utils/common.ts";
-import { Country, DataArea } from "config/countries.ts";
-import { PsrMap } from "../config/psrmap.ts";
+import { CommonProps} from "utils/common.ts";
+import { Country } from "config/countries.ts";
+import { PsrMap } from "config/psrmap.ts";
 
 interface GenerationOverviewProps extends CommonProps {
   cols: number;
@@ -19,23 +18,18 @@ export default function GenerationOverview(props: GenerationOverviewProps) {
     // Only use data within three hours, or last row
     const 
       currentGeneration = props.generation.data[i],
-      generationDate = new Date(currentGeneration.date),
-      withinFourHours = generationDate >= new Date((new Date().getTime() - 3600 * 4 * 1000)),
-      lastRow = i == (props.generation.data.length - 1);
-    if (withinFourHours || lastRow) {
-      // Update date
-      if (!lastGenerationDate || lastGenerationDate.getTime() < new Date(Date.parse(currentGeneration.date)).getTime()) lastGenerationDate = new Date(Date.parse(currentGeneration.date));
-      // Update object
-      const genTypesT = Object.keys(currentGeneration).filter(k => (k !== "position" && k !== "date" && k !== "TOTAL" && k !== "psr"))
-      for(const psr of genTypesT) {
-        if (!lastGeneration[psr] || lastGeneration[psr].date < currentGeneration.date) {
-          lastGeneration[psr] = {
-            date: currentGeneration.date,
-            value: currentGeneration[psr]
-          }
+      dateMs = currentGeneration[0],
+      psr = currentGeneration[1],
+      value = currentGeneration[2];
+    // Update date
+    if (!lastGenerationDate || lastGenerationDate < dateMs) lastGenerationDate = dateMs;
+    // Update object
+      if (!lastGeneration[psr] || lastGeneration[psr].date < dateMs) {
+        lastGeneration[psr] = {
+          date: new Date(dateMs),
+          value: value
         }
       }
-    }
   }
 
   // Aggregate lastgeneration
@@ -60,18 +54,18 @@ export default function GenerationOverview(props: GenerationOverviewProps) {
     generationTotal = Object.values(lastGeneration).reduce((a, b) => {
       return a + b.value;
     },0),
-    lastGenerationDateEnd = new Date(lastGenerationDate.getTime() + (props.generation.period == "PT60M" ? 3600 : 900 ) * 1000);
+    lastGenerationDateEnd = new Date(lastGenerationDate + (props.generation?.data[0][3] == "PT60M" ? 3600 : 900 ) * 1000);
 
   // Find load at matching point of time
   let loadTotal;
   for(const loadEntry of props.load.data) {
-    if (Date.parse(loadEntry.date) === lastGenerationDate?.getTime()) {
-      loadTotal = loadEntry.quantity;
+    if (loadEntry[0] === lastGenerationDate) {
+      loadTotal = loadEntry[1];
     }
   }
 
   // If load at matching point of time wasn't found, use last load
-  if (!loadTotal) loadTotal = props.load.data[props.load.data.length-1].quantity;
+  if (!loadTotal && props.load.data?.length) loadTotal = props.load.data[props.load.data.length-1][1];
 
   // Calculate total
   const netTotal = generationTotal - loadTotal;
