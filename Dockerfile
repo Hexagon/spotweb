@@ -1,4 +1,4 @@
-FROM denoland/deno:alpine-1.29.1
+FROM denoland/deno:alpine-1.29.2
 
 # Install base packages
 RUN apk update

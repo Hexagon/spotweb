@@ -73,7 +73,7 @@ const HourlyProductionUpdate = async () => {
 
     // Delete duplicated
     log("info", "Cleaning up.");
-    database.query("DELETE FROM generation WHERE id NOT IN (SELECT MAX(id) FROM generation GROUP BY area,period,psr)");
+    database.query("DELETE FROM generation WHERE id NOT IN (SELECT MAX(id) FROM generation GROUP BY area,period,psr,value)");
     if(database.totalChanges) {
       log("info", "Deleted " + database.totalChanges + " duplicate rows.");
     }

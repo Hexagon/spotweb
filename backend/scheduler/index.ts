@@ -29,8 +29,8 @@ const scheduler = {
   },
   instant: () => {
     log("info", "Instant update requested");
-    //DailyPriceUpdate();
-    //DailyCurrencyUpdate();
+    DailyPriceUpdate();
+    DailyCurrencyUpdate();
     HourlyConsumptionUpdate();
     HourlyProductionUpdate();
   }
