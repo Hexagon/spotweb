@@ -31,6 +31,9 @@
 .extra-pad {
     padding: 5px !important;
 }
+.hidden {
+    display: none !important;
+}
 .price-display {
     font-size: 6.4rem !important;
     color:antiquewhite;
