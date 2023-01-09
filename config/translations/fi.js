@@ -47,8 +47,9 @@ const fi = {
       "all_history": "Kaikki tilastot on otettu",
       "currency_fetched_from": "Nykyinen valuuttakurssi on otettu",
       "all_values_from": "Kaikki arvot, mukaan lukien historialliset, muunnetaan EUR senhetkiseen valuuttakurssiin",
-      "disclaimer_and_private_use":
-        "Esitettyjen lukujen tulee vastata todellisuutta, mutta ne toimitetaan ilman takuita. Sivusto ja siihen liittyvät palvelut tarjotaan yksityiseen käyttöön omalla vastuullasi.",
+      "disclaimer_and_private_use": "Esitettyjen lukujen tulee vastata todellisuutta, mutta ne toimitetaan ilman takuita. Sivusto ja siihen liittyvät palvelut tarjotaan yksityiseen käyttöön omalla vastuullasi.",
+      "open_source_software": "Sivun lähdekoodi on täysin avoin ja saatavilla osoitteessa ",
+      "bugs_and_issues": "Virheistä ja ongelmista ilmoitetaan GitHubin 'Issues'-osiossa. Voit myös ottaa yhteyttä sähköpostitse osoitteeseen hexagon{a}56k.guru."
     },
     "overview": {
       "thirty_day_chart": "30 päivän historia",

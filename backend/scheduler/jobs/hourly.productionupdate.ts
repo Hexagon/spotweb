@@ -83,8 +83,8 @@ const HourlyProductionUpdate = async () => {
   }
   
   // Clear memory cache
-  log("info", "Database changed, clearing cache, realm load.");
-  InvalidateCache("load");
+  log("info", "Database changed, clearing cache, realm generation.");
+  InvalidateCache("generation");
 
   running = false;
 

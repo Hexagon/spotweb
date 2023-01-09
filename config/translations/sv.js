@@ -47,8 +47,9 @@ const sv = {
       "all_history": "All statistik hämtas från",
       "currency_fetched_from": "Aktuell valutakurs hämtas från",
       "all_values_from": "Alla värden, inklusive historiska, är konverterade från EUR med aktuell kurs",
-      "disclaimer_and_private_use":
-        "Siffrorna som visas bör stämma med verkligheten, men levereras utan garantier. Sidan och tillhörande tjänster tillhandahålls för privat bruk, på egen risk.",
+      "disclaimer_and_private_use": "Siffrorna som visas bör stämma med verkligheten, men levereras utan garantier. Sidan och tillhörande tjänster tillhandahålls för privat bruk, på egen risk.",
+      "open_source_software": "Källkoden till sidan är helt öppen och finns tillgänglig på ",
+      "bugs_and_issues": "Buggar och problem rapporteras genom 'Issues' på GitHub. Kontakt kan även ske via mail till hexagon{a}56k.guru."
     },
     "overview": {
       "thirty_day_chart": "30 dagars historik",

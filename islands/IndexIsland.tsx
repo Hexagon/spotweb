@@ -12,6 +12,7 @@ import { applyExchangeRate, avgPrice, processPrice } from "utils/price.ts";
 import { CommonProps, ExtPageProps, processResultSet } from "utils/common.ts";
 import AllAreaChartLongTerm from "../components/AllAreaChartLongTerm.tsx";
 import GenerationOverview from "../components/GenerationOverview.tsx";
+import Cron from "croner";
 
 export default function IndexIsland(props: PageProps<ExtPageProps>) {
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
@@ -59,6 +60,14 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
     return <li>{a.name} - {a.long}: {processPrice(avgPrice(dataMonthExchanged), { ...commonprops, priceFactor: false })} {currency}/{unit}</li>;
   });
 
+  // Register a cron job which reloads the page at each full hour, if at least two minutes has passed since entering
+  const pageLoadTime = new Date();
+  const reloadJob = new Cron("0 0 * * * *", () => {
+    if (new Date().getTime()-pageLoadTime.getTime()>120*1000) {
+      window?.location?.reload();
+    }
+  });
+
   return (
     <div>
       <div class="page-wrapper with-navbar with-sidebar" data-sidebar-hidden="hidden">
@@ -78,13 +87,6 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
           {...commonprops}
         ></Sidebar>
         <div class="content-wrapper">
-          <h1 class="noshow" data-t-key="common.header.title" lang={commonprops.lang}>
-            Aktuellt elpris
-          </h1>
-          <h2 class="noshow" data-t-key="common.header.avg_today" lang={commonprops.lang}>Genomsnittligt spotpris idag</h2>
-          <ul class="noshow">{areaDayPriceListItems}</ul>
-          <h2 class="noshow" data-t-key="common.header.avg_month" lang={commonprops.lang}>Genomsnittligt spotpris hittills i månaden</h2>
-          <ul class="noshow">{areaMonthPriceListItems}</ul>
           <div class="content mt-0 mb-0 pr-0 mr-0 ml-20">
             <PriceFactorWarning priceFactor={!!priceFactor} factor={factor} extra={extra} lang={props.data.lang}></PriceFactorWarning>
             <div class="row">
@@ -110,18 +112,18 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
               <AllAreaChartLongTerm
                 {...commonprops}
               ></AllAreaChartLongTerm>
-                          <InformationPane
-                cols={6}
-                {...commonprops}
-              ></InformationPane>
-            </div>
-          </div>
-          <div class="content mt-0 mr-0 ml-20">
-            <div class="row mt-0">
             <GenerationOverview
                 cols={6}
                 {...commonprops}
               ></GenerationOverview>
+            </div>
+          </div>
+          <div class="content mt-0 mr-0 ml-20">
+            <div class="row mt-0">
+            <InformationPane
+                cols={6}
+                {...commonprops}
+              ></InformationPane>
             </div>
           </div>
         </div>

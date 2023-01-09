@@ -108,12 +108,13 @@ const GetLoadDay = async (area: string, fromDateIn: Date, toDateIn: Date) : Prom
 
 const GetCurrentGeneration = async (area: string) : Promise<unknown[]> => {
   
-  const fromDate = new Date(new Date().getTime()-4*3600*1000);
+  const fromDate = new Date();
+  fromDate.setHours(fromDate.getHours()-4,0,0,0);
 
   const toDate = new Date();
   toDate.setHours(23,59,59,0);
 
-  const parameterString = new URLSearchParams({realm:"curgen",area,f:fromDate.getTime().toString(),t: toDate.getTime().toString()}).toString();
+  const parameterString = new URLSearchParams({area,f:fromDate.getTime().toString(),t: toDate.getTime().toString()}).toString();
 
   const cacheLength = 86400;
   const result = await DataCache("generation",parameterString,cacheLength,() => {

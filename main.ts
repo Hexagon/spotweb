@@ -5,6 +5,13 @@ import { start } from "fresh/server.ts";
 import manifest from "./fresh.gen.ts";
 import { langFromUrl } from "utils/common.ts";
 import { scheduler } from "backend/scheduler/index.ts";
+import { log, setLevel } from "./utils/log.ts";
+
+// Enable debugging
+if (Deno.args.includes("--debug")) {
+  log("info", "Enabling debug logging");
+  setLevel("debug");
+}
 
 // Start front end
 start(
@@ -21,4 +28,9 @@ start(
 
 // Start back end
 scheduler.start();
-scheduler.instant();
+
+// Do instant update if asked to
+if (Deno.args.includes("--instant-update")) {
+  log("info", "Doing instant update");
+  scheduler.instant();
+}

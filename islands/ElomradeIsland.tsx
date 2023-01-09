@@ -1,16 +1,18 @@
 import { PageProps } from "fresh/server.ts";
 import { useState } from "preact/hooks";
 
+import { Cron } from "croner";
+
+import { preferences } from "config/preferences.js";
+import { CommonProps, ExtPageProps } from "utils/common.ts";
+
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
 import SingleAreaOverview from "components/SingleAreaOverview.tsx";
 import SingleAreaChart from "components/SingleAreaChart.tsx";
 import SingleAreaMonthChart from "components/SingleAreaMonthChart.tsx";
 import InformationPane from "components/InformationPane.tsx";
-import SingleAreaTable from "components/SingleAreaTable.tsx";
-import { preferences } from "config/preferences.js";
-import { CommonProps, ExtPageProps } from "../utils/common.ts";
-import GenerationOverview from "../components/GenerationOverview.tsx";
+import GenerationOverview from "components/GenerationOverview.tsx";
 
 export default function IndexIsland(props: PageProps<ExtPageProps>) {
 
@@ -38,6 +40,14 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
     ...props.data,
   };
 
+  // Register a cron job which reloads the page at each full hour, if at least two minutes has passed since entering
+  const pageLoadTime = new Date();
+  const reloadJob = new Cron("0 0 * * * *", () => {
+    if (new Date().getTime()-pageLoadTime.getTime()>120*1000) {
+      window?.location?.reload();
+    }
+  });
+
   return (
     <div>
       <div class="page-wrapper with-navbar with-sidebar" data-sidebar-hidden="hidden">
@@ -59,10 +69,6 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
         <div class="content-wrapper">
           <div class="content pr-0 mr-0 ml-20 mt-0">
             <div class="row mt-0">
-              <h1 class="noshow" data-t-key="common.header.title" lang={commonprops.lang}>
-                Aktuellt elpris
-              </h1>
-              <h2 class="noshow">{commonprops.country.name} - {commonprops.area.name} {commonprops.area.long}</h2>
               <div class="sticky-alerts"></div>
               <SingleAreaOverview
                 title={commonprops.area.name + " - " + commonprops.area.long}
@@ -71,19 +77,16 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
                 detailed={true}
                 {...commonprops}
               ></SingleAreaOverview>
-              <SingleAreaTable
-                cols={3}
-                date={dToday}
+              <SingleAreaChart
+                title={commonprops.area.name + " - " + commonprops.area.long}
+                highlight={"color-" + commonprops.area.color}
+                cols={6}
                 {...commonprops}
-              ></SingleAreaTable>
-                          <GenerationOverview
+              ></SingleAreaChart>
+              <GenerationOverview
                 cols={3}
                 {...commonprops}
               ></GenerationOverview>
-                          <InformationPane
-                cols={3}
-                {...commonprops}
-              ></InformationPane>
             </div>
             <div class="row">
               <SingleAreaMonthChart
@@ -93,13 +96,10 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
                 date={dToday}
                 {...commonprops}
               ></SingleAreaMonthChart>
-
-<SingleAreaChart
-                title={commonprops.area.name + " - " + commonprops.area.long}
-                highlight={"color-" + commonprops.area.color}
+                          <InformationPane
                 cols={6}
                 {...commonprops}
-              ></SingleAreaChart>
+              ></InformationPane>
             </div>
           </div>
         </div>

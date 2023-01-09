@@ -24,6 +24,11 @@ export default function InformationPane(props: InformationPaneProps) {
               {rsER ? (rsER.entries[props.currency == "öre" ? "SEK" : props.currency]) : ""} {props.currency == "öre" ? "SEK" : props.currency}.
             </p>
             <p data-t-key="common.information.disclaimer_and_private_use" lang={props.lang}>Only for private use, no guarantees provided.</p>
+            <p>
+              <span data-t-key="common.information.open_source_software" lang={props.lang}>Powered by open source software, available at</span>
+              <a href="https://github.com/hexagon/spotweb">github.com/hexagon/spotweb</a>
+            </p>
+            <p data-t-key="common.information.bugs_and_issues" lang={props.lang}>Bug and issues reported at GitHub</p>
           </div>
         </div>
       </div>

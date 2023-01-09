@@ -47,8 +47,9 @@ const dk = {
       "all_history": "Al statistik er taget fra",
       "currency_fetched_from": "Aktuel valutakurs er taget fra",
       "all_values_from": "Alle værdier, inklusive historiske værdier, er omregnet fra EUR til den aktuelle valutakurs",
-      "disclaimer_and_private_use":
-        "De viste tal skal svare til virkeligheden, men leveres uden garantier. Siden og tilknyttede tjenester leveres til privat brug på egen risiko.",
+      "disclaimer_and_private_use": "De viste tal skal svare til virkeligheden, men leveres uden garantier. Siden og tilknyttede tjenester leveres til privat brug på egen risiko.",
+      "open_source_software": "Kildekoden på siden er helt åben og er tilgængelig på ",
+      "bugs_and_issues": "Bug og problemer rapporteres via 'Issues' på GitHub. Kontakt kan også tages via e-mail til hexagon{a}56k.guru."
     },
     "overview": {
       "thirty_day_chart": "30 dages historie",

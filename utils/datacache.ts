@@ -1,3 +1,5 @@
+import { log } from "./log.ts";
+
 const MemCache = new Map();
 
 const DataCache = async (realm: string,uniqueId: string, seconds: number, liveFetch: unknown) => {
@@ -29,6 +31,7 @@ const DataCache = async (realm: string,uniqueId: string, seconds: number, liveFe
       throw new Error("Cache expired");
     }
 
+    log("debug", `Cache hit ${realm}:${uniqueId}`);
     return {__cache:true, ...cacheObj.data};
 
   } catch (_e) {
@@ -41,6 +44,7 @@ const DataCache = async (realm: string,uniqueId: string, seconds: number, liveFe
     });
 
     // Respond
+    log("debug", `Cache miss ${realm}:${uniqueId}`);
     return result;
   }
 };
@@ -51,6 +55,5 @@ const InvalidateCache = (realm: string) => {
     currentRealm.clear();
   }
 };
-
 
 export { DataCache, InvalidateCache };

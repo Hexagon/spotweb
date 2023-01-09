@@ -47,8 +47,9 @@ const de = {
         "all_history": "Alle Statistiken stammen aus",
         "currency_fetched_from": "Der aktuelle Wechselkurs wird übernommen",
         "all_values_from": "Alle Werte, auch historische, werden zum aktuellen Wechselkurs aus EUR umgerechnet",
-        "disclaimer_and_private_use":
-          "Die gezeigten Zahlen sollen der Realität entsprechen, werden aber ohne Gewähr geliefert. Die Website und die damit verbundenen Dienste werden für den privaten Gebrauch auf eigenes Risiko bereitgestellt.",
+        "disclaimer_and_private_use": "Die gezeigten Zahlen sollen der Realität entsprechen, werden aber ohne Gewähr geliefert. Die Website und die damit verbundenen Dienste werden für den privaten Gebrauch auf eigenes Risiko bereitgestellt.",
+        "open_source_software": "Der Quellcode der Seite ist vollständig offen und verfügbar unter ",
+        "bugs_and_issues": "Fehler und Probleme werden über 'Issues' auf GitHub gemeldet. Kontakt kann auch per E-Mail an hexagon{a}56k.guru hergestellt werden."
       },
       "overview": {
         "thirty_day_chart": "30 Tage Geschichte",

@@ -11,6 +11,7 @@ interface GenerationOverviewProps extends CommonProps {
 }
 
 export default function GenerationOverview(props: GenerationOverviewProps) {
+
   // Find last value for each production type
   const lastGeneration = {};
   let lastGenerationDate = undefined;
@@ -24,12 +25,12 @@ export default function GenerationOverview(props: GenerationOverviewProps) {
     // Update date
     if (!lastGenerationDate || lastGenerationDate < dateMs) lastGenerationDate = dateMs;
     // Update object
-      if (!lastGeneration[psr] || lastGeneration[psr].date < dateMs) {
-        lastGeneration[psr] = {
-          date: new Date(dateMs),
-          value: value
-        }
+    if (!lastGeneration[psr] || lastGeneration[psr].date.getTime() < dateMs) {
+      lastGeneration[psr] = {
+        date: new Date(dateMs),
+        value: value
       }
+    }
   }
 
   // Aggregate lastgeneration
@@ -54,7 +55,7 @@ export default function GenerationOverview(props: GenerationOverviewProps) {
     generationTotal = Object.values(lastGeneration).reduce((a, b) => {
       return a + b.value;
     },0),
-    lastGenerationDateEnd = new Date(lastGenerationDate + (props.generation?.data[0][3] == "PT60M" ? 3600 : 900 ) * 1000);
+    lastGenerationDateEnd = props.generation.data.length ? new Date(lastGenerationDate + (props.generation.data[0][3] == "PT60M" ? 3600 : 900 ) * 1000) : undefined;
 
   // Find load at matching point of time
   let loadTotal;
@@ -93,7 +94,7 @@ export default function GenerationOverview(props: GenerationOverviewProps) {
                   <tr class={"table-"+ (netTotal < 0 ? "danger" : "success")}><th data-t-key={"common.generation."+(netTotal < 0 ? "deficit" : "excess")} lang={props.lang}>{ netTotal < 0 ? "Underskott" : "Överskott" }</th><th>{ netTotal } MW</th></tr>
                 </tbody>
               </table>
-              <p class="text-right mb-0 mr-15"><small><i><span data-t-key="common.generation.last_updated" lang={props.lang}>Senast uppdaterat</span>: { lastGenerationDateEnd.toLocaleString() }</i></small></p>
+              <p class="text-right mb-0 mr-15"><small><i><span data-t-key="common.generation.last_updated" lang={props.lang}>Senast uppdaterat</span>: { lastGenerationDateEnd?.toLocaleString() }</i></small></p>
             </div>
           </div>
         </div>
