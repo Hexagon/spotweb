@@ -50,18 +50,17 @@ export default function HassIsland(props: PageProps<ExtPageProps>) {
           <div class="content mt-0 mb-0 mr-0 ml-20">
             <div class="row">
               <div class="col-lg">
-        
         <h1>
             Home assistant
         </h1>
         <p>You can get current spot price, min/max for today, yesterday and tomorrow by using our API with the REST integration in Home Assistant.</p>
-        <p>Juts add this code into your <code class="code">configuration.yaml</code> and customize to your needs.</p>
-        <p>Only for personal use, at your own risk.</p>
+        <p>Just add this code into your <code class="code">configuration.yaml</code> and customize to your needs.</p>
+        <p><i>Only for personal use, at your own risk, no guarantees provided!</i></p>
         <h2>Example yaml</h2>
         <code><pre class="code">{
 `rest:
 - scan_interval: 180
-  resource: http://spot.56k.guru/api/v2/hass?currency=SEK&extra=0.095&factor=1.25&area=SE2&decimals=2
+  resource: https://spot.56k.guru/api/v2/hass?currency=SEK&area=SE2&extra=0&factor=1&decimals=2
   sensor:
     - name: "Spotprice Now"
       unique_id: "56k_spotprice_now"

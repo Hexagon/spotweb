@@ -22,6 +22,10 @@ const DBUpdates = [
     {
         name: "delete_spotprice_date_column",
         sql: "ALTER TABLE spotprice DROP COLUMN date"
+    },
+    {
+        name: "delete_german_and_austrian_history",
+        sql: "DELETE FROM spotprice WHERE country='de' OR country='at'"
     }
 ];
 
