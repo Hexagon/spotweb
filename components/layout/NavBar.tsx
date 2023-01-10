@@ -1,5 +1,5 @@
 import { countries } from "config/countries.ts";
-import { CommonProps } from "../../utils/common.ts";
+import { CommonProps } from "utils/common.ts";
 
 interface NavbarProps extends CommonProps {
   page: string;

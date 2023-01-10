@@ -19,18 +19,22 @@ const UpdateProductionForArea = async (area: string) => {
     dateYesterday.setDate(dateYesterday.getDate() - 1);
 
     // Get data
-    log("info", "Getting production for " + area + " " + dateToday.toLocaleString() + "-" + dateYesterday.toLocaleString());
+    log("info", "Getting production for " + area + " " + dateYesterday.toLocaleString() + "-" + dateToday.toLocaleString());
+
     try {
-      const result = await EntsoeGeneration(area, dateYesterday, dateToday);
-      if (result.data.length) {
-        log("info", "Got " + result.data.length + " rows");
-        for (const row of result.data) {
-          database.query("INSERT INTO generation (area, value, period, psr, interval) VALUES (?,?,?,?,?)", [
+      const 
+        result = await EntsoeGeneration(area, dateYesterday, dateToday),
+        preparedQuery = database.prepareQuery("INSERT INTO generation (area, value, period, psr, interval, consumption) VALUES (?,?,?,?,?,?)");
+      if (result.length) {
+        log("info", "Got " + result.length + " rows");
+        for (const row of result) {
+          preparedQuery.execute([
             area,
             row.quantity,
             row.date.getTime(),
             row.psr,
-            result.period
+            row.interval,
+            row.consumption
           ]);
 
           // Sleep one millisecond between each row to allow clients to fetch data
@@ -73,7 +77,7 @@ const HourlyProductionUpdate = async () => {
 
     // Delete duplicated
     log("info", "Cleaning up.");
-    database.query("DELETE FROM generation WHERE id NOT IN (SELECT MAX(id) FROM generation GROUP BY area,period,psr,value)");
+    database.query("DELETE FROM generation WHERE id NOT IN (SELECT MAX(id) FROM generation GROUP BY area,period,psr,consumption)");
     if(database.totalChanges) {
       log("info", "Deleted " + database.totalChanges + " duplicate rows.");
     }

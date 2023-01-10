@@ -1,12 +1,13 @@
 import FilteredTable from "components/FilteredTable.tsx";
 import { useState } from "preact/hooks";
-import { PageProps } from "fresh/server.ts";
+import { PageProps } from "$fresh/server.ts";
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
 import { preferences } from "config/preferences.js";
 import { CommonProps, ExtPageProps } from "utils/common.ts";
 
 export default function CustomIsland(props: PageProps<ExtPageProps>) {
+
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
   const [factor, setFactor] = useState(preferences.factor(props.data.lang));
@@ -33,13 +34,10 @@ export default function CustomIsland(props: PageProps<ExtPageProps>) {
     <div>
       <div class="page-wrapper with-sidebar with-navbar">
         <Navbar
-          page="custom"
           setPriceFactor={setPriceFactorStored}
           {...commonprops}
-        >
-        </Navbar>
+        ></Navbar>
         <Sidebar
-          page="custom"
           setUnit={setUnit}
           setExtra={setExtra}
           setFactor={setFactor}
@@ -47,12 +45,10 @@ export default function CustomIsland(props: PageProps<ExtPageProps>) {
           setPriceFactor={setPriceFactorStored}
           setCurrency={setCurrency}
           {...commonprops}
-        >
-        </Sidebar>
+        ></Sidebar>
         <FilteredTable
           {...commonprops}
-        >
-        </FilteredTable>
+        ></FilteredTable>
       </div>
     </div>
   );

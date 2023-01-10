@@ -1,13 +1,18 @@
-import { ExchangeRateResult, SpotApiParsedRow, SpotApiRow } from "../backend/db/index.ts";
+import { DBResultSet, ExchangeRateResult, SpotApiRow } from "../backend/db/index.ts";
 import { Country, DataArea } from "../config/countries.ts";
 
-interface ExtPageProps {
+interface BasePageProps {
+  page: string;
+  lang: string;
+}
+
+interface ExtPageProps extends BasePageProps {
   country: Country;
   area?: DataArea;
   areas?: DataArea[];
-  generation: unknown;
+  generation: DBResultSet;
+  load: DBResultSet;
   er: ExchangeRateResult;
-  lang: string;
 }
 
 interface CommonProps extends ExtPageProps {
@@ -21,24 +26,14 @@ interface CommonProps extends ExtPageProps {
 
 interface ChartSeries {
   name: string;
-  data: SpotApiParsedRow[];
+  data: SpotApiRow[];
 }
 
-const formatHhMm = (d: Date) => {
-  const hours = ("" + d.getHours()).padStart(2, "0"),
-    minutes = ("" + d.getMinutes()).padStart(2, "0");
+const formatHhMm = (d: Date | string | number) => {
+  const resolvedDate = typeof d === "number" ? new Date(d) : (d instanceof Date ? d : new Date(Date.parse(d)));
+  const hours = ("" + resolvedDate.getHours()).padStart(2, "0"),
+    minutes = ("" + resolvedDate.getMinutes()).padStart(2, "0");
   return `${hours}:${minutes}`;
-};
-
-const processResultSet = (rawApiResultset: SpotApiRow[]): SpotApiParsedRow[] => {
-  const out: SpotApiParsedRow[] = [];
-  for (const row of rawApiResultset) {
-    out.push({
-      ...row,
-      time: new Date(Date.parse(row.time)),
-    });
-  }
-  return out;
 };
 
 const dateText = (d: Date) => {
@@ -51,12 +46,13 @@ const dateText = (d: Date) => {
   else return d.toLocaleDateString();
 };
 
-const generateUrl = (area: string, startDate: Date, endDate: Date, period?: string) => {
+const generateUrl = (area: string, startDate: Date, endDate: Date, interval: string, period?: string) => {
   const params: Record<string, string> = {
     area: area,
     period: period ? period : "hourly",
     startDate: startDate.toLocaleDateString("sv-SE"),
     endDate: endDate.toLocaleDateString("sv-SE"),
+    interval: interval
   };
   const url = window.location || new URL("https://spot.56k.guru/"),
     inPath = "api/v2/spot",
@@ -66,25 +62,10 @@ const generateUrl = (area: string, startDate: Date, endDate: Date, period?: stri
   return fullUrl;
 };
 
-// Get datasets
-const getDataDay = async (areaId: string, date: Date) => {
-  const startDate = new Date(date.getTime()),
-    endDate = new Date(date.getTime());
-  const response = await fetch(generateUrl(areaId, startDate, endDate));
-  return await response.json();
-};
-
-const getDataMonth = async (areaId: string, date: Date) => {
-  const startDate = new Date(date.getTime()),
-    endDate = new Date(date.getTime());
-  startDate.setDate(1);
-  const response = await fetch(generateUrl(areaId, startDate, endDate));
-  return await response.json();
-};
-
-const monthName = (d: Date): string => {
-  if (!d) return "-";
-  const m = d.getMonth();
+const monthName = (d: Date|string|number): string => {
+  const resolvedDate = typeof d === "number" ? new Date(d) : (d instanceof Date ? d : new Date(Date.parse(d)));
+  if (!resolvedDate) return "-";
+  const m = resolvedDate.getMonth();
   switch (m) {
     case 0:
       return "jan";
@@ -128,11 +109,11 @@ const langFromUrl = (url: URL) => {
   } else if (url?.pathname?.startsWith("/at")) {
     return "de";
   } else {
-    return "sv";
+    return "en";
   }
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export type { ChartSeries, CommonProps, ExtPageProps };
-export { dateText, formatHhMm, generateUrl, getDataDay, getDataMonth, langFromUrl, monthName, processResultSet, sleep };
+export type { ChartSeries, CommonProps, ExtPageProps, BasePageProps };
+export { dateText, formatHhMm, generateUrl, langFromUrl, monthName, sleep };

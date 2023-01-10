@@ -5,7 +5,7 @@ price) from ENTSO-e.
 
 Currently available in Swedish, Finnish, Danish, Norwegian and German.
 
-Any feedtack on translations are greatly appreciated. Contribute by opening an issue, or by creating a pull request. Each language has it's own file in `config/translations`.
+Any feedback on translations are greatly appreciated. Contribute by opening an issue, or by creating a pull request. Each language has it's own file in `config/translations`.
 
 ### Development
 
@@ -29,15 +29,17 @@ To check for general dependency updates:
 deno task update-deps
 ```
 
-Apply the updates manually!
+Apply the updates manually
+
+Also check `SwHead.tsx` for dependencies included by script tags.
+
+Note that the types declarations in deno.json have to be updated if updating dependencies in `import_map.json` or script-tags in `SwHead.tsx`.
 
 ### Build docker container
 
+
 ```
-cd src
-mkdir -p ../build
-deno bundle main.ts ../build/spotweb.ts
-cd ..
+deno task release # Generates main.release.ts using deno bundle
 docker build . --tag=local-spotweb
 ```
 

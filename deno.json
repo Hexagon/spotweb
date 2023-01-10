@@ -1,7 +1,8 @@
 {
   "tasks": {
-    "dev": "deno run -A --watch=static/,routes/ dev.ts --debug",
-    "prod": "deno run --allow-run --allow-read --allow-write --allow-net --allow-env main.ts --instant-update",
+    "dev": "deno run -A --check --watch=static/,routes/ dev.ts",
+    "release": "deno bundle main.ts main.release.ts",
+    "prod": "deno run --allow-run --allow-read --allow-write --allow-net --allow-env main.release.ts --instant-update",
     "update-deps": "deno run --allow-read=. --allow-write=. --allow-net https://deno.land/x/udd/main.ts --dry-run import_map.json",
     "update-fresh": "deno run -A -r https://fresh.deno.dev/update ."
   },
@@ -16,6 +17,10 @@
   },
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "preact"
+    "jsxImportSource": "preact",
+    "types": [
+      "https://cdn.jsdelivr.net/npm/apexcharts@3.36.3/types/apexcharts.d.ts",
+      "./types/halfmoon.d.ts"
+    ]
   }
 }

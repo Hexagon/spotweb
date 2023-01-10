@@ -1,14 +1,29 @@
 import { Query, QueryResult } from "entsoe_api_client/mod.ts";
 
-interface EntsoeApiRow {
+interface SpotRow {
   startTime: Date;
   endTime: Date;
   areaCode: string;
+  interval: string;
   spotPrice: number;
   unit: string;
 }
 
-const EntsoeGeneration = async (area: string, startDate: Date, endDate: Date) => {
+interface LoadRow {
+  date: Date,
+  interval: string,
+  quantity?: number
+}
+
+interface GenerationRow {
+  date: Date,
+  psr: string,
+  consumption: number,
+  interval: string,
+  quantity: number
+}
+
+const EntsoeGeneration = async (area: string, startDate: Date, endDate: Date) : Promise<GenerationRow[]> => {
   
   // Prepare dates
   startDate.setHours(0,0,0,0);
@@ -27,35 +42,28 @@ const EntsoeGeneration = async (area: string, startDate: Date, endDate: Date) =>
       }
   );
 
-  let pt60m = false;
-  for (const ts of result.TimeSeries) {
-    if (ts.Period.resolution === "PT60M") pt60m = true;
-  }
-
   // Compose a nice result set
-  const output = {
-    period: pt60m ? "PT60M" : "PT15M",
-    data: []
-  };
+  const output : GenerationRow[] = [];
 
-  for (const ts of result.TimeSeries) {
-    // We expect hourly data, use PT60M and ignore other periods
-    if ((pt60m && ts.Period.resolution==="PT60M") || ts.Period.resolution==="PT15M") {
-        for (const point of ts.Period.Point) {
-            const idx = point.position - 1;
-            output.data.push({
-              date: new Date(Date.parse(ts.Period.timeInterval.start) + ((pt60m ? 3600 : 900) * 1000) * idx),
-              psr: ts.MktPSRType.psrType,
-              quantity: point.quantity
-            });
-        }
+  if (result?.TimeSeries) for (const ts of result.TimeSeries) {
+    if (ts.Period?.Point?.length) for (const point of ts.Period.Point) {
+      const 
+        idx = point.position - 1,
+        periodLengthS = ts.Period.resolution==="PT60M" ? 3600 : 900;
+      output.push({
+        date: new Date(Date.parse(ts.Period.timeInterval.start) + (periodLengthS * 1000) * idx),
+        psr: ts.MktPSRType?.psrType || "",
+        consumption: ts["outBiddingZone_Domain.mRID"] ? 1 : 0,
+        interval: ts.Period.resolution,
+        quantity: point.quantity || 0
+      });
     }
   }
   
   return output;
 };
 
-const EntsoeLoad = async (area: string, startDate: Date, endDate: Date) => {
+const EntsoeLoad = async (area: string, startDate: Date, endDate: Date) : Promise<LoadRow[]> => {
 
   // Prepare dates
   startDate.setHours(0,0,0,0);
@@ -73,36 +81,27 @@ const EntsoeLoad = async (area: string, startDate: Date, endDate: Date) => {
       }
   );
 
-  let pt60m = false;
-  for (const ts of result.TimeSeries) {
-    if (ts.Period.resolution === "PT60M") pt60m = true;
-  }
-
   // Compose a nice result set
-  const output = {
-    period: pt60m ? "PT60M" : "PT15M",
-    data: []
-  };
+  const output : LoadRow[] = [];
+
   for (const ts of result.TimeSeries) {
-    // We expect hourly data, use PT60M and ignore other periods
-    if ((pt60m && ts.Period.resolution==="PT60M") || ts.Period.resolution==="PT15M") {
-        for (const point of ts.Period.Point) {
-            const 
-              idx = point.position - 1,
-              periodLengthS = ts.Period.resolution==="PT60M" ? 3600 : 900;
-              output.data[idx] = {
-                date: new Date(Date.parse(ts.Period.timeInterval.start) + (periodLengthS * 1000) * idx),
-                quantity: point.quantity
-            }
-        }
+    for (const point of ts.Period.Point) {
+      const 
+        idx = point.position - 1,
+        periodLengthS = ts.Period.resolution==="PT60M" ? 3600 : 900;
+      output.push({
+        date: new Date(Date.parse(ts.Period.timeInterval.start) + (periodLengthS * 1000) * idx),
+        interval: ts.Period.resolution,
+        quantity: point.quantity
+      });
     }
   }
 
   return output;
 };
 
-const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Promise<EntsoeApiRow[]> => {
-  const output: EntsoeApiRow[] = [];
+const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Promise<SpotRow[]> => {
+  const output: SpotRow[] = [];
   let resultJson: QueryResult | undefined;
   try {
     resultJson = await Query(
@@ -121,15 +120,17 @@ const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Pr
   if (resultJson) {
     try {
       for (const ts of resultJson.TimeSeries) {
-        const baseDate = new Date(ts.Period.timeInterval.start);
-        // Only use PT60M for now
-        if (ts.Period.resolution === "PT60M") {
-          for (const p of ts.Period.Point) {
+        const 
+          baseDate = new Date(ts.Period.timeInterval.start),
+          periodLengthS = ts.Period.resolution==="PT60M" ? 3600 : 900;
+        for (const p of ts.Period.Point) {
+          if (p["price.amount"] !== undefined) {
             output.push({
-              startTime: new Date(baseDate.getTime() + (parseInt(p.position, 10) - 1) * 3600 * 1000),
-              endTime: new Date(baseDate.getTime() + (parseInt(p.position, 10)) * 3600 * 1000),
+              startTime: new Date(baseDate.getTime() + (p.position - 1) * periodLengthS * 1000),
+              endTime: new Date(baseDate.getTime() + p.position * periodLengthS * 1000),
+              interval: ts.Period.resolution,
               areaCode: area,
-              spotPrice: parseFloat(p["price.amount"]),
+              spotPrice: p["price.amount"],
               unit: "EUR/MWh",
             });
           }
@@ -143,5 +144,5 @@ const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Pr
   return output;
 };
 
+export type { SpotRow };
 export { EntsoeSpotprice, EntsoeGeneration, EntsoeLoad };
-export type { EntsoeApiRow };

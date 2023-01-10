@@ -2,19 +2,21 @@ import { useEffect, useState } from "preact/hooks";
 import Table from "components/Table.tsx";
 import { CommonProps, generateUrl } from "utils/common.ts";
 import { applyExchangeRate } from "utils/price.ts";
+import { countries } from "../config/countries.ts";
 
 interface FilterProps extends CommonProps {
-  startDate: string;
-  endDate: string;
-  period: string;
+  startDate?: string;
+  endDate?: string;
+  period?: string;
 }
+
+export type { FilterProps };
 
 export default function FilteredTable(props: FilterProps) {
   const [resultSet, setResultSet] = useState();
 
   const [area, setArea] = useState(props.area?.name || "SE1");
-  const [currency, setCurrency] = useState(props.currency || "SEK");
-  const [period, setPeriod] = useState(props.period || "hourly");
+  const [period, setPeriod] = useState(props.period || "daily");
   const [startDate, setStartDate] = useState(props.startDate || new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState(props.endDate || new Date().toISOString().split("T")[0]);
 
@@ -28,13 +30,13 @@ export default function FilteredTable(props: FilterProps) {
     setResultSet(undefined);
     // Fetch if input data is sane
     if (ensureLocalProps()) {
-      const url = generateUrl(area, new Date(Date.parse(startDate)), new Date(new Date(Date.parse(endDate))), period);
+      const url = generateUrl(area, new Date(Date.parse(startDate)), new Date(new Date(Date.parse(endDate))), "PT60M", period);
       if (url) {
         //setPermalink(generatePermalink("custom") as string);
         setPermalinkJson(url as string);
         const response = await fetch(url);
         let result = await response.json();
-        result = applyExchangeRate(result.data, props.er, currency);
+        result = applyExchangeRate(result.data, props.er, props.currency);
         setResultSet(result);
       }
     }
@@ -42,7 +44,7 @@ export default function FilteredTable(props: FilterProps) {
   };
 
   const ensureUrlProps = () => props.area && props.currency && props.period && props.startDate && props.endDate && true;
-  const ensureLocalProps = () => area && currency && period && startDate && endDate && true;
+  const ensureLocalProps = () => area && period && startDate && endDate && true;
 
   const tryGetData = () => {
     if (ensureUrlProps()) {
@@ -76,20 +78,6 @@ export default function FilteredTable(props: FilterProps) {
             </select>
           </div>
           <div class="col-sm">
-            <label for="currency">Valuta</label>
-            <select
-              class="form-control"
-              name="currency"
-              value={currency}
-              onChange={(e) => setCurrency((e.target as HTMLSelectElement).value)}
-              required
-            >
-              <option value="SEK">SEK</option>
-              <option value="NOK">NOK</option>
-              <option value="EUR">EUR</option>
-            </select>
-          </div>
-          <div class="col-sm">
             <label for="area">Elprisområde</label>
             <select
               class="form-control"
@@ -98,10 +86,19 @@ export default function FilteredTable(props: FilterProps) {
               onChange={(e) => setArea((e.target as HTMLSelectElement).value)}
               required
             >
-              <option value="SE1">SE1</option>
-              <option value="SE2">SE2</option>
-              <option value="SE3">SE3</option>
-              <option value="SE4">SE4</option>
+              { countries.map((c) => (
+                <>
+                { c.areas.map((a) => (
+                  <>
+                  { a.name != props.area?.name && (
+                    <>
+                      <option value={a.name}>{a.name} - {a.long}</option>
+                    </>
+                  )}
+                  </>
+                ))}
+                </>
+              ))};
             </select>
           </div>
           <div class="col-sm">
@@ -153,8 +150,7 @@ export default function FilteredTable(props: FilterProps) {
             permalink={permalink}
             permalinkJson={permalinkJson}
             {...props}
-          >
-          </Table>
+          ></Table>
         )}
       {loading &&
         (

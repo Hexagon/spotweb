@@ -1,7 +1,6 @@
-import { Handlers } from "fresh/server.ts";
-import { GetDataDay, GetSpotprice, SpotApiRow } from "backend/db/index.ts";
-import { avgPrice, maxPrice, minPrice, nowPrice, processPrice } from "../../../utils/price.ts";
-import { processResultSet } from "../../../utils/common.ts";
+import { Handlers } from "$fresh/server.ts";
+import { GetDataDay, SpotApiRow} from "backend/db/index.ts";
+import { avgPrice, maxPrice, minPrice, nowPrice, processPrice } from "utils/price.ts";
 
 export const handler: Handlers = {
   async GET(req, _ctx) {
@@ -15,10 +14,11 @@ export const handler: Handlers = {
       currency = url.searchParams.get("currency")?.trim().toUpperCase(),
       factor = parseFloat(url.searchParams.get("factor")?.trim() || "1"),
       extra = parseFloat(url.searchParams.get("extra")?.trim().toUpperCase() || "0"),
-      decimals = parseInt(url.searchParams.get("decimals")?.trim().toUpperCase() || "5", 10);
+      decimals = parseInt(url.searchParams.get("decimals")?.trim().toUpperCase() || "5", 10),
+      interval = url.searchParams.get("interval")?.trim().toUpperCase() || "PT60M";
 
     // Check parameters
-    if (!area || !currency || isNaN(factor) || isNaN(extra) || isNaN(decimals)) {
+    if (!area || !currency || isNaN(factor) || isNaN(extra) || isNaN(decimals) || !interval) {
         return new Response(
             JSON.stringify({ status: "error", details: "Missing/invalid parameters" }),
             { status: 500 },
@@ -35,9 +35,9 @@ export const handler: Handlers = {
       dateTomorrow.setDate(dateTomorrow.getDate()+1);
 
       const 
-        tomorrow = processResultSet(await GetDataDay(area, dateTomorrow, currency)),
-        today = processResultSet(await GetDataDay(area, dateToday, currency)),
-        yesterday = processResultSet(await GetDataDay(area, dateYesterday, currency));
+        tomorrow = await GetDataDay(area, dateTomorrow, interval, currency),
+        today = await GetDataDay(area, dateToday, interval, currency),
+        yesterday = await GetDataDay(area, dateYesterday, interval, currency);
 
       const data = [
         ...yesterday,
@@ -55,7 +55,7 @@ export const handler: Handlers = {
   },
 };
 
-const processData = (data, yesterday, today, tomorrow, currency, extra, factor, decimals) => {
+const processData = (data: SpotApiRow[], yesterday: SpotApiRow[], today: SpotApiRow[], tomorrow: SpotApiRow[], currency: string, extra: number, factor: number, decimals: number) => {
     return {
         updated: new Date(),
         now: processPrice(nowPrice(today),{currency, extra, factor, unit: "kWh", decimals, priceFactor: true},"MWh"),
@@ -70,7 +70,7 @@ const processData = (data, yesterday, today, tomorrow, currency, extra, factor, 
         max_yesterday: processPrice(maxPrice(yesterday),{currency, extra, factor, unit: "kWh", decimals, priceFactor: true},"MWh"),
         data: data.map((r)=>{
             return {
-                st: r.time,
+                st: new Date(r.time),
                 p: processPrice(r.price,{currency, extra, factor, unit: "kWh", decimals, priceFactor: true},"MWh")
             };
         })

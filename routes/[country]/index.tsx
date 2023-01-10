@@ -1,10 +1,9 @@
-import { Handlers, PageProps } from "fresh/server.ts";
+import { Handlers, PageProps } from "$fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
 import IndexIsland from "islands/IndexIsland.tsx";
 import { GetCurrentGeneration, GetDataDay, GetDataMonth, GetExchangeRates, GetGenerationDay, GetLoadDay } from "backend/db/index.ts";
 import { countries } from "config/countries.ts";
 import { ExtPageProps } from "../../utils/common.ts";
-import { EntsoeGeneration, EntsoeLoad } from "../../backend/integrations/entsoe.ts";
 
 export const handler: Handlers = {
   async GET(_req, ctx) {
@@ -37,17 +36,17 @@ export const handler: Handlers = {
     for (const areaObj of country.areas) {
       areas.push({
         ...areaObj,
-        dataToday: await GetDataDay(areaObj.name, todayDate),
-        dataTomorrow: await GetDataDay(areaObj.name, tomorrowDate),
-        dataMonth: await GetDataMonth(areaObj.name, todayDate),
+        dataToday: await GetDataDay(areaObj.name, todayDate, country.interval),
+        dataTomorrow: await GetDataDay(areaObj.name, tomorrowDate, country.interval),
+        dataMonth: await GetDataMonth(areaObj.name, todayDate, country.interval),
       });
     }
 
     // Render all areas in country
     const pageProps: ExtPageProps = {
       country,
-      generation: await GetCurrentGeneration(country.cty),
-      load: await GetLoadDay(country.cty, yesterdayDate, todayDate),
+      generation: await GetCurrentGeneration(country.cty, country.interval),
+      load: await GetLoadDay(country.cty, yesterdayDate, todayDate, country.interval),
       er,
       page: country.id,
       areas,

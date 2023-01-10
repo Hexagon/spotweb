@@ -3,23 +3,16 @@
 import { useEffect, useState } from "preact/hooks";
 import { countries } from "config/countries.ts";
 import Customize from "./Customize.tsx";
+import { CommonProps } from "../../utils/common.ts";
 
-interface SidebarProps {
-  unit: string;
-  extra: number;
-  factor: number;
-  decimals: number;
+interface SidebarProps extends CommonProps {
   setUnit: Function;
   setFactor: Function;
   setExtra: Function;
   setDecimals: Function;
-  hidden?: boolean;
-  page: string;
-  priceFactor: boolean;
   setPriceFactor: Function;
-  currency: string;
   setCurrency: Function;
-  lang: string;
+  priceFactor: boolean;
 }
 
 export default function Sidebar(props: SidebarProps) {

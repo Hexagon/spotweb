@@ -1,15 +1,12 @@
 import SwHead from "components/layout/SwHead.tsx";
-import { Handlers, PageProps } from "fresh/server.ts";
-import Navbar from "../components/layout/NavBar.tsx";
-import Sidebar from "../components/layout/Sidebar.tsx";
-import HassIsland from "../islands/HassIsland.tsx";
+import { Handlers, PageProps } from "$fresh/server.ts";
 import HelpIsland from "../islands/HelpIsland.tsx";
-import { ExtPageProps } from "../utils/common.ts";
+import { BasePageProps } from "../utils/common.ts";
 
 export const handler: Handlers = {
     async GET(_req, ctx) {
 
-        const pageProps: ExtPageProps = {
+        const pageProps: BasePageProps = {
             page: "help",
             lang: ctx.state.lang as string | undefined || ctx.params.country,
         };

@@ -1,11 +1,13 @@
 import { useEffect, useState } from "preact/hooks";
 import { historyChartOptions } from "config/charts/historyview.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
-import { ChartSeries, CommonProps, formatHhMm, generateUrl, processResultSet } from "utils/common.ts";
-import { SpotApiParsedRow } from "../backend/db/index.ts";
+import { ChartSeries, CommonProps, generateUrl } from "utils/common.ts";
+import { SpotApiRow } from "backend/db/index.ts";
 
 export default function AllAreaChartLongTerm(props: CommonProps) {
-  const [chartElm, setChartElm] = useState(),
+
+  const 
+    [chartElm, setChartElm] = useState<ApexCharts>(),
     [randomChartId] = useState((Math.random() * 10000).toFixed(0));
 
   const renderChart = async (props: CommonProps) => {
@@ -42,14 +44,13 @@ export default function AllAreaChartLongTerm(props: CommonProps) {
     setChartElm(chart);
   };
 
-  const getDataLongTerm = async (area: string): Promise<SpotApiParsedRow[]> => {
+  const getDataLongTerm = async (area: string): Promise<SpotApiRow[]> => {
     const startDate = new Date(Date.parse("2021-01-01")),
       endDate = new Date(new Date().setDate(new Date().getDate() + 1));
-    const response = await fetch(generateUrl(area, startDate, endDate, "monthly"));
+    const response = await fetch(generateUrl(area, startDate, endDate, props.country.interval, "monthly"));
     const resultSet = await response.json();
-    return processResultSet(resultSet.data);
+    return resultSet.data;
   };
-
 
   useEffect(() => {
     renderChart(props);

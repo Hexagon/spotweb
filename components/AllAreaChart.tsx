@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { liveViewChartOptions } from "config/charts/liveview.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
-import { ChartSeries, CommonProps, formatHhMm, processResultSet } from "utils/common.ts";
+import { ChartSeries, CommonProps, formatHhMm } from "utils/common.ts";
 
 interface AllAreaChartProps extends CommonProps {
   highlight: string;
@@ -9,7 +9,7 @@ interface AllAreaChartProps extends CommonProps {
 }
 
 export default function AllAreaChart(props: AllAreaChartProps) {
-  const [chartElm, setChartElm] = useState(),
+  const [chartElm, setChartElm] = useState<ApexCharts>(),
     [randomChartId] = useState((Math.random() * 10000).toFixed(0));
 
   const renderChart = (seriesInput: ChartSeries[], props: AllAreaChartProps) => {
@@ -66,9 +66,9 @@ export default function AllAreaChart(props: AllAreaChartProps) {
     for (const area of props.areas) {
       let dataSet;
       if (props.title == "today") {
-        dataSet = applyExchangeRate(processResultSet(area.dataToday), props.er, props.currency);
+        dataSet = applyExchangeRate(area.dataToday, props.er, props.currency);
       } else {
-        dataSet = applyExchangeRate(processResultSet(area.dataTomorrow), props.er, props.currency);
+        dataSet = applyExchangeRate(area.dataTomorrow, props.er, props.currency);
       }
       if (dataSet) dataArr.push({ name: area.name, data: dataSet });
     }

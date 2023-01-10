@@ -1,33 +1,23 @@
+// ---- Database creation ------------------------------------------------------------
+const sqlCreateSpotprice =
+  "CREATE TABLE IF NOT EXISTS spotprice (id INTEGER PRIMARY KEY AUTOINCREMENT, country VARCHAR(3), area VARCHAR(3), spotprice DOUBLE, date TEXT, period INT)";
+const sqlCreateExchangeRate =
+  "CREATE TABLE IF NOT EXISTS exchangerate (id INTEGER PRIMARY KEY AUTOINCREMENT, currency VARCHAR(3), value DOUBLE, date TEXT, period INT);";
+const sqlCreateGeneration = 
+  "CREATE TABLE IF NOT EXISTS generation (id INTEGER PRIMARY KEY AUTOINCREMENT, area VARCHAR(16), period INT, value DOUBLE, psr TEXT, interval TEXT);";
+const sqlCreateLoad = 
+  "CREATE TABLE IF NOT EXISTS load (id INTEGER PRIMARY KEY AUTOINCREMENT, area VARCHAR(16), period INT, value DOUBLE, interval TEXT);";
+const sqlCreateUpdates = 
+  "CREATE TABLE IF NOT EXISTS updates (name TEXT, applied INT);"
+// ---- Queries related to spot price -------------------------------------------------
 const sqlGroupBy: Record<string, string> = {
   total: "'total'",
-  yearly: "strftime('%Y-01-01 00:00:00',spotprice.period/1000,'unixepoch','localtime')",
-  monthly: "strftime('%Y-%m-01 00:00:00',spotprice.period/1000,'unixepoch','localtime')",
-  daily: "strftime('%Y-%m-%d 00:00:00',spotprice.period/1000,'unixepoch','localtime')",
-  hourly: "datetime(spotprice.period/1000,'unixepoch','localtime')",
+  yearly: "unixepoch(strftime('%Y-01-01 00:00:00',spotprice.period/1000,'unixepoch'))*1000",
+  monthly: "unixepoch(strftime('%Y-%m-01 00:00:00',spotprice.period/1000,'unixepoch'))*1000",
+  daily: "unixepoch(strftime('%Y-%m-%d 00:00:00',spotprice.period/1000,'unixepoch'))*1000",
+  hourly: "unixepoch(datetime(spotprice.period/1000,'unixepoch'))*1000",
+  minimum: "spotprice.period",
 };
-const sqlLoad = `
-    SELECT 
-        period,
-        value,
-        interval
-    FROM
-        load
-    WHERE 
-        area=(?) 
-        AND period >= (?) 
-        AND period < (?);`;
-const sqlGeneration = `
-        SELECT 
-            period,
-            psr,
-            value,
-            interval
-        FROM
-            generation
-        WHERE 
-            area=(?) 
-            AND period >= (?) 
-            AND period < (?);`;
 const sqlRaw = `
     SELECT 
         [[groupby]] as grouping,
@@ -38,8 +28,9 @@ const sqlRaw = `
         spotprice
     WHERE 
         area=(?) 
-        AND spotprice.date >= (?) 
-        AND spotprice.date <= (?)
+        AND spotprice.period >= (?) 
+        AND spotprice.period <= (?)
+        AND spotprice.interval = (?)
     GROUP BY
         [[groupby]];`;
 
@@ -66,19 +57,43 @@ FROM
     LEFT JOIN er 
 WHERE
     area=(?)
-    AND spotprice.date>=(?)
-    AND spotprice.date<=(?)
+    AND spotprice.period>=(?)
+    AND spotprice.period<=(?)
+    AND spotprice.interval=(?)
 GROUP BY
     [[groupby]];
 `;
-const sqlCreateSpotprice =
-  "CREATE TABLE IF NOT EXISTS spotprice (id INTEGER PRIMARY KEY AUTOINCREMENT, country VARCHAR(3), area VARCHAR(3), spotprice DOUBLE, date TEXT, period INT)";
-const sqlCreateExchangeRate =
-  "CREATE TABLE IF NOT EXISTS exchangerate (id INTEGER PRIMARY KEY AUTOINCREMENT, currency VARCHAR(3), value DOUBLE, date TEXT, period INT);";
-const sqlCreateGeneration = 
-  "CREATE TABLE IF NOT EXISTS generation (id INTEGER PRIMARY KEY AUTOINCREMENT, area VARCHAR(16), period INT, value DOUBLE, psr TEXT, interval TEXT);";
-const sqlCreateLoad = 
-  "CREATE TABLE IF NOT EXISTS load (id INTEGER PRIMARY KEY AUTOINCREMENT, area VARCHAR(16), period INT, value DOUBLE, interval TEXT);";
+
+// ---- SQL related to load rate ------------------------------------------------
+const sqlLoad = `
+    SELECT 
+        period,
+        value,
+        interval
+    FROM
+        load
+    WHERE 
+        area=(?) 
+        AND period >= (?) 
+        AND period < (?)
+        AND interval = (?);`;
+
+// ---- SQL related to generation --------------------------------------------------------------
+const sqlGeneration = `
+        SELECT 
+            period,
+            psr,
+            value,
+            interval
+        FROM
+            generation
+        WHERE 
+            area=(?) 
+            AND period >= (?) 
+            AND period < (?)
+            AND interval = (?);`;
+
+// ---- SQL related to exchange rates ---------------------------------------------------------
   const sqlExchangeRates = `
 SELECT
     e.currency,
@@ -87,4 +102,10 @@ FROM
     exchangerate e
 WHERE
     period=(SELECT MAX(period) FROM exchangerate);`;
-export { sqlLoad, sqlConverted, sqlGeneration, sqlCreateExchangeRate, sqlCreateGeneration, sqlCreateLoad, sqlCreateSpotprice, sqlExchangeRates, sqlGroupBy, sqlRaw };
+// ---- Queries related to updates ----------------------------------------------
+const sqlAppliedUpdates =`SELECT
+    name,
+    applied
+FROM
+    updates;`;
+    export { sqlLoad, sqlAppliedUpdates, sqlCreateUpdates, sqlConverted, sqlGeneration, sqlCreateExchangeRate, sqlCreateGeneration, sqlCreateLoad, sqlCreateSpotprice, sqlExchangeRates, sqlGroupBy, sqlRaw };

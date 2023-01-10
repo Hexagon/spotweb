@@ -1,5 +1,5 @@
 // routes/_middleware.ts
-import { MiddlewareHandlerContext } from "fresh/server.ts";
+import { MiddlewareHandlerContext } from "$fresh/server.ts";
 import { langFromUrl } from "utils/common.ts";
 
 export const handler = [
@@ -16,16 +16,19 @@ export const handler = [
     if (langRaw) {
       const langSplit = langRaw.split(";");
       const firstLang = langSplit[0].split(",");
-      if (firstLang.includes("sv")) {
+      const actualLang = firstLang[0].split("-");
+      if (actualLang[0].includes("sv")) {
         lang = "sv";
-      } else if (firstLang.includes("fi")) {
+      } else if (actualLang[0].includes("fi")) {
         lang = "fi";
-      } else if (firstLang.includes("no")) {
+      } else if (actualLang[0].includes("no")) {
         lang = "no";
-      } else if (firstLang.includes("dk")) {
+      } else if (actualLang[0].includes("dk")) {
         lang = "dk";
-      } else if (firstLang.includes("de")) {
+      } else if (actualLang[0].includes("de")) {
         lang = "de";
+      } else if (actualLang[0].includes("en")) {
+        lang = "en";
       } else {
         lang = langFromUrl(new URL(req.url));
       }
@@ -40,8 +43,8 @@ export const handler = [
     }
 
     // If lang is still not set to a valid value, default to sv
-    if (!(lang && ["sv", "fi", "no", "dk", "de"].includes(lang))) {
-      lang = "sv";
+    if (!(lang && ["sv", "fi", "no", "dk", "de", "en"].includes(lang))) {
+      lang = "en";
     }
 
     ctx.state.lang = lang;

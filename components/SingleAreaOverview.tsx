@@ -1,5 +1,5 @@
 import { applyExchangeRate, avgPrice, maxPrice, minPrice, nowPrice, processPrice } from "utils/price.ts";
-import { CommonProps, monthName, processResultSet } from "utils/common.ts";
+import { CommonProps, monthName } from "utils/common.ts";
 import { Country, DataArea } from "config/countries.ts";
 
 interface AreaViewProps extends CommonProps {
@@ -7,17 +7,17 @@ interface AreaViewProps extends CommonProps {
   highlight: string;
   detailed?: boolean;
   title: string;
-  area: DataArea;
+  area?: DataArea;
   country: Country;
 }
 
 export default function SingleAreaOverview(props: AreaViewProps) {
 
   // Apply exchange rate if needed
-  const rsToday = applyExchangeRate(processResultSet(props.area.dataToday), props.er, props.currency);
-  const rsTomorrow = applyExchangeRate(processResultSet(props.area.dataTomorrow), props.er, props.currency);
-  const rsMonth = props.area.dataMonth ? applyExchangeRate(processResultSet(props.area.dataMonth), props.er, props.currency) : undefined;
-  const rsPrevMonth = props.area.dataPrevMonth ? applyExchangeRate(processResultSet(props.area.dataPrevMonth), props.er, props.currency) : undefined;
+  const rsToday = applyExchangeRate(props.area?.dataToday || [], props.er, props.currency);
+  const rsTomorrow = applyExchangeRate(props.area?.dataTomorrow || [], props.er, props.currency);
+  const rsMonth = props.area?.dataMonth ? applyExchangeRate(props.area?.dataMonth, props.er, props.currency) : undefined;
+  const rsPrevMonth = props.area?.dataPrevMonth ? applyExchangeRate(props.area?.dataPrevMonth, props.er, props.currency) : undefined;
 
   return (
     <div class={`col-lg-${props.cols} m-0 p-0`}>
@@ -89,8 +89,8 @@ export default function SingleAreaOverview(props: AreaViewProps) {
           </div>
           {!props.detailed && (
             <div class="content px-card m-0 p-5 pr-10 bg-very-dark text-right">
-              <a href={"/" + props.country.id + "/" + props.area.name} class={"link-" + props.highlight}>
-                <span data-t-key="common.overview.more_about" lang={props.lang}>More about</span> {props.area.name} &gt;
+              <a href={"/" + props.country.id + "/" + props.area?.name} class={"link-" + props.highlight}>
+                <span data-t-key="common.overview.more_about" lang={props.lang}>More about</span> {props.area?.name} &gt;
               </a>
             </div>
           )}

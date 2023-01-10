@@ -1,11 +1,11 @@
 import { useEffect, useState } from "preact/hooks";
 import { areaViewChartOptions } from "config/charts/areaview.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
-import { ChartSeries, CommonProps, formatHhMm, processResultSet } from "utils/common.ts";
+import { ChartSeries, CommonProps, formatHhMm } from "utils/common.ts";
 import { DataArea } from "config/countries.ts";
 
 interface SingleAreaChartProps extends CommonProps {
-  area: DataArea;
+  area?: DataArea;
   cols: number;
   highlight: string;
   title: string;
@@ -13,7 +13,7 @@ interface SingleAreaChartProps extends CommonProps {
 
 export default function SingleAreaChart(props: SingleAreaChartProps) {
   const [randomChartId] = useState((Math.random() * 10000).toFixed(0)),
-    [chartElm, setChartElm] = useState<unknown | undefined>();
+    [chartElm, setChartElm] = useState<ApexCharts>();
 
   const renderChart = (seriesInput: ChartSeries[], props: SingleAreaChartProps) => {
     // Inject series into chart configuration
@@ -62,8 +62,8 @@ export default function SingleAreaChart(props: SingleAreaChartProps) {
   };
 
   // Apply exchange rate if needed
-  const rsToday = applyExchangeRate(processResultSet(props.area.dataToday), props.er, props.currency),
-    rsTomorrow = applyExchangeRate(processResultSet(props.area.dataTomorrow), props.er, props.currency);
+  const rsToday = applyExchangeRate(props.area?.dataToday || [], props.er, props.currency),
+    rsTomorrow = applyExchangeRate(props.area?.dataTomorrow || [], props.er, props.currency);
 
   useEffect(() => {
     if (rsToday && rsTomorrow) {

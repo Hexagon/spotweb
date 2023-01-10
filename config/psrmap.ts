@@ -1,4 +1,5 @@
-const PsrMap = {
+
+const PsrMap : Record<string,string> = {
     B01: "wind",
     B02: "coal",
     B03: "gas",

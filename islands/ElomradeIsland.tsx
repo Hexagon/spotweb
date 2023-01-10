@@ -1,4 +1,4 @@
-import { PageProps } from "fresh/server.ts";
+import { PageProps } from "$fresh/server.ts";
 import { useState } from "preact/hooks";
 
 import { Cron } from "croner";
@@ -53,12 +53,10 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
     <div>
       <div class="page-wrapper with-navbar with-sidebar" data-sidebar-hidden="hidden">
         <Navbar
-          page={commonprops.area.name}
           setPriceFactor={setPriceFactorStored}
           {...commonprops}
         ></Navbar>
         <Sidebar
-          page={commonprops.area.name}
           setUnit={setUnit}
           setExtra={setExtra}
           setFactor={setFactor}
@@ -73,15 +71,15 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
               <PriceFactorWarning priceFactor={!!priceFactor} factor={factor} extra={extra} lang={props.data.lang}></PriceFactorWarning>
               <div class="sticky-alerts"></div>
               <SingleAreaOverview
-                title={commonprops.area.name + " - " + commonprops.area.long}
-                highlight={"color-" + commonprops.area.color}
+                title={commonprops.area?.name + " - " + commonprops.area?.long}
+                highlight={"color-" + commonprops.area?.color}
                 cols={3}
                 detailed={true}
                 {...commonprops}
               ></SingleAreaOverview>
               <SingleAreaChart
-                title={commonprops.area.name + " - " + commonprops.area.long}
-                highlight={"color-" + commonprops.area.color}
+                title={commonprops.area?.name + " - " + commonprops.area?.long}
+                highlight={"color-" + commonprops.area?.color}
                 cols={6}
                 {...commonprops}
               ></SingleAreaChart>
@@ -92,13 +90,13 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
             </div>
             <div class="row">
               <SingleAreaMonthChart
-                title={commonprops.area.name + " - " + commonprops.area.long}
-                highlight={"color-" + commonprops.area.color}
+                title={commonprops.area?.name + " - " + commonprops.area?.long}
+                highlight={"color-" + commonprops.area?.color}
                 cols={6}
                 date={dToday}
                 {...commonprops}
               ></SingleAreaMonthChart>
-                          <InformationPane
+              <InformationPane
                 cols={6}
                 {...commonprops}
               ></InformationPane>

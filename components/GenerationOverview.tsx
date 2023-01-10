@@ -4,24 +4,26 @@ import { PsrMap } from "config/psrmap.ts";
 
 interface GenerationOverviewProps extends CommonProps {
   cols: number;
-  highlight: string;
-  title: string;
   country: Country;
-  generation: unknown;
+}
+
+interface LastGenerationEntry {
+  date: Date,
+  value: number
 }
 
 export default function GenerationOverview(props: GenerationOverviewProps) {
 
   // Find last value for each production type
-  const lastGeneration = {};
-  let lastGenerationDate = undefined;
+  const lastGeneration : Record<string, LastGenerationEntry> = {};
+  let lastGenerationDate = 0;
   for(let i = 0; i < props.generation.data.length; i++) {
     // Only use data within three hours, or last row
     const 
       currentGeneration = props.generation.data[i],
-      dateMs = currentGeneration[0],
-      psr = currentGeneration[1],
-      value = currentGeneration[2];
+      dateMs = currentGeneration[0] as number,
+      psr = currentGeneration[1] as string,
+      value = currentGeneration[2] as number;
     // Update date
     if (!lastGenerationDate || lastGenerationDate < dateMs) lastGenerationDate = dateMs;
     // Update object
@@ -34,7 +36,7 @@ export default function GenerationOverview(props: GenerationOverviewProps) {
   }
 
   // Aggregate lastgeneration
-  const lastGenerationAggregated = {};
+  const lastGenerationAggregated : Record<string,LastGenerationEntry> = {};
   for(const lg of Object.entries(lastGeneration)) {
     if (lastGenerationAggregated[PsrMap[lg[0]]]) {
       lastGenerationAggregated[PsrMap[lg[0]]].date = lastGenerationAggregated[PsrMap[lg[0]]].date > lg[1].date ? lastGenerationAggregated[PsrMap[lg[0]]].date : lg[1].date,
@@ -58,15 +60,15 @@ export default function GenerationOverview(props: GenerationOverviewProps) {
     lastGenerationDateEnd = props.generation.data.length ? new Date(lastGenerationDate + (props.generation.data[0][3] == "PT60M" ? 3600 : 900 ) * 1000) : undefined;
 
   // Find load at matching point of time
-  let loadTotal;
+  let loadTotal = 0;
   for(const loadEntry of props.load.data) {
     if (loadEntry[0] === lastGenerationDate) {
-      loadTotal = loadEntry[1];
+      loadTotal = loadEntry[1] as number;
     }
   }
 
   // If load at matching point of time wasn't found, use last load
-  if (!loadTotal && props.load.data?.length) loadTotal = props.load.data[props.load.data.length-1][1];
+  if (!loadTotal && props.load.data?.length) loadTotal = props.load.data[props.load.data.length-1][1] as number;
 
   // Calculate total
   const netTotal = generationTotal - loadTotal;
@@ -75,7 +77,7 @@ export default function GenerationOverview(props: GenerationOverviewProps) {
     <div class={`col-lg-${props.cols} m-0 p-0`}>
       <div class="mw-full m-0 p-0 mr-20 mt-20">
         <div class="card p-0 m-0">
-          <div class={"px-card py-10 m-0 rounded-top bg-" + props.highlight}>
+          <div class={"px-card py-10 m-0 rounded-top"}>
             <h2 class="card-title font-size-18 m-0 text-center">
               <span data-t-key="common.generation.current_production" lang={props.lang}>Aktuell produktion och last</span>
             </h2>

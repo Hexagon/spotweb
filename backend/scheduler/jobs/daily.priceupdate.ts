@@ -66,16 +66,17 @@ const DailyPriceUpdate = async () => {
           // Get data
           log("info", "Getting" + area.id + " " + currentPeriod.toLocaleString() + " " + endOfPeriod.toLocaleString());
           try {
-            const result = await EntsoeSpotprice(area.id, currentPeriod, endOfPeriod);
+            const result = await EntsoeSpotprice(area.id, currentPeriod, endOfPeriod),
+              preparedQuery = database.prepareQuery("INSERT INTO spotprice (country, area, spotprice, period, interval) VALUES (?,?,?,?,?)");
             if (result.length) {
               log("info", "Got " + result.length + " rows");
               for (const row of result) {
-                database.query("INSERT INTO spotprice (country, area, spotprice, period, date) VALUES (?,?,?,?,?)", [
+                preparedQuery.execute([
                   country.id,
                   area.name,
                   row.spotPrice,
                   row.startTime.getTime(),
-                  row.startTime.toLocaleDateString("sv-SE"),
+                  row.interval
                 ]);
 
                 // Sleep one millisecond between each row to allow clients to fetch data
@@ -106,7 +107,7 @@ const DailyPriceUpdate = async () => {
 
     // Delete duplicated
     log("info", "Cleaning up.");
-    database.query("DELETE FROM spotprice WHERE id NOT IN (SELECT MAX(id) FROM spotprice GROUP BY area,country,period)");
+    database.query("DELETE FROM spotprice WHERE id NOT IN (SELECT MAX(id) FROM spotprice GROUP BY area,country,period,interval)");
     if(database.totalChanges) {
       log("info", "Deleted " + database.totalChanges + " duplicate rows.");
     }

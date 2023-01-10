@@ -1,17 +1,12 @@
 import { DB, Row } from "sqlite";
 import { resolve } from "std/path/mod.ts";
-import { sqlConverted, sqlCreateExchangeRate, sqlCreateGeneration, sqlCreateLoad, sqlCreateSpotprice, sqlExchangeRates, sqlGeneration, sqlGroupBy, sqlLoad, sqlRaw } from "backend/db/sql/index.ts";
+import { sqlAppliedUpdates, sqlConverted, sqlCreateExchangeRate, sqlCreateGeneration, sqlCreateLoad, sqlCreateSpotprice, sqlCreateUpdates, sqlExchangeRates, sqlGeneration, sqlGroupBy, sqlLoad, sqlRaw } from "backend/db/sql/index.ts";
 import { DataCache } from "../../utils/datacache.ts";
+import { log } from "../../utils/log.ts";
+import { DBUpdates } from "./sql/updates.ts";
 
 interface SpotApiRow {
-  time: string;
-  price: number;
-  min?: number;
-  max?: number;
-}
-
-interface SpotApiParsedRow {
-  time: Date;
+  time: number;
   price: number;
   min?: number;
   max?: number;
@@ -21,6 +16,10 @@ interface ExchangeRateResult {
   date: string;
   entries: Record<string, number>;
 }
+
+interface DBResultSet {
+  data: Array<Array<string|number>>
+};
 
 // Try creating/opening database
 let database: DB;
@@ -35,24 +34,41 @@ try {
   database.query(sqlCreateExchangeRate);
   database.query(sqlCreateGeneration);
   database.query(sqlCreateLoad);
+  database.query(sqlCreateUpdates);
+
+  // Apply updates
+  const appliedUpdates = database.query(sqlAppliedUpdates);
+  for(const update of DBUpdates) {
+    // Update alredy applied?
+    if (!appliedUpdates.find(r => r[0] == update.name)) {
+      // Nope! Do apply!
+      log("log", `Applying db update '${update.name}'`);
+      try { 
+        database.query(update.sql);
+        database.query("INSERT INTO updates(name, applied) VALUES(?,?)",[update.name, 1]);
+      } 
+      catch { log("log", `Database update '${update.name}' failed`) }
+      finally { log("log", `Database update '${update.name}' finalized`) }    
+    }
+  }
   
 } catch (_e) {
   console.error("Fatal: Could not open database");
   Deno.exit(1);
 }
 
-const GetSpotprice = async (area: string, period: string, fromDate: string, toDate: string, currency?: string) => {
+const GetSpotprice = async (area: string, period: string, fromDate: Date, toDate: Date, interval: string, currency?: string) : Promise<SpotApiRow[]> => {
   // Check period
   if (!Object.keys(sqlGroupBy).includes(period)) {
     throw new Error("Invalid group by option in query");
   }
 
-  const parameterString = new URLSearchParams({period,area,currency:currency||"",fromDate,toDate}).toString();
+  const parameterString = new URLSearchParams({period,area,interval,currency:currency||"",fromDate:fromDate.toISOString(),toDate: toDate.toISOString()}).toString();
 
   let cacheLength = 86400;
 
   // If endDate is before now, use hourly cache
-  if(Date.parse(toDate) < new Date().getTime()) {
+  if(toDate.getTime() < new Date().getTime()) {
     cacheLength = 3600*6;
   }
 
@@ -61,110 +77,122 @@ const GetSpotprice = async (area: string, period: string, fromDate: string, toDa
     cacheLength = 3600*6;
   }
 
-  const result = await DataCache("spotprice",parameterString,cacheLength,() => {
-    let data;
+  const result = await DataCache("spotprice",parameterString,cacheLength,() : SpotApiRow[] => {
+    let data : Array<Array<number>>;
     if (currency) {
-      data = database.query(sqlConverted.replaceAll("[[groupby]]", sqlGroupBy[period]), [currency, area, fromDate, toDate]);
+      data = database.query(sqlConverted.replaceAll("[[groupby]]", sqlGroupBy[period]), [currency, area, fromDate.getTime(), toDate.getTime(), interval]);
     } else {
-      data = database.query(sqlRaw.replaceAll("[[groupby]]", sqlGroupBy[period]), [area, fromDate, toDate]);
+      data = database.query(sqlRaw.replaceAll("[[groupby]]", sqlGroupBy[period]), [area, fromDate.getTime(), toDate.getTime(), interval]);
     }
-    return { data };
+    return data.map((r) => {
+      if (r.length > 2) {
+        return { time: r.at(0) as number, price: r.at(1) as number, min: r.at(2) as number, max: r.at(3) as number }
+      } else {
+        return { time: r.at(0) as number, price: r.at(1) as number }
+      }
+    });
   });
+
   return result;
 };
 
-const GetDataDay = async (areaName: string, date: Date, currency?: string) : Promise<SpotApiParsedRow[]> => {
-  const result = await GetSpotprice(
+const GetDataDay = async (areaName: string, date: Date, interval: string, currency?: string) : Promise<SpotApiRow[]> => {
+  
+  const 
+    startDate = new Date(date),
+    endDate = new Date(date);
+    startDate.setHours(0,0,0,0);
+    endDate.setHours(23,59,59,999);
+
+  return await GetSpotprice(
     areaName,
     "hourly",
-    date.toLocaleDateString("sv-SE"),
-    date.toLocaleDateString("sv-SE"),
+    startDate,
+    endDate,
+    interval,
     currency
   );
-  return result.data.map((r) => {
-    return { time: new Date(Date.parse(r.at(0) as string)), price: r.at(1) as number };
-  });
+
 };
 
-const GetLoadDay = async (area: string, fromDateIn: Date, toDateIn: Date) : Promise<unknown[]> => {
+const GetLoadDay = async (area: string, fromDateIn: Date, toDateIn: Date, interval: string) : Promise<DBResultSet> => {
   
-  const fromDate = new Date(fromDateIn.getTime());
+  const 
+    fromDate = new Date(fromDateIn.getTime()),
+    toDate = new Date(toDateIn.getTime());
+
   fromDate.setHours(0,0,0,0);
+  toDate.setHours(23,59,59,999);
 
-  const toDate = new Date(toDateIn.getTime());
-  toDate.setHours(23,59,59,0);
+  const 
+    parameterString = new URLSearchParams({interval,area,f:fromDate.getTime().toString(),t: toDate.getTime().toString()}).toString(),
+    cacheLength = 86400;
 
-  const parameterString = new URLSearchParams({realm:"load",area,f:fromDate.getTime().toString(),t: toDate.getTime().toString()}).toString();
-
-  const cacheLength = 86400;
-
-  const result = await DataCache("load",parameterString,cacheLength,() => {
-    const data = database.query(sqlLoad, [area, fromDate.getTime(), toDate.getTime()]);
+  return await DataCache("load",parameterString,cacheLength,() => {
+    const data = database.query(sqlLoad, [area, fromDate.getTime(), toDate.getTime(), interval]);
     return { data };
   });
-
-  return result;
 };
 
-const GetCurrentGeneration = async (area: string) : Promise<unknown[]> => {
+const GetCurrentGeneration = async (area: string, interval: string) : Promise<DBResultSet> => {
   
-  const fromDate = new Date();
+  const 
+    fromDate = new Date(),
+    toDate = new Date();
+
   fromDate.setHours(fromDate.getHours()-4,0,0,0);
+  toDate.setHours(23,59,59,999);
 
-  const toDate = new Date();
-  toDate.setHours(23,59,59,0);
+  const 
+    parameterString = new URLSearchParams({area,interval,f:fromDate.getTime().toString(),t: toDate.getTime().toString()}).toString(),
+    cacheLength = 86400;
 
-  const parameterString = new URLSearchParams({area,f:fromDate.getTime().toString(),t: toDate.getTime().toString()}).toString();
-
-  const cacheLength = 86400;
-  const result = await DataCache("generation",parameterString,cacheLength,() => {
-    const data = database.query(sqlGeneration, [area, fromDate.getTime(), toDate.getTime()]);
+  return await DataCache("generation",parameterString,cacheLength,() => {
+    const data = database.query(sqlGeneration, [area, fromDate.getTime(), toDate.getTime(), interval]);
     return { data };
   });
-  return result;
 };
 
 
-const GetGenerationDay = async (area: string, fromDateIn: Date, toDateIn: Date) : Promise<unknown[]> => {
+const GetGenerationDay = async (area: string, fromDateIn: Date, toDateIn: Date) : Promise<DBResultSet> => {
   
-  const fromDate = new Date(fromDateIn.getTime());
-  fromDate.setHours(0,0,0,0);
-
-  const toDate = new Date(toDateIn.getTime());
+  const
+    fromDate = new Date(fromDateIn.getTime()),
+    toDate = new Date(toDateIn.getTime());
+  fromDate.setHours(0,0,0,0); 
   toDate.setHours(23,59,59,0);
 
-  const parameterString = new URLSearchParams({area,f:fromDate.getTime().toString(),t: toDate.getTime().toString()}).toString();
-
-  const cacheLength = 86400;
-  const result = await DataCache("generation",parameterString,cacheLength,() => {
+  const 
+    parameterString = new URLSearchParams({area,f:fromDate.getTime().toString(),t: toDate.getTime().toString()}).toString(),
+    cacheLength = 86400;
+  
+  return await DataCache("generation",parameterString,cacheLength,() => {
     const data = database.query(sqlGeneration, [area, fromDate.getTime(), toDate.getTime()]);
     return { data };
   });
-  return result;
 };
 
 
-const GetDataMonth = async (areaName: string, date: Date, currency?: string) => {
+const GetDataMonth = async (areaName: string, date: Date, interval: string, currency?: string) => {
+
   const startDate = new Date(date),
     endDate = new Date(date);
+
   startDate.setDate(1);
+  startDate.setHours(0,0,0,0);
   endDate.setMonth(endDate.getMonth() + 1);
   endDate.setDate(0);
+  endDate.setHours(23,59,59,999);
   
-  const result = await GetSpotprice(
+  return await GetSpotprice(
     areaName,
     "hourly",
-    startDate.toLocaleDateString("sv-SE"),
-    endDate.toLocaleDateString("sv-SE"),
+    startDate,
+    endDate,
+    interval,
     currency
   );
 
-  return result.data.map((r) => {
-    return {
-      time: new Date(Date.parse(r.at(0) as string)),
-      price: (r.at(1) as number),
-    };
-  });
 };
 
 const GetExchangeRates = async () : Promise<ExchangeRateResult> => {
@@ -188,5 +216,5 @@ const GetExchangeRates = async () : Promise<ExchangeRateResult> => {
   return output.data;
 };
 
-export type { ExchangeRateResult, Row, SpotApiParsedRow, SpotApiRow };
+export type { ExchangeRateResult, Row, SpotApiRow, DBResultSet };
 export { database, GetLoadDay, GetGenerationDay, GetDataDay, GetDataMonth, GetExchangeRates, GetSpotprice, GetCurrentGeneration };

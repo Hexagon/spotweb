@@ -1,7 +1,7 @@
 import languagePlugin from "localekit_fresh";
 import languageConfig from "config/translate.config.ts";
 
-import { start } from "fresh/server.ts";
+import { start } from "$fresh/server.ts";
 import manifest from "./fresh.gen.ts";
 import { langFromUrl } from "utils/common.ts";
 import { scheduler } from "backend/scheduler/index.ts";

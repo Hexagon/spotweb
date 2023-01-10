@@ -1,8 +1,8 @@
 import { useEffect, useState } from "preact/hooks";
 import { areaViewMonthChartOptions } from "config/charts/areaviewmonth.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
-import { ChartSeries, CommonProps, generateUrl, processResultSet } from "utils/common.ts";
-import { SpotApiParsedRow, SpotApiRow } from "backend/db/index.ts";
+import { ChartSeries, CommonProps, generateUrl } from "utils/common.ts";
+import { SpotApiRow } from "backend/db/index.ts";
 import { countries } from "../config/countries.ts";
 
 interface SingleAreaMonthChartProps extends CommonProps {
@@ -14,19 +14,19 @@ interface SingleAreaMonthChartProps extends CommonProps {
 
 export default function SingleAreaMonthChart(props: SingleAreaMonthChartProps) {
 
-  const [rsMonth, setRSMonth] = useState<SpotApiParsedRow[]>(),
-    [rsComparison, setRSComparison] = useState<SpotApiParsedRow[]>(),
+  const [rsMonth, setRSMonth] = useState<SpotApiRow[]>(),
+    [rsComparison, setRSComparison] = useState<SpotApiRow[]>(),
     [randomChartId] = useState((Math.random() * 10000).toFixed(0)),
-    [chartElm, setChartElm] = useState();
+    [chartElm, setChartElm] = useState<ApexCharts>();
 
   const [comparison, setComparison] = useState<string | undefined>();
 
-  const getData30d = async (area: string, date: Date): Promise<SpotApiParsedRow[]> => {
+  const getData30d = async (area: string, date: Date): Promise<SpotApiRow[]> => {
     const startDate = new Date(date.getTime() - 30 * 24 * 60 * 60 * 1000),
       endDate = new Date(new Date(date).setDate(date.getDate() + 1));
-    const response = await fetch(generateUrl(area, startDate, endDate, "daily"));
+    const response = await fetch(generateUrl(area, startDate, endDate, props.country.interval, "daily"));
     const resultSet = await response.json();
-    return processResultSet(resultSet.data);
+    return resultSet.data;
   };
 
   const renderChart = (seriesInput: ChartSeries[], props: SingleAreaMonthChartProps) => {
@@ -154,7 +154,7 @@ export default function SingleAreaMonthChart(props: SingleAreaMonthChartProps) {
                       </>
                     ))}
                     </>
-                  ))};
+                  ))}
                 </select>
               </div>
             </div>

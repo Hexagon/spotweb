@@ -1,8 +1,8 @@
-import { log } from "./log.ts";
+import { log } from "utils/log.ts";
 
 const MemCache = new Map();
 
-const DataCache = async (realm: string,uniqueId: string, seconds: number, liveFetch: unknown) => {
+const DataCache = async (realm: string,uniqueId: string, seconds: number, liveFetch: () => unknown) => {
 
   // Check for realm, or create it
   if (!MemCache.has(realm)) {
@@ -27,12 +27,12 @@ const DataCache = async (realm: string,uniqueId: string, seconds: number, liveFe
     );
 
     if (timeLeft <= 0) {
-      reacurrentRealmlm.delete(uniqueId);
+      currentRealm.delete(uniqueId);
       throw new Error("Cache expired");
     }
 
     log("debug", `Cache hit ${realm}:${uniqueId}`);
-    return {__cache:true, ...cacheObj.data};
+    return cacheObj.data;
 
   } catch (_e) {
     // Live

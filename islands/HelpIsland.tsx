@@ -1,4 +1,4 @@
-import { PageProps } from "fresh/server.ts";
+import { PageProps } from "$fresh/server.ts";
 import { useState } from "preact/hooks";
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
@@ -33,12 +33,10 @@ export default function HassIsland(props: PageProps<ExtPageProps>) {
   return (
       <div class="page-wrapper with-navbar with-sidebar" data-sidebar-hidden="hidden">
         <Navbar
-          page="index"
           setPriceFactor={setPriceFactorStored}
           {...commonprops}
         ></Navbar>
         <Sidebar
-          page="index"
           setUnit={setUnit}
           setExtra={setExtra}
           setFactor={setFactor}
@@ -136,7 +134,7 @@ export default function HassIsland(props: PageProps<ExtPageProps>) {
             </div>
             <div class="col-xl-4 on-this-page-nav-container">
                 <div class="content">
-                    <InformationPane></InformationPane>
+                    <InformationPane cols={12} {...commonprops}></InformationPane>
                 </div>
             </div>
           </div>

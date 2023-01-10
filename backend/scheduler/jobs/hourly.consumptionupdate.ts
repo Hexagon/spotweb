@@ -13,30 +13,28 @@ const UpdateLoadForArea = async (area: string) => {
     const dateToday = new Date(),
       dateYesterday = new Date();
 
-    let gotData = false;
-
     // Set dates
     dateYesterday.setDate(dateYesterday.getDate() - 1);
 
     // Get data
     log("info", "Getting load for " + area + " " + dateToday.toLocaleString() + "-" + dateYesterday.toLocaleString());
     try {
-      const result = await EntsoeLoad(area, dateYesterday, dateToday);
-      if (result.data.length) {
-        log("info", "Got " + result.data.length + " rows");
-        for (const row of result.data) {
-          database.query("INSERT INTO load (area, value, period, interval) VALUES (?,?,?,?)", [
+      const 
+        result = await EntsoeLoad(area, dateYesterday, dateToday),
+        preparedQuery = database.prepareQuery("INSERT INTO load (area, value, period, interval) VALUES (?,?,?,?)");
+      if (result.length) {
+        log("info", "Got " + result.length + " rows");
+        for (const row of result) {
+          preparedQuery.execute([
             area,
             row.quantity,
             row.date.getTime(),
-            result.period
+            row.interval
           ]);
 
           // Sleep one millisecond between each row to allow clients to fetch data
           await sleep(1);
 
-          // Go data
-          gotData = true;
         }
       } else {
         log("info", "No new data for " + area);
@@ -72,7 +70,7 @@ const HourlyConsumptionUpdate = async () => {
 
     // Delete duplicated
     log("info", "Cleaning up.");
-    database.query("DELETE FROM load WHERE id NOT IN (SELECT MAX(id) FROM load GROUP BY area,period, interval)");
+    database.query("DELETE FROM load WHERE id NOT IN (SELECT MAX(id) FROM load GROUP BY area,period,interval)");
     if(database.totalChanges) {
       log("info", "Deleted " + database.totalChanges + " duplicate rows.");
     }

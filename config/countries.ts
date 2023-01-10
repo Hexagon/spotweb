@@ -1,4 +1,4 @@
-import { SpotApiParsedRow, SpotApiRow } from "../backend/db/index.ts";
+import { SpotApiRow } from "../backend/db/index.ts";
 
 interface Area {
   name: string;
@@ -17,6 +17,8 @@ interface DataArea extends Area {
 interface Country {
   name: string;
   id: string;
+  cty: string;
+  interval: string;
   areas: Area[];
 }
 
@@ -25,6 +27,7 @@ const countries = [
     name: "Sverige",
     id: "sv",
     cty: "Sweden (SE)",
+    interval: "PT60M",
     areas: [
       { name: "SE1", "id": "BZN|SE1", "long": "Norra Sverige", color: 1 },
       { name: "SE2", "id": "BZN|SE2", "long": "Norra Mellansverige", color: 2 },
@@ -35,6 +38,7 @@ const countries = [
   {
     name: "Norge",
     cty: "Norway (NO)",
+    interval: "PT60M",
     id: "no",
     areas: [
       { name: "NO1", "id": "IBA|NO1", "long": "Oslo", color: 1 },
@@ -47,6 +51,7 @@ const countries = [
   {
     name: "Finland",
     cty: "Finland (FI)",
+    interval: "PT60M",
     id: "fi",
     areas: [
       { name: "FI", "id": "FI", "long": "Suomi", color: 1 },
@@ -55,6 +60,7 @@ const countries = [
   {
     name: "Danmark",
     cty: "Denmark (DK)",
+    interval: "PT60M",
     id: "dk",
     areas: [
       { name: "DK1", "id": "IBA|DK1", "long": "Jylland", color: 1 },
@@ -64,6 +70,7 @@ const countries = [
   {
     name: "Deutschland",
     cty: "Germany (DE)",
+    interval: "PT15M",
     id: "de",
     areas: [
       { name: "DE-LU", "id": "BZN|DE-LU", "long": "Deutschland", color: 1 },
@@ -72,6 +79,7 @@ const countries = [
   {
     name: "Österreich",
     cty: "Austria (AT)",
+    interval: "PT15M",
     id: "at",
     areas: [
       { name: "AT", "id": "BZN|AT", "long": "Österreich", color: 1 },

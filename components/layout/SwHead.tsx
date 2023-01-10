@@ -1,19 +1,18 @@
-import { asset, Head } from "fresh/runtime.ts";
+import { asset, Head } from "$fresh/runtime.ts";
 import { DataArea } from "../../config/countries.ts";
-import { CommonProps, ExtPageProps, processResultSet } from "../../utils/common.ts";
 import { maxPrice, minPrice, processPrice } from "../../utils/price.ts";
 import { avgPrice } from "../../utils/price.ts";
 import { applyExchangeRate } from "../../utils/price.ts";
 import { locale_kit } from "localekit_fresh";
-import { PageProps } from "fresh/server.ts";
+import { PageProps } from "$fresh/server.ts";
 import { preferences } from "../../config/preferences.js";
 
-interface HeadProps extends CommonProps {
+interface HeadProps extends PageProps {
   title: string;
   area?: DataArea;
 }
 
-export default function SwHead(props: PageProps<ExtPageProps | HeadProps>) {
+export default function SwHead(props: HeadProps) {
 
   const priceProps = {
     currency: preferences.currency(props.data.lang) == "öre" ? "SEK" : preferences.currency(props.data.lang),
@@ -29,7 +28,7 @@ export default function SwHead(props: PageProps<ExtPageProps | HeadProps>) {
 
   if (props.data.area) {
     const 
-      dataTodayExchanged = applyExchangeRate(processResultSet(props.data.area.dataToday), props.data.er, priceProps.currency),
+      dataTodayExchanged = applyExchangeRate(props.data.area.dataToday, props.data.er, priceProps.currency),
       maxPriceResult = processPrice(maxPrice(dataTodayExchanged), priceProps),
       minPriceResult = processPrice(minPrice(dataTodayExchanged), priceProps),
       avgPriceResult = processPrice(avgPrice(dataTodayExchanged), priceProps);

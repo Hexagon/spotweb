@@ -1,11 +1,11 @@
-import { PageProps } from "fresh/server.ts";
+import { PageProps } from "$fresh/server.ts";
 import { useState } from "preact/hooks";
 
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
 import InformationPane from "components/InformationPane.tsx";
 import { preferences } from "config/preferences.js";
-import { CommonProps, ExtPageProps, processResultSet } from "utils/common.ts";
+import { CommonProps, ExtPageProps } from "utils/common.ts";
 
 export default function HassIsland(props: PageProps<ExtPageProps>) {
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
@@ -34,12 +34,10 @@ export default function HassIsland(props: PageProps<ExtPageProps>) {
     <div>
       <div class="page-wrapper with-navbar with-sidebar" data-sidebar-hidden="hidden">
         <Navbar
-          page="index"
           setPriceFactor={setPriceFactorStored}
           {...commonprops}
         ></Navbar>
         <Sidebar
-          page="index"
           setUnit={setUnit}
           setExtra={setExtra}
           setFactor={setFactor}
@@ -62,7 +60,7 @@ export default function HassIsland(props: PageProps<ExtPageProps>) {
         <h2>Example yaml</h2>
         <code><pre class="code">{
 `rest:
-- scan_interval: 60
+- scan_interval: 180
   resource: http://spot.56k.guru/api/v2/hass?currency=SEK&extra=0.095&factor=1.25&area=SE2&decimals=2
   sensor:
     - name: "Spotprice Now"

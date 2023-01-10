@@ -1,4 +1,4 @@
-import { ExchangeRateResult, SpotApiParsedRow, SpotApiRow } from "backend/db/index.ts";
+import { ExchangeRateResult, SpotApiRow } from "backend/db/index.ts";
 
 interface PriceProcessorProps {
   unit: string;
@@ -14,6 +14,7 @@ const processPrice = (
   props: PriceProcessorProps,
   eUnit?: string,
 ) => {
+
   if (price === null || price === undefined) return "-";
 
   // Default eUnit to MWh
@@ -42,7 +43,7 @@ const processPrice = (
   return price.toFixed(props.decimals);
 };
 
-const maxPrice = (rs: SpotApiParsedRow[] | undefined): number | null => {
+const maxPrice = (rs: SpotApiRow[] | undefined): number | null => {
   if (rs && rs.length) {
     const result = Math.max(...rs.filter((e) => e.price !== null).map((e) => e.price));
     if (result !== Infinity && result !== -Infinity) {
@@ -55,7 +56,7 @@ const maxPrice = (rs: SpotApiParsedRow[] | undefined): number | null => {
   }
 };
 
-const minPrice = (rs: SpotApiParsedRow[] | undefined): number | null => {
+const minPrice = (rs: SpotApiRow[] | undefined): number | null => {
   if (rs && rs.length) {
     const result = Math.min(...rs.filter((e) => e.price !== null).map((e) => e.price));
     if (result !== Infinity && result !== -Infinity) {
@@ -68,7 +69,7 @@ const minPrice = (rs: SpotApiParsedRow[] | undefined): number | null => {
   }
 };
 
-const avgPrice = (rs: SpotApiParsedRow[] | undefined): number | null => {
+const avgPrice = (rs: SpotApiRow[] | undefined): number | null => {
   if (rs && rs.length) {
     const filtered = rs.filter((e) => e.price !== null);
     return filtered.reduce((a, b) => a + b.price, 0) / filtered.length;
@@ -77,16 +78,16 @@ const avgPrice = (rs: SpotApiParsedRow[] | undefined): number | null => {
   }
 };
 
-const nowPrice = (rs: SpotApiParsedRow[] | undefined): number | null => {
+const nowPrice = (rs: SpotApiRow[] | undefined): number | null => {
   if (rs && rs.length > 0) {
-    const result = rs.find((e) => e.time.getTime() <= new Date().getTime() && e.time.getTime() + 3600 * 1000 >= new Date().getTime());
+    const result = rs.find((e) => e.time <= new Date().getTime() && e.time + 3600 * 1000 >= new Date().getTime());
     return result ? result.price : null;
   } else {
     return null;
   }
 };
 
-const applyExchangeRate = (rs: SpotApiParsedRow[], ex: ExchangeRateResult, currency: string) => {
+const applyExchangeRate = (rs: SpotApiRow[], ex: ExchangeRateResult, currency: string) => {
   // Do not process EUR
   if (currency === "EUR") return rs;
 

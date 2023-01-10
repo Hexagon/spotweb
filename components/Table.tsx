@@ -1,10 +1,10 @@
 import { useEffect } from "preact/hooks";
 import { tableChartOptions } from "config/charts/table.js";
-import { avgPrice, maxPrice, minPrice, processPrice } from "utils/price.ts";
-import { SpotApiRow } from "../backend/db/index.ts";
-import { CommonProps } from "../utils/common.ts";
+import { applyExchangeRate, avgPrice, maxPrice, minPrice, processPrice } from "utils/price.ts";
+import { SpotApiRow } from "backend/db/index.ts";
+import { FilterProps } from "components/FilteredTable.tsx";
 
-interface TableProps extends CommonProps {
+interface TableProps extends FilterProps {
   resultSet: SpotApiRow[];
   permalink: string;
   permalinkJson: string;
@@ -12,14 +12,13 @@ interface TableProps extends CommonProps {
 
 export default function Table(props: TableProps) {
   const randomChartId = (Math.random() * 10000).toFixed(0);
-
   const renderChart = (result: SpotApiRow[]) => {
     if (result.length > 24 * 30) return;
     const chartOptions = { ...tableChartOptions },
       chartSeries = [];
     chartSeries.push({
       data: result.flatMap(({ time, price }) => {
-        if (price !== null) return [[time.getTime(), processPrice(price, props)]];
+        if (price !== null) return [[time, processPrice(price, props)]];
         return [];
       }),
       name: "",
@@ -29,11 +28,10 @@ export default function Table(props: TableProps) {
     const chart = new ApexCharts(document.querySelector("#chart_" + randomChartId), chartOptions);
     chart.render();
   };
-
   useEffect(() => {
+    const convertedResultSet = applyExchangeRate(props.resultSet,props.er,props.currency);
     renderChart(props.resultSet);
   });
-
   return (
     <div class="content">
       <div class="container">
@@ -78,7 +76,7 @@ export default function Table(props: TableProps) {
             <table class="table">
               <thead>
                 <tr>
-                  <th scope="col">Start Date</th>
+                  <th scope="col">Date/Time</th>
                   <th scope="col">Area</th>
                   <th scope="col">Spot price</th>
                   <th scope="col">Unit</th>
@@ -86,12 +84,12 @@ export default function Table(props: TableProps) {
               </thead>
               <tbody>
                 {props.resultSet.length < 24 * 30 && props.resultSet.map((e) => {
-                  const price = processPrice(e.price, props, props.unit);
                   return (
                     <tr>
-                      <td>{e.time.toLocaleString()}</td>
-                      <td>{e.areaCode}</td>
-                      <td>{price}</td>
+                      <td>{new Date(e.time).toLocaleString()}</td>
+                      <td>{processPrice(e.price, props, props.unit)}</td>
+                      <td>{e.min ? processPrice(e.min, props, props.unit) : "-"}</td>
+                      <td>{e.max ? processPrice(e.max, props, props.unit) : "-"}</td>
                       <td>{props.currency}/{props.unit}</td>
                     </tr>
                   );
