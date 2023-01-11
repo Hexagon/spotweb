@@ -2,7 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import Table from "components/Table.tsx";
 import { CommonProps, generateUrl } from "utils/common.ts";
 import { applyExchangeRate } from "utils/price.ts";
-import { countries } from "../config/countries.ts";
+import { countries } from "config/countries.ts";
 
 interface FilterProps extends CommonProps {
   startDate?: string;

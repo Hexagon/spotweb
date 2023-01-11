@@ -2,8 +2,8 @@ import { countries } from "config/countries.ts";
 import { EntsoeLoad } from "backend/integrations/entsoe.ts";
 import { database } from "backend/db/index.ts";
 import { log } from "utils/log.ts";
-import { sleep } from "../../../utils/common.ts";
-import { InvalidateCache } from "../../../utils/datacache.ts";
+import { sleep } from "utils/common.ts";
+import { InvalidateCache } from "utils/datacache.ts";
 
 let running = false;
 

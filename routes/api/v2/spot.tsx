@@ -31,7 +31,7 @@ export const handler: Handlers = {
 
     // Parse date
     try {
-      const data = await GetSpotprice(area, period, startDate, endDate, interval, currency);
+      const data = await GetSpotprice(area, undefined, period, startDate, endDate, interval, currency);
       return new Response(JSON.stringify({
         status: "ok",
         data: data

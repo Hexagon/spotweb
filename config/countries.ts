@@ -1,10 +1,19 @@
-import { SpotApiRow } from "../backend/db/index.ts";
+import { DBResultSet, SpotApiRow } from "backend/db/index.ts";
 
 interface Area {
   name: string;
   id: string;
   long: string;
   color: number;
+}
+
+interface DataCountry extends Country {
+  dataToday: SpotApiRow[];
+  dataTomorrow: SpotApiRow[];
+  dataMonth: SpotApiRow[];
+  dataPrevMonth?: SpotApiRow[];
+  load: DBResultSet;
+  generation: DBResultSet;
 }
 
 interface DataArea extends Area {
@@ -87,5 +96,5 @@ const countries = [
   },
 ];
 
-export type { Area, Country, DataArea };
+export type { Area, Country, DataArea, DataCountry };
 export { countries };

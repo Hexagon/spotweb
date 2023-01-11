@@ -1,7 +1,7 @@
 import { ExchangeRate } from "backend/integrations/ecb.ts";
 import { database } from "backend/db/index.ts";
 import { log } from "utils/log.ts";
-import { InvalidateCache } from "../../../utils/datacache.ts";
+import { InvalidateCache } from "utils/datacache.ts";
 
 let running = false;
 

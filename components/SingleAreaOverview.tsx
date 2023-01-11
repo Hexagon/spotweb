@@ -8,7 +8,7 @@ interface AreaViewProps extends CommonProps {
   detailed?: boolean;
   title: string;
   area?: DataArea;
-  country: Country;
+  country?: Country;
 }
 
 export default function SingleAreaOverview(props: AreaViewProps) {
@@ -89,7 +89,7 @@ export default function SingleAreaOverview(props: AreaViewProps) {
           </div>
           {!props.detailed && (
             <div class="content px-card m-0 p-5 pr-10 bg-very-dark text-right">
-              <a href={"/" + props.country.id + "/" + props.area?.name} class={"link-" + props.highlight}>
+              <a href={"/" + props.country?.id + "/" + props.area?.name} class={"link-" + props.highlight}>
                 <span data-t-key="common.overview.more_about" lang={props.lang}>More about</span> {props.area?.name} &gt;
               </a>
             </div>

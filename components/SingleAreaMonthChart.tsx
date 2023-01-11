@@ -3,7 +3,7 @@ import { areaViewMonthChartOptions } from "config/charts/areaviewmonth.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
 import { ChartSeries, CommonProps, generateUrl } from "utils/common.ts";
 import { SpotApiRow } from "backend/db/index.ts";
-import { countries } from "../config/countries.ts";
+import { countries } from "config/countries.ts";
 
 interface SingleAreaMonthChartProps extends CommonProps {
   cols: number;
@@ -24,7 +24,7 @@ export default function SingleAreaMonthChart(props: SingleAreaMonthChartProps) {
   const getData30d = async (area: string, date: Date): Promise<SpotApiRow[]> => {
     const startDate = new Date(date.getTime() - 30 * 24 * 60 * 60 * 1000),
       endDate = new Date(new Date(date).setDate(date.getDate() + 1));
-    const response = await fetch(generateUrl(area, startDate, endDate, props.country.interval, "daily"));
+    const response = await fetch(generateUrl(area, startDate, endDate, props.country?.interval || "PT60M", "daily"));
     const resultSet = await response.json();
     return resultSet.data;
   };

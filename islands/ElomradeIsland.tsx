@@ -13,7 +13,7 @@ import SingleAreaChart from "components/SingleAreaChart.tsx";
 import SingleAreaMonthChart from "components/SingleAreaMonthChart.tsx";
 import InformationPane from "components/InformationPane.tsx";
 import GenerationOverview from "components/GenerationOverview.tsx";
-import PriceFactorWarning from "../components/PriceFactorWarning.tsx";
+import PriceFactorWarning from "components/PriceFactorWarning.tsx";
 
 export default function IndexIsland(props: PageProps<ExtPageProps>) {
 

@@ -1,9 +1,9 @@
 import { Handlers, PageProps } from "$fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
-import IndexIsland from "islands/IndexIsland.tsx";
+import CountryIsland from "islands/CountryIsland.tsx";
 import { GetCurrentGeneration, GetDataDay, GetDataMonth, GetExchangeRates, GetGenerationDay, GetLoadDay } from "backend/db/index.ts";
 import { countries } from "config/countries.ts";
-import { ExtPageProps } from "../../utils/common.ts";
+import { ExtPageProps } from "utils/common.ts";
 
 export const handler: Handlers = {
   async GET(_req, ctx) {
@@ -60,9 +60,9 @@ export const handler: Handlers = {
 export default function Index(props: PageProps<ExtPageProps>) {
   return (
     <>
-      <SwHead title={props.data.country.name + " - " + props.data.country.areas.map((a) => a.name).join(", ")} {...props}></SwHead>
+      <SwHead title={props.data.country?.name + " - " + props.data.country?.areas.map((a) => a.name).join(", ")} {...props}></SwHead>
       <body lang={props.data.lang} class="dark-mode">
-        <IndexIsland {...props}></IndexIsland>
+        <CountryIsland {...props}></CountryIsland>
       </body>
     </>
   );

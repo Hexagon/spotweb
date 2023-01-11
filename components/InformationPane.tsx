@@ -1,4 +1,4 @@
-import { CommonProps } from "../utils/common.ts";
+import { CommonProps } from "utils/common.ts";
 
 interface InformationPaneProps extends CommonProps {
   cols: number;

@@ -27,7 +27,7 @@ const sqlRaw = `
     FROM
         spotprice
     WHERE 
-        area=(?) 
+        [[areaField]]=(?) 
         AND spotprice.period >= (?) 
         AND spotprice.period <= (?)
         AND spotprice.interval = (?)
@@ -56,7 +56,7 @@ FROM
     spotprice 
     LEFT JOIN er 
 WHERE
-    area=(?)
+    [[areaField]]=(?)
     AND spotprice.period>=(?)
     AND spotprice.period<=(?)
     AND spotprice.interval=(?)

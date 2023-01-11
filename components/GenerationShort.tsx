@@ -12,7 +12,7 @@ interface LastGenerationEntry {
   value: number
 }
 
-export default function GenerationOverview(props: GenerationOverviewProps) {
+export default function GenerationShort(props: GenerationOverviewProps) {
 
   // Find last value for each production type
   const lastGeneration : Record<string, LastGenerationEntry> = {};
@@ -74,33 +74,25 @@ export default function GenerationOverview(props: GenerationOverviewProps) {
   const netTotal = generationTotal - loadTotal;
 
   return (
-    <div class={`col-lg-${props.cols} m-0 p-0`}>
-      <div class="mw-full m-0 p-0 mr-20 mt-20">
-        <div class="card p-0 m-0">
-          <div class={"px-card py-10 m-0 rounded-top"}>
-            <h2 class="card-title font-size-18 m-0 text-center">
-              <span data-t-key="common.generation.current_production" lang={props.lang}>Aktuell produktion och last</span>
-            </h2>
-          </div>
-          <div class="content px-card m-0 p-0 pb-15 bg-very-dark">
-            <div>
-              <table class="table">
-                <tbody>
-                  <tr><th data-t-key="common.generation.production" lang={props.lang}>Produktion</th><th>{ generationTotal } MW</th></tr>
-                  { lastGenerationSorted.map(g => g[1].value !== 0 && (
-                    <>
-                      <tr><td><span data-t-key={"common.generation.psr_"+g[0].toLowerCase().replace(/[^a-zA-Z]/g,"_")} lang={props.lang}>{ g[0] }</span> - {(g[1].value/generationTotal*100).toFixed(1)} %</td><td>{ g[1].value } MW</td></tr>
-                    </>
-                  ))}
-                  <tr><th data-t-key="common.generation.consumption" lang={props.lang}>Förbrukning</th><th>{ loadTotal } MW</th></tr>
-                  <tr class={"table-"+ (netTotal < 0 ? "danger" : "success")}><th data-t-key={"common.generation."+(netTotal < 0 ? "deficit" : "excess")} lang={props.lang}>{ netTotal < 0 ? "Underskott" : "Överskott" }</th><th>{ netTotal } MW</th></tr>
-                </tbody>
-              </table>
-              <p class="text-right mb-0 mr-15"><small><i><span data-t-key="common.generation.last_updated" lang={props.lang}>Senast uppdaterat</span>: { lastGenerationDateEnd?.toLocaleString() }</i></small></p>
-            </div>
-          </div>
+    <div>
+      <div class="content px-card m-0 pt-0 pb-15 bg-very-dark text-center">
+        <div class="pt-10 mb-0 pb-0 price-display-24">{ generationTotal }</div>
+        <div class="mt-0 pt-0">
+          MW <span data-t-key="common.generation.production" lang={props.lang}>Produktion</span> 
         </div>
       </div>
+      <div class="content px-card m-0 pt-0 pb-15 bg-dark text-center">
+        <div class="pt-10 mb-0 pb-0 price-display-24">{ loadTotal }</div>
+        <div class="mt-0 pt-0">
+          MW <span data-t-key="common.generation.consumption" lang={props.lang}>Last</span> 
+        </div>
+      </div>
+      <div class="content px-card m-0 pt-0 pb-15 bg-very-dark text-center">
+        <div class={"pt-10 mb-0 pb-0 price-display-24 text-"+ (netTotal < 0 ? "danger" : "success")}>{ netTotal }</div>
+        <div class="mt-0 pt-0">
+          MW <span data-t-key={"common.generation."+(netTotal < 0 ? "deficit" : "excess")} lang={props.lang}>Net</span> 
+        </div>
+       </div>
     </div>
   );
 }

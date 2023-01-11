@@ -1,5 +1,5 @@
-import { DBResultSet, ExchangeRateResult, SpotApiRow } from "../backend/db/index.ts";
-import { Country, DataArea } from "../config/countries.ts";
+import { DBResultSet, ExchangeRateResult, SpotApiRow } from "backend/db/index.ts";
+import { Country, DataArea, DataCountry } from "config/countries.ts";
 
 interface BasePageProps {
   page: string;
@@ -7,11 +7,12 @@ interface BasePageProps {
 }
 
 interface ExtPageProps extends BasePageProps {
-  country: Country;
+  country?: Country;
+  countryList?: DataCountry[];
   area?: DataArea;
   areas?: DataArea[];
-  generation: DBResultSet;
-  load: DBResultSet;
+  generation?: DBResultSet;
+  load?: DBResultSet;
   er: ExchangeRateResult;
 }
 

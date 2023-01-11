@@ -47,7 +47,7 @@ export default function AllAreaChartLongTerm(props: CommonProps) {
   const getDataLongTerm = async (area: string): Promise<SpotApiRow[]> => {
     const startDate = new Date(Date.parse("2021-01-01")),
       endDate = new Date(new Date().setDate(new Date().getDate() + 1));
-    const response = await fetch(generateUrl(area, startDate, endDate, props.country.interval, "monthly"));
+    const response = await fetch(generateUrl(area, startDate, endDate, props.country?.interval || "PT60M", "monthly"));
     const resultSet = await response.json();
     return resultSet.data;
   };

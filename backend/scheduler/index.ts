@@ -1,6 +1,6 @@
 import { Cron } from "croner";
 
-import { log } from "../../utils/log.ts";
+import { log } from "utils/log.ts";
 
 import { DailyCurrencyUpdate } from "./jobs/daily.currencyupdate.ts";
 import { DailyPriceUpdate } from "./jobs/daily.priceupdate.ts";

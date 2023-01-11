@@ -1,8 +1,8 @@
 import { DB, Row } from "sqlite";
 import { resolve } from "std/path/mod.ts";
 import { sqlAppliedUpdates, sqlConverted, sqlCreateExchangeRate, sqlCreateGeneration, sqlCreateLoad, sqlCreateSpotprice, sqlCreateUpdates, sqlExchangeRates, sqlGeneration, sqlGroupBy, sqlLoad, sqlRaw } from "backend/db/sql/index.ts";
-import { DataCache } from "../../utils/datacache.ts";
-import { log } from "../../utils/log.ts";
+import { DataCache } from "utils/datacache.ts";
+import { log } from "utils/log.ts";
 import { DBUpdates } from "./sql/updates.ts";
 
 interface SpotApiRow {
@@ -57,13 +57,20 @@ try {
   Deno.exit(1);
 }
 
-const GetSpotprice = async (area: string, period: string, fromDate: Date, toDate: Date, interval: string, currency?: string) : Promise<SpotApiRow[]> => {
+const GetSpotprice = async (area: string|undefined, country: string|undefined, period: string, fromDate: Date, toDate: Date, interval: string, currency?: string) : Promise<SpotApiRow[]> => {
   // Check period
   if (!Object.keys(sqlGroupBy).includes(period)) {
     throw new Error("Invalid group by option in query");
   }
 
-  const parameterString = new URLSearchParams({period,area,interval,currency:currency||"",fromDate:fromDate.toISOString(),toDate: toDate.toISOString()}).toString();
+  const parameterString = new URLSearchParams({
+    period,area: area || "undefined",
+    country: country || "undefined",
+    interval,
+    currency:currency||"",
+    fromDate:fromDate.toISOString(),
+    toDate: toDate.toISOString()}
+  ).toString();
 
   let cacheLength = 86400;
 
@@ -80,9 +87,19 @@ const GetSpotprice = async (area: string, period: string, fromDate: Date, toDate
   const result = await DataCache("spotprice",parameterString,cacheLength,() : SpotApiRow[] => {
     let data : Array<Array<number>>;
     if (currency) {
-      data = database.query(sqlConverted.replaceAll("[[groupby]]", sqlGroupBy[period]), [currency, area, fromDate.getTime(), toDate.getTime(), interval]);
+      data = database.query(
+        sqlConverted
+          .replaceAll("[[groupby]]", sqlGroupBy[period])
+          .replaceAll("[[areaField]]", country ? "country" : "area"),
+        [currency, country || area, fromDate.getTime(), toDate.getTime(), interval]
+      );
     } else {
-      data = database.query(sqlRaw.replaceAll("[[groupby]]", sqlGroupBy[period]), [area, fromDate.getTime(), toDate.getTime(), interval]);
+      data = database.query(
+        sqlRaw
+          .replaceAll("[[groupby]]", sqlGroupBy[period])
+          .replaceAll("[[areaField]]", country ? "country" : "area"),
+        [country || area, fromDate.getTime(), toDate.getTime(), interval]
+      );
     }
     return data.map((r) => {
       if (r.length > 2) {
@@ -96,6 +113,26 @@ const GetSpotprice = async (area: string, period: string, fromDate: Date, toDate
   return result;
 };
 
+const GetDataDayCountry = async (countryName: string, date: Date, interval: string, currency?: string) : Promise<SpotApiRow[]> => {
+  
+  const 
+    startDate = new Date(date),
+    endDate = new Date(date);
+    startDate.setHours(0,0,0,0);
+    endDate.setHours(23,59,59,999);
+
+  return await GetSpotprice(
+    undefined,
+    countryName,
+    "hourly",
+    startDate,
+    endDate,
+    interval,
+    currency
+  );
+
+};
+
 const GetDataDay = async (areaName: string, date: Date, interval: string, currency?: string) : Promise<SpotApiRow[]> => {
   
   const 
@@ -106,6 +143,7 @@ const GetDataDay = async (areaName: string, date: Date, interval: string, curren
 
   return await GetSpotprice(
     areaName,
+    undefined,
     "hourly",
     startDate,
     endDate,
@@ -186,6 +224,7 @@ const GetDataMonth = async (areaName: string, date: Date, interval: string, curr
   
   return await GetSpotprice(
     areaName,
+    undefined,
     "hourly",
     startDate,
     endDate,
@@ -195,6 +234,29 @@ const GetDataMonth = async (areaName: string, date: Date, interval: string, curr
 
 };
 
+
+const GetDataMonthCountry = async (countryName: string, date: Date, interval: string, currency?: string) => {
+
+  const startDate = new Date(date),
+    endDate = new Date(date);
+
+  startDate.setDate(1);
+  startDate.setHours(0,0,0,0);
+  endDate.setMonth(endDate.getMonth() + 1);
+  endDate.setDate(0);
+  endDate.setHours(23,59,59,999);
+  
+  return await GetSpotprice(
+    undefined,
+    countryName,
+    "hourly",
+    startDate,
+    endDate,
+    interval,
+    currency
+  );
+
+};
 const GetExchangeRates = async () : Promise<ExchangeRateResult> => {
 
   const output = await DataCache("exrate","__exrate",86400,() => {
@@ -217,4 +279,4 @@ const GetExchangeRates = async () : Promise<ExchangeRateResult> => {
 };
 
 export type { ExchangeRateResult, Row, SpotApiRow, DBResultSet };
-export { database, GetLoadDay, GetGenerationDay, GetDataDay, GetDataMonth, GetExchangeRates, GetSpotprice, GetCurrentGeneration };
+export { database, GetLoadDay, GetGenerationDay, GetDataDay, GetDataMonth, GetDataDayCountry, GetDataMonthCountry, GetExchangeRates, GetSpotprice, GetCurrentGeneration };
