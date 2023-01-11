@@ -85,7 +85,7 @@ const EntsoeLoad = async (area: string, startDate: Date, endDate: Date) : Promis
   const output : LoadRow[] = [];
 
   for (const ts of result.TimeSeries) {
-    for (const point of ts.Period.Point) {
+    if (ts.Period?.Point?.length) for (const point of ts.Period.Point) {
       const 
         idx = point.position - 1,
         periodLengthS = ts.Period.resolution==="PT60M" ? 3600 : 900;
@@ -123,7 +123,7 @@ const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Pr
         const 
           baseDate = new Date(ts.Period.timeInterval.start),
           periodLengthS = ts.Period.resolution==="PT60M" ? 3600 : 900;
-        for (const p of ts.Period.Point) {
+        if (ts.Period?.Point?.length) for (const p of ts.Period.Point) {
           if (p["price.amount"] !== undefined) {
             output.push({
               startTime: new Date(baseDate.getTime() + (p.position - 1) * periodLengthS * 1000),
