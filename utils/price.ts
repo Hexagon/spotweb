@@ -107,4 +107,17 @@ const applyExchangeRate = (rs: SpotApiRow[], ex: ExchangeRateResult, currency: s
   return rsCopy;
 };
 
-export { applyExchangeRate, avgPrice, maxPrice, minPrice, nowPrice, processPrice };
+const applyExchangeRateSingle = (rs: number, ex: ExchangeRateResult, currency: string) => {
+
+  // Do not process EUR
+  if (currency === "EUR") return rs;
+
+  // Treat "öre" as "SEK"
+  if (currency === "öre") currency = "SEK";
+
+  const converted = rs * ex.entries[currency];
+
+  return converted;
+};
+
+export { applyExchangeRate, applyExchangeRateSingle, avgPrice, maxPrice, minPrice, nowPrice, processPrice };

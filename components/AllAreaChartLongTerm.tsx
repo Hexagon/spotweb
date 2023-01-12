@@ -2,23 +2,28 @@ import { useEffect, useState } from "preact/hooks";
 import { historyChartOptions } from "config/charts/historyview.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
 import { ChartSeries, CommonProps, generateUrl } from "utils/common.ts";
-import { SpotApiRow } from "backend/db/index.ts";
+import { ExchangeRateResult, SpotApiRow } from "backend/db/index.ts";
+import { Country, DataArea } from "config/countries.ts";
 
-export default function AllAreaChartLongTerm(props: CommonProps) {
+interface AllAreaLongTermChartProps extends CommonProps {
+  areas: DataArea[];
+  country: Country;
+  er: ExchangeRateResult;
+}
+
+export default function AllAreaChartLongTerm(props: AllAreaLongTermChartProps) {
 
   const 
     [chartElm, setChartElm] = useState<ApexCharts>(),
     [randomChartId] = useState((Math.random() * 10000).toFixed(0));
 
-  const renderChart = async (props: CommonProps) => {
+  const renderChart = async (props: AllAreaLongTermChartProps) => {
   
     const seriesInput: ChartSeries[] = [];
-    if (props.areas) {
-      for (const area of props.areas) {
-        let dataSet = await getDataLongTerm(area.name);
-        dataSet = applyExchangeRate(dataSet, props.er, props.currency);
-        if (dataSet) seriesInput.push({ name: area.name, data: dataSet });
-      }
+    for (const area of props.areas) {
+      let dataSet = await getDataLongTerm(area.name);
+      dataSet = applyExchangeRate(dataSet, props.er, props.currency);
+      if (dataSet) seriesInput.push({ name: area.name, data: dataSet });
     }
     
     // Inject series into chart configuration
@@ -47,7 +52,7 @@ export default function AllAreaChartLongTerm(props: CommonProps) {
   const getDataLongTerm = async (area: string): Promise<SpotApiRow[]> => {
     const startDate = new Date(Date.parse("2021-01-01")),
       endDate = new Date(new Date().setDate(new Date().getDate() + 1));
-    const response = await fetch(generateUrl(area, startDate, endDate, props.country?.interval || "PT60M", "monthly"));
+    const response = await fetch(generateUrl(area, startDate, endDate, props.country.interval || "PT60M", "monthly"));
     const resultSet = await response.json();
     return resultSet.data;
   };

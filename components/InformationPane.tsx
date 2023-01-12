@@ -1,7 +1,9 @@
 import { CommonProps } from "utils/common.ts";
+import { ExchangeRateResult } from "../backend/db/index.ts";
 
 interface InformationPaneProps extends CommonProps {
   cols: number;
+  er: ExchangeRateResult;
 }
 
 export default function InformationPane(props: InformationPaneProps) {

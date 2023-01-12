@@ -97,6 +97,8 @@ const sv = {
       "production": "Produktion",
       "consumption": "Förbrukning",
       "last_updated": "Senast uppdaterat",
+      "country": "Land",
+      "primary_source": "Huvudsaklig kraftkälla",
       "excess": "Överskott",
       "deficit": "Underskott",
       "psr_coal":"Kol",

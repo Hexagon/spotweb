@@ -1,10 +1,14 @@
 import { CommonProps} from "utils/common.ts";
 import { Country } from "config/countries.ts";
 import { PsrMap } from "config/psrmap.ts";
+import { DBResultSet, ExchangeRateResult } from "../backend/db/index.ts";
 
 interface GenerationOverviewProps extends CommonProps {
   cols: number;
-  country?: Country;
+  country: Country;
+  er: ExchangeRateResult;
+  generation: DBResultSet;
+  load: DBResultSet;
 }
 
 interface LastGenerationEntry {
@@ -17,7 +21,7 @@ export default function GenerationOverview(props: GenerationOverviewProps) {
   // Find last value for each production type
   const lastGeneration : Record<string, LastGenerationEntry> = {};
   let lastGenerationDate = 0;
-  if (props.generation) for(let i = 0; i < props.generation.data.length; i++) {
+  for(let i = 0; i < props.generation.data.length; i++) {
     // Only use data within three hours, or last row
     const 
       currentGeneration = props.generation.data[i],
@@ -61,7 +65,7 @@ export default function GenerationOverview(props: GenerationOverviewProps) {
 
   // Find load at matching point of time
   let loadTotal = 0;
-  if (props.load) for(const loadEntry of props.load.data) {
+  for(const loadEntry of props.load.data) {
     if (loadEntry[0] === lastGenerationDate) {
       loadTotal = loadEntry[1] as number;
     }

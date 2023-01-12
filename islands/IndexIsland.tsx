@@ -3,19 +3,15 @@ import { useState } from "preact/hooks";
 
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
-import AllAreaChart from "components/AllAreaChart.tsx";
-import SingleAreaOverview from "components/SingleAreaOverview.tsx";
-import InformationPane from "components/InformationPane.tsx";
 import { preferences } from "config/preferences.js";
 import PriceFactorWarning from "components/PriceFactorWarning.tsx";
-import { applyExchangeRate, avgPrice, processPrice } from "utils/price.ts";
-import { CommonProps, ExtPageProps } from "utils/common.ts";
-import AllAreaChartLongTerm from "components/AllAreaChartLongTerm.tsx";
-import GenerationOverview from "components/GenerationOverview.tsx";
+import { CommonProps } from "utils/common.ts";
 import Cron from "croner";
-import SingleCountryOverview from "../components/SingleCountryOverview.tsx";
+import ProductionByCountry from "components/ProductionByCountry.tsx";
+import { IndexPageProps } from "routes/index.tsx";
+import ProductionTodayChart from "../components/ProductionTodayChart.tsx";
 
-export default function IndexIsland(props: PageProps<ExtPageProps>) {
+export default function IndexIsland(props: PageProps<IndexPageProps>) {
   
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
@@ -38,19 +34,6 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
     priceFactor,
     ...props.data,
   };
-
-  const countryElms = props.data.countryList?.map((a, idx) => {
-    return (
-      <SingleCountryOverview
-        key={idx}
-        title={a.name}
-        highlight={"color-" + (idx+1)}
-        countryObj={a}
-        cols={2}
-        {...commonprops}
-      ></SingleCountryOverview>
-    );
-  });
 
   // Register a cron job which reloads the page at each full hour, if at least two minutes has passed since entering
   const pageLoadTime = new Date();
@@ -80,7 +63,7 @@ export default function IndexIsland(props: PageProps<ExtPageProps>) {
           <div class="content mt-0 mb-0 pr-0 mr-0 ml-5">
             <PriceFactorWarning priceFactor={!!priceFactor} factor={factor} extra={extra} lang={props.data.lang}></PriceFactorWarning>
             <div class="row">
-              {countryElms}
+              <ProductionByCountry cols={12} {...commonprops} {...props.data} {...props}></ProductionByCountry>
             </div>
           </div>
         </div>

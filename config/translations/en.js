@@ -53,6 +53,7 @@ const en = {
       "overview": {
         "thirty_day_chart": "30 day history",
         "all_areas_today": "All electricity areas - Today",
+        "electricity_price_area": "Elområde",
         "all_areas_tomorrow": "All electricity areas - Tomorrow",
         "all_areas_longterm": "All electricity areas - History per month",
         "average_today": "Average today",
@@ -94,7 +95,9 @@ const en = {
         "production_method": "Method",
         "production_share": "Share",
         "production": "Production",
-        "consumption": "Consumption",
+        "consumption": "Consumption",    
+        "country": "Country",
+        "primary_source": "Primary source",
         "last_updated": "Last Updated",
         "excess": "Excess",
         "deficit": "Deficit",

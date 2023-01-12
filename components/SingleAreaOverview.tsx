@@ -1,14 +1,16 @@
 import { applyExchangeRate, avgPrice, maxPrice, minPrice, nowPrice, processPrice } from "utils/price.ts";
 import { CommonProps, monthName } from "utils/common.ts";
 import { Country, DataArea } from "config/countries.ts";
+import { ExchangeRateResult } from "../backend/db/index.ts";
 
 interface AreaViewProps extends CommonProps {
   cols: number;
   highlight: string;
   detailed?: boolean;
   title: string;
-  area?: DataArea;
-  country?: Country;
+  area: DataArea;
+  country: Country;
+  er: ExchangeRateResult;
 }
 
 export default function SingleAreaOverview(props: AreaViewProps) {

@@ -1,38 +1,40 @@
 import { Handlers, PageProps } from "$fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
 import IndexIsland from "islands/IndexIsland.tsx";
-import { GetCurrentGeneration, GetDataDay, GetDataDayCountry, GetDataMonth, GetDataMonthCountry, GetExchangeRates, GetLoadDay } from "backend/db/index.ts";
-import { countries } from "config/countries.ts";
-import { ExtPageProps } from "utils/common.ts";
+import { DBResultSet, ExchangeRateResult, GetExchangeRates, GetGenerationAndLoad, GetLastGenerationAndLoad, GetLastPricePerArea, GetLastPricePerCountry } from "backend/db/index.ts";
+import { BasePageProps } from "utils/common.ts";
 
+interface IndexPageProps extends BasePageProps {
+  currentGenerationAndLoad: DBResultSet;
+  generationAndLoad: DBResultSet;
+  pricePerCountry: DBResultSet;
+  pricePerArea: DBResultSet;
+  er: ExchangeRateResult
+}
+
+export type { IndexPageProps };
 
 export const handler: Handlers = {
   async GET(_req, ctx) {
 
+    const
+      dateStart = new Date(),
+      dateEnd = new Date();
+    dateStart.setDate(dateStart.getDate()-1);
+
     const er = await GetExchangeRates();
 
-    const countryList = [],
-      todayDate = new Date(),
-      yesterdayDate = new Date(),
-      tomorrowDate = new Date(),
-      firstDayOfMonth = new Date();
-    yesterdayDate.setDate(yesterdayDate.getDate()-1);
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-    firstDayOfMonth.setDate(1);
-    for (const countryObj of countries) {
-      countryList.push({
-        ...countryObj,
-        dataToday: await GetDataDayCountry(countryObj.id, todayDate, countryObj.interval),
-        dataTomorrow: await GetDataDayCountry(countryObj.id, tomorrowDate, countryObj.interval),
-        dataMonth: await GetDataMonthCountry(countryObj.id, todayDate, countryObj.interval),
-        generation: await GetCurrentGeneration(countryObj.cty, countryObj.interval),
-        load: await GetLoadDay(countryObj.cty, yesterdayDate, todayDate, countryObj.interval),
-      });
-    }
+    const currentGenerationAndLoad = await GetLastGenerationAndLoad();
+    const generationAndLoad = await GetGenerationAndLoad(dateStart, dateEnd);
+    const pricePerCountry = await GetLastPricePerCountry();
+    const pricePerArea = await GetLastPricePerArea();
 
     // Render all areas in country
-    const pageProps: ExtPageProps = {
-      countryList,
+    const pageProps: IndexPageProps = {
+      currentGenerationAndLoad,
+      generationAndLoad,
+      pricePerCountry,
+      pricePerArea,
       er,
       page: "index",
       lang: ctx.state.lang as string | undefined || ctx.params.country,
@@ -42,7 +44,7 @@ export const handler: Handlers = {
   },
 };
 
-export default function Index(props: PageProps<ExtPageProps>) {
+export default function Index(props: PageProps<IndexPageProps>) {
   return (
     <>
       <SwHead title={""} {...props}></SwHead>

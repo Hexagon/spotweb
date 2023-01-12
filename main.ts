@@ -27,7 +27,9 @@ start(
 );
 
 // Start back end
-scheduler.start();
+if (!Deno.args.includes("--no-schedules")) {
+  scheduler.start();
+}
 
 // Do instant update if asked to
 if (Deno.args.includes("--instant-update")) {

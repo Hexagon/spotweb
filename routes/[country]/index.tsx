@@ -1,9 +1,19 @@
 import { Handlers, PageProps } from "$fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
 import CountryIsland from "islands/CountryIsland.tsx";
-import { GetCurrentGeneration, GetDataDay, GetDataMonth, GetExchangeRates, GetGenerationDay, GetLoadDay } from "backend/db/index.ts";
-import { countries } from "config/countries.ts";
-import { ExtPageProps } from "utils/common.ts";
+import { DBResultSet, ExchangeRateResult, GetCurrentGeneration, GetDataDay, GetDataMonth, GetExchangeRates, GetGenerationDay, GetLoadDay } from "backend/db/index.ts";
+import { countries, Country, DataArea } from "config/countries.ts";
+import { BasePageProps } from "utils/common.ts";
+
+interface CountryPageProps extends BasePageProps {
+  country: Country;
+  areas: DataArea[];
+  generation: DBResultSet;
+  load: DBResultSet;
+  er: ExchangeRateResult;
+}
+
+export type { CountryPageProps };
 
 export const handler: Handlers = {
   async GET(_req, ctx) {
@@ -43,7 +53,7 @@ export const handler: Handlers = {
     }
 
     // Render all areas in country
-    const pageProps: ExtPageProps = {
+    const pageProps: CountryPageProps = {
       country,
       generation: await GetCurrentGeneration(country.cty, country.interval),
       load: await GetLoadDay(country.cty, yesterdayDate, todayDate, country.interval),
@@ -57,7 +67,7 @@ export const handler: Handlers = {
   },
 };
 
-export default function Index(props: PageProps<ExtPageProps>) {
+export default function Index(props: PageProps<CountryPageProps>) {
   return (
     <>
       <SwHead title={props.data.country?.name + " - " + props.data.country?.areas.map((a) => a.name).join(", ")} {...props}></SwHead>

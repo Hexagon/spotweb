@@ -1,9 +1,19 @@
 import { Handlers, PageProps } from "$fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
 import ElomradeIsland from "islands/ElomradeIsland.tsx";
-import { GetCurrentGeneration, GetDataDay, GetDataMonth, GetExchangeRates, GetGenerationDay, GetLoadDay } from "backend/db/index.ts";
-import { countries } from "config/countries.ts";
-import { ExtPageProps } from "utils/common.ts";
+import { DBResultSet, ExchangeRateResult, GetCurrentGeneration, GetDataDay, GetDataMonth, GetExchangeRates, GetGenerationDay, GetLoadDay } from "backend/db/index.ts";
+import { countries, Country, DataArea } from "config/countries.ts";
+import { BasePageProps } from "utils/common.ts";
+
+interface AreaPageProps extends BasePageProps {
+  country: Country;
+  area: DataArea;
+  generation: DBResultSet;
+  load: DBResultSet;
+  er: ExchangeRateResult;
+}
+
+export type { AreaPageProps };
 
 export const handler: Handlers = {
   async GET(_req, ctx) {
@@ -47,7 +57,7 @@ export const handler: Handlers = {
       dataPrevMonth: await GetDataMonth(foundArea.name, prevMonthDate, country.interval),
     };
 
-    const pageProps: ExtPageProps = {
+    const pageProps: AreaPageProps = {
       country,
       area,
       generation: await GetCurrentGeneration(area.id || area.id, country.interval),
@@ -61,7 +71,7 @@ export const handler: Handlers = {
   },
 };
 
-export default function Area(props: PageProps) {
+export default function Area(props: PageProps<AreaPageProps>) {
   return (
     <>
       <SwHead title={props.data.area.name + " - " + props.data.area.long} {...props}></SwHead>

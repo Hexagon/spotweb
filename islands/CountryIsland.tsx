@@ -8,13 +8,13 @@ import SingleAreaOverview from "components/SingleAreaOverview.tsx";
 import InformationPane from "components/InformationPane.tsx";
 import { preferences } from "config/preferences.js";
 import PriceFactorWarning from "components/PriceFactorWarning.tsx";
-import { applyExchangeRate, avgPrice, processPrice } from "utils/price.ts";
-import { CommonProps, ExtPageProps } from "utils/common.ts";
+import { CommonProps } from "utils/common.ts";
 import AllAreaChartLongTerm from "components/AllAreaChartLongTerm.tsx";
 import GenerationOverview from "components/GenerationOverview.tsx";
 import Cron from "croner";
+import { CountryPageProps } from "../routes/[country]/index.tsx";
 
-export default function CountryIsland(props: PageProps<ExtPageProps>) {
+export default function CountryIsland(props: PageProps<CountryPageProps>) {
 
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
@@ -35,7 +35,7 @@ export default function CountryIsland(props: PageProps<ExtPageProps>) {
     decimals,
     currency,
     priceFactor,
-    ...props.data,
+    ...props.data
   };
 
   const countryElms = props.data.areas?.map((a, idx) => {
@@ -47,23 +47,14 @@ export default function CountryIsland(props: PageProps<ExtPageProps>) {
         area={a}
         cols={3}
         {...commonprops}
+        {...props.data}
       ></SingleAreaOverview>
     );
   });
 
-  const areaDayPriceListItems = props.data.areas?.map((a) => {
-    const dataTodayExchanged = applyExchangeRate(a.dataToday, props.data.er, currency);
-    return <li>{a.name} - {a.long}: {processPrice(avgPrice(dataTodayExchanged), { ...commonprops, priceFactor: false })} {currency}/{unit}</li>;
-  });
-
-  const areaMonthPriceListItems = props.data.areas?.map((a) => {
-    const dataMonthExchanged = applyExchangeRate(a.dataMonth, props.data.er, currency);
-    return <li>{a.name} - {a.long}: {processPrice(avgPrice(dataMonthExchanged), { ...commonprops, priceFactor: false })} {currency}/{unit}</li>;
-  });
-
   // Register a cron job which reloads the page at each full hour, if at least two minutes has passed since entering
   const pageLoadTime = new Date();
-  const reloadJob = new Cron("0 0 * * * *", () => {
+  new Cron("0 0 * * * *", () => {
     if (new Date().getTime()-pageLoadTime.getTime()>120*1000) {
       window?.location?.reload();
     }
@@ -98,11 +89,13 @@ export default function CountryIsland(props: PageProps<ExtPageProps>) {
                 title="today"
                 highlight="color-5"
                 {...commonprops}
+                {...props.data}
               ></AllAreaChart>
               <AllAreaChart
                 title="tomorrow"
                 highlight="color-6"
                 {...commonprops}
+                {...props.data}
               ></AllAreaChart>
             </div>
           </div>
@@ -110,10 +103,12 @@ export default function CountryIsland(props: PageProps<ExtPageProps>) {
             <div class="row mt-0">
               <AllAreaChartLongTerm
                 {...commonprops}
+                {...props.data}
               ></AllAreaChartLongTerm>
             <GenerationOverview
                 cols={6}
                 {...commonprops}
+                {...props.data}
               ></GenerationOverview>
             </div>
           </div>
@@ -122,6 +117,7 @@ export default function CountryIsland(props: PageProps<ExtPageProps>) {
             <InformationPane
                 cols={6}
                 {...commonprops}
+                {...props.data}
               ></InformationPane>
             </div>
           </div>

@@ -1,8 +1,8 @@
 import { applyExchangeRate, avgPrice, maxPrice, minPrice, nowPrice, processPrice } from "utils/price.ts";
-import { CommonProps, monthName } from "utils/common.ts";
-import { Country, DataArea, DataCountry } from "config/countries.ts";
-import GenerationOverview from "./GenerationOverview.tsx";
+import { CommonProps } from "utils/common.ts";
+import { DataCountry } from "config/countries.ts";
 import GenerationShort from "./GenerationShort.tsx";
+import { ExchangeRateResult } from "backend/db/index.ts";
 
 interface CountryViewProps extends CommonProps {
   cols: number;
@@ -10,6 +10,7 @@ interface CountryViewProps extends CommonProps {
   detailed?: boolean;
   title: string;
   countryObj: DataCountry;
+  er: ExchangeRateResult;
 }
 
 export default function SingleCountryOverview(props: CountryViewProps) {

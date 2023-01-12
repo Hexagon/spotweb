@@ -3,12 +3,14 @@ import { areaViewChartOptions } from "config/charts/areaview.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
 import { ChartSeries, CommonProps, formatHhMm } from "utils/common.ts";
 import { DataArea } from "config/countries.ts";
+import { ExchangeRateResult } from "backend/db/index.ts";
 
 interface SingleAreaChartProps extends CommonProps {
-  area?: DataArea;
+  area: DataArea;
   cols: number;
   highlight: string;
   title: string;
+  er: ExchangeRateResult;
 }
 
 export default function SingleAreaChart(props: SingleAreaChartProps) {

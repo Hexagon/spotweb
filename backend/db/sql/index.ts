@@ -9,7 +9,142 @@ const sqlCreateLoad =
   "CREATE TABLE IF NOT EXISTS load (id INTEGER PRIMARY KEY AUTOINCREMENT, area VARCHAR(16), period INT, value DOUBLE, interval TEXT);";
 const sqlCreateUpdates = 
   "CREATE TABLE IF NOT EXISTS updates (name TEXT, applied INT);"
-// ---- Queries related to spot price -------------------------------------------------
+const sqlCreatePsr = 
+  "CREATE TABLE IF NOT EXISTS psr (psr TEXT, psr_group TEXT);"
+
+// ---- Custom queries
+const sqlCurrentLoadAndGeneration = `
+WITH 
+generation_per_psr_group AS (
+    SELECT 
+        generation.area,
+        generation.period,
+        generation.interval,
+        psr.psr_group,
+        SUM(CASE WHEN generation.consumption THEN 0-generation.value ELSE generation.value END) as value
+    FROM
+        generation
+        LEFT JOIN psr ON generation.psr = psr.psr
+    WHERE
+        period >= (?)
+    GROUP BY
+        generation.area,
+        generation.period,
+        generation.interval,
+        psr.psr_group
+),
+generation_total AS (
+    SELECT 
+        gen.area,
+        gen.period,
+        gen.interval,
+        SUM(gen.value) as sum_generation_value,
+        MAX(gen.value) as max_generation_value,
+        FIRST_VALUE(gen.psr_group) OVER (
+            PARTITION BY       
+                gen.area,
+                gen.period,
+                gen.interval
+            ORDER BY 
+                SUM(gen.value) DESC
+        ) as primary_psr_group
+    FROM
+        generation_per_psr_group as gen
+    GROUP BY
+        gen.area,
+        gen.period,
+        gen.interval
+),
+generation_and_load AS (
+SELECT 
+    generation_total.area,
+    generation_total.period,
+    generation_total.interval,
+    generation_total.primary_psr_group,
+    generation_total.max_generation_value as primary_psr_group_generation,
+    generation_total.sum_generation_value as generation_total,
+    [load].value as load_total,
+    generation_total.sum_generation_value-[load].value as net_generation,
+    ROW_NUMBER() OVER(PARTITION BY generation_total.area ORDER BY generation_total.period DESC) AS row_number
+FROM
+    generation_total
+    INNER JOIN [load]
+        ON 
+            generation_total.area = [load].area 
+            AND generation_total.period = [load].period 
+            AND generation_total.interval = [load].interval)
+SELECT
+    *
+FROM
+    generation_and_load
+WHERE
+    row_number = 1`;
+const sqlLoadAndGeneration = `
+    WITH 
+    generation_per_psr_group AS (
+        SELECT 
+            generation.area,
+            generation.period,
+            generation.interval,
+            psr.psr_group,
+            SUM(CASE WHEN generation.consumption THEN 0-generation.value ELSE generation.value END) as value
+        FROM
+            generation
+            LEFT JOIN psr ON generation.psr = psr.psr
+        WHERE
+            period >= (?)
+            AND period <=(?)
+        GROUP BY
+            generation.area,
+            generation.period,
+            generation.interval,
+            psr.psr_group
+    ),
+    generation_total AS (
+        SELECT 
+            gen.area,
+            gen.period,
+            gen.interval,
+            SUM(gen.value) as sum_generation_value,
+            MAX(gen.value) as max_generation_value,
+            FIRST_VALUE(gen.psr_group) OVER (
+                PARTITION BY       
+                    gen.area,
+                    gen.period,
+                    gen.interval
+                ORDER BY 
+                    SUM(gen.value) DESC
+            ) as primary_psr_group
+        FROM
+            generation_per_psr_group as gen
+        GROUP BY
+            gen.area,
+            gen.period,
+            gen.interval
+    ),
+    generation_and_load AS (
+    SELECT 
+        generation_total.area,
+        generation_total.period,
+        generation_total.interval,
+        generation_total.primary_psr_group,
+        generation_total.max_generation_value as primary_psr_group_generation,
+        generation_total.sum_generation_value as generation_total,
+        [load].value as load_total,
+        generation_total.sum_generation_value-[load].value as net_generation
+    FROM
+        generation_total
+        INNER JOIN [load]
+            ON 
+                generation_total.area = [load].area 
+                AND generation_total.period = [load].period 
+                AND generation_total.interval = [load].interval)
+    SELECT
+        *
+    FROM
+        generation_and_load`;
+    
+    // ---- Queries related to spot price -------------------------------------------------
 const sqlGroupBy: Record<string, string> = {
   total: "'total'",
   yearly: "unixepoch(strftime('%Y-01-01 00:00:00',spotprice.period/1000,'unixepoch'))*1000",
@@ -33,8 +168,31 @@ const sqlRaw = `
         AND spotprice.interval = (?)
     GROUP BY
         [[groupby]];`;
-
-const sqlConverted = `
+const sqlLatestPricePerCountry = `
+    SELECT
+        country,
+        period,
+        interval,
+        AVG(spotprice)
+    FROM
+        spotprice
+    WHERE
+        period = (?)
+    GROUP BY
+        country,
+        period,
+        interval`;
+const sqlLatestPricePerArea = `
+    SELECT
+        area,
+        period,
+        interval,
+        spotprice
+    FROM
+        spotprice
+    WHERE
+        period = (?)`;
+        const sqlConverted = `
 WITH er AS (
     SELECT
         e.value
@@ -83,7 +241,7 @@ const sqlGeneration = `
         SELECT 
             period,
             psr,
-            value,
+            CASE WHEN consumption THEN 0-value ELSE value END as value,
             interval
         FROM
             generation
@@ -102,10 +260,12 @@ FROM
     exchangerate e
 WHERE
     period=(SELECT MAX(period) FROM exchangerate);`;
+
 // ---- Queries related to updates ----------------------------------------------
 const sqlAppliedUpdates =`SELECT
     name,
     applied
 FROM
     updates;`;
-    export { sqlLoad, sqlAppliedUpdates, sqlCreateUpdates, sqlConverted, sqlGeneration, sqlCreateExchangeRate, sqlCreateGeneration, sqlCreateLoad, sqlCreateSpotprice, sqlExchangeRates, sqlGroupBy, sqlRaw };
+
+export { sqlCreatePsr, sqlLatestPricePerArea, sqlLatestPricePerCountry, sqlCurrentLoadAndGeneration, sqlLoadAndGeneration, sqlLoad, sqlAppliedUpdates, sqlCreateUpdates, sqlConverted, sqlGeneration, sqlCreateExchangeRate, sqlCreateGeneration, sqlCreateLoad, sqlCreateSpotprice, sqlExchangeRates, sqlGroupBy, sqlRaw };

@@ -2,12 +2,15 @@ import { useEffect, useState } from "preact/hooks";
 import Table from "components/Table.tsx";
 import { CommonProps, generateUrl } from "utils/common.ts";
 import { applyExchangeRate } from "utils/price.ts";
-import { countries } from "config/countries.ts";
+import { Area, countries } from "config/countries.ts";
+import { ExchangeRateResult } from "../backend/db/index.ts";
 
 interface FilterProps extends CommonProps {
   startDate?: string;
   endDate?: string;
   period?: string;
+  area: Area;
+  er: ExchangeRateResult;
 }
 
 export type { FilterProps };

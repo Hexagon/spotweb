@@ -4,9 +4,11 @@ import { PageProps } from "$fresh/server.ts";
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
 import { preferences } from "config/preferences.js";
-import { CommonProps, ExtPageProps } from "utils/common.ts";
+import { CommonProps } from "utils/common.ts";
 
-export default function CustomIsland(props: PageProps<ExtPageProps>) {
+//import { CustomPageProps } from "routes/custom.tsx";
+
+export default function CustomIsland(props: PageProps) {
 
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
@@ -27,7 +29,7 @@ export default function CustomIsland(props: PageProps<ExtPageProps>) {
     decimals,
     currency,
     priceFactor,
-    ...props.data,
+    ...props.data
   };
 
   return (
@@ -48,6 +50,7 @@ export default function CustomIsland(props: PageProps<ExtPageProps>) {
         ></Sidebar>
         <FilteredTable
           {...commonprops}
+          {...props.data}
         ></FilteredTable>
       </div>
     </div>

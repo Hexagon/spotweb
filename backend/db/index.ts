@@ -1,6 +1,6 @@
 import { DB, Row } from "sqlite";
 import { resolve } from "std/path/mod.ts";
-import { sqlAppliedUpdates, sqlConverted, sqlCreateExchangeRate, sqlCreateGeneration, sqlCreateLoad, sqlCreateSpotprice, sqlCreateUpdates, sqlExchangeRates, sqlGeneration, sqlGroupBy, sqlLoad, sqlRaw } from "backend/db/sql/index.ts";
+import { sqlAppliedUpdates, sqlConverted, sqlCreateExchangeRate, sqlCreateGeneration, sqlCreateLoad, sqlCreatePsr, sqlCreateSpotprice, sqlCreateUpdates, sqlCurrentLoadAndGeneration, sqlExchangeRates, sqlGeneration, sqlGroupBy, sqlLatestPricePerArea, sqlLatestPricePerCountry, sqlLoad, sqlLoadAndGeneration, sqlRaw } from "backend/db/sql/index.ts";
 import { DataCache } from "utils/datacache.ts";
 import { log } from "utils/log.ts";
 import { DBUpdates } from "./sql/updates.ts";
@@ -19,7 +19,7 @@ interface ExchangeRateResult {
 
 interface DBResultSet {
   data: Array<Array<string|number>>
-};
+}
 
 // Try creating/opening database
 let database: DB;
@@ -35,6 +35,7 @@ try {
   database.query(sqlCreateGeneration);
   database.query(sqlCreateLoad);
   database.query(sqlCreateUpdates);
+  database.query(sqlCreatePsr);
 
   // Apply updates
   const appliedUpdates = database.query(sqlAppliedUpdates);
@@ -47,7 +48,7 @@ try {
         database.query(update.sql);
         database.query("INSERT INTO updates(name, applied) VALUES(?,?)",[update.name, 1]);
       } 
-      catch { log("log", `Database update '${update.name}' failed`) }
+      catch (e) { log("log", `Database update '${update.name}' failed. Error: ${e.code} ${e}`) }
       finally { log("log", `Database update '${update.name}' finalized`) }    
     }
   }
@@ -189,8 +190,76 @@ const GetCurrentGeneration = async (area: string, interval: string) : Promise<DB
     const data = database.query(sqlGeneration, [area, fromDate.getTime(), toDate.getTime(), interval]);
     return { data };
   });
+
 };
 
+const GetLastPricePerArea = async () : Promise<DBResultSet> => {
+  
+  const 
+    fromDate = new Date();
+  fromDate.setMinutes(0,0,0);
+  
+  const 
+    parameterString = new URLSearchParams({query:"lastprice",f:fromDate.getTime().toString()}).toString(),
+    cacheLength = 86400;
+
+  return await DataCache("spotprice",parameterString,cacheLength,() => {
+    const data = database.query(sqlLatestPricePerArea, [fromDate.getTime()]);
+    return { data };
+  });
+};
+
+const GetLastPricePerCountry = async () : Promise<DBResultSet> => {
+  
+  const 
+    fromDate = new Date();
+  fromDate.setMinutes(0,0,0);
+
+  const 
+    parameterString = new URLSearchParams({query:"lastpricec",f:fromDate.getTime().toString()}).toString(),
+    cacheLength = 86400;
+
+  return await DataCache("spotprice",parameterString,cacheLength,() => {
+    const data = database.query(sqlLatestPricePerCountry, [fromDate.getTime()]);
+    return { data };
+  });
+};
+
+const GetLastGenerationAndLoad = async () : Promise<DBResultSet> => {
+  
+  const 
+    fromDate = new Date();
+
+  fromDate.setHours(fromDate.getHours()-4,0,0,0);
+
+  const 
+    parameterString = new URLSearchParams({query:"curgenload",f:fromDate.getTime().toString()}).toString(),
+    cacheLength = 86400;
+
+  return await DataCache("generation",parameterString,cacheLength,() => {
+    const data = database.query(sqlCurrentLoadAndGeneration, [fromDate.getTime()]);
+    return { data };
+  });
+};
+
+const GetGenerationAndLoad = async (fromDateIn: Date, toDateIn: Date) : Promise<DBResultSet> => {
+  
+  const 
+    fromDate = new Date(fromDateIn.getTime()),
+    toDate = new Date(toDateIn.getTime());
+
+  fromDate.setHours(0,0,0,0);
+  toDate.setHours(0,0,0,0);
+
+  const 
+    parameterString = new URLSearchParams({query:"genload",f:fromDate.getTime().toString(),t:toDate.getTime().toString()}).toString(),
+    cacheLength = 86400;
+
+  return await DataCache("generation",parameterString,cacheLength,() => {
+    const data = database.query(sqlLoadAndGeneration, [fromDate.getTime(),toDate.getTime()]);
+    return { data };
+  });
+};
 
 const GetGenerationDay = async (area: string, fromDateIn: Date, toDateIn: Date) : Promise<DBResultSet> => {
   
@@ -279,4 +348,4 @@ const GetExchangeRates = async () : Promise<ExchangeRateResult> => {
 };
 
 export type { ExchangeRateResult, Row, SpotApiRow, DBResultSet };
-export { database, GetLoadDay, GetGenerationDay, GetDataDay, GetDataMonth, GetDataDayCountry, GetDataMonthCountry, GetExchangeRates, GetSpotprice, GetCurrentGeneration };
+export { database, GetLastPricePerArea, GetLastPricePerCountry, GetGenerationAndLoad, GetLastGenerationAndLoad, GetLoadDay, GetGenerationDay, GetDataDay, GetDataMonth, GetDataDayCountry, GetDataMonthCountry, GetExchangeRates, GetSpotprice, GetCurrentGeneration };

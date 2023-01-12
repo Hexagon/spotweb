@@ -15,7 +15,7 @@ export default function Navbar(props: NavbarProps) {
           <strong>☰</strong>
         </button>
       </div>
-      <a href="#" class="navbar-brand">
+      <a href="https://spot.56k.guru" class="navbar-brand">
         spot.56k.guru
       </a>
       <ul class="navbar-nav d-none d-md-flex">

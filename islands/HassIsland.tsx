@@ -3,11 +3,11 @@ import { useState } from "preact/hooks";
 
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
-import InformationPane from "components/InformationPane.tsx";
 import { preferences } from "config/preferences.js";
-import { CommonProps, ExtPageProps } from "utils/common.ts";
+import { BasePageProps, CommonProps } from "utils/common.ts";
 
-export default function HassIsland(props: PageProps<ExtPageProps>) {
+export default function HassIsland(props: PageProps<BasePageProps>) {
+
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
   const [factor, setFactor] = useState(preferences.factor(props.data.lang));

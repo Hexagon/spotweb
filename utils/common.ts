@@ -1,22 +1,11 @@
-import { DBResultSet, ExchangeRateResult, SpotApiRow } from "backend/db/index.ts";
-import { Country, DataArea, DataCountry } from "config/countries.ts";
+import { SpotApiRow } from "backend/db/index.ts";
 
 interface BasePageProps {
   page: string;
   lang: string;
 }
 
-interface ExtPageProps extends BasePageProps {
-  country?: Country;
-  countryList?: DataCountry[];
-  area?: DataArea;
-  areas?: DataArea[];
-  generation?: DBResultSet;
-  load?: DBResultSet;
-  er: ExchangeRateResult;
-}
-
-interface CommonProps extends ExtPageProps {
+interface CommonProps extends BasePageProps {
   unit: string;
   factor: number;
   extra: number;
@@ -116,5 +105,5 @@ const langFromUrl = (url: URL) => {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export type { ChartSeries, CommonProps, ExtPageProps, BasePageProps };
+export type { ChartSeries, CommonProps, BasePageProps };
 export { dateText, formatHhMm, generateUrl, langFromUrl, monthName, sleep };

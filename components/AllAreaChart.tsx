@@ -2,13 +2,18 @@ import { useEffect, useState } from "preact/hooks";
 import { liveViewChartOptions } from "config/charts/liveview.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
 import { ChartSeries, CommonProps, formatHhMm } from "utils/common.ts";
+import { DataArea } from "config/countries.ts";
+import { ExchangeRateResult } from "../backend/db/index.ts";
 
 interface AllAreaChartProps extends CommonProps {
   highlight: string;
   title: string;
+  areas: DataArea[];
+  er: ExchangeRateResult;
 }
 
 export default function AllAreaChart(props: AllAreaChartProps) {
+
   const [chartElm, setChartElm] = useState<ApexCharts>(),
     [randomChartId] = useState((Math.random() * 10000).toFixed(0));
 

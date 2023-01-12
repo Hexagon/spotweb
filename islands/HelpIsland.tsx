@@ -4,9 +4,10 @@ import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
 import InformationPane from "components/InformationPane.tsx";
 import { preferences } from "config/preferences.js";
-import { CommonProps, ExtPageProps } from "utils/common.ts";
+import { CommonProps } from "utils/common.ts";
+import { HelpPageProps } from "routes/help.tsx";
 
-export default function HassIsland(props: PageProps<ExtPageProps>) {
+export default function HassIsland(props: PageProps<HelpPageProps>) {
 
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
@@ -134,7 +135,7 @@ export default function HassIsland(props: PageProps<ExtPageProps>) {
             </div>
             <div class="col-xl-4 on-this-page-nav-container">
                 <div class="content">
-                    <InformationPane cols={12} {...commonprops}></InformationPane>
+                    <InformationPane cols={12} {...commonprops} {...props.data}></InformationPane>
                 </div>
             </div>
           </div>
