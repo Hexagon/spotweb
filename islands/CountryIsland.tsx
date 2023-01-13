@@ -13,6 +13,7 @@ import AllAreaChartLongTerm from "components/AllAreaChartLongTerm.tsx";
 import GenerationOverview from "components/GenerationOverview.tsx";
 import Cron from "croner";
 import { CountryPageProps } from "../routes/[country]/index.tsx";
+import ProductionTodayChart from "../components/ProductionTodayChart.tsx";
 
 export default function CountryIsland(props: PageProps<CountryPageProps>) {
 
@@ -101,19 +102,24 @@ export default function CountryIsland(props: PageProps<CountryPageProps>) {
           </div>
           <div class="content mt-0 mr-0 ml-20">
             <div class="row mt-0">
-              <AllAreaChartLongTerm
-                {...commonprops}
-                {...props.data}
-              ></AllAreaChartLongTerm>
             <GenerationOverview
                 cols={6}
                 {...commonprops}
                 {...props.data}
               ></GenerationOverview>
+              <ProductionTodayChart
+                cols={6}
+                {...commonprops}
+                {...props.data}
+                ></ProductionTodayChart>
             </div>
           </div>
           <div class="content mt-0 mr-0 ml-20">
             <div class="row mt-0">
+            <AllAreaChartLongTerm
+                {...commonprops}
+                {...props.data}
+              ></AllAreaChartLongTerm>
             <InformationPane
                 cols={6}
                 {...commonprops}

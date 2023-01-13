@@ -19,15 +19,15 @@ const productionTodayChartOptions = {
     show: true,
   },
   stroke: {
-    width: 3,
+    width: 0,
     colors: ["#E0FF18", "#18FF7C", "#1890FF", "#E819FF", "#E01847"],
-    opacity: 0.7,
+    opacity: 0,
     curve: "stepline",
   },
   fill: {
     type: 'solid',
-    colors: ["#E0FF18", "#18FF7C", "#1890FF", "#E819FF", "#E01847"],
-    opacity:0.1,
+    colors: [ "#1890FF", "#E0FF18", "#18FF7C",, "#E819FF", "#E01847"],
+    opacity:0.75,
   },
   dataLabels: {
     enabled: false,

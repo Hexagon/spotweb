@@ -88,7 +88,9 @@ const en = {
         "outstanding_hours": "Outstanding Hours",
         "today": "Today",
         "tomorrow": "Tomorrow",
-        "compare_to": "Compare to"
+        "compare_to": "Compare to",
+        "net_production": "Net production",
+        "yesterday_and_today": "Yesterday and today"
       },
       "generation": {
         "current_production": "Production and consumption",

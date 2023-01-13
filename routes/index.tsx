@@ -6,7 +6,6 @@ import { BasePageProps } from "utils/common.ts";
 
 interface IndexPageProps extends BasePageProps {
   currentGenerationAndLoad: DBResultSet;
-  generationAndLoad: DBResultSet;
   pricePerCountry: DBResultSet;
   pricePerArea: DBResultSet;
   er: ExchangeRateResult
@@ -25,14 +24,12 @@ export const handler: Handlers = {
     const er = await GetExchangeRates();
 
     const currentGenerationAndLoad = await GetLastGenerationAndLoad();
-    const generationAndLoad = await GetGenerationAndLoad(dateStart, dateEnd);
     const pricePerCountry = await GetLastPricePerCountry();
     const pricePerArea = await GetLastPricePerArea();
 
     // Render all areas in country
     const pageProps: IndexPageProps = {
       currentGenerationAndLoad,
-      generationAndLoad,
       pricePerCountry,
       pricePerArea,
       er,

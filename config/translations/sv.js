@@ -88,7 +88,9 @@ const sv = {
       "outstanding_hours": "Utmärkande timmar",
       "today": "Idag",
       "tomorrow": "Imorgon",
-      "compare_to": "Jämför med"
+      "compare_to": "Jämför med",
+      "net_production": "Nettoproduktion",
+      "yesterday_and_today": "Igår och idag"
     },
     "generation": {
       "current_production": "Produktion och förbrukning",

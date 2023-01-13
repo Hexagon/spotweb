@@ -1,13 +1,14 @@
 import { Handlers, PageProps } from "$fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
 import CountryIsland from "islands/CountryIsland.tsx";
-import { DBResultSet, ExchangeRateResult, GetCurrentGeneration, GetDataDay, GetDataMonth, GetExchangeRates, GetGenerationDay, GetLoadDay } from "backend/db/index.ts";
+import { DBResultSet, ExchangeRateResult, GetCurrentGeneration, GetDataDay, GetDataMonth, GetExchangeRates, GetGenerationAndLoad, GetGenerationDay, GetLoadDay } from "backend/db/index.ts";
 import { countries, Country, DataArea } from "config/countries.ts";
 import { BasePageProps } from "utils/common.ts";
 
 interface CountryPageProps extends BasePageProps {
   country: Country;
   areas: DataArea[];
+  generationAndLoad: DBResultSet;
   generation: DBResultSet;
   load: DBResultSet;
   er: ExchangeRateResult;
@@ -34,7 +35,7 @@ export const handler: Handlers = {
 
     const er = await GetExchangeRates();
 
-    const areas = [],
+    const areas : DataArea[] = [],
       todayDate = new Date(),
       yesterdayDate = new Date(),
       tomorrowDate = new Date(),
@@ -52,9 +53,16 @@ export const handler: Handlers = {
       });
     }
 
+    const generationAndLoad = await GetGenerationAndLoad(yesterdayDate, tomorrowDate);
+
+    generationAndLoad.data = [...generationAndLoad.data].filter((e) => {
+      return e[0] === country.cty;
+    });
+
     // Render all areas in country
     const pageProps: CountryPageProps = {
       country,
+      generationAndLoad: await GetGenerationAndLoad(yesterdayDate, tomorrowDate),
       generation: await GetCurrentGeneration(country.cty, country.interval),
       load: await GetLoadDay(country.cty, yesterdayDate, todayDate, country.interval),
       er,

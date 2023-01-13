@@ -16,6 +16,7 @@ import GenerationOverview from "components/GenerationOverview.tsx";
 import PriceFactorWarning from "components/PriceFactorWarning.tsx";
 
 import { AreaPageProps } from "routes/[country]/[area].tsx";
+import ProductionTodayChart from "../components/ProductionTodayChart.tsx";
 
 export default function IndexIsland(props: PageProps<AreaPageProps>) {
 
@@ -103,6 +104,13 @@ export default function IndexIsland(props: PageProps<AreaPageProps>) {
                 {...commonprops}
                 {...props.data}
               ></SingleAreaMonthChart>
+              <ProductionTodayChart
+                cols={6}
+                {...commonprops}
+                {...props.data}
+                ></ProductionTodayChart>
+            </div>
+            <div class="row">
               <InformationPane
                 cols={6}
                 {...commonprops}

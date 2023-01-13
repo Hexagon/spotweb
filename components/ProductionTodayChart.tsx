@@ -26,7 +26,7 @@ export default function ProductionTodayChart(props: ProductionTodayProps) {
             return { x: new Date(e.time as number), y: e.value };
           }),
           name: s.name,
-          type: 'area'
+          type: 'bar'
         },
       );
     }
@@ -68,7 +68,7 @@ export default function ProductionTodayChart(props: ProductionTodayProps) {
      });
   }
   for (const [key, country] of Object.entries(countries)) {
-    if (key.includes("(")) dataArr.push({ name: key, data: country as SpotApiRow[] });
+    dataArr.push({ name: key, data: country as SpotApiRow[] });
   }
 
   useEffect(() => {
@@ -76,20 +76,16 @@ export default function ProductionTodayChart(props: ProductionTodayProps) {
   }, [props.priceFactor]);
 
   return (
-    <div class="col-md m-0 p-0">
+    <div class={`col-lg-${props.cols} m-0 p-0`}>
       <div class="mw-full m-0 p-0 mr-20 mt-20">
         <div class="card p-0 m-0">
           <div class={"px-card py-10 m-0 rounded-top"}>
             <h2 class="card-title font-size-18 m-0 text-center">
-              <span data-t-key={"common.overview.all_areas_"} lang={props.lang}>All areas</span>
+              <span data-t-key={"common.chart.net_production"} lang={props.lang}>Net production</span> - 
+              <span data-t-key={"common.chart.yesterday_and_today"} lang={props.lang}>Yesterday and today</span>
             </h2>
           </div>
           <div class="content px-card m-0 p-0 bg-very-dark">
-            {!(dataArr) && (
-              <div class="col-lg text-center" style="height: 315px;">
-                <h6 style="margin:auto;">Uppdaterad data kommer kring 13:00</h6>
-              </div>
-            )}
             {(dataArr) && <div class="col-lg" id={"chart_" + randomChartId}></div>}
           </div>
         </div>
