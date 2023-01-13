@@ -40,11 +40,11 @@ const de = {
       "warning": {
         "actual_price": "Aktueller Strompreis",
         "actual_price_text":
-          "Sie haben aktuell tatsächlich den Strompreis aktiviert, aber keine Einstellungen zu Steuern und Gebühren vorgenommen. Klicken Sie auf das Hamburger-Menü und geben Sie den Faktor (z. B. 1,25 für 25 % MwSt.) und Ihr Entgelt (z. B. 0,012 für 0,012 EUR/kWh ohne MwSt.) ein.",
+          "Sie haben den 'eigentlichen' Preis aktiviert, aber noch keine Anpassungen bei Steuern und Gebühren vorgenommen. Klicken Sie auf das Hamburger Menü (Drei Striche) und geben Sie dort den Faktor für den Steuerprozentsatz ein (z.B. 1,25 für 25% VAT) und Ihre Gebühren (z.B. 0,095 für 9,50€/kWh, ohne VAT)",
       },
       "information": {
         "title": "Informationen und Nutzungsbedingungen",
-        "all_history": "Alle Statistiken stammen aus",
+        "all_history": "Alle Statistiken stammen aus der",
         "currency_fetched_from": "Der aktuelle Wechselkurs wird übernommen",
         "all_values_from": "Alle Werte, auch historische, werden zum aktuellen Wechselkurs aus EUR umgerechnet",
         "disclaimer_and_private_use": "Die gezeigten Zahlen sollen der Realität entsprechen, werden aber ohne Gewähr geliefert. Die Website und die damit verbundenen Dienste werden für den privaten Gebrauch auf eigenes Risiko bereitgestellt.",
@@ -52,7 +52,7 @@ const de = {
         "bugs_and_issues": "Fehler und Probleme werden über 'Issues' auf GitHub gemeldet. Kontakt kann auch per E-Mail an hexagon{a}56k.guru hergestellt werden."
       },
       "overview": {
-        "thirty_day_chart": "30 Tage Geschichte",
+        "thirty_day_chart": "30 Tage Verlauf",
         "all_areas_today": "Alle Elektrobereiche - Heute",
         "all_areas_tomorrow": "Alle Elektrobereiche - Morgen",
         "all_areas_longterm": "Alle Elektrobereiche - Verlauf pro Monat",
@@ -85,7 +85,7 @@ const de = {
       },
       "chart": {
         "today_and_tomorrow": "Heute und morgen",
-        "outstanding_hours": "Hervorragende Stunden",
+        "outstanding_hours": "Ausstehende Stunden",
         "today": "Heute",
         "tomorrow": "Morgen",
         "compare_to": "Vergleichen mit"
@@ -93,7 +93,7 @@ const de = {
       "generation": {
         "current_production": "Produktion und Verbrauch",
         "production_method": "Methode",
-        "production_share": "Teilen",
+        "production_share": "Beteiligung",
         "production": "Produktion",
         "consumption": "Verbrauch",
         "last_updated": "Zuletzt aktualisiert",
