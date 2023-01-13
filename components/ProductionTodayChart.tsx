@@ -81,7 +81,8 @@ export default function ProductionTodayChart(props: ProductionTodayProps) {
         <div class="card p-0 m-0">
           <div class={"px-card py-10 m-0 rounded-top"}>
             <h2 class="card-title font-size-18 m-0 text-center">
-              <span data-t-key={"common.chart.net_production"} lang={props.lang}>Net production</span> - 
+              <span data-t-key={"common.chart.net_production"} lang={props.lang}>Net production</span>
+              &nbsp;-&nbsp;
               <span data-t-key={"common.chart.yesterday_and_today"} lang={props.lang}>Yesterday and today</span>
             </h2>
           </div>

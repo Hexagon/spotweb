@@ -4,6 +4,7 @@ import { applyExchangeRate, processPrice } from "utils/price.ts";
 import { ChartSeries, CommonProps, formatHhMm } from "utils/common.ts";
 import { DataArea } from "config/countries.ts";
 import { ExchangeRateResult } from "backend/db/index.ts";
+import { locale_kit } from "localekit_fresh";
 
 interface SingleAreaChartProps extends CommonProps {
   area: DataArea;
@@ -70,12 +71,12 @@ export default function SingleAreaChart(props: SingleAreaChartProps) {
   useEffect(() => {
     if (rsToday && rsTomorrow) {
       renderChart([
-        { name: "Idag", data: rsToday },
-        { name: "Imorgon", data: rsTomorrow },
+        { name: locale_kit.t("common.chart.today",{ lang: props.lang }), data: rsToday },
+        { name: locale_kit.t("common.chart.tomorrow",{ lang: props.lang }), data: rsTomorrow },
       ], props);
     } else if (rsToday) {
       renderChart([
-        { name: "Idag", data: rsToday },
+        { name: locale_kit.t("common.chart.today",{ lang: props.lang }), data: rsToday },
       ], props);
     }
   }, [props.priceFactor, props.currency]);
