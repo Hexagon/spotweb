@@ -28,7 +28,6 @@ distinct_generation AS (
         generation
     WHERE
         period >= (?)
-        AND period <=(?)
 ),
 generation_per_psr_group AS (
     SELECT 
