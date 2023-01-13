@@ -32,40 +32,40 @@ const fi = {
       "dec": "jou"
     },
     "header": {
-      "title": "Nykyinen sähkön hinta",
+      "title": "Sähkön hinta nyt ja historiatieto.",
       "avg_today": "Keskimääräinen spot-hinta tänään",
       "avg_month": "Keskimääräinen spot-hinta tähän mennessä tässä kuussa",
       "avg_today_short": "Keskimääräinen spot-hinta",
     },
     "warning": {
-      "actual_price": "Todellinen sähkön hinta",
+      "actual_price": "Sähkön todellinen hinta",
       "actual_price_text":
-        "Sinulla on tällä hetkellä sähkön hinta aktivoitu, mutta et ole tehnyt veroja ja maksuja koskevia asetuksia. Napsauta hampurilaisvalikkoa ja täytä Kerroin (esim. 1,25 25 % ALV:lle) ja veloitus (esim. 0,012 0,012 EUR/kWh ennen ALV).",
+        "Olet aktivoinut ´Sähkön todellinen hinta´, mutta et ole määrittänyt vielä `verot´ ja `maksut´. Napsauta oikea kohta valikosta ja täytä kerroin verolle (esim. 1,25 => 25 % ALV:lle) ja muut maksut (esim. 0,012 => 0,012 EUR/kWh ennen ALV).",
     },
     "information": {
-      "title": "Tietoja ja käyttöehdot",
+      "title": "Tiedot ja palvelun käyttöehdot.",
       "all_history": "Kaikki tilastot on otettu",
       "currency_fetched_from": "Nykyinen valuuttakurssi on otettu",
-      "all_values_from": "Kaikki arvot, mukaan lukien historialliset, muunnetaan EUR senhetkiseen valuuttakurssiin",
-      "disclaimer_and_private_use": "Esitettyjen lukujen tulee vastata todellisuutta, mutta ne toimitetaan ilman takuita. Sivusto ja siihen liittyvät palvelut tarjotaan yksityiseen käyttöön omalla vastuullasi.",
+      "all_values_from": "Kaikki arvot, mukaan lukien historialliset, muunnetaan EUR tämän hetken valuuttakurssin mukaan",
+      "disclaimer_and_private_use": "Esitetyt luvut vastaavat todellisuutta, mutta niiden oikeellisuudesta ei anneta takuuta. Sivusto ja siihen liittyvät palvelut tarjotaan yksityiseen käyttöön ja sen käyttö on omalla vastuullasi.",
       "open_source_software": "Sivun lähdekoodi on täysin avoin ja saatavilla osoitteessa ",
       "bugs_and_issues": "Virheistä ja ongelmista ilmoitetaan GitHubin 'Issues'-osiossa. Voit myös ottaa yhteyttä sähköpostitse osoitteeseen hexagon{a}56k.guru."
     },
     "overview": {
       "thirty_day_chart": "30 päivän historia",
-      "all_areas_today": "Kaikki sähköalueet - tänään",
+      "all_areas_today": "Kaikki sähköalueet - Tänään",
       "all_areas_tomorrow": "Kaikki sähköalueet - Huomenna",
-      "all_areas_longterm": "Kaikki sähköalueet - Historia kuukaudessa",
+      "all_areas_longterm": "Kaikki sähköalueet - Historia kuukausittain",
       "average_today": "Ka. tänään",
       "average_tomorrow": "huomenna",
       "right_now": "juuri nyt",
       "more_about": "Lisää",
-      "span": "Span:",
+      "span": "Välillä:",
       "so_far": "Toistaiseksi",
     },
     "nav": {
       "actual_price_instead": "Todellinen tuntihinta spot-hinnan sijaan",
-      "all_of": "Koko",
+      "all_of": "Kaikki",
     },
     "customize": {
       "title": "Säädä todellinen hinta",
