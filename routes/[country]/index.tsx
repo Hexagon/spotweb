@@ -53,16 +53,14 @@ export const handler: Handlers = {
       });
     }
 
-    const generationAndLoad = await GetGenerationAndLoad(yesterdayDate, tomorrowDate);
-
-    generationAndLoad.data = [...generationAndLoad.data].filter((e) => {
-      return e[0] === country.cty;
-    });
+    const 
+      generationAndLoadInput = await GetGenerationAndLoad(yesterdayDate, tomorrowDate),
+      generationAndLoad = { data: generationAndLoadInput.data.filter((e) => e[0] === country.cty) };
 
     // Render all areas in country
     const pageProps: CountryPageProps = {
       country,
-      generationAndLoad: await GetGenerationAndLoad(yesterdayDate, tomorrowDate),
+      generationAndLoad,
       generation: await GetCurrentGeneration(country.cty, country.interval),
       load: await GetLoadDay(country.cty, yesterdayDate, todayDate, country.interval),
       er,
