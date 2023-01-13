@@ -32,18 +32,18 @@ distinct_generation AS (
 ),
 generation_per_psr_group AS (
     SELECT 
-        generation.area,
-        generation.period,
-        generation.interval,
+        g.area,
+        g.period,
+        g.interval,
         psr.psr_group,
-        SUM(CASE WHEN generation.consumption THEN 0-generation.value ELSE generation.value END) as value
+        SUM(CASE WHEN g.consumption THEN 0-g.value ELSE g.value END) as value
     FROM
-        distinct_generation as generation
-        LEFT JOIN psr ON generation.psr = psr.psr
+        distinct_generation as g
+        LEFT JOIN psr ON g.psr = psr.psr
     GROUP BY
-        generation.area,
-        generation.period,
-        generation.interval,
+        g.area,
+        g.period,
+        g.interval,
         psr.psr_group
 ),
 generation_total AS (
@@ -111,18 +111,18 @@ const sqlLoadAndGeneration = `
     ),
     generation_per_psr_group AS (
         SELECT 
-            generation.area,
-            generation.period,
-            generation.interval,
+            g.area,
+            g.period,
+            g.interval,
             psr.psr_group,
-            SUM(CASE WHEN generation.consumption THEN 0-generation.value ELSE generation.value END) as value
+            SUM(CASE WHEN g.consumption THEN 0-g.value ELSE g.value END) as value
         FROM
-            distinct_generation as generation
-            LEFT JOIN psr ON generation.psr = psr.psr
+            distinct_generation as g
+            LEFT JOIN psr ON g.psr = psr.psr
         GROUP BY
-            generation.area,
-            generation.period,
-            generation.interval,
+            g.area,
+            g.period,
+            g.interval,
             psr.psr_group
     ),
     generation_total AS (
