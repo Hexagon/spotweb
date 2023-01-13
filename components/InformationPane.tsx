@@ -22,8 +22,12 @@ export default function InformationPane(props: InformationPaneProps) {
               <a href="https://www.ecb.europa.eu/">ECB</a>.
             </p>
             <p>
-              <span data-t-key="common.information.all_values_from" lang={props.lang}>All values converted from EUR</span>{" "}
-              {rsER ? (rsER.entries[props.currency == "öre" ? "SEK" : props.currency]) : ""} {props.currency == "öre" ? "SEK" : props.currency}.
+              { props.currency !== "EUR" && (
+                <>
+                  <span data-t-key="common.information.all_values_from" lang={props.lang}>All values converted from EUR</span>{" "}
+                  {rsER ? (rsER.entries[props.currency == "öre" ? "SEK" : props.currency]) : ""} {props.currency == "öre" ? "SEK" : props.currency}.
+                </>
+              )}
             </p>
             <p data-t-key="common.information.disclaimer_and_private_use" lang={props.lang}>Only for private use, no guarantees provided.</p>
             <p>
