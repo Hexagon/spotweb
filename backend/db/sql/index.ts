@@ -15,6 +15,21 @@ const sqlCreatePsr =
 // ---- Custom queries
 const sqlCurrentLoadAndGeneration = `
 WITH 
+distinct_generation AS (
+    SELECT 
+        DISTINCT
+        generation.area,
+        generation.period,
+        generation.interval,
+        generation.consumption,
+        generation.value,
+        generation.psr
+    FROM
+        generation
+    WHERE
+        period >= (?)
+        AND period <=(?)
+),
 generation_per_psr_group AS (
     SELECT 
         generation.area,
@@ -23,10 +38,8 @@ generation_per_psr_group AS (
         psr.psr_group,
         SUM(CASE WHEN generation.consumption THEN 0-generation.value ELSE generation.value END) as value
     FROM
-        generation
+        distinct_generation as generation
         LEFT JOIN psr ON generation.psr = psr.psr
-    WHERE
-        period >= (?)
     GROUP BY
         generation.area,
         generation.period,
@@ -81,6 +94,21 @@ WHERE
     row_number = 1`;
 const sqlLoadAndGeneration = `
     WITH 
+    distinct_generation AS (
+        SELECT 
+            DISTINCT
+            generation.area,
+            generation.period,
+            generation.interval,
+            generation.consumption,
+            generation.value,
+            generation.psr
+        FROM
+            generation
+        WHERE
+            period >= (?)
+            AND period <=(?)
+    ),
     generation_per_psr_group AS (
         SELECT 
             generation.area,
@@ -89,11 +117,8 @@ const sqlLoadAndGeneration = `
             psr.psr_group,
             SUM(CASE WHEN generation.consumption THEN 0-generation.value ELSE generation.value END) as value
         FROM
-            generation
+            distinct_generation as generation
             LEFT JOIN psr ON generation.psr = psr.psr
-        WHERE
-            period >= (?)
-            AND period <=(?)
         GROUP BY
             generation.area,
             generation.period,
@@ -170,6 +195,7 @@ const sqlRaw = `
         [[groupby]];`;
 const sqlLatestPricePerCountry = `
     SELECT
+        DISTINCT
         country,
         period,
         interval,
@@ -184,6 +210,7 @@ const sqlLatestPricePerCountry = `
         interval`;
 const sqlLatestPricePerArea = `
     SELECT
+        DISTINCT
         area,
         period,
         interval,
@@ -225,6 +252,7 @@ GROUP BY
 // ---- SQL related to load rate ------------------------------------------------
 const sqlLoad = `
     SELECT 
+        DISTINCT
         period,
         value,
         interval
@@ -239,6 +267,7 @@ const sqlLoad = `
 // ---- SQL related to generation --------------------------------------------------------------
 const sqlGeneration = `
         SELECT 
+            DISTINCT
             period,
             psr,
             CASE WHEN consumption THEN 0-value ELSE value END as value,
@@ -254,6 +283,7 @@ const sqlGeneration = `
 // ---- SQL related to exchange rates ---------------------------------------------------------
   const sqlExchangeRates = `
 SELECT
+    DISTINCT
     e.currency,
     e.value
 FROM
