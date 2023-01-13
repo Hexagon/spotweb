@@ -45,7 +45,7 @@ export default function ProductionByCountry(props: ProductionByCountryProps) {
       resPrice = GetPriceRowCountry(country.id,country.interval);
     if (res) countryElms.push((
       <tr class="font-size-18 bg-dark">
-        <td data-t-key={"common.countries."+country.id} lang={props.lang}><a  class="hyperlink text-white" href={"/"+country.id}>{country.name}</a></td>
+        <td><a class="hyperlink text-white" href={"/"+country.id}><span  data-t-key={"common.countries."+country.id} lang={props.lang}>{country.name}</span></a></td>
         <td>{processPrice(applyExchangeRateSingle(resPrice as number,props.er,props.currency),props)}</td>
         <td>{res?.generation_total}</td>
         <td>{res?.load_total}</td>
