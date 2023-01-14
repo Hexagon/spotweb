@@ -1,7 +1,7 @@
 const sv = {
   "common": {
     "page": {
-      "title": "Elpriset just nu"
+      "title": "Elpriset just nu",
     },
     "months": {
       "jan": "januari",
@@ -15,7 +15,7 @@ const sv = {
       "sep": "september",
       "okt": "oktober",
       "nov": "november",
-      "dec": "december"
+      "dec": "december",
     },
     "months_short": {
       "jan": "jan",
@@ -29,7 +29,7 @@ const sv = {
       "sep": "sep",
       "okt": "okt",
       "nov": "nov",
-      "dec": "dec"
+      "dec": "dec",
     },
     "header": {
       "title": "Aktuellt elpris, nu och historiskt",
@@ -47,9 +47,10 @@ const sv = {
       "all_history": "All statistik hämtas från",
       "currency_fetched_from": "Aktuell valutakurs hämtas från",
       "all_values_from": "Alla värden, inklusive historiska, är konverterade från EUR med aktuell kurs",
-      "disclaimer_and_private_use": "Siffrorna som visas bör stämma med verkligheten, men levereras utan garantier. Sidan och tillhörande tjänster tillhandahålls för privat bruk, på egen risk.",
+      "disclaimer_and_private_use":
+        "Siffrorna som visas bör stämma med verkligheten, men levereras utan garantier. Sidan och tillhörande tjänster tillhandahålls för privat bruk, på egen risk.",
       "open_source_software": "Källkoden till sidan är helt öppen och finns tillgänglig på ",
-      "bugs_and_issues": "Buggar och problem rapporteras genom 'Issues' på GitHub. Kontakt kan även ske via mail till hexagon{a}56k.guru."
+      "bugs_and_issues": "Buggar och problem rapporteras genom 'Issues' på GitHub. Kontakt kan även ske via mail till hexagon{a}56k.guru.",
     },
     "overview": {
       "thirty_day_chart": "30 dagars historik",
@@ -69,7 +70,7 @@ const sv = {
       "index": "Översikt",
       "table": "Tabell",
       "country": "Land",
-      "help": "Hjälp"
+      "help": "Hjälp",
     },
     "customize": {
       "title": "Anpassa faktiskt pris",
@@ -88,7 +89,7 @@ const sv = {
       "at": "Österrike",
       "ch": "Schweiz",
       "es": "Spanien",
-      "fr": "Frankrike"
+      "fr": "Frankrike",
     },
     "chart": {
       "today_and_tomorrow": "Idag och imorgon",
@@ -97,7 +98,7 @@ const sv = {
       "tomorrow": "Imorgon",
       "compare_to": "Jämför med",
       "net_production": "Nettoproduktion",
-      "yesterday_and_today": "Igår och idag"
+      "yesterday_and_today": "Igår och idag",
     },
     "generation": {
       "current_production": "Produktion och förbrukning",
@@ -108,17 +109,17 @@ const sv = {
       "last_updated": "Senast uppdaterat",
       "excess": "Överskott",
       "deficit": "Underskott",
-      "psr_coal":"Kol",
-      "psr_oil":"Olja",
-      "psr_gas":"Gas",
-      "psr_peat":"Torv",
-      "psr_water":"Vatten",
-      "psr_nuclear":"Kärnkraft",
-      "psr_solar":"Sol",
-      "psr_wind":"Vind",
-      "psr_other":"Övrigt",
+      "psr_coal": "Kol",
+      "psr_oil": "Olja",
+      "psr_gas": "Gas",
+      "psr_peat": "Torv",
+      "psr_water": "Vatten",
+      "psr_nuclear": "Kärnkraft",
+      "psr_solar": "Sol",
+      "psr_wind": "Vind",
+      "psr_other": "Övrigt",
       "primary_source": "Huvudsaklig kraftkälla",
-    }
+    },
   },
 };
 export { sv };

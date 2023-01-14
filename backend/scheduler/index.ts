@@ -14,18 +14,18 @@ const jobs = [
   new Cron("0 5,20,40,58 14 * * *", { paused: true, timezone: "Europe/Oslo" }, DailyPriceUpdate),
   new Cron("0 14 * * * *", { paused: true, timezone: "Europe/Oslo" }, DailyCurrencyUpdate),
   new Cron("0 2,32 * * * *", { paused: true, timezone: "Europe/Oslo" }, HourlyConsumptionUpdate),
-  new Cron("0 4,34 * * * *", { paused: true, timezone: "Europe/Oslo" }, HourlyProductionUpdate)
+  new Cron("0 4,34 * * * *", { paused: true, timezone: "Europe/Oslo" }, HourlyProductionUpdate),
 ];
 
 const scheduler = {
   start: () => {
-    for(const job of jobs) {
+    for (const job of jobs) {
       job.resume();
       log("info", "Job started, next run is at " + job.next()?.toLocaleString());
     }
   },
   stop: () => {
-    for(const job of jobs) {
+    for (const job of jobs) {
       job.stop();
       log("info", "Job stopped");
     }
@@ -36,7 +36,7 @@ const scheduler = {
     DailyCurrencyUpdate();
     HourlyConsumptionUpdate();
     HourlyProductionUpdate();
-  }
+  },
 };
 
 export { scheduler };

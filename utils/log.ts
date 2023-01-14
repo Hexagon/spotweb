@@ -1,11 +1,11 @@
 let level = "normal";
 
-const setLevel = (requestedLevel: string ) => {
+const setLevel = (requestedLevel: string) => {
   level = requestedLevel;
 };
 
 const log = (type: string, t: string) => {
-  if (type == "debug" && level != "debug") return; 
+  if (type == "debug" && level != "debug") return;
   let fn;
   if (type === "log") fn = console.log;
   else if (type === "info") fn = console.info;

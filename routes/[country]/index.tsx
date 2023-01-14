@@ -1,7 +1,17 @@
 import { Handlers, PageProps } from "$fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
 import CountryIsland from "islands/CountryIsland.tsx";
-import { DBResultSet, ExchangeRateResult, GetCurrentGeneration, GetDataDay, GetDataMonth, GetExchangeRates, GetGenerationAndLoad, GetGenerationDay, GetLoadDay } from "backend/db/index.ts";
+import {
+  DBResultSet,
+  ExchangeRateResult,
+  GetCurrentGeneration,
+  GetDataDay,
+  GetDataMonth,
+  GetExchangeRates,
+  GetGenerationAndLoad,
+  GetGenerationDay,
+  GetLoadDay,
+} from "backend/db/index.ts";
 import { countries, Country, DataArea } from "config/countries.ts";
 import { BasePageProps } from "utils/common.ts";
 
@@ -18,7 +28,6 @@ export type { CountryPageProps };
 
 export const handler: Handlers = {
   async GET(_req, ctx) {
-
     // Check country or return not found
     const country = countries.find((c) => c.id === ctx.params.country);
     if (!country) {
@@ -35,12 +44,12 @@ export const handler: Handlers = {
 
     const er = await GetExchangeRates();
 
-    const areas : DataArea[] = [],
+    const areas: DataArea[] = [],
       todayDate = new Date(),
       yesterdayDate = new Date(),
       tomorrowDate = new Date(),
       firstDayOfMonth = new Date();
-    yesterdayDate.setDate(yesterdayDate.getDate()-1);
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     firstDayOfMonth.setDate(1);
 
@@ -53,8 +62,7 @@ export const handler: Handlers = {
       });
     }
 
-    const 
-      generationAndLoadInput = await GetGenerationAndLoad(yesterdayDate, tomorrowDate),
+    const generationAndLoadInput = await GetGenerationAndLoad(yesterdayDate, tomorrowDate),
       generationAndLoad = { data: generationAndLoadInput.data.filter((e) => e[0] === country.cty) };
 
     // Render all areas in country

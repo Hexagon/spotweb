@@ -1,7 +1,7 @@
 const dk = {
   "common": {
     "page": {
-      "title": "Elprisen lige nu"
+      "title": "Elprisen lige nu",
     },
     "months": {
       "jan": "januar",
@@ -15,7 +15,7 @@ const dk = {
       "sep": "september",
       "okt": "oktober",
       "nov": "november",
-      "dec": "december"
+      "dec": "december",
     },
     "months_short": {
       "jan": "jan",
@@ -29,7 +29,7 @@ const dk = {
       "sep": "sep",
       "okt": "okt",
       "nov": "nov",
-      "dec": "dec"
+      "dec": "dec",
     },
     "header": {
       "title": "Aktuel elpris",
@@ -47,9 +47,10 @@ const dk = {
       "all_history": "Al statistik er taget fra",
       "currency_fetched_from": "Aktuel valutakurs er taget fra",
       "all_values_from": "Alle værdier, inklusive historiske værdier, er omregnet fra EUR til den aktuelle valutakurs",
-      "disclaimer_and_private_use": "De viste tal skal svare til virkeligheden, men leveres uden garantier. Siden og tilknyttede tjenester leveres til privat brug på egen risiko.",
+      "disclaimer_and_private_use":
+        "De viste tal skal svare til virkeligheden, men leveres uden garantier. Siden og tilknyttede tjenester leveres til privat brug på egen risiko.",
       "open_source_software": "Kildekoden på siden er helt åben og er tilgængelig på ",
-      "bugs_and_issues": "Bug og problemer rapporteres via 'Issues' på GitHub. Kontakt kan også tages via e-mail til hexagon{a}56k.guru."
+      "bugs_and_issues": "Bug og problemer rapporteres via 'Issues' på GitHub. Kontakt kan også tages via e-mail til hexagon{a}56k.guru.",
     },
     "overview": {
       "thirty_day_chart": "30 dages historie",
@@ -69,7 +70,7 @@ const dk = {
       "index": "Oversigt",
       "table": "Tabel",
       "country": "Land",
-      "help": "Hjælp"
+      "help": "Hjælp",
     },
     "customize": {
       "title": "Juster den faktiske pris",
@@ -88,7 +89,7 @@ const dk = {
       "at": "Østrig",
       "ch": "Schweiz",
       "es": "Spanien",
-      "fr": "Frankrig"
+      "fr": "Frankrig",
     },
     "chart": {
       "today_and_tomorrow": "I dag og i morgen",
@@ -97,7 +98,7 @@ const dk = {
       "tomorrow": "I morgen",
       "compare_to": "Sammenlign med",
       "net_production": "Nettoproduktion",
-      "yesterday_and_today": "I går og i dag"
+      "yesterday_and_today": "I går og i dag",
     },
     "generation": {
       "current_production": "Produktion og forbrug",
@@ -108,17 +109,17 @@ const dk = {
       "last_updated": "Sidst opdateret",
       "excess": "Overskydende",
       "deficit": "Underskud",
-      "psr_coal":"Kul",
-      "psr_oil":"Olie",
+      "psr_coal": "Kul",
+      "psr_oil": "Olie",
       "psr_gas": "Gas",
       "psr_peat": "Tørv",
-      "psr_water":"Vand",
-      "psr_nuclear":"Atomkraft",
+      "psr_water": "Vand",
+      "psr_nuclear": "Atomkraft",
       "psr_solar": "Solar",
       "psr_wind": "Vind",
       "psr_other": "Andet",
       "primary_source": "Primær strømkilde",
-    }
+    },
   },
 };
 export { dk };

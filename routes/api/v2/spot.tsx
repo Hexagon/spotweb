@@ -4,7 +4,6 @@ import { sqlGroupBy } from "backend/db/sql/index.ts";
 
 export const handler: Handlers = {
   async GET(req, _ctx) {
-
     // Parse URL
     const url = new URL(req.url);
 
@@ -26,16 +25,19 @@ export const handler: Handlers = {
     }
 
     // Set end date time if not set
-    startDate.setHours(0,0,0,0);
-    endDate.setHours(23,59,59,999);
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 999);
 
     // Parse date
     try {
       const data = await GetSpotprice(area, undefined, period, startDate, endDate, interval, currency);
-      return new Response(JSON.stringify({
-        status: "ok",
-        data: data
-      }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          status: "ok",
+          data: data,
+        }),
+        { status: 200 },
+      );
     } catch (e) {
       console.error(e);
       return new Response(

@@ -1,25 +1,31 @@
 import { Handlers, PageProps } from "$fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
 import IndexIsland from "islands/IndexIsland.tsx";
-import { DBResultSet, ExchangeRateResult, GetExchangeRates, GetGenerationAndLoad, GetLastGenerationAndLoad, GetLastPricePerArea, GetLastPricePerCountry } from "backend/db/index.ts";
+import {
+  DBResultSet,
+  ExchangeRateResult,
+  GetExchangeRates,
+  GetGenerationAndLoad,
+  GetLastGenerationAndLoad,
+  GetLastPricePerArea,
+  GetLastPricePerCountry,
+} from "backend/db/index.ts";
 import { BasePageProps } from "utils/common.ts";
 
 interface IndexPageProps extends BasePageProps {
   currentGenerationAndLoad: DBResultSet;
   pricePerCountry: DBResultSet;
   pricePerArea: DBResultSet;
-  er: ExchangeRateResult
+  er: ExchangeRateResult;
 }
 
 export type { IndexPageProps };
 
 export const handler: Handlers = {
   async GET(_req, ctx) {
-
-    const
-      dateStart = new Date(),
+    const dateStart = new Date(),
       dateEnd = new Date();
-    dateStart.setDate(dateStart.getDate()-1);
+    dateStart.setDate(dateStart.getDate() - 1);
 
     const er = await GetExchangeRates();
 

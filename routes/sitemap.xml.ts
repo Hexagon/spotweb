@@ -21,12 +21,11 @@ export const handler: Handlers = {
 
     // Add all country/area endpoints
     for (const country of countries) {
-      if ( country.areas.length > 1 ) sitemap.add("/" + country.id);
+      if (country.areas.length > 1) sitemap.add("/" + country.id);
       for (const area of country.areas) {
         sitemap.add("/" + country.id + "/" + area.name);
       }
     }
-
 
     return sitemap.render();
   },

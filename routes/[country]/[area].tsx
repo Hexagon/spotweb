@@ -1,7 +1,17 @@
 import { Handlers, PageProps } from "$fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
 import ElomradeIsland from "islands/AreaIsland.tsx";
-import { DBResultSet, ExchangeRateResult, GetCurrentGeneration, GetDataDay, GetDataMonth, GetExchangeRates, GetGenerationAndLoad, GetGenerationDay, GetLoadDay } from "backend/db/index.ts";
+import {
+  DBResultSet,
+  ExchangeRateResult,
+  GetCurrentGeneration,
+  GetDataDay,
+  GetDataMonth,
+  GetExchangeRates,
+  GetGenerationAndLoad,
+  GetGenerationDay,
+  GetLoadDay,
+} from "backend/db/index.ts";
 import { countries, Country, DataArea } from "config/countries.ts";
 import { BasePageProps } from "utils/common.ts";
 
@@ -18,7 +28,6 @@ export type { AreaPageProps };
 
 export const handler: Handlers = {
   async GET(_req, ctx) {
-
     // Legacy url redirect
     if (ctx.params.country == "elomrade") {
       return new Response("", {
@@ -45,8 +54,8 @@ export const handler: Handlers = {
       tomorrowDate = new Date(),
       prevMonthDate = new Date(),
       yesterdayDate = new Date();
-    todayDate.setHours(0,0,0,0);
-    yesterdayDate.setDate(yesterdayDate.getDate()-1);
+    todayDate.setHours(0, 0, 0, 0);
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     prevMonthDate.setDate(1);
     prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
@@ -59,8 +68,7 @@ export const handler: Handlers = {
       dataPrevMonth: await GetDataMonth(foundArea.name, prevMonthDate, country.interval),
     };
 
-    const 
-      generationAndLoadInput = await GetGenerationAndLoad(yesterdayDate, tomorrowDate),
+    const generationAndLoadInput = await GetGenerationAndLoad(yesterdayDate, tomorrowDate),
       generationAndLoad = { data: generationAndLoadInput.data.filter((e) => e[0] === area.id) };
 
     const pageProps: AreaPageProps = {

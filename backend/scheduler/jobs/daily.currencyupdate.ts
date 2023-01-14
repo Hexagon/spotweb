@@ -7,7 +7,7 @@ let running = false;
 
 const DailyCurrencyUpdate = async () => {
   log("info", "Scheduled data update started");
-  
+
   // Do not run two just simulataneously
   if (running) {
     log("info", "Previous job still running, skipping");
@@ -37,7 +37,6 @@ const DailyCurrencyUpdate = async () => {
         ]);
       }
     }
-
   } catch (e) {
     log("error", "Error occured while updating data, skipping. Error: " + e);
   }
@@ -45,7 +44,7 @@ const DailyCurrencyUpdate = async () => {
   // Clear memory cache
   log("info", "Database changed, clearing cache, realm extrate.");
   InvalidateCache("exrate");
-  
+
   running = false;
 
   log("info", "Scheduled data update done");

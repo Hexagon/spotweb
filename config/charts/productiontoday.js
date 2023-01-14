@@ -5,7 +5,7 @@ const productionTodayChartOptions = {
       show: false,
     },
     height: 300,
-  },  
+  },
   xaxis: {
     type: "datetime",
     labels: {
@@ -25,9 +25,9 @@ const productionTodayChartOptions = {
     curve: "stepline",
   },
   fill: {
-    type: 'solid',
-    colors: [ "#1890FF", "#E0FF18", "#18FF7C",, "#E819FF", "#E01847"],
-    opacity:0.75,
+    type: "solid",
+    colors: ["#1890FF", "#E0FF18", "#18FF7C", , "#E819FF", "#E01847"],
+    opacity: 0.75,
   },
   dataLabels: {
     enabled: false,

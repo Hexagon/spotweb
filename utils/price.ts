@@ -14,7 +14,6 @@ const processPrice = (
   props: PriceProcessorProps,
   eUnit?: string,
 ) => {
-
   if (price === null || price === undefined) return "-";
 
   // Default eUnit to MWh
@@ -108,7 +107,6 @@ const applyExchangeRate = (rs: SpotApiRow[], ex: ExchangeRateResult, currency: s
 };
 
 const applyExchangeRateSingle = (rs: number, ex: ExchangeRateResult, currency: string) => {
-
   // Do not process EUR
   if (currency === "EUR") return rs;
 

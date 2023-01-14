@@ -8,46 +8,42 @@ import { InvalidateCache } from "utils/datacache.ts";
 let running = false;
 
 const UpdateLoadForArea = async (area: string) => {
+  // Get current date
+  const dateToday = new Date(),
+    dateYesterday = new Date();
 
-    // Get current date
-    const dateToday = new Date(),
-      dateYesterday = new Date();
+  // Set dates
+  dateYesterday.setDate(dateYesterday.getDate() - 1);
 
-    // Set dates
-    dateYesterday.setDate(dateYesterday.getDate() - 1);
+  // Get data
+  log("info", "Getting load for " + area + " " + dateToday.toLocaleString() + "-" + dateYesterday.toLocaleString());
+  try {
+    const result = await EntsoeLoad(area, dateYesterday, dateToday),
+      preparedQuery = database.prepareQuery("INSERT INTO load (area, value, period, interval) VALUES (?,?,?,?)");
+    if (result.length) {
+      log("info", "Got " + result.length + " rows");
+      for (const row of result) {
+        preparedQuery.execute([
+          area,
+          row.quantity,
+          row.date.getTime(),
+          row.interval,
+        ]);
 
-    // Get data
-    log("info", "Getting load for " + area + " " + dateToday.toLocaleString() + "-" + dateYesterday.toLocaleString());
-    try {
-      const 
-        result = await EntsoeLoad(area, dateYesterday, dateToday),
-        preparedQuery = database.prepareQuery("INSERT INTO load (area, value, period, interval) VALUES (?,?,?,?)");
-      if (result.length) {
-        log("info", "Got " + result.length + " rows");
-        for (const row of result) {
-          preparedQuery.execute([
-            area,
-            row.quantity,
-            row.date.getTime(),
-            row.interval
-          ]);
-
-          // Sleep one millisecond between each row to allow clients to fetch data
-          await sleep(1);
-
-        }
-      } else {
-        log("info", "No new data for " + area);
+        // Sleep one millisecond between each row to allow clients to fetch data
+        await sleep(1);
       }
-    } catch (e) {
-      log("error", "entsoe request failed " + e);
+    } else {
+      log("info", "No new data for " + area);
     }
-
+  } catch (e) {
+    log("error", "entsoe request failed " + e);
+  }
 };
 
 const HourlyConsumptionUpdate = async () => {
   log("info", "Scheduled data update started");
-  
+
   // Do not run two just simulataneously
   if (running) {
     log("info", "Previous job still running, skipping");
@@ -57,7 +53,6 @@ const HourlyConsumptionUpdate = async () => {
   }
 
   try {
-
     // Get current month
     for (const country of countries) {
       await UpdateLoadForArea(country.cty);
@@ -71,10 +66,9 @@ const HourlyConsumptionUpdate = async () => {
     // Delete duplicated
     log("info", "Cleaning up.");
     database.query("DELETE FROM load WHERE id NOT IN (SELECT MAX(id) FROM load GROUP BY area,period,interval)");
-    if(database.totalChanges) {
+    if (database.totalChanges) {
       log("info", "Deleted " + database.totalChanges + " duplicate rows.");
     }
-
   } catch (e) {
     log("error", "Error occured while updating data, skipping. Error: " + e);
   }
@@ -82,7 +76,7 @@ const HourlyConsumptionUpdate = async () => {
   // Clear memory cache
   log("info", "Database changed, clearing cache, realm load.");
   InvalidateCache("load");
-  
+
   running = false;
 
   log("info", "Scheduled data update done");

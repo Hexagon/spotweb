@@ -5,26 +5,24 @@ import { BasePageProps } from "utils/common.ts";
 import { ExchangeRateResult, GetExchangeRates } from "../backend/db/index.ts";
 
 interface HelpPageProps extends BasePageProps {
-  er: ExchangeRateResult
+  er: ExchangeRateResult;
 }
 
-export type { HelpPageProps }
+export type { HelpPageProps };
 
 export const handler: Handlers = {
-    async GET(_req, ctx) {
+  async GET(_req, ctx) {
+    const er = await GetExchangeRates();
 
-        const er = await GetExchangeRates();
+    const pageProps: HelpPageProps = {
+      er,
+      page: "index",
+      lang: ctx.state.lang as string | undefined || ctx.params.country,
+    };
 
-        const pageProps: HelpPageProps = {
-          er,
-          page: "index",
-          lang: ctx.state.lang as string | undefined || ctx.params.country,
-        };
-
-        return ctx.render(pageProps);
-    }
+    return ctx.render(pageProps);
+  },
 };
-
 
 export default function HomeAssistant(props: PageProps) {
   return (

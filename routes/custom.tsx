@@ -12,7 +12,6 @@ import { BasePageProps } from "utils/common.ts";
 
 export const handler: Handlers = {
   async GET(req, ctx) {
-  
     const url = new URL(req.url),
       area = url.searchParams.get("area"),
       period = url.searchParams.get("period"),

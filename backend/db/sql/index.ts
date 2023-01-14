@@ -3,14 +3,12 @@ const sqlCreateSpotprice =
   "CREATE TABLE IF NOT EXISTS spotprice (id INTEGER PRIMARY KEY AUTOINCREMENT, country VARCHAR(3), area VARCHAR(3), spotprice DOUBLE, date TEXT, period INT)";
 const sqlCreateExchangeRate =
   "CREATE TABLE IF NOT EXISTS exchangerate (id INTEGER PRIMARY KEY AUTOINCREMENT, currency VARCHAR(3), value DOUBLE, date TEXT, period INT);";
-const sqlCreateGeneration = 
+const sqlCreateGeneration =
   "CREATE TABLE IF NOT EXISTS generation (id INTEGER PRIMARY KEY AUTOINCREMENT, area VARCHAR(16), period INT, value DOUBLE, psr TEXT, interval TEXT);";
-const sqlCreateLoad = 
+const sqlCreateLoad =
   "CREATE TABLE IF NOT EXISTS load (id INTEGER PRIMARY KEY AUTOINCREMENT, area VARCHAR(16), period INT, value DOUBLE, interval TEXT);";
-const sqlCreateUpdates = 
-  "CREATE TABLE IF NOT EXISTS updates (name TEXT, applied INT);"
-const sqlCreatePsr = 
-  "CREATE TABLE IF NOT EXISTS psr (psr TEXT, psr_group TEXT);"
+const sqlCreateUpdates = "CREATE TABLE IF NOT EXISTS updates (name TEXT, applied INT);";
+const sqlCreatePsr = "CREATE TABLE IF NOT EXISTS psr (psr TEXT, psr_group TEXT);";
 
 // ---- Custom queries
 const sqlCurrentLoadAndGeneration = `
@@ -167,8 +165,8 @@ const sqlLoadAndGeneration = `
         *
     FROM
         generation_and_load`;
-    
-    // ---- Queries related to spot price -------------------------------------------------
+
+// ---- Queries related to spot price -------------------------------------------------
 const sqlGroupBy: Record<string, string> = {
   total: "'total'",
   yearly: "unixepoch(strftime('%Y-01-01 00:00:00',spotprice.period/1000,'unixepoch'))*1000",
@@ -218,7 +216,7 @@ const sqlLatestPricePerArea = `
         spotprice
     WHERE
         period = (?)`;
-        const sqlConverted = `
+const sqlConverted = `
 WITH er AS (
     SELECT
         e.value
@@ -280,7 +278,7 @@ const sqlGeneration = `
             AND interval = (?);`;
 
 // ---- SQL related to exchange rates ---------------------------------------------------------
-  const sqlExchangeRates = `
+const sqlExchangeRates = `
 SELECT
     DISTINCT
     e.currency,
@@ -291,10 +289,28 @@ WHERE
     period=(SELECT MAX(period) FROM exchangerate);`;
 
 // ---- Queries related to updates ----------------------------------------------
-const sqlAppliedUpdates =`SELECT
+const sqlAppliedUpdates = `SELECT
     name,
     applied
 FROM
     updates;`;
 
-export { sqlCreatePsr, sqlLatestPricePerArea, sqlLatestPricePerCountry, sqlCurrentLoadAndGeneration, sqlLoadAndGeneration, sqlLoad, sqlAppliedUpdates, sqlCreateUpdates, sqlConverted, sqlGeneration, sqlCreateExchangeRate, sqlCreateGeneration, sqlCreateLoad, sqlCreateSpotprice, sqlExchangeRates, sqlGroupBy, sqlRaw };
+export {
+  sqlAppliedUpdates,
+  sqlConverted,
+  sqlCreateExchangeRate,
+  sqlCreateGeneration,
+  sqlCreateLoad,
+  sqlCreatePsr,
+  sqlCreateSpotprice,
+  sqlCreateUpdates,
+  sqlCurrentLoadAndGeneration,
+  sqlExchangeRates,
+  sqlGeneration,
+  sqlGroupBy,
+  sqlLatestPricePerArea,
+  sqlLatestPricePerCountry,
+  sqlLoad,
+  sqlLoadAndGeneration,
+  sqlRaw,
+};

@@ -10,7 +10,7 @@ let running = false;
 
 const DailyPriceUpdate = async () => {
   log("info", "Scheduled data update started");
-  
+
   // Do not run two just simulataneously
   if (running) {
     log("info", "Previous job still running, skipping");
@@ -76,7 +76,7 @@ const DailyPriceUpdate = async () => {
                   area.name,
                   row.spotPrice,
                   row.startTime.getTime(),
-                  row.interval
+                  row.interval,
                 ]);
 
                 // Sleep one millisecond between each row to allow clients to fetch data
@@ -108,7 +108,7 @@ const DailyPriceUpdate = async () => {
     // Delete duplicated
     log("info", "Cleaning up.");
     database.query("DELETE FROM spotprice WHERE id NOT IN (SELECT MAX(id) FROM spotprice GROUP BY area,country,period,interval)");
-    if(database.totalChanges) {
+    if (database.totalChanges) {
       log("info", "Deleted " + database.totalChanges + " duplicate rows.");
     }
 
@@ -117,7 +117,6 @@ const DailyPriceUpdate = async () => {
       log("info", "Database changed, clearing cache, realm spotprice.");
       InvalidateCache("spotprice");
     }
-
   } catch (e) {
     log("error", "Error occured while updating data, skipping. Error: " + e);
   }

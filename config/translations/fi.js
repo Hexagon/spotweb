@@ -1,7 +1,7 @@
 const fi = {
   "common": {
     "page": {
-      "title": "Sähkön hinta juuri nyt"
+      "title": "Sähkön hinta juuri nyt",
     },
     "months": {
       "jan": "tammikuu",
@@ -15,7 +15,7 @@ const fi = {
       "sep": "syyskuu",
       "okt": "lokakuu",
       "nov": "marraskuu",
-      "dec": "joulukuu"
+      "dec": "joulukuu",
     },
     "months_short": {
       "jan": "tam",
@@ -29,7 +29,7 @@ const fi = {
       "sep": "syy",
       "okt": "lok",
       "nov": "mar",
-      "dec": "jou"
+      "dec": "jou",
     },
     "header": {
       "title": "Sähkön hinta nyt ja historiatieto.",
@@ -47,9 +47,11 @@ const fi = {
       "all_history": "Kaikki tilastot on otettu",
       "currency_fetched_from": "Nykyinen valuuttakurssi on otettu",
       "all_values_from": "Kaikki arvot, mukaan lukien historialliset, muunnetaan EUR tämän hetken valuuttakurssin mukaan",
-      "disclaimer_and_private_use": "Esitetyt luvut vastaavat todellisuutta, mutta niiden oikeellisuudesta ei anneta takuuta. Sivusto ja siihen liittyvät palvelut tarjotaan yksityiseen käyttöön ja sen käyttö on omalla vastuullasi.",
+      "disclaimer_and_private_use":
+        "Esitetyt luvut vastaavat todellisuutta, mutta niiden oikeellisuudesta ei anneta takuuta. Sivusto ja siihen liittyvät palvelut tarjotaan yksityiseen käyttöön ja sen käyttö on omalla vastuullasi.",
       "open_source_software": "Sivun lähdekoodi on täysin avoin ja saatavilla osoitteessa ",
-      "bugs_and_issues": "Virheistä ja ongelmista ilmoitetaan GitHubin 'Issues'-osiossa. Voit myös ottaa yhteyttä sähköpostitse osoitteeseen hexagon{a}56k.guru."
+      "bugs_and_issues":
+        "Virheistä ja ongelmista ilmoitetaan GitHubin 'Issues'-osiossa. Voit myös ottaa yhteyttä sähköpostitse osoitteeseen hexagon{a}56k.guru.",
     },
     "overview": {
       "thirty_day_chart": "30 päivän historia",
@@ -69,7 +71,7 @@ const fi = {
       "index": "Yleiskatsaus",
       "table": "Taulukko",
       "country": "Maa",
-      "help": "Apua"
+      "help": "Apua",
     },
     "customize": {
       "title": "Säädä todellinen hinta",
@@ -88,7 +90,7 @@ const fi = {
       "at": "Itävalta",
       "ch": "Sveitsi",
       "es": "Espanja",
-      "fr": "Ranska"
+      "fr": "Ranska",
     },
     "chart": {
       "today_and_tomorrow": "Tänään ja huomenna",
@@ -97,7 +99,7 @@ const fi = {
       "tomorrow": "Huomenna",
       "compare_to": "Vertaile",
       "net_production": "Nettotuotanto",
-      "yesterday_and_today": "Eilen ja tänään"
+      "yesterday_and_today": "Eilen ja tänään",
     },
     "generation": {
       "current_production": "Tuotanto ja kulutus",
@@ -108,17 +110,17 @@ const fi = {
       "last_updated": "Viimeksi päivitetty",
       "excess": "Liika",
       "deficit": "alijäämä",
-      "psr_coal":"Hiili",
-      "psr_oil":"Öljy",
+      "psr_coal": "Hiili",
+      "psr_oil": "Öljy",
       "psr_gas": "Kaasu",
-      "psr_peat":"Turve",
-      "psr_water":"Vesi",
-      "psr_nuclear":"Ydinvoima",
-      "psr_solar":"Aurinkoenergia",
+      "psr_peat": "Turve",
+      "psr_water": "Vesi",
+      "psr_nuclear": "Ydinvoima",
+      "psr_solar": "Aurinkoenergia",
       "psr_wind": "Tuuli",
-      "psr_other":"Muu",
+      "psr_other": "Muu",
       "primary_source": "Ensisijainen virtalähde",
-    }
+    },
   },
 };
 export { fi };

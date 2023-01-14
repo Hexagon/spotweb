@@ -1,7 +1,7 @@
 const no = {
   "common": {
     "page": {
-      "title": "Strømprisen akkurat nå"
+      "title": "Strømprisen akkurat nå",
     },
     "months": {
       "jan": "januar",
@@ -15,7 +15,7 @@ const no = {
       "sep": "september",
       "okt": "oktober",
       "nov": "november",
-      "dec": "desember"
+      "dec": "desember",
     },
     "months_short": {
       "jan": "jan",
@@ -29,7 +29,7 @@ const no = {
       "sep": "sep",
       "okt": "okt",
       "nov": "nov",
-      "dec": "des"
+      "dec": "des",
     },
     "header": {
       "title": "Gjeldende strømpris",
@@ -39,16 +39,18 @@ const no = {
     },
     "warning": {
       "actual_price": "Faktisk strømpris",
-      "actual_price_text": "Du har for øyeblikket faktisk strømpris aktivert, men har ikke valgt noen innstillinger for skatter og avgifter. Klikk på hamburgermenyen og fyll inn faktoren (f.eks. 1,25 for 25 % mva) og kostnaden din (f.eks. 0,012 for 0,012 NOK/kWh før mva).",
+      "actual_price_text":
+        "Du har for øyeblikket faktisk strømpris aktivert, men har ikke valgt noen innstillinger for skatter og avgifter. Klikk på hamburgermenyen og fyll inn faktoren (f.eks. 1,25 for 25 % mva) og kostnaden din (f.eks. 0,012 for 0,012 NOK/kWh før mva).",
     },
     "information": {
       "title": "Informasjon og vilkår for bruk",
       "all_history": "All statistikk er hentet fra",
       "currency_fetched_from": "Gjeldende valutakurs er hentet fra",
       "all_values_from": "Alle verdier, inkludert historiske, er konvertert fra EUR til gjeldende valutakurs",
-      "disclaimer_and_private_use": "Tallene som vises skal samsvare med virkeligheten, men leveres uten garantier. Nettstedet og tilhørende tjenester tilbys for privat bruk, på egen risiko.",
+      "disclaimer_and_private_use":
+        "Tallene som vises skal samsvare med virkeligheten, men leveres uten garantier. Nettstedet og tilhørende tjenester tilbys for privat bruk, på egen risiko.",
       "open_source_software": "Kildekoden til siden er helt åpen og er tilgjengelig på ",
-      "bugs_and_issues": "Feil og problemer rapporteres gjennom 'Issues' på GitHub. Kontakt kan også gjøres via e-post til hexagon{a}56k.guru."
+      "bugs_and_issues": "Feil og problemer rapporteres gjennom 'Issues' på GitHub. Kontakt kan også gjøres via e-post til hexagon{a}56k.guru.",
     },
     "overview": {
       "thirty_day_chart": "30 dagers historie",
@@ -68,7 +70,7 @@ const no = {
       "index": "Oversikt",
       "table": "Tabell",
       "country": "Land",
-      "help": "Hjelp"
+      "help": "Hjelp",
     },
     "customize": {
       "title": "Tilpass pris",
@@ -87,7 +89,7 @@ const no = {
       "at": "Østerrike",
       "ch": "Sveits",
       "es": "Spania",
-      "fr": "Frankrike"
+      "fr": "Frankrike",
     },
     "chart": {
       "today_and_tomorrow": "I dag og i morgen",
@@ -96,7 +98,7 @@ const no = {
       "tomorrow": "I morgen",
       "compare_to": "Sammenlignet med",
       "net_production": "Netto produksjon",
-      "yesterday_and_today": "I går og i dag"
+      "yesterday_and_today": "I går og i dag",
     },
     "generation": {
       "current_production": "Produksjon og forbruk",
@@ -107,17 +109,17 @@ const no = {
       "last_updated": "Sist oppdatert",
       "excess": "Overflødig",
       "deficit": "Underskudd",
-      "psr_coal":"Kull",
-      "psr_oil":"Olje",
+      "psr_coal": "Kull",
+      "psr_oil": "Olje",
       "psr_gas": "Gass",
       "psr_peat": "Torv",
-      "psr_water":"Vann",
-      "psr_nuclear":"Atomkraft",
+      "psr_water": "Vann",
+      "psr_nuclear": "Atomkraft",
       "psr_solar": "Solar",
       "psr_wind": "Vind",
       "psr_other": "Annet",
       "primary_source": "Primær strømkilde",
-    }
+    },
   },
 };
 export { no };

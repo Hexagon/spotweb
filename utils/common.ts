@@ -42,7 +42,7 @@ const generateUrl = (area: string, startDate: Date, endDate: Date, interval: str
     period: period ? period : "hourly",
     startDate: startDate.toLocaleDateString("sv-SE"),
     endDate: endDate.toLocaleDateString("sv-SE"),
-    interval: interval
+    interval: interval,
   };
   const url = window.location || new URL("https://spot.56k.guru/"),
     inPath = "api/v2/spot",
@@ -52,7 +52,7 @@ const generateUrl = (area: string, startDate: Date, endDate: Date, interval: str
   return fullUrl;
 };
 
-const monthName = (d: Date|string|number): string => {
+const monthName = (d: Date | string | number): string => {
   const resolvedDate = typeof d === "number" ? new Date(d) : (d instanceof Date ? d : new Date(Date.parse(d)));
   if (!resolvedDate) return "-";
   const m = resolvedDate.getMonth();
@@ -95,9 +95,10 @@ const langFromUrl = (url: URL) => {
   } else if (url?.pathname?.startsWith("/dk")) {
     return "dk";
   } else if (
-    url?.pathname?.startsWith("/de") 
-    || url?.pathname?.startsWith("/at") 
-    || url?.pathname?.startsWith("/ch")) {
+    url?.pathname?.startsWith("/de") ||
+    url?.pathname?.startsWith("/at") ||
+    url?.pathname?.startsWith("/ch")
+  ) {
     return "de";
   } else {
     return "en";
@@ -106,5 +107,5 @@ const langFromUrl = (url: URL) => {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export type { ChartSeries, CommonProps, BasePageProps };
+export type { BasePageProps, ChartSeries, CommonProps };
 export { dateText, formatHhMm, generateUrl, langFromUrl, monthName, sleep };

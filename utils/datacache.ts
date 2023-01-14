@@ -2,8 +2,7 @@ import { log } from "utils/log.ts";
 
 const MemCache = new Map();
 
-const DataCache = async (realm: string,uniqueId: string, seconds: number, liveFetch: () => unknown) => {
-
+const DataCache = async (realm: string, uniqueId: string, seconds: number, liveFetch: () => unknown) => {
   // Check for realm, or create it
   if (!MemCache.has(realm)) {
     MemCache.set(realm, new Map());
@@ -12,12 +11,11 @@ const DataCache = async (realm: string,uniqueId: string, seconds: number, liveFe
   const currentRealm = MemCache.get(realm);
 
   try {
-
     // Check for cache, throw if cache does not exist
     let cacheObj;
 
     if (currentRealm.has(uniqueId)) {
-        cacheObj = currentRealm.get(uniqueId);
+      cacheObj = currentRealm.get(uniqueId);
     }
 
     if (!cacheObj) throw new Error("Could not read cache");
@@ -33,14 +31,13 @@ const DataCache = async (realm: string,uniqueId: string, seconds: number, liveFe
 
     log("debug", `Cache hit ${realm}:${uniqueId}`);
     return cacheObj.data;
-
   } catch (_e) {
     // Live
     const result = await liveFetch();
 
     currentRealm.set(uniqueId, {
-        dt: new Date(),
-        data: result,
+      dt: new Date(),
+      data: result,
     });
 
     // Respond
