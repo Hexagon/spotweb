@@ -66,6 +66,10 @@ const de = {
       "nav": {
         "actual_price_instead": "Tatsächlicher Stundenpreis statt Spotpreis",
         "all_of": "Ganz",
+        "index": "Übersicht",
+        "table": "Tabelle",
+        "country": "Land",
+        "help": "Hilfe"
       },
       "customize": {
         "title": "Passen Sie den tatsächlichen Preis an",
@@ -81,14 +85,19 @@ const de = {
         "fi": "Finnland",
         "dk": "Dänemark",
         "de": "Deutschland",
-        "at": "Österreich"
+        "at": "Österreich",
+        "ch": "Schweiz",
+        "es": "Spanien",
+        "fr": "Frankreich"
       },
       "chart": {
         "today_and_tomorrow": "Heute und morgen",
         "outstanding_hours": "Ausstehende Stunden",
         "today": "Heute",
         "tomorrow": "Morgen",
-        "compare_to": "Vergleichen mit"
+        "compare_to": "Vergleichen mit",
+        "net_production": "Nettoproduktion",
+        "yesterday_and_today": "Gestern und heute"
       },
       "generation": {
         "current_production": "Produktion und Verbrauch",
@@ -108,6 +117,7 @@ const de = {
         "psr_solar":"Solar",
         "psr_wind": "Wind",
         "psr_other":"Andere",
+        "primary_source": "Primäre Stromquelle",
       }
     },
   };

@@ -66,6 +66,7 @@ export default function CountryIsland(props: PageProps<CountryPageProps>) {
       <div class="page-wrapper with-navbar with-sidebar" data-sidebar-hidden="hidden">
         <Navbar
           setPriceFactor={setPriceFactorStored}
+          pageType={"country"}
           {...commonprops}
         ></Navbar>
         <Sidebar

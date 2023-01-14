@@ -35,6 +35,7 @@ export default function HassIsland(props: PageProps<BasePageProps>) {
       <div class="page-wrapper with-navbar with-sidebar" data-sidebar-hidden="hidden">
         <Navbar
           setPriceFactor={setPriceFactorStored}
+          pageType={"generic"}
           {...commonprops}
         ></Navbar>
         <Sidebar

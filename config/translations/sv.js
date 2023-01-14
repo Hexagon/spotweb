@@ -66,6 +66,10 @@ const sv = {
     "nav": {
       "actual_price_instead": "Faktiskt timpris i stället för spotpris",
       "all_of": "Hela",
+      "index": "Översikt",
+      "table": "Tabell",
+      "country": "Land",
+      "help": "Hjälp"
     },
     "customize": {
       "title": "Anpassa faktiskt pris",
@@ -81,7 +85,10 @@ const sv = {
       "fi": "Finland",
       "dk": "Danmark",
       "de": "Tyskland",
-      "at": "Österrike"
+      "at": "Österrike",
+      "ch": "Schweiz",
+      "es": "Spanien",
+      "fr": "Frankrike"
     },
     "chart": {
       "today_and_tomorrow": "Idag och imorgon",
@@ -99,8 +106,6 @@ const sv = {
       "production": "Produktion",
       "consumption": "Förbrukning",
       "last_updated": "Senast uppdaterat",
-      "country": "Land",
-      "primary_source": "Huvudsaklig kraftkälla",
       "excess": "Överskott",
       "deficit": "Underskott",
       "psr_coal":"Kol",
@@ -112,6 +117,7 @@ const sv = {
       "psr_solar":"Sol",
       "psr_wind":"Vind",
       "psr_other":"Övrigt",
+      "primary_source": "Huvudsaklig kraftkälla",
     }
   },
 };

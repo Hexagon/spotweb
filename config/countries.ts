@@ -94,6 +94,24 @@ const countries = [
       { name: "AT", "id": "BZN|AT", "long": "Österreich", color: 1 },
     ],
   },
+  {
+    name: "Switzerland",
+    cty: "Switzerland (CH)",
+    interval: "PT60M",
+    id: "ch",
+    areas: [
+      { name: "CH", "id": "BZN|CH", "long": "Switzerland", color: 1 },
+    ],
+  },
+  {
+    name: "Spain",
+    cty: "Spain (ES)",
+    interval: "PT60M",
+    id: "es",
+    areas: [
+      { name: "ES", "id": "BZN|ES", "long": "Spain", color: 1 },
+    ],
+  },
 ];
 
 export type { Area, Country, DataArea, DataCountry };

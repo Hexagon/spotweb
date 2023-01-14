@@ -94,9 +94,10 @@ const langFromUrl = (url: URL) => {
     return "fi";
   } else if (url?.pathname?.startsWith("/dk")) {
     return "dk";
-  } else if (url?.pathname?.startsWith("/de")) {
-    return "de";
-  } else if (url?.pathname?.startsWith("/at")) {
+  } else if (
+    url?.pathname?.startsWith("/de") 
+    || url?.pathname?.startsWith("/at") 
+    || url?.pathname?.startsWith("/ch")) {
     return "de";
   } else {
     return "en";

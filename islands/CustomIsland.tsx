@@ -37,6 +37,7 @@ export default function CustomIsland(props: PageProps) {
       <div class="page-wrapper with-sidebar with-navbar">
         <Navbar
           setPriceFactor={setPriceFactorStored}
+          pageType={"generic"}
           {...commonprops}
         ></Navbar>
         <Sidebar

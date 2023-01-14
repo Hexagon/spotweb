@@ -9,7 +9,6 @@ import { CommonProps } from "utils/common.ts";
 import Cron from "croner";
 import ProductionByCountry from "components/ProductionByCountry.tsx";
 import { IndexPageProps } from "routes/index.tsx";
-import ProductionTodayChart from "../components/ProductionTodayChart.tsx";
 
 export default function IndexIsland(props: PageProps<IndexPageProps>) {
   
@@ -48,6 +47,7 @@ export default function IndexIsland(props: PageProps<IndexPageProps>) {
       <div class="page-wrapper with-navbar with-sidebar" data-sidebar-hidden="hidden">
         <Navbar
           setPriceFactor={setPriceFactorStored}
+          pageType={"generic"}
           {...commonprops}
         ></Navbar>
         <Sidebar

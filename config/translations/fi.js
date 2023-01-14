@@ -66,6 +66,10 @@ const fi = {
     "nav": {
       "actual_price_instead": "Todellinen tuntihinta spot-hinnan sijaan",
       "all_of": "Kaikki",
+      "index": "Yleiskatsaus",
+      "table": "Taulukko",
+      "country": "Maa",
+      "help": "Apua"
     },
     "customize": {
       "title": "Säädä todellinen hinta",
@@ -81,14 +85,19 @@ const fi = {
       "fi": "Suomi",
       "dk": "Tanska",
       "de": "Saksa",
-      "at": "Itävalta"
+      "at": "Itävalta",
+      "ch": "Sveitsi",
+      "es": "Espanja",
+      "fr": "Ranska"
     },
     "chart": {
       "today_and_tomorrow": "Tänään ja huomenna",
       "outstanding_hours": "Erinomaiset tunnit",
       "today": "Tänään",
       "tomorrow": "Huomenna",
-      "compare_to": "Vertaile"
+      "compare_to": "Vertaile",
+      "net_production": "Nettotuotanto",
+      "yesterday_and_today": "Eilen ja tänään"
     },
     "generation": {
       "current_production": "Tuotanto ja kulutus",
@@ -108,6 +117,7 @@ const fi = {
       "psr_solar":"Aurinkoenergia",
       "psr_wind": "Tuuli",
       "psr_other":"Muu",
+      "primary_source": "Ensisijainen virtalähde",
     }
   },
 };

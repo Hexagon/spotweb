@@ -1,6 +1,6 @@
 import { Handlers, PageProps } from "$fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
-import ElomradeIsland from "islands/ElomradeIsland.tsx";
+import ElomradeIsland from "islands/AreaIsland.tsx";
 import { DBResultSet, ExchangeRateResult, GetCurrentGeneration, GetDataDay, GetDataMonth, GetExchangeRates, GetGenerationAndLoad, GetGenerationDay, GetLoadDay } from "backend/db/index.ts";
 import { countries, Country, DataArea } from "config/countries.ts";
 import { BasePageProps } from "utils/common.ts";

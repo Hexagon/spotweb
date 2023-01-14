@@ -18,7 +18,7 @@ import PriceFactorWarning from "components/PriceFactorWarning.tsx";
 import { AreaPageProps } from "routes/[country]/[area].tsx";
 import ProductionTodayChart from "../components/ProductionTodayChart.tsx";
 
-export default function IndexIsland(props: PageProps<AreaPageProps>) {
+export default function AreaIsland(props: PageProps<AreaPageProps>) {
 
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
@@ -57,6 +57,7 @@ export default function IndexIsland(props: PageProps<AreaPageProps>) {
       <div class="page-wrapper with-navbar with-sidebar" data-sidebar-hidden="hidden">
         <Navbar
           setPriceFactor={setPriceFactorStored}
+          pageType={"area"}
           {...commonprops}
           {...props.data}
         ></Navbar>

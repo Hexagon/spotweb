@@ -15,9 +15,9 @@ import * as $8 from "./routes/help.tsx";
 import * as $9 from "./routes/homeassistant.tsx";
 import * as $10 from "./routes/index.tsx";
 import * as $11 from "./routes/sitemap.xml.ts";
-import * as $$0 from "./islands/CountryIsland.tsx";
-import * as $$1 from "./islands/CustomIsland.tsx";
-import * as $$2 from "./islands/ElomradeIsland.tsx";
+import * as $$0 from "./islands/AreaIsland.tsx";
+import * as $$1 from "./islands/CountryIsland.tsx";
+import * as $$2 from "./islands/CustomIsland.tsx";
 import * as $$3 from "./islands/HassIsland.tsx";
 import * as $$4 from "./islands/HelpIsland.tsx";
 import * as $$5 from "./islands/IndexIsland.tsx";
@@ -38,9 +38,9 @@ const manifest = {
     "./routes/sitemap.xml.ts": $11,
   },
   islands: {
-    "./islands/CountryIsland.tsx": $$0,
-    "./islands/CustomIsland.tsx": $$1,
-    "./islands/ElomradeIsland.tsx": $$2,
+    "./islands/AreaIsland.tsx": $$0,
+    "./islands/CountryIsland.tsx": $$1,
+    "./islands/CustomIsland.tsx": $$2,
     "./islands/HassIsland.tsx": $$3,
     "./islands/HelpIsland.tsx": $$4,
     "./islands/IndexIsland.tsx": $$5,

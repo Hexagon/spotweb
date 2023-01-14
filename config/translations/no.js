@@ -65,6 +65,10 @@ const no = {
     "nav": {
       "actual_price_instead": "Faktisk timepris i stedet for spotpris",
       "all_of": "Hele",
+      "index": "Oversikt",
+      "table": "Tabell",
+      "country": "Land",
+      "help": "Hjelp"
     },
     "customize": {
       "title": "Tilpass pris",
@@ -80,14 +84,19 @@ const no = {
       "fi": "Finland",
       "dk": "Danmark",
       "de": "Tyskland",
-      "at": "Østerrike"
+      "at": "Østerrike",
+      "ch": "Sveits",
+      "es": "Spania",
+      "fr": "Frankrike"
     },
     "chart": {
       "today_and_tomorrow": "I dag og i morgen",
       "outstanding_hours": "Utestående timer",
       "today": "I dag",
       "tomorrow": "I morgen",
-      "compare_to": "Sammenlignet med"
+      "compare_to": "Sammenlignet med",
+      "net_production": "Netto produksjon",
+      "yesterday_and_today": "I går og i dag"
     },
     "generation": {
       "current_production": "Produksjon og forbruk",
@@ -107,6 +116,7 @@ const no = {
       "psr_solar": "Solar",
       "psr_wind": "Vind",
       "psr_other": "Annet",
+      "primary_source": "Primær strømkilde",
     }
   },
 };
