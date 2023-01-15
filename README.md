@@ -10,13 +10,17 @@ in `config/translations`.
 
 ### Development
 
-Start the project (in windows powershell):
+Start the project, pass your Entso-e api key in environment variable `API_TOKEN` (in windows powershell):
 
 ```
 $env:API_TOKEN="your-entsoe-api-token"; deno task dev
 ```
 
-This will watch the project directory and restart as necessary.
+#### Contributing
+
+Pull requests are very welcome! Please run `deno task precommit` before submitting a pr. This will make sure format, linting, types are up to standards, and tests pass.
+
+#### Dependency updates
 
 To update fresh framework using recommended method:
 
