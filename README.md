@@ -20,7 +20,8 @@ $env:API_TOKEN="your-entsoe-api-token"; deno task dev
 
 #### Contributing
 
-Pull requests are very welcome! Please run `deno task precommit` before submitting a pr. This will make sure format, linting, types are up to standards, and tests pass.
+Pull requests are very welcome! Please run `deno task precommit` before submitting a pr. This will make sure format, linting, types are up to
+standards, and tests pass.
 
 #### Dependency updates
 
