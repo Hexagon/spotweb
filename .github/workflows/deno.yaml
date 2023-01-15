@@ -2,9 +2,9 @@ name: Deno CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 jobs:
   test:
@@ -26,6 +26,8 @@ jobs:
         run: deno fmt --check
       - name: Test Deno Linting
         run: deno lint
+      - name: Test Deno Types
+        run: deno check main.ts
       - uses: szenius/set-timezone@v1.1
         with:
           timezoneLinux: ${{ matrix.timezone }}
