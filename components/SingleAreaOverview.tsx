@@ -1,7 +1,7 @@
 import { applyExchangeRate, avgPrice, maxPrice, minPrice, nowPrice, processPrice } from "utils/price.ts";
 import { CommonProps, monthName } from "utils/common.ts";
 import { Country, DataArea } from "config/countries.ts";
-import { ExchangeRateResult } from "../backend/db/index.ts";
+import { ExchangeRateResult, SpotApiRow } from "../backend/db/index.ts";
 
 interface AreaViewProps extends CommonProps {
   cols: number;
@@ -10,6 +10,9 @@ interface AreaViewProps extends CommonProps {
   title: string;
   area: DataArea;
   country: Country;
+  deToday: SpotApiRow[];
+  deTomorrow: SpotApiRow[];
+  deMonth: SpotApiRow[];
   er: ExchangeRateResult;
 }
 
@@ -20,6 +23,21 @@ export default function SingleAreaOverview(props: AreaViewProps) {
   const rsTomorrow = applyExchangeRate(props.area?.dataTomorrow || [], props.er, props.currency);
   const rsMonth = props.area?.dataMonth ? applyExchangeRate(props.area?.dataMonth, props.er, props.currency) : undefined;
   const rsPrevMonth = props.area?.dataPrevMonth ? applyExchangeRate(props.area?.dataPrevMonth, props.er, props.currency) : undefined;
+  const rsDeToday = applyExchangeRate(props.deToday || [], props.er, props.currency);
+  const rsDeTomorrow = applyExchangeRate(props.deTomorrow || [], props.er, props.currency);
+  const rsDeMonth = applyExchangeRate(props.deMonth || [], props.er, props.currency);
+  
+  // Unscientific prognosis model
+  const prognosis = (
+    (avgPrice(rsDeTomorrow) ?? 0)
+    *(
+      (
+          ((avgPrice(rsMonth) ?? 0)/(avgPrice(rsDeMonth) ?? 0))*3
+        + ((avgPrice(rsToday) ?? 0)/(avgPrice(rsDeToday) ?? 0))*1
+      ) / 4
+    )
+  );
+  const showPrognosis = rsTomorrow.length === 0 && rsDeTomorrow.length > 1 && props.country.id !== "de";
 
   return (
     <div class={`col-lg-${props.cols} m-0 p-0`}>
@@ -36,7 +54,7 @@ export default function SingleAreaOverview(props: AreaViewProps) {
               {props.currency}/{props.unit} <span data-t-key="common.overview.right_now" lang={props.lang}>right now</span>
             </div>
           </div>
-          <div class="content px-card m-0 pt-10 pb-20">
+          <div class="content px-card m-0 p-10 pt-10 pb-20">
             <div class="row">
               <div class="col-7">
                 <h5 class="mb-0" data-t-key="common.overview.average_today" lang={props.lang}>Average today</h5>
@@ -89,6 +107,15 @@ export default function SingleAreaOverview(props: AreaViewProps) {
               </div>
             )}
           </div>
+          { showPrognosis && (
+            <div class="content px-card alert alert-secondary bg-dark m-0 p-5 pr-10 border-0">
+                  <small>
+                  <p class="m-5">Price for tomorrow will arrive approx. 13.00 CE(S)T.<br></br>
+                  Our non-scientific forecasting model predicts that it will be approx. <strong><span> {processPrice(prognosis,props)} {props.currency}/{props.unit}</span></strong>.
+                  </p>
+                  </small>
+            </div>
+          )}
           {!props.detailed && (
             <div class="content px-card m-0 p-5 pr-10 bg-very-dark text-right">
               <a href={"/" + props.country?.id + "/" + props.area?.name} class={"link-" + props.highlight}>

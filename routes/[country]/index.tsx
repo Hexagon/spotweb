@@ -11,6 +11,7 @@ import {
   GetGenerationAndLoad,
   GetGenerationDay,
   GetLoadDay,
+SpotApiRow,
 } from "backend/db/index.ts";
 import { countries, Country, DataArea } from "config/countries.ts";
 import { BasePageProps } from "utils/common.ts";
@@ -18,6 +19,9 @@ import { BasePageProps } from "utils/common.ts";
 interface CountryPageProps extends BasePageProps {
   country: Country;
   areas: DataArea[];
+  deToday: SpotApiRow[];
+  deTomorrow: SpotApiRow[];
+  deMonth: SpotApiRow[];
   generationAndLoad: DBResultSet;
   generation: DBResultSet;
   load: DBResultSet;
@@ -71,6 +75,9 @@ export const handler: Handlers = {
       generationAndLoad,
       generation: await GetCurrentGeneration(country.cty, country.interval),
       load: await GetLoadDay(country.cty, yesterdayDate, todayDate, country.interval),
+      deToday: await GetDataDay('DE-LU', todayDate, "PT15M"),
+      deTomorrow: await GetDataDay('DE-LU', tomorrowDate, "PT15M"),
+      deMonth: await GetDataMonth('DE-LU', todayDate, "PT15M"),
       er,
       page: country.id,
       areas,
