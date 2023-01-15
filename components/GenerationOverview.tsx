@@ -21,20 +21,22 @@ export default function GenerationOverview(props: GenerationOverviewProps) {
   // Find last value for each production type
   const lastGeneration : Record<string, LastGenerationEntry> = {};
   let lastGenerationDate = 0;
+  console.log(props.generation.data);
   for(let i = 0; i < props.generation.data.length; i++) {
-    // Only use data within three hours, or last row
     const 
       currentGeneration = props.generation.data[i],
       dateMs = currentGeneration[0] as number,
       psr = currentGeneration[1] as string,
       value = currentGeneration[2] as number;
-    // Update date
-    if (!lastGenerationDate || lastGenerationDate < dateMs) lastGenerationDate = dateMs;
-    // Update object
-    if (!lastGeneration[psr] || lastGeneration[psr].date.getTime() < dateMs) {
-      lastGeneration[psr] = {
-        date: new Date(dateMs),
-        value: value
+    if (dateMs < new Date().getTime()) {
+      // Update date
+      if (!lastGenerationDate || lastGenerationDate < dateMs) lastGenerationDate = dateMs;
+      // Update object
+      if (!lastGeneration[psr] || lastGeneration[psr].date.getTime() < dateMs) {
+        lastGeneration[psr] = {
+          date: new Date(dateMs),
+          value: value
+        }
       }
     }
   }

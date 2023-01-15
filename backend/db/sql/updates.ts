@@ -32,7 +32,7 @@ const DBUpdates = [
     sql: `INSERT INTO psr
         (psr,psr_group)
         VALUES
-        ('B01','wind'),
+        ('B01','other'),
         ('B02','coal'),
         ('B03','gas'),
         ('B04','gas'),
@@ -52,6 +52,10 @@ const DBUpdates = [
         ('B18','wind'),
         ('B19','wind'),
         ('B20','other');`,
+  },
+  {
+    name: "bugfix_biomass_psr",
+    sql: `UPDATE psr SET psr_group='other' WHERE psr='B01';`,
   },
 ];
 

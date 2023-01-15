@@ -1,5 +1,5 @@
 const PsrMap: Record<string, string> = {
-  B01: "wind",
+  B01: "other",
   B02: "coal",
   B03: "gas",
   B04: "gas",
