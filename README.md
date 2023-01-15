@@ -8,6 +8,8 @@ Currently available in Swedish, Finnish, Danish, Norwegian and German.
 Any feedback on translations are greatly appreciated. Contribute by opening an issue, or by creating a pull request. Each language has it's own file
 in `config/translations`.
 
+[![Deno CI](https://github.com/Hexagon/spotweb/actions/workflows/deno.yaml/badge.svg)](https://github.com/Hexagon/spotweb/actions/workflows/deno.yaml)
+
 ### Development
 
 Start the project, pass your Entso-e api key in environment variable `API_TOKEN` (in windows powershell):
