@@ -1,10 +1,11 @@
-import { countries, Country } from "config/countries.ts";
+import { Area, countries, Country } from "config/countries.ts";
 import { CommonProps } from "utils/common.ts";
 
 interface NavbarProps extends CommonProps {
   page: string;
   pageType: string;
   country?: Country;
+  area?: Area;
   // deno-lint-ignore ban-types
   setPriceFactor: Function;
 }
@@ -45,7 +46,7 @@ export default function Navbar(props: NavbarProps) {
         
         {/* Show link for current country if there is one */}
         { props.country && (
-          <li class={"nav-item" + (props.page === props.country.id ? " active" : "")}>
+          <li class={"nav-item" + ((props.page === props.country.id || props.page == props.area?.id) ? " active" : "")}>
             <a class={"nav-link"} href={"/" + props.country.id}>
               {/* Only display "All of" if there is more than one area in country */}
               { props.country.areas.length > 1 && (
