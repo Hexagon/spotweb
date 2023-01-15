@@ -32,4 +32,4 @@ jobs:
         with:
           timezoneLinux: ${{ matrix.timezone }}
       - name: Test Deno Module
-        run: deno task test
+        run: deno test
