@@ -3,7 +3,7 @@
 Source code of [https://spot.56k.guru](https://spot.56k.guru) - dockerized open source Deno application that gets and caches electricity prices (spot
 price) from ENTSO-e.
 
-Currently available in Swedish, Finnish, Danish, Norwegian and German.
+Currently available in Swedish, Finnish, Danish, Norwegian, Spanish, French, Polish and German.
 
 Any feedback on translations are greatly appreciated. Contribute by opening an issue, or by creating a pull request. Each language has it's own file
 in `config/translations`.
