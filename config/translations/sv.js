@@ -90,6 +90,7 @@ const sv = {
       "ch": "Schweiz",
       "es": "Spanien",
       "fr": "Frankrike",
+      "pl": "Polen",
     },
     "chart": {
       "today_and_tomorrow": "Idag och imorgon",

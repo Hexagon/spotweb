@@ -90,6 +90,7 @@ const dk = {
       "ch": "Schweiz",
       "es": "Spanien",
       "fr": "Frankrig",
+      "pl": "Polen",
     },
     "chart": {
       "today_and_tomorrow": "I dag og i morgen",

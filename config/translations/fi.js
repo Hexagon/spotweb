@@ -91,6 +91,7 @@ const fi = {
       "ch": "Sveitsi",
       "es": "Espanja",
       "fr": "Ranska",
+      "pl": "Puola",
     },
     "chart": {
       "today_and_tomorrow": "Tänään ja huomenna",

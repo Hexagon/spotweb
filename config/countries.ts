@@ -112,6 +112,24 @@ const countries = [
       { name: "ES", "id": "BZN|ES", "long": "Spain", color: 1 },
     ],
   },
+  {
+    name: "France",
+    cty: "France (FR)",
+    interval: "PT60M",
+    id: "fr",
+    areas: [
+      { name: "FR", "id": "BZN|FR", "long": "France", color: 1 },
+    ],
+  },
+  {
+    name: "Poland",
+    cty: "Poland (PL)",
+    interval: "PT60M",
+    id: "pl",
+    areas: [
+      { name: "PL", "id": "BZN|PL", "long": "Poland", color: 1 },
+    ],
+  },
 ];
 
 export type { Area, Country, DataArea, DataCountry };

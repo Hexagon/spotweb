@@ -91,6 +91,7 @@ const de = {
       "ch": "Schweiz",
       "es": "Spanien",
       "fr": "Frankreich",
+      "pl": "Polen",
     },
     "chart": {
       "today_and_tomorrow": "Heute und morgen",

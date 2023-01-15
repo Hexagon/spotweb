@@ -73,6 +73,7 @@ export default function Table(props: CustomizeProps) {
           <option value="NOK">NOK</option>
           <option value="EUR">EUR</option>
           <option value="DKK">DKK</option>
+          <option value="PLN">PLN</option>
         </select>
       </div>
       <div class="sidebar-content">

@@ -42,8 +42,8 @@ export const handler = [
       lang = urlParsed.searchParams.get("lang");
     }
 
-    // If lang is still not set to a valid value, default to sv
-    if (!(lang && ["sv", "fi", "no", "dk", "de", "en"].includes(lang))) {
+    // If lang is still not set to a valid value, default to en
+    if (!(lang)) {
       lang = "en";
     }
 
