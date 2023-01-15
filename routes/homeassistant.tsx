@@ -14,7 +14,7 @@ export const handler: Handlers = {
 
     const pageProps: HassPageProps = {
       er,
-      page: "index",
+      page: "homeassistant",
       lang: ctx.state.lang as string | undefined || ctx.params.country,
     };
 

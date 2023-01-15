@@ -15,13 +15,13 @@ const sqlCurrentLoadAndGeneration = `
 WITH 
 distinct_generation AS (
     SELECT 
-        DISTINCT
         generation.area,
         generation.period,
         generation.interval,
         generation.consumption,
         generation.value,
-        generation.psr
+        generation.psr,
+        ROW_NUMBER() OVER(PARTITION BY generation.area, generation.interval,generation.psr,generation.consumption ORDER BY generation.period DESC) AS row_number
     FROM
         generation
     WHERE
@@ -30,16 +30,17 @@ distinct_generation AS (
 generation_per_psr_group AS (
     SELECT 
         g.area,
-        g.period,
+        MIN(g.period) as period,
         g.interval,
         psr.psr_group,
         SUM(CASE WHEN g.consumption THEN 0-g.value ELSE g.value END) as value
     FROM
         distinct_generation as g
         LEFT JOIN psr ON g.psr = psr.psr
+    WHERE
+        row_number = 1
     GROUP BY
         g.area,
-        g.period,
         g.interval,
         psr.psr_group
 ),
@@ -64,8 +65,7 @@ generation_total AS (
         gen.area,
         gen.period,
         gen.interval
-),
-generation_and_load AS (
+)
 SELECT 
     generation_total.area,
     generation_total.period,
@@ -74,21 +74,14 @@ SELECT
     generation_total.max_generation_value as primary_psr_group_generation,
     generation_total.sum_generation_value as generation_total,
     [load].value as load_total,
-    generation_total.sum_generation_value-[load].value as net_generation,
-    ROW_NUMBER() OVER(PARTITION BY generation_total.area ORDER BY generation_total.period DESC) AS row_number
+    generation_total.sum_generation_value-[load].value as net_generation
 FROM
     generation_total
     INNER JOIN [load]
         ON 
             generation_total.area = [load].area 
             AND generation_total.period = [load].period 
-            AND generation_total.interval = [load].interval)
-SELECT
-    *
-FROM
-    generation_and_load
-WHERE
-    row_number = 1`;
+            AND generation_total.interval = [load].interval`;
 const sqlLoadAndGeneration = `
     WITH 
     distinct_generation AS (

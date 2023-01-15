@@ -32,9 +32,9 @@ export default function SingleAreaOverview(props: AreaViewProps) {
     (avgPrice(rsDeTomorrow) ?? 0)
     *(
       (
-          ((avgPrice(rsMonth) ?? 0)/(avgPrice(rsDeMonth) ?? 0))*3
-        + ((avgPrice(rsToday) ?? 0)/(avgPrice(rsDeToday) ?? 0))*1
-      ) / 4
+          ((avgPrice(rsMonth) ?? 0)/(avgPrice(rsDeMonth) ?? 0))
+        + ((avgPrice(rsToday) ?? 0)/(avgPrice(rsDeToday) ?? 0))
+      ) / 2
     )
   );
   const showPrognosis = rsTomorrow.length === 0 && rsDeTomorrow.length > 1 && props.country.id !== "de";

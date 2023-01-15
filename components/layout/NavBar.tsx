@@ -72,7 +72,7 @@ export default function Navbar(props: NavbarProps) {
           </>)}
         )}
 
-        <li class={"nav-item" + (props.page === "home" ? " active" : "")}>
+        <li class={"nav-item" + (props.page === "homeassistant" ? " active" : "")}>
           <a class={"nav-link"} href={"/homeassistant"}>
             <span>Home Assistant</span>
           </a>
