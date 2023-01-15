@@ -1,5 +1,4 @@
 cache
 db
 !backend/db
-deno.lock
 main.release.ts

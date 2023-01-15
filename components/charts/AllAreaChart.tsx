@@ -3,7 +3,7 @@ import { liveViewChartOptions } from "config/charts/liveview.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
 import { ChartSeries, CommonProps, formatHhMm } from "utils/common.ts";
 import { DataArea } from "config/countries.ts";
-import { ExchangeRateResult } from "../backend/db/index.ts";
+import { ExchangeRateResult } from "backend/db/index.ts";
 
 interface AllAreaChartProps extends CommonProps {
   highlight: string;

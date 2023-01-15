@@ -1,8 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { productionTodayChartOptions } from "config/charts/productiontoday.js";
-import { formatHhMm } from "utils/common.ts";
 import { CommonProps } from "utils/common.ts";
-import { DBResultSet, SpotApiRow } from "../backend/db/index.ts";
+import { DBResultSet, SpotApiRow } from "backend/db/index.ts";
 
 interface ProductionTodayProps extends CommonProps {
   generationAndLoad: DBResultSet;

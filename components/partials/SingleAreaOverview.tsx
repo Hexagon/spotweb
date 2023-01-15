@@ -1,7 +1,7 @@
 import { applyExchangeRate, avgPrice, maxPrice, minPrice, nowPrice, processPrice } from "utils/price.ts";
-import { CommonProps, monthName } from "utils/common.ts";
+import { CommonProps } from "utils/common.ts";
 import { Country, DataArea } from "config/countries.ts";
-import { ExchangeRateResult, SpotApiRow } from "../backend/db/index.ts";
+import { ExchangeRateResult, SpotApiRow } from "backend/db/index.ts";
 
 interface AreaViewProps extends CommonProps {
   cols: number;
@@ -83,19 +83,19 @@ export default function SingleAreaOverview(props: AreaViewProps) {
                       <span data-t-key="common.overview.so_far" lang={props.lang}>So far in</span>
                       &nbsp;
                       { rsMonth && rsMonth[0]?.time && (
-                        <span data-t-key={"common.months_short."+monthName(rsMonth[0].time)} lang={props.lang}>-</span>
+                        <span data-t-key={"common.months_short."+new Date(rsMonth[0].time).getMonth()} lang={props.lang}>-</span>
                       )}
                     </h5>
                     <div class="mt-5 mb-5">
                       <span class="font-size-24">{processPrice(avgPrice(rsMonth), props)}</span>
                       <span>{props.currency}/{props.unit}</span>
                     </div>
-                    <span>Spann: {processPrice(minPrice(rsMonth), props)} - {processPrice(maxPrice(rsMonth), props)}</span>
+                    <span><span data-t-key="common.overview.span" lang={props.lang}>Span:</span> {processPrice(minPrice(rsMonth), props)} - {processPrice(maxPrice(rsMonth), props)}</span>
                   </div>
                   <div class="col-5 text-right">
                     <h5 class="mb-0">
                     { rsPrevMonth && rsPrevMonth[0]?.time && (
-                      <span data-t-key={"common.months_short."+monthName(rsPrevMonth[0]?.time)} lang={props.lang}>-</span>
+                      <span data-t-key={"common.months_short."+new Date(rsPrevMonth[0]?.time).getMonth()} lang={props.lang}>-</span>
                     )}
                     </h5>
                     <div class="mt-5 mb-5">

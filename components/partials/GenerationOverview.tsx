@@ -1,7 +1,8 @@
 import { CommonProps} from "utils/common.ts";
 import { Country } from "config/countries.ts";
 import { PsrMap } from "config/psrmap.ts";
-import { DBResultSet, ExchangeRateResult } from "../backend/db/index.ts";
+
+import { DBResultSet, ExchangeRateResult } from "backend/db/index.ts";
 
 interface GenerationOverviewProps extends CommonProps {
   cols: number;

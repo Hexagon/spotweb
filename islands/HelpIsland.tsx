@@ -1,11 +1,14 @@
 import { PageProps } from "$fresh/server.ts";
 import { useState } from "preact/hooks";
-import Navbar from "components/layout/NavBar.tsx";
-import Sidebar from "components/layout/Sidebar.tsx";
-import InformationPane from "components/InformationPane.tsx";
+
 import { preferences } from "config/preferences.js";
 import { CommonProps } from "utils/common.ts";
 import { HelpPageProps } from "routes/help.tsx";
+
+import Navbar from "components/layout/NavBar.tsx";
+import Sidebar from "components/layout/Sidebar.tsx";
+
+import InformationPane from "components/partials/InformationPane.tsx";
 
 export default function HassIsland(props: PageProps<HelpPageProps>) {
 

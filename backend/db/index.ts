@@ -142,23 +142,6 @@ const GetSpotprice = async (
   return result;
 };
 
-const GetDataDayCountry = async (countryName: string, date: Date, interval: string, currency?: string): Promise<SpotApiRow[]> => {
-  const startDate = new Date(date),
-    endDate = new Date(date);
-  startDate.setHours(0, 0, 0, 0);
-  endDate.setHours(23, 59, 59, 999);
-
-  return await GetSpotprice(
-    undefined,
-    countryName,
-    "hourly",
-    startDate,
-    endDate,
-    interval,
-    currency,
-  );
-};
-
 const GetDataDay = async (areaName: string, date: Date, interval: string, currency?: string): Promise<SpotApiRow[]> => {
   const startDate = new Date(date),
     endDate = new Date(date);
@@ -300,26 +283,6 @@ const GetDataMonth = async (areaName: string, date: Date, interval: string, curr
   );
 };
 
-const GetDataMonthCountry = async (countryName: string, date: Date, interval: string, currency?: string) => {
-  const startDate = new Date(date),
-    endDate = new Date(date);
-
-  startDate.setDate(1);
-  startDate.setHours(0, 0, 0, 0);
-  endDate.setMonth(endDate.getMonth() + 1);
-  endDate.setDate(0);
-  endDate.setHours(23, 59, 59, 999);
-
-  return await GetSpotprice(
-    undefined,
-    countryName,
-    "hourly",
-    startDate,
-    endDate,
-    interval,
-    currency,
-  );
-};
 const GetExchangeRates = async (): Promise<ExchangeRateResult> => {
   const output = await DataCache("exrate", "__exrate", 86400, () => {
     const result = database.query(sqlExchangeRates),
@@ -345,9 +308,7 @@ export {
   database,
   GetCurrentGeneration,
   GetDataDay,
-  GetDataDayCountry,
   GetDataMonth,
-  GetDataMonthCountry,
   GetExchangeRates,
   GetGenerationAndLoad,
   GetGenerationDay,

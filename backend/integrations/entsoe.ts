@@ -147,5 +147,4 @@ const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Pr
   return output;
 };
 
-export type { SpotRow };
 export { EntsoeGeneration, EntsoeLoad, EntsoeSpotprice };

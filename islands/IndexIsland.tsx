@@ -1,14 +1,17 @@
 import { PageProps } from "$fresh/server.ts";
 import { useState } from "preact/hooks";
 
+import { preferences } from "config/preferences.js";
+import { CommonProps } from "utils/common.ts";
+import { Cron } from "croner";
+
+import { IndexPageProps } from "routes/index.tsx";
+
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
-import { preferences } from "config/preferences.js";
-import PriceFactorWarning from "components/PriceFactorWarning.tsx";
-import { CommonProps } from "utils/common.ts";
-import Cron from "croner";
+
+import PriceFactorWarning from "components/partials/PriceFactorWarning.tsx";
 import ProductionByCountry from "components/ProductionByCountry.tsx";
-import { IndexPageProps } from "routes/index.tsx";
 
 export default function IndexIsland(props: PageProps<IndexPageProps>) {
   

@@ -10,8 +10,6 @@ export const handler: Handlers = {
     // Remove "secrets"
     sitemap.remove("/api/v2/hass");
     sitemap.remove("/api/v2/spot");
-    sitemap.remove("/api/entsoe");
-    sitemap.remove("/api/exrate");
     sitemap.remove("/compare");
     sitemap.remove("/custom");
     sitemap.remove("/help");

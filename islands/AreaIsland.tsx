@@ -8,15 +8,17 @@ import { CommonProps } from "utils/common.ts";
 
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
-import SingleAreaOverview from "components/SingleAreaOverview.tsx";
-import SingleAreaChart from "components/SingleAreaChart.tsx";
-import SingleAreaMonthChart from "components/SingleAreaMonthChart.tsx";
-import InformationPane from "components/InformationPane.tsx";
-import GenerationOverview from "components/GenerationOverview.tsx";
-import PriceFactorWarning from "components/PriceFactorWarning.tsx";
+
+import SingleAreaChart from "components/charts/SingleAreaChart.tsx";
+import SingleAreaMonthChart from "components/charts/SingleAreaMonthChart.tsx";
+import ProductionTodayChart from "components/charts/ProductionTodayChart.tsx";
+
+import InformationPane from "components/partials/InformationPane.tsx";
+import GenerationOverview from "components/partials/GenerationOverview.tsx";
+import PriceFactorWarning from "components/partials/PriceFactorWarning.tsx";
+import SingleAreaOverview from "components/partials/SingleAreaOverview.tsx";
 
 import { AreaPageProps } from "routes/[country]/[area].tsx";
-import ProductionTodayChart from "../components/ProductionTodayChart.tsx";
 
 export default function AreaIsland(props: PageProps<AreaPageProps>) {
 

@@ -1,19 +1,25 @@
 import { PageProps } from "$fresh/server.ts";
 import { useState } from "preact/hooks";
 
+import Cron from "croner";
+
+import { CommonProps } from "utils/common.ts";
+import { CountryPageProps } from "routes/[country]/index.tsx";
+
+import { preferences } from "config/preferences.js";
+
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
-import AllAreaChart from "components/AllAreaChart.tsx";
-import SingleAreaOverview from "components/SingleAreaOverview.tsx";
-import InformationPane from "components/InformationPane.tsx";
-import { preferences } from "config/preferences.js";
-import PriceFactorWarning from "components/PriceFactorWarning.tsx";
-import { CommonProps } from "utils/common.ts";
-import AllAreaChartLongTerm from "components/AllAreaChartLongTerm.tsx";
-import GenerationOverview from "components/GenerationOverview.tsx";
-import Cron from "croner";
-import { CountryPageProps } from "../routes/[country]/index.tsx";
-import ProductionTodayChart from "../components/ProductionTodayChart.tsx";
+
+import AllAreaChart from "components/charts/AllAreaChart.tsx";
+import AllAreaChartLongTerm from "components/charts/AllAreaChartLongTerm.tsx";
+import ProductionTodayChart from "components/charts/ProductionTodayChart.tsx";
+
+import SingleAreaOverview from "components/partials/SingleAreaOverview.tsx";
+import InformationPane from "components/partials/InformationPane.tsx";
+import PriceFactorWarning from "components/partials/PriceFactorWarning.tsx";
+import GenerationOverview from "components/partials/GenerationOverview.tsx";
+
 
 export default function CountryIsland(props: PageProps<CountryPageProps>) {
 
