@@ -24,18 +24,13 @@ export type { IndexPageProps };
 export const handler: Handlers = {
   async GET(_req, ctx) {
     const dateStart = new Date(),
-      dateEnd = new Date(),
-      dateStartGen = new Date(),
-      dateEndGen = new Date();
+      dateEnd = new Date();
 
     dateStart.setDate(dateStart.getDate() - 1);
 
-    dateStartGen.setHours(dateStartGen.getHours()-4);
-    dateEndGen.setHours(dateEndGen.getHours()-1);
-
     const er = await GetExchangeRates();
 
-    const currentGenerationAndLoad = await GetGenerationAndLoad(dateStartGen,dateEndGen);
+    const currentGenerationAndLoad = await GetLastGenerationAndLoad();
     const pricePerCountry = await GetLastPricePerCountry();
     const pricePerArea = await GetLastPricePerArea();
 
