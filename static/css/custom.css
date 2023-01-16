@@ -52,3 +52,21 @@
     line-height: 2.4rem;
 }
 
+/* highlight.js customization */
+.hljs {
+    background-color: #111213 !important;
+    font-size: 1.1rem;
+}
+
+.hljs::-webkit-scrollbar {
+    width: 14px;
+}
+.hljs::-webkit-scrollbar-track {
+    box-shadow: inset 0 0 5px #212223;
+    border-radius: 2px;
+}
+.hljs::-webkit-scrollbar-thumb {
+    background: #333435;
+    border-radius: 4px;
+    padding:3px;
+}

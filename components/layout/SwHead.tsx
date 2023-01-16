@@ -1,5 +1,5 @@
 import { asset, Head } from "$fresh/runtime.ts";
-import { DataArea } from "config/countries.ts";
+import { Area, Country, DataArea } from "config/countries.ts";
 import { maxPrice, minPrice, processPrice } from "utils/price.ts";
 import { avgPrice } from "utils/price.ts";
 import { applyExchangeRate } from "utils/price.ts";
@@ -9,6 +9,8 @@ import { preferences } from "config/preferences.js";
 
 interface HeadProps extends PageProps {
   title: string;
+  page: string;
+  country?: Country;
   area?: DataArea;
 }
 
@@ -66,17 +68,19 @@ export default function SwHead(props: HeadProps) {
     <Head>
       <title>{locale_kit.t("common.page.title",{ lang: props.data.lang })}  - {props.title}</title>
       <link rel="icon" type="image/png" href={asset("/icon-192x192.png")}></link>
-
       <meta name="description" content={locale_kit.t("common.header.title",{ lang: props.data.lang }) + " - " + props.title} />
 
+      {/* Halfmoon CSS */}
       <link
         href="https://cdn.jsdelivr.net/npm/halfmoon@1.1.1/css/halfmoon.min.css"
         rel="stylesheet"
       />
       <script src="https://cdn.jsdelivr.net/npm/halfmoon@1.1.1/js/halfmoon.min.js"></script>
 
+      {/* Font awesome */}
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha512-MV7K8+y+gLIBoVD59lQIYicR65iaqukzvf/nwasF0nqhPay5w/9lJmVM2hMDcnK1OnMGCdVK+iQrJ7lzPJQd1w==" crossOrigin="anonymous" referrerpolicy="no-referrer" />
 
+      {/* Apexcharts */}
       <link
         rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.36.3/apexcharts.min.css"
@@ -91,13 +95,30 @@ export default function SwHead(props: HeadProps) {
         referrerpolicy="no-referrer"
       >
       </script>
+
+      {/* highlight.js */}
+      { props.page === "homeassistant" && (
+        <>
+          <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/dark.min.css"></link>
+          <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+          <script>hljs.highlightAll();</script>
+        </>
+      )}
+
+      {/* PWA-related */}
       <script type="module" src={asset("/initworker.js")}></script>
       <link rel="manifest" href={asset("/manifest.json")}></link>
+
+      {/* Styles */}
       <link href="https://fonts.cdnfonts.com/css/seven-segment" rel="stylesheet"></link>
       <link rel="stylesheet" href={asset("/css/custom.css")}></link>
+
+      {/* json ld page descriptor, available on all pages */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdPageDocument }}></script>
+
+      {/* json ld price descriptor, only visible for area page type*/}
       { jsonLdPriceFlag && (
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdPriceDocument }}></script>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdPriceDocument }}></script>
       )}
     </Head>
   );
