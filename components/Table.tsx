@@ -87,10 +87,10 @@ export default function Table(props: TableProps) {
                   return (
                     <tr>
                       <td>{new Date(e.time).toLocaleString()}</td>
-                      <td>{processPrice(e.price, props, props.unit)}</td>
-                      <td>{e.min ? processPrice(e.min, props, props.unit) : "-"}</td>
-                      <td>{e.max ? processPrice(e.max, props, props.unit) : "-"}</td>
-                      <td>{props.currency}/{props.unit}</td>
+                      <td>{processPrice(e.price, props, "kWh")}</td>
+                      <td>{e.min ? processPrice(e.min, props, "kWh") : "-"}</td>
+                      <td>{e.max ? processPrice(e.max, props, "kWh") : "-"}</td>
+                      <td>{props.currency}/kWh</td>
                     </tr>
                   );
                 })}

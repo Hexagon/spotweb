@@ -78,7 +78,11 @@ const HourlyProductionUpdate = async () => {
 
   // Clear memory cache
   log("info", "Database changed, clearing cache, realm generation.");
+
+  // Consumption (load) is updated after generation, but they are often
+  // used together, clear both caches on completion
   InvalidateCache("generation");
+  InvalidateCache("load");
 
   running = false;
 

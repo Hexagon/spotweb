@@ -51,7 +51,7 @@ export default function SingleAreaOverview(props: AreaViewProps) {
           <div class="content px-card m-0 pt-0 pb-15 bg-very-dark text-center">
             <div class="font-size-64 pt-10 mb-0 pb-0 price-display">{processPrice(nowPrice(rsToday), props)}</div>
             <div class="mt-0 pt-0">
-              {props.currency}/{props.unit} <span data-t-key="common.overview.right_now" lang={props.lang}>right now</span>
+              {props.currency}/kWh <span data-t-key="common.overview.right_now" lang={props.lang}>right now</span>
             </div>
           </div>
           <div class="content px-card m-0 p-10 pt-10 pb-20">
@@ -60,7 +60,7 @@ export default function SingleAreaOverview(props: AreaViewProps) {
                 <h5 class="mb-0" data-t-key="common.overview.average_today" lang={props.lang}>Average today</h5>
                 <div class="mt-5 mb-5">
                   <span class="font-size-24">{processPrice(avgPrice(rsToday), props)}</span>
-                  <span>{props.currency}/{props.unit}</span>
+                  <span>{props.currency}/kWh</span>
                 </div>
                 <span>
                   <span data-t-key="common.overview.span" lang={props.lang}>Span:</span> {processPrice(minPrice(rsToday), props)} -{" "}
@@ -88,7 +88,7 @@ export default function SingleAreaOverview(props: AreaViewProps) {
                     </h5>
                     <div class="mt-5 mb-5">
                       <span class="font-size-24">{processPrice(avgPrice(rsMonth), props)}</span>
-                      <span>{props.currency}/{props.unit}</span>
+                      <span>{props.currency}/kWh</span>
                     </div>
                     <span><span data-t-key="common.overview.span" lang={props.lang}>Span:</span> {processPrice(minPrice(rsMonth), props)} - {processPrice(maxPrice(rsMonth), props)}</span>
                   </div>
@@ -111,7 +111,7 @@ export default function SingleAreaOverview(props: AreaViewProps) {
             <div class="content px-card alert alert-secondary bg-dark m-0 p-5 pr-10 border-0">
                   <small>
                   <p class="m-5">Price for tomorrow will arrive approx. 13.00 CE(S)T.<br></br>
-                  Our non-scientific forecasting model predicts that it will be approx. <strong><span> {processPrice(prognosis,props)} {props.currency}/{props.unit}</span></strong>.
+                  Our non-scientific forecasting model predicts that it will be approx. <strong><span> {processPrice(prognosis,props)} {props.currency}/kWh</span></strong>.
                   </p>
                   </small>
             </div>

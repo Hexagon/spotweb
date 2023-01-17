@@ -46,7 +46,7 @@ export default function Navbar(props: NavbarProps) {
         
         {/* Show link for current country if there is one */}
         { props.country && (
-          <li class={"nav-item" + ((props.page === props.country.id || props.page == props.area?.id) ? " active" : "")}>
+          <li class={"nav-item" + ((props.page === props.country.id || (props.page == props.area?.id && props.country.areas.length  === 1)) ? " active" : "")}>
             <a class={"nav-link"} href={"/" + props.country.id}>
               {/* Only display "All of" if there is more than one area in country */}
               { props.country.areas.length > 1 && (
@@ -60,7 +60,6 @@ export default function Navbar(props: NavbarProps) {
             </a>
           </li>
         )}
-
         { countries && countries.map((c) => { 
           if (c.id === props.country?.id) return (<>
             { c.areas && c.areas.length > 1 && c.areas.map((a) => { return (
@@ -72,7 +71,6 @@ export default function Navbar(props: NavbarProps) {
           )})}
           </>)}
         )}
-
         <li class={"nav-item" + (props.page === "homeassistant" ? " active" : "")}>
           <a class={"nav-link"} href={"/homeassistant"}>
             <span>Home Assistant</span>

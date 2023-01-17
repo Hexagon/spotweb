@@ -2,7 +2,6 @@
 import { useCallback, useState } from "preact/hooks";
 
 interface CustomizeProps {
-  unit: string;
   extra: number;
   factor: number;
   setUnit: Function;
@@ -17,10 +16,6 @@ interface CustomizeProps {
 }
 
 export default function Table(props: CustomizeProps) {
-  const setUnitStored = (u: string) => {
-    localStorage.setItem("sw_unit", u);
-    props.setUnit(u);
-  };
 
   const setCurrencyStored = (u: string) => {
     localStorage.setItem("sw_currency", u);
@@ -45,18 +40,6 @@ export default function Table(props: CustomizeProps) {
   return (
     <div>
       <div class="sidebar-content">
-        <label for="unit" data-t-key="common.customize.unit" lang={props.lang}>Enhet</label>
-        <select
-          class="form-control"
-          name="unit"
-          disabled={!props.disabled}
-          value={props.unit}
-          onInput={(e) => setUnitStored((e.target as HTMLSelectElement).value)}
-          required
-        >
-          <option value="MWh">MWh</option>
-          <option value="kWh">kWh</option>
-        </select>
       </div>
       <div class="sidebar-content">
         <label for="currency" data-t-key="common.customize.currency" lang={props.lang}>Valuta</label>
@@ -68,7 +51,6 @@ export default function Table(props: CustomizeProps) {
           onInput={(e) => setCurrencyStored((e.target as HTMLSelectElement).value)}
           required
         >
-          <option value="öre">öre</option>
           <option value="SEK">SEK</option>
           <option value="NOK">NOK</option>
           <option value="EUR">EUR</option>

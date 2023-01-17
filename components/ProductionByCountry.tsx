@@ -92,7 +92,7 @@ export default function ProductionByCountry(props: ProductionByCountryProps) {
                 <thead>
                   <tr class="bg-very-dark">
                     <th></th>
-                    <th><span data-t-key="common.overview.right_now" lang={props.lang}>Just nu</span><br></br><small>{props.currency}/{props.unit}</small></th>
+                    <th><span data-t-key="common.overview.right_now" lang={props.lang}>Just nu</span><br></br><small>{props.currency}/kWh</small></th>
                     <th><span data-t-key="common.generation.production" lang={props.lang}>Produktion</span><br></br><small>MW</small></th>
                     <th><span data-t-key="common.generation.consumption" lang={props.lang}>Förbrukning</span><br></br><small>MW</small></th>
                     <th><span data-t-key="common.generation.excess" lang={props.lang}></span></th>

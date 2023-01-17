@@ -25,7 +25,7 @@ export default function InformationPane(props: InformationPaneProps) {
               { props.currency !== "EUR" && (
                 <>
                   <span data-t-key="common.information.all_values_from" lang={props.lang}>All values converted from EUR</span>{" "}
-                  {rsER ? (rsER.entries[props.currency == "öre" ? "SEK" : props.currency]) : ""} {props.currency == "öre" ? "SEK" : props.currency}.
+                  {rsER ? (rsER.entries[props.currency]) : ""} {props.currency}.
                 </>
               )}
             </p>

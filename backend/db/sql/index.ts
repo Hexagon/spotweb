@@ -47,14 +47,13 @@ generation_per_psr_group AS (
 generation_total AS (
     SELECT 
         gen.area,
-        gen.period,
+        MIN(gen.period) as period,
         gen.interval,
         SUM(gen.value) as sum_generation_value,
         MAX(gen.value) as max_generation_value,
         FIRST_VALUE(gen.psr_group) OVER (
             PARTITION BY       
                 gen.area,
-                gen.period,
                 gen.interval
             ORDER BY 
                 SUM(gen.value) DESC
@@ -63,7 +62,6 @@ generation_total AS (
         generation_per_psr_group as gen
     GROUP BY
         gen.area,
-        gen.period,
         gen.interval
 )
 SELECT 
@@ -77,7 +75,7 @@ SELECT
     generation_total.sum_generation_value-[load].value as net_generation
 FROM
     generation_total
-    INNER JOIN [load]
+    LEFT JOIN [load]
         ON 
             generation_total.area = [load].area 
             AND generation_total.period = [load].period 

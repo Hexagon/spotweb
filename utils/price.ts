@@ -11,20 +11,12 @@ interface PriceProcessorProps {
 
 const processPrice = (
   price: number | null,
-  props: PriceProcessorProps,
-  eUnit?: string,
+  props: PriceProcessorProps
 ) => {
   if (price === null || price === undefined) return "-";
 
-  // Default eUnit to MWh
-  if (!eUnit) eUnit = "MWh";
-
   // Convert between MWh and kWh
-  if (eUnit.includes("MWh") && props.unit.includes("kWh")) {
-    price = price / 1000;
-  } else if (eUnit.includes("kWh") && props.unit.includes("MWh")) {
-    price = price * 1000;
-  }
+  price = price / 1000;
 
   if (props.priceFactor) {
     // Add extra
