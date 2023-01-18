@@ -8,6 +8,8 @@ interface HassPageProps extends BasePageProps {
   er: ExchangeRateResult;
 }
 
+export type { HassPageProps };
+
 export const handler: Handlers = {
   async GET(_req, ctx) {
     const er = await GetExchangeRates();

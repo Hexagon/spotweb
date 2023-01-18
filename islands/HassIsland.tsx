@@ -3,10 +3,12 @@ import { useEffect, useState } from "preact/hooks";
 
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
+import InformationPane from "components/partials/InformationPane.tsx";
 import { preferences } from "config/preferences.js";
-import { BasePageProps, CommonProps } from "utils/common.ts";
+import { CommonProps } from "utils/common.ts";
+import { HassPageProps } from "routes/homeassistant.tsx";
 
-export default function HassIsland(props: PageProps<BasePageProps>) {
+export default function HassIsland(props: PageProps<HassPageProps>) {
 
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
@@ -211,6 +213,9 @@ export default function HassIsland(props: PageProps<BasePageProps>) {
                   <p class="mt-0">This is an example showing how to use above configuration out of the box, to render a nice graph showing electricity prices for today and tomorrow.</p>
                   <p>Note that all values in the graph is multiplied by 100 to show cents or öre instead of EUR or SEK.</p>
                   <img src="/img/homeassistant-spot-price-apexcharts-card-example.png" alt="Home Assistant spotprice example"></img>
+                </div>    
+                <div class="content">
+                  <InformationPane cols={12} {...commonprops} {...props.data} lang={"en"}></InformationPane>
                 </div>
               </div>
               <div class="col-lg-5">
