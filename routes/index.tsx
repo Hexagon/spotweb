@@ -5,7 +5,6 @@ import {
   DBResultSet,
   ExchangeRateResult,
   GetExchangeRates,
-  GetGenerationAndLoad,
   GetLastGenerationAndLoad,
   GetLastPricePerArea,
   GetLastPricePerCountry,
@@ -51,7 +50,7 @@ export const handler: Handlers = {
 export default function Index(props: PageProps<IndexPageProps>) {
   return (
     <>
-      <SwHead title={""} {...props}></SwHead>
+      <SwHead title={""} {...props} {...props.data}></SwHead>
       <body lang={props.data.lang} class="dark-mode">
         <IndexIsland {...props}></IndexIsland>
       </body>

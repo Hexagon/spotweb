@@ -11,7 +11,7 @@ interface PriceProcessorProps {
 
 const processPrice = (
   price: number | null,
-  props: PriceProcessorProps
+  props: PriceProcessorProps,
 ) => {
   if (price === null || price === undefined) return "-";
 

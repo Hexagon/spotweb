@@ -36,7 +36,7 @@ export const handler: Handlers = {
 export default function Home(props: PageProps) {
   return (
     <>
-      <SwHead title={" - Anpassad period"} {...props}></SwHead>
+      <SwHead title={" - Anpassad period"} {...props} {...props.data}></SwHead>
       <body lang={props.data.lang} class="dark-mode">
         <CustomIsland {...props}></CustomIsland>
       </body>

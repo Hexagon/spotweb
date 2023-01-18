@@ -63,20 +63,20 @@ const processData = (
 ) => {
   return {
     updated: new Date(),
-    now: processPrice(nowPrice(today), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }, "MWh"),
-    avg: processPrice(avgPrice(today), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }, "MWh"),
-    min: processPrice(minPrice(today), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }, "MWh"),
-    max: processPrice(maxPrice(today), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }, "MWh"),
-    avg_tomorrow: processPrice(avgPrice(tomorrow), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }, "MWh"),
-    min_tomorrow: processPrice(minPrice(tomorrow), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }, "MWh"),
-    max_tomorrow: processPrice(maxPrice(tomorrow), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }, "MWh"),
-    avg_yesterday: processPrice(avgPrice(yesterday), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }, "MWh"),
-    min_yesterday: processPrice(minPrice(yesterday), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }, "MWh"),
-    max_yesterday: processPrice(maxPrice(yesterday), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }, "MWh"),
+    now: processPrice(nowPrice(today), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
+    avg: processPrice(avgPrice(today), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
+    min: processPrice(minPrice(today), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
+    max: processPrice(maxPrice(today), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
+    avg_tomorrow: processPrice(avgPrice(tomorrow), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
+    min_tomorrow: processPrice(minPrice(tomorrow), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
+    max_tomorrow: processPrice(maxPrice(tomorrow), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
+    avg_yesterday: processPrice(avgPrice(yesterday), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
+    min_yesterday: processPrice(minPrice(yesterday), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
+    max_yesterday: processPrice(maxPrice(yesterday), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
     data: data.map((r) => {
       return {
         st: new Date(r.time),
-        p: processPrice(r.price, { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }, "MWh"),
+        p: processPrice(r.price, { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
       };
     }),
   };
