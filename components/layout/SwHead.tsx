@@ -102,9 +102,6 @@ export default function SwHead(props: HeadProps) {
           <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/dark.min.css"></link>
           <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
           <script>hljs.highlightAll();</script>
-
-          {/* Custom languange for highlighting urls*/}
-          <script src="/js/highlightjs.url.js"></script>
         </>
       )}
 

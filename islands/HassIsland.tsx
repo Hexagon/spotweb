@@ -1,5 +1,5 @@
 import { PageProps } from "$fresh/server.ts";
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
@@ -29,6 +29,91 @@ export default function HassIsland(props: PageProps<BasePageProps>) {
     priceFactor,
     ...props.data,
   };
+
+  useEffect(() => {
+    const apexConf = 
+      `type: custom:apexcharts-card
+        experimental:
+          color_threshold: true
+        graph_span: 2day
+        update_interval: 2m
+        now:
+          show: true
+          label: Now
+          color: gray
+        span:
+          offset: '+0day'
+          start: day
+        yaxis:
+          - id: primary
+            decimals: 0
+            min: 0
+        header:
+          show: true
+          title: Electricity Price - Today and tomorrow
+          show_states: true
+          colorize_states: true
+        all_series_config:
+          color_threshold:
+            - value: 0
+              color: green
+            - value: 75
+              color: orange
+            - value: 130
+              color: red
+          unit: '${currency}/kWh'
+          type: line
+          stroke_width: 0
+          show:
+            legend_value: false
+            in_header: true
+            header_color_threshold: true
+        series:
+          - entity: sensor.spotprice_now
+            type: column
+            name: Right now
+            show:
+              extremas: true
+              in_header: before_now
+            data_generator: >
+              return
+              entity.attributes.data.map(e=>[Date.parse(e.st),parseFloat(e.p)]);
+          - entity: sensor.spotprice_now
+            name: Today (avg)
+            data_generator: >
+              return [[new Date(),entity.attributes.avg]]
+          - entity: sensor.spotprice_now
+            name: Tomorrow (avg)
+            data_generator: >
+              return [[new Date(),entity.attributes.avg_tomorrow]]`;
+    const hassConf = `rest:
+    - scan_interval: 180
+      resource: https://spot.56k.guru/api/v2/hass?currency=${currency}&area=SE2&extra=${extra}&factor=${factor}&decimals=${decimals}
+      sensor:
+        - name: "Spotprice Now"
+          unique_id: "56k_spotprice_now"
+          value_template: "{{ value_json.now }}"
+          unit_of_measurement: "${currency}/kWh"
+          state_class: "measurement"
+          device_class: "monetary"
+          json_attributes:
+            - data
+            - avg
+            - min
+            - max
+            - avg_tomorrow
+            - min_tomorrow
+            - max_tomorrow
+            - avg_yesterday
+            - min_yesterday
+            - max_yesterday`;
+    const 
+      hassElm = document.getElementById('hass-conf'),
+      apexElm = document.getElementById('apex-conf');
+    if (apexElm) apexElm.innerHTML = apexConf;
+    if (hassElm) hassElm.innerHTML = hassConf;
+    hljs.highlightAll();
+  },[currency,extra,factor,decimals])
 
   return (
     <div>
@@ -68,8 +153,7 @@ export default function HassIsland(props: PageProps<BasePageProps>) {
                   <li><strong>min/max/avg_tomorrow</strong> - Tomorrow's hourly rate</li>
                   <li><strong>min/max/avg_yesterday</strong> - Yesterday's hourly rate</li>
                   </ul>
-                  <p>Replace the URL in the example with the one below, and you will get the same settings in Home Assistant as you have here on the page.</p>
-                  <code class="code">https://spot.56k.guru/api/v2/hass?currency={commonprops.currency}&area=SE2&extra={commonprops.extra}&factor={commonprops.factor}&decimals={commonprops.decimals}</code>
+                  <p>If you customize your price settings on the page (using the hamburger menu), your changes will be immediately reflected in the configuration to the right.</p>
                   <p>The service is free and open to everyone, no API key is required. However, it is used at your own risk, no guarantees are given! More information about data source and data quality can be found at the bottom of the page.</p>
                 </div>
                 <div class="content">
@@ -104,28 +188,7 @@ export default function HassIsland(props: PageProps<BasePageProps>) {
                     </div> 
                     <div class="code-container">
                         <pre class="m-0">
-                            <code class="language-yaml">
-  {`rest:
-  - scan_interval: 180
-    resource: https://spot.56k.guru/api/v2/hass?currency=EUR&area=SE2&extra=0&factor=1&decimals=2
-    sensor:
-      - name: "Spotprice Now"
-        unique_id: "56k_spotprice_now"
-        value_template: "{{ value_json.now }}"
-        unit_of_measurement: "EUR/kWh"
-        state_class: "measurement"
-        device_class: "monetary"
-        json_attributes:
-          - data
-          - avg
-          - min
-          - max
-          - avg_tomorrow
-          - min_tomorrow
-          - max_tomorrow
-          - avg_yesterday
-          - min_yesterday
-          - max_yesterday`}
+                            <code class="language-yaml" id="hass-conf">
                             </code>
                         </pre>
                     </div>
@@ -158,61 +221,7 @@ export default function HassIsland(props: PageProps<BasePageProps>) {
                     </div> 
                     <div class="code-container">
                         <pre class="m-0">
-                            <code class="language-yaml">{
-`type: custom:apexcharts-card
-  experimental:
-    color_threshold: true
-  graph_span: 2day
-  update_interval: 2m
-  now:
-    show: true
-    label: Now
-    color: gray
-  span:
-    offset: '+0day'
-    start: day
-  yaxis:
-    - id: primary
-      decimals: 0
-      min: 0
-  header:
-    show: true
-    title: Electricity Price - Today and tomorrow
-    show_states: true
-    colorize_states: true
-  all_series_config:
-    color_threshold:
-      - value: 0
-        color: green
-      - value: 75
-        color: orange
-      - value: 130
-        color: red
-    unit: 'EUR/kWh'
-    type: line
-    stroke_width: 0
-    show:
-      legend_value: false
-      in_header: true
-      header_color_threshold: true
-  series:
-    - entity: sensor.spotprice_now
-      type: column
-      name: Right now
-      show:
-        extremas: true
-        in_header: before_now
-      data_generator: >
-        return
-        entity.attributes.data.map(e=>[Date.parse(e.st),parseFloat(e.p)]);
-    - entity: sensor.spotprice_now
-      name: Today (avg)
-      data_generator: >
-        return [[new Date(),entity.attributes.avg]]
-    - entity: sensor.spotprice_now
-      name: Tomorrow (avg)
-      data_generator: >
-        return [[new Date(),entity.attributes.avg_tomorrow]]`}
+                            <code class="language-yaml" id="apex-conf">
                   </code>
                 </pre>
               </div>

@@ -20,7 +20,8 @@
     "jsxImportSource": "preact",
     "types": [
       "https://cdn.jsdelivr.net/npm/apexcharts@3.36.3/types/apexcharts.d.ts",
-      "./types/halfmoon.d.ts"
+      "./types/halfmoon.d.ts",
+      "./types/hljs.d.ts"
     ]
   }
 }
