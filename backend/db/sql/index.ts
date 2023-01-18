@@ -160,9 +160,9 @@ const sqlLoadAndGeneration = `
 // ---- Queries related to spot price -------------------------------------------------
 const sqlGroupBy: Record<string, string> = {
   total: "'total'",
-  yearly: "unixepoch(strftime('%Y-01-01 00:00:00',spotprice.period/1000,'unixepoch'))*1000",
-  monthly: "unixepoch(strftime('%Y-%m-01 00:00:00',spotprice.period/1000,'unixepoch'))*1000",
-  daily: "unixepoch(strftime('%Y-%m-%d 00:00:00',spotprice.period/1000,'unixepoch'))*1000",
+  yearly: "unixepoch(strftime('%Y-01-01 00:00:00',datetime(spotprice.period/1000,'unixepoch'),'localtime'))*1000",
+  monthly: "unixepoch(strftime('%Y-%m-01 00:00:00',datetime(spotprice.period/1000,'unixepoch'),'localtime'))*1000",
+  daily: "unixepoch(strftime('%Y-%m-%d 00:00:00',datetime(spotprice.period/1000,'unixepoch'),'localtime'))*1000",
   hourly: "unixepoch(datetime(spotprice.period/1000,'unixepoch'))*1000",
   minimum: "spotprice.period",
 };

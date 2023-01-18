@@ -10,9 +10,6 @@ interface AreaViewProps extends CommonProps {
   title: string;
   area: DataArea;
   country: Country;
-  deToday: SpotApiRow[];
-  deTomorrow: SpotApiRow[];
-  deMonth: SpotApiRow[];
   er: ExchangeRateResult;
 }
 
@@ -23,21 +20,6 @@ export default function SingleAreaOverview(props: AreaViewProps) {
   const rsTomorrow = applyExchangeRate(props.area?.dataTomorrow || [], props.er, props.currency);
   const rsMonth = props.area?.dataMonth ? applyExchangeRate(props.area?.dataMonth, props.er, props.currency) : undefined;
   const rsPrevMonth = props.area?.dataPrevMonth ? applyExchangeRate(props.area?.dataPrevMonth, props.er, props.currency) : undefined;
-  const rsDeToday = applyExchangeRate(props.deToday || [], props.er, props.currency);
-  const rsDeTomorrow = applyExchangeRate(props.deTomorrow || [], props.er, props.currency);
-  const rsDeMonth = applyExchangeRate(props.deMonth || [], props.er, props.currency);
-  
-  // Unscientific prognosis model
-  const prognosis = (
-    (avgPrice(rsDeTomorrow) ?? 0)
-    *(
-      (
-          ((avgPrice(rsMonth) ?? 0)/(avgPrice(rsDeMonth) ?? 0))
-        + ((avgPrice(rsToday) ?? 0)/(avgPrice(rsDeToday) ?? 0))
-      ) / 2
-    )
-  );
-  const showPrognosis = rsTomorrow.length === 0 && rsDeTomorrow.length > 1 && props.country.id !== "de";
 
   return (
     <div class={`col-lg-${props.cols} m-0 p-0`}>
@@ -107,15 +89,6 @@ export default function SingleAreaOverview(props: AreaViewProps) {
               </div>
             )}
           </div>
-          { showPrognosis && (
-            <div class="content px-card alert alert-secondary bg-dark m-0 p-5 pr-10 border-0">
-                  <small>
-                  <p class="m-5">Price for tomorrow will arrive approx. 13.00 CE(S)T.<br></br>
-                  Our non-scientific forecasting model predicts that it will be approx. <strong><span> {processPrice(prognosis,props)} {props.currency}/kWh</span></strong>.
-                  </p>
-                  </small>
-            </div>
-          )}
           {!props.detailed && (
             <div class="content px-card m-0 p-5 pr-10 bg-very-dark text-right">
               <a href={"/" + props.country?.id + "/" + props.area?.name} class={"link-" + props.highlight}>
