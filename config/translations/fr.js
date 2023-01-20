@@ -71,7 +71,8 @@ const fr = {
       "index": "Aperçu",
       "table": "Tableau",
       "country": "Pays",
-      "help": "à l'aide",
+      "area": "Zone",
+      "help": "À l'aide",
     },
     "customize": {
       "title": "Ajuster le prix réel",

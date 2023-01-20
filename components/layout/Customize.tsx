@@ -38,9 +38,7 @@ export default function Table(props: CustomizeProps) {
   };
 
   return (
-    <div>
-      <div class="sidebar-content">
-      </div>
+    <>
       <div class="sidebar-content">
         <label for="currency" data-t-key="common.customize.currency" lang={props.lang}>Valuta</label>
         <select
@@ -103,6 +101,6 @@ export default function Table(props: CustomizeProps) {
         >
         </input>
       </div>
-    </div>
+    </>
   );
 }

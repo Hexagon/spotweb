@@ -151,9 +151,9 @@ export default function HassIsland(props: PageProps<HassPageProps>) {
                   <p>The example configuration gives you an entity called entities.spotprice_now, which displays the spot price right now. The device also receives a number of attributes, e.g.</p>
                   <ul>
                   <li><strong>data</strong> - full hourly history, yesterday to tomorrow.</li>
-                  <li><strong>min/max/avg today</strong> - Today's hourly price</li>
-                  <li><strong>min/max/avg_tomorrow</strong> - Tomorrow's hourly rate</li>
-                  <li><strong>min/max/avg_yesterday</strong> - Yesterday's hourly rate</li>
+                  <li><strong>min/max/avg</strong> - Today's hourly price</li>
+                  <li><strong>min/max/avg_tomorrow</strong> - Tomorrow's hourly price</li>
+                  <li><strong>min/max/avg_yesterday</strong> - Yesterday's hourly price</li>
                   </ul>
                   <p>If you customize your price settings on the page (using the hamburger menu), your changes will be immediately reflected in the configuration to the right.</p>
                   <p>The service is free and open to everyone, no API key is required. However, it is used at your own risk, no guarantees are given! More information about data source and data quality can be found at the bottom of the page.</p>

@@ -70,6 +70,7 @@ const no = {
       "index": "Oversikt",
       "table": "Tabell",
       "country": "Land",
+      "area": "Område",
       "help": "Hjelp",
     },
     "customize": {

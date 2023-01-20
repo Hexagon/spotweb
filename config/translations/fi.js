@@ -71,6 +71,7 @@ const fi = {
       "index": "Yleiskatsaus",
       "table": "Taulukko",
       "country": "Maa",
+      "area": "Sähköalue",
       "help": "Apua",
     },
     "customize": {

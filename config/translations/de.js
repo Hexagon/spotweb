@@ -71,6 +71,7 @@ const de = {
       "index": "Übersicht",
       "table": "Tabelle",
       "country": "Land",
+      "area": "Bereich",
       "help": "Hilfe",
     },
     "customize": {

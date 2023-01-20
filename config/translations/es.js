@@ -71,6 +71,7 @@ const es = {
       "index": "Resumen",
       "table": "Mesa",
       "country": "País",
+      "area": "Área",
       "help": "Ayuda",
     },
     "customize": {

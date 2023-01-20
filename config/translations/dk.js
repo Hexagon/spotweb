@@ -70,6 +70,7 @@ const dk = {
       "index": "Oversigt",
       "table": "Tabel",
       "country": "Land",
+      "area": "Område",
       "help": "Hjælp",
     },
     "customize": {

@@ -70,6 +70,7 @@ const sv = {
       "index": "Översikt",
       "table": "Tabell",
       "country": "Land",
+      "area": "Elområde",
       "help": "Hjälp",
     },
     "customize": {

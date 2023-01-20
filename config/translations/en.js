@@ -70,6 +70,7 @@ const en = {
       "index": "Overview",
       "table": "Table",
       "country": "Country",
+      "area": "Area",
       "help": "Help",
     },
     "customize": {
