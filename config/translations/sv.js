@@ -40,7 +40,7 @@ const sv = {
     "warning": {
       "actual_price": "Faktiskt elpris",
       "actual_price_text":
-        "Du har för närvarande faktiskt elpris aktiverat, men har inte gjort några inställningar för skatter och avgifter. Klicka på hamburgermenyn och fyll i Faktor (t.ex. 1.25 för 25% moms) och din avgift (t.ex. 0.095 för 9.5 öre/kWh innan moms).",
+        "Du har för närvarande faktiskt elpris aktiverat, men har inte gjort några inställningar för skatter och avgifter. Klicka på kugghjulet och fyll i Faktor (t.ex. 1.25 för 25% moms) och din avgift (t.ex. 0.095 för 9.5 öre/kWh innan moms).",
     },
     "information": {
       "title": "Information och användningsvillkor",

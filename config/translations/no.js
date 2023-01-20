@@ -40,7 +40,7 @@ const no = {
     "warning": {
       "actual_price": "Faktisk strømpris",
       "actual_price_text":
-        "Du har for øyeblikket faktisk strømpris aktivert, men har ikke valgt noen innstillinger for skatter og avgifter. Klikk på hamburgermenyen og fyll inn faktoren (f.eks. 1,25 for 25 % mva) og kostnaden din (f.eks. 0,012 for 0,012 NOK/kWh før mva).",
+        "Du har for øyeblikket faktisk strømpris aktivert, men har ikke valgt noen innstillinger for skatter og avgifter. Klikk på tannhjulet og fyll inn faktoren (f.eks. 1,25 for 25 % mva) og kostnaden din (f.eks. 0,012 for 0,012 NOK/kWh før mva).",
     },
     "information": {
       "title": "Informasjon og vilkår for bruk",

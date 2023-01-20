@@ -40,7 +40,7 @@ const dk = {
     "warning": {
       "actual_price": "Faktisk elpris",
       "actual_price_text":
-        "Du har i øjeblikket faktisk elprisen aktiveret, men har ikke foretaget nogen indstillinger for skatter og afgifter. Klik på hamburgermenuen og udfyld faktoren (f.eks. 1,25 for 25 % moms) og din afgift (f.eks. 0,012 for 0,012 EUR/kWh før moms).",
+        "Du har i øjeblikket faktisk elprisen aktiveret, men har ikke foretaget nogen indstillinger for skatter og afgifter. Klicka på kugghjulet og udfyld faktoren (f.eks. 1,25 for 25 % moms) og din afgift (f.eks. 0,012 for 0,012 EUR/kWh før moms).",
     },
     "information": {
       "title": "Information og vilkår for brug",

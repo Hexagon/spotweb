@@ -40,7 +40,7 @@ const fr = {
     "warning": {
       "actual_price": "Prix réel",
       "actual_price_text":
-        "Vous avez activé le 'prix réel', mais vous n'avez effectué aucune personnalisation des taxes et des frais. Cliquez sur le menu hamburger et entrez le facteur (par exemple, 1,25 pour 25 % de TVA) et vos frais (par exemple, 0,095 pour 9,5 EUR/kWh, avant TVA ).",
+        "Vous avez activé le 'prix réel', mais vous n'avez effectué aucune personnalisation des taxes et des frais. Cliquez sur l'engrenage et entrez le facteur (par exemple, 1,25 pour 25 % de TVA) et vos frais (par exemple, 0,095 pour 9,5 EUR/kWh, avant TVA ).",
     },
     "information": {
       "title": "Informations et conditions d'utilisation",
