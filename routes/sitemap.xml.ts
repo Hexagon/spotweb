@@ -12,7 +12,6 @@ export const handler: Handlers = {
     sitemap.remove("/api/v2/spot");
     sitemap.remove("/compare");
     sitemap.remove("/custom");
-    sitemap.remove("/help");
 
     // Remove dynamic
     sitemap.remove("/[country]/");

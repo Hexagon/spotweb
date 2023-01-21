@@ -52,8 +52,48 @@ export default function HassIsland(props: PageProps<HelpPageProps>) {
         ></Sidebar>
         <div class="content-wrapper">
           <div class="row">
-            <div class="col-xl-8">
+            <div class="col-xl-12">
               <div class="content">
+                {/* Aboot */}
+                <h1 class="content-title">
+                  Help
+                </h1>
+                <h2  class="content-title">Installing as an app</h2>
+                <p>spot.56k.guru is available as an app (<a href="https://web.dev/what-are-pwas/">PWA</a>) for Windows, Android and Apple OS devices. Follow the instructions below to install the app.</p>
+              </div>
+              <div class="content row">
+               <div class="px-card col-md-4">
+                  <div class="card-title">
+                    <h3  class="content-title">Windows (Chrome)</h3>
+                  </div>
+                  <p>On your computer, open Chrome.</p>
+                  <ul>
+                    <ol>At the top right of the address bar, click Install.</ol>
+                    <ol>Follow the onscreen instructions.</ol>
+                  </ul>
+                </div>
+                <div class="px-card col-md-4">
+                  <div class="card-title">
+                    <h3 class="content-title">Android (Chrome)</h3>
+                  </div>
+                  <p>On your Android device, open Chrome.</p>
+                  <ul>
+                    <ol>Tap Install. If you've already dismissed the installation pop-up - you can use the three-dot menu, then click "Install".</ol>
+                    <ol>Follow the onscreen instructions.</ol>
+                  </ul>
+                </div>
+                <div class="px-card col-md-4">
+                  <div class="card-title">
+                    <h3 class="content-title">Apple/iOS</h3>
+                  </div>
+                  <p>On your Apple device, open Safari. It is not possible to install Progressive web apps from Chrome on Apple devices.</p>
+                  <ul>
+                    <ol>Press the "Share" button.</ol>
+                    <ol>Select "Add to home screen"</ol>
+                    <ol>Tap "Add" in the top right corner to finish</ol>
+                  </ul>
+                </div>
+                {/*
                 <h2 class="content-title">Infomation om elpris <a href="#information-electricity-prices" class="ml-5 text-decoration-none">#</a></h2>
                 <p>Läs gärna på om timpris, rörligt pris, skatter och avgifter under respektive kategori här nedanför.</p>
                 <div class="row">
@@ -102,42 +142,10 @@ export default function HassIsland(props: PageProps<HelpPageProps>) {
                   På den här sidan kan du välja mellan <i>faktiskt pris</i> eller{" "}
                   <i>spotpris</i>. Det gör du genom att trycka på hamburgermenyn längst uppe till vänster.
                 </p>
-                <h2 class="content-title">
-                    API
-                </h2>
               </div>
-              <div class="content">
-                <h3 class="content-title">Integrera med Home Assistant</h3>
-                <p>You can get current spot price, min/max for today, yesterday and tomorrow by using our API with the REST integration in Home Assistant.</p>
-                <p>Juts add this code into your <code class="code">configuration.yaml</code> and customize to your needs.</p>
-                <p>Only for personal use, at your own risk.</p>
-                <h4 class="content-title">Example yaml</h4>
-                <code><pre class="code">{
-        `rest:
-        - scan_interval: 60
-          resource: http://spot.56k.guru/api/v2/hass?currency=SEK&extra=0.095&factor=1.25&area=SE2&decimals=2
-          sensor:
-            - name: "Spotprice Now"
-              unique_id: "56k_spotprice_now"
-              value_template: "{{ value_json.now }}"
-              unit_of_measurement: "SEK/kWh"
-              state_class: "measurement"
-              device_class: "monetary"
-              json_attributes:
-                - data
-                - avg
-                - min
-                - max
-                - avg_tomorrow
-                - min_tomorrow
-                - max_tomorrow
-                - avg_yesterday
-                - min_yesterday
-                - max_yesterday`}
-                </pre></code>
-              </div>
+              */}
             </div>
-            <div class="col-xl-4 on-this-page-nav-container">
+            <div class="col-xl on-this-page-nav-container">
                 <div class="content">
                     <InformationPane cols={12} {...commonprops} {...props.data}></InformationPane>
                 </div>
@@ -145,5 +153,6 @@ export default function HassIsland(props: PageProps<HelpPageProps>) {
           </div>
         </div>
       </div>
+    </div>
   );
 }
