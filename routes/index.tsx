@@ -10,6 +10,7 @@ import {
   GetLastPricePerCountry,
 } from "backend/db/index.ts";
 import { BasePageProps } from "utils/common.ts";
+import { locale_kit } from "localekit_fresh";
 
 interface IndexPageProps extends BasePageProps {
   currentGenerationAndLoad: DBResultSet;
@@ -50,7 +51,7 @@ export const handler: Handlers = {
 export default function Index(props: PageProps<IndexPageProps>) {
   return (
     <>
-      <SwHead title={""} {...props} {...props.data}></SwHead>
+      <SwHead title={locale_kit.t("common.header.title", { lang: props.data.lang })} {...props} {...props.data}></SwHead>
       <body lang={props.data.lang} class="dark-mode">
         <IndexIsland {...props}></IndexIsland>
       </body>
