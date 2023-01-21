@@ -254,19 +254,36 @@ const sqlLoad = `
 
 // ---- SQL related to generation --------------------------------------------------------------
 const sqlGeneration = `
+WITH 
+distinct_generation AS (
+    SELECT 
+        DISTINCT
+        generation.area,
+        generation.period,
+        generation.interval,
+        generation.consumption,
+        generation.value,
+        generation.psr
+    FROM
+        generation
+)
         SELECT 
-            DISTINCT
             period,
-            psr,
-            CASE WHEN consumption THEN 0-value ELSE value END as value,
+            psr_group,
+            SUM(CASE WHEN consumption THEN 0-value ELSE value END) as value,
             interval
         FROM
-            generation
+            distinct_generation
+            LEFT JOIN psr ON psr.psr = distinct_generation.psr
         WHERE 
             area=(?) 
             AND period >= (?) 
             AND period < (?)
-            AND interval = (?);`;
+            AND interval = (?)
+        GROUP BY
+            period,
+            psr_group,
+            interval;`;
 
 // ---- SQL related to exchange rates ---------------------------------------------------------
 const sqlExchangeRates = `

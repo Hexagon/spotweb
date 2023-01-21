@@ -1,23 +1,25 @@
 import { useEffect, useState } from "preact/hooks";
-import { productionTodayChartOptions } from "config/charts/productiontoday.js";
+import { productionDetailsTodayChartOptions } from "config/charts/productiondetailstoday.js";
 import { CommonProps } from "utils/common.ts";
 import { DBResultSet, SpotApiRow } from "backend/db/index.ts";
 import { Area, Country } from "config/countries.ts";
+import { locale_kit } from "https://deno.land/x/localekit_fresh@0.5.0/mod.ts";
 
-interface ProductionTodayProps extends CommonProps {
-  generationAndLoad: DBResultSet;
+interface ProductionDetailsTodayProps extends CommonProps {
+  cols: number;
   country: Country;
   area?: Area;
-  cols: number;
+  generation: DBResultSet;
+  load: DBResultSet;
 }
 
-export default function ProductionTodayChart(props: ProductionTodayProps) {
+export default function ProductionDetailsTodayChart(props: ProductionDetailsTodayProps) {
 
   const 
   [chartElm, setChartElm] = useState<ApexCharts>(),
     [randomChartId] = useState((Math.random() * 10000).toFixed(0));
 
-  const renderChart = (seriesInput: Record<string,unknown>[], props: ProductionTodayProps) => {
+  const renderChart = (seriesInput: Record<string,unknown>[], props: ProductionDetailsTodayProps) => {
 
     // Inject series into chart configuration
     const series = [];
@@ -27,14 +29,14 @@ export default function ProductionTodayChart(props: ProductionTodayProps) {
           data: (s.data as Record<string,unknown>[]).map((e: Record<string,unknown>) => {
             return { x: new Date(e.time as number), y: e.value };
           }),
-          name: s.name,
-          type: 'bar'
+          name: locale_kit.t("common.generation.psr_"+(s.name as string), {lang: props.lang}),
+          type: 'area'
         },
       );
     }
 
     // deno-lint-ignore no-explicit-any
-    const chartOptions: any = { ...productionTodayChartOptions };
+    const chartOptions: any = { ...productionDetailsTodayChartOptions };
     chartOptions.series = series;
 
     // Inject annotations for now
@@ -61,21 +63,22 @@ export default function ProductionTodayChart(props: ProductionTodayProps) {
 
   const 
     dataArr: Record<string,unknown>[] = [],
-    countries: Record<string,unknown[]> = {};
-  for(const row of props.generationAndLoad.data) {
-    countries[row[0]] = countries[row[0]] || [];
-     countries[row[0]].push({
-       time: row[1],
-       value: row[7]
-     });
+    types: Record<string,unknown[]> = {};
+  for(const row of props.generation.data) {
+    types[row[1]] = types[row[1]] || [];
+    types[row[1]].push({
+      time: row[0],
+      value: row[2]
+    });
   }
-  for (const [key, country] of Object.entries(countries)) {
-    dataArr.push({ name: key, data: country as SpotApiRow[] });
+  for (const [key, typeData] of Object.entries(types)) {
+    dataArr.push({ name: key, data: typeData as SpotApiRow[] });
   }
 
   useEffect(() => {
+    console.log('wot');
     renderChart(dataArr, props);
-  }, [props.priceFactor]);
+  }, []);
 
   return (
     <div class={`col-lg-${props.cols} m-0 p-0`}>
@@ -83,7 +86,7 @@ export default function ProductionTodayChart(props: ProductionTodayProps) {
         <div class="card p-0 m-0">
           <div class={"px-card py-10 m-0 rounded-top"}>
             <h2 class="card-title font-size-18 m-0 text-center">
-              <span data-t-key={"common.chart.net_production"} lang={props.lang}>Net production</span>
+              <span data-t-key="common.generation.production" lang={props.lang}>Aktuell produktion och last</span>
               &nbsp;-&nbsp;
               {props.area ? props.area.name : props.country?.name}
               &nbsp;-&nbsp;

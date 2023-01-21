@@ -43,11 +43,11 @@ export default function GenerationOverview(props: GenerationOverviewProps) {
   // Aggregate lastgeneration
   const lastGenerationAggregated : Record<string,LastGenerationEntry> = {};
   for(const lg of Object.entries(lastGeneration)) {
-    if (lastGenerationAggregated[PsrMap[lg[0]]]) {
-      lastGenerationAggregated[PsrMap[lg[0]]].date = lastGenerationAggregated[PsrMap[lg[0]]].date > lg[1].date ? lastGenerationAggregated[PsrMap[lg[0]]].date : lg[1].date,
-      lastGenerationAggregated[PsrMap[lg[0]]].value = lastGenerationAggregated[PsrMap[lg[0]]].value + lg[1].value;
+    if (lastGenerationAggregated[lg[0]]) {
+      lastGenerationAggregated[lg[0]].date = lastGenerationAggregated[lg[0]].date > lg[1].date ? lastGenerationAggregated[lg[0]].date : lg[1].date,
+      lastGenerationAggregated[lg[0]].value = lastGenerationAggregated[lg[0]].value + lg[1].value;
     } else {
-      lastGenerationAggregated[PsrMap[lg[0]]] = {
+      lastGenerationAggregated[lg[0]] = {
         date: lg[1].date,
         value: lg[1].value
       };

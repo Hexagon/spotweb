@@ -19,6 +19,7 @@ import PriceFactorWarning from "components/partials/PriceFactorWarning.tsx";
 import SingleAreaOverview from "components/partials/SingleAreaOverview.tsx";
 
 import { AreaPageProps } from "routes/[country]/[area].tsx";
+import ProductionDetailsTodayChart from "../components/charts/ProductionDetailsTodayChart.tsx";
 
 export default function AreaIsland(props: PageProps<AreaPageProps>) {
 
@@ -48,7 +49,7 @@ export default function AreaIsland(props: PageProps<AreaPageProps>) {
 
   // Register a cron job which reloads the page at each full hour, if at least two minutes has passed since entering
   const pageLoadTime = new Date();
-  const reloadJob = new Cron("0 0 * * * *", () => {
+  const _reloadJob = new Cron("0 0 * * * *", () => {
     if (new Date().getTime()-pageLoadTime.getTime()>120*1000) {
       window?.location?.reload();
     }
@@ -99,14 +100,11 @@ export default function AreaIsland(props: PageProps<AreaPageProps>) {
               ></GenerationOverview>
             </div>
             <div class="row">
-              <SingleAreaMonthChart
-                title={props.data.area.name + " - " + props.data.area.long}
-                highlight={"color-" + props.data.area.color}
+              <ProductionDetailsTodayChart
                 cols={6}
-                date={dToday}
                 {...commonprops}
                 {...props.data}
-              ></SingleAreaMonthChart>
+                ></ProductionDetailsTodayChart>
               <ProductionTodayChart
                 cols={6}
                 {...commonprops}
@@ -114,6 +112,14 @@ export default function AreaIsland(props: PageProps<AreaPageProps>) {
                 ></ProductionTodayChart>
             </div>
             <div class="row">
+            <SingleAreaMonthChart
+                title={props.data.area.name + " - " + props.data.area.long}
+                highlight={"color-" + props.data.area.color}
+                cols={6}
+                date={dToday}
+                {...commonprops}
+                {...props.data}
+              ></SingleAreaMonthChart>
               <InformationPane
                 cols={6}
                 {...commonprops}

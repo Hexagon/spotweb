@@ -4,7 +4,6 @@ import CountryIsland from "islands/CountryIsland.tsx";
 import {
   DBResultSet,
   ExchangeRateResult,
-  GetCurrentGeneration,
   GetDataDay,
   GetDataMonth,
   GetExchangeRates,
@@ -69,7 +68,7 @@ export const handler: Handlers = {
     const pageProps: CountryPageProps = {
       country,
       generationAndLoad,
-      generation: await GetCurrentGeneration(country.cty, country.interval),
+      generation: await GetGenerationDay(country.cty, yesterdayDate, todayDate, country.interval),
       load: await GetLoadDay(country.cty, yesterdayDate, todayDate, country.interval),
       er,
       page: country.id,

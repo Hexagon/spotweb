@@ -4,11 +4,11 @@ import ElomradeIsland from "islands/AreaIsland.tsx";
 import {
   DBResultSet,
   ExchangeRateResult,
-  GetCurrentGeneration,
   GetDataDay,
   GetDataMonth,
   GetExchangeRates,
   GetGenerationAndLoad,
+  GetGenerationDay,
   GetLoadDay,
 } from "backend/db/index.ts";
 import { countries, Country, DataArea } from "config/countries.ts";
@@ -74,7 +74,7 @@ export const handler: Handlers = {
       country,
       area,
       generationAndLoad,
-      generation: await GetCurrentGeneration(area.id, country.interval),
+      generation: await GetGenerationDay(area.id, yesterdayDate, todayDate, country.interval),
       load: await GetLoadDay(area.id, yesterdayDate, todayDate, country.interval),
       page: area.id,
       er,

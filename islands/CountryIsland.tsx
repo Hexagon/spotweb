@@ -19,6 +19,7 @@ import SingleAreaOverview from "components/partials/SingleAreaOverview.tsx";
 import InformationPane from "components/partials/InformationPane.tsx";
 import PriceFactorWarning from "components/partials/PriceFactorWarning.tsx";
 import GenerationOverview from "components/partials/GenerationOverview.tsx";
+import ProductionDetailsTodayChart from "components/charts/ProductionDetailsTodayChart.tsx";
 
 
 export default function CountryIsland(props: PageProps<CountryPageProps>) {
@@ -110,12 +111,17 @@ export default function CountryIsland(props: PageProps<CountryPageProps>) {
           <div class="content mt-0 mr-0 ml-20">
             <div class="row mt-0">
             <GenerationOverview
-                cols={6}
+                cols={4}
                 {...commonprops}
                 {...props.data}
               ></GenerationOverview>
+              <ProductionDetailsTodayChart
+                cols={4}
+                {...commonprops}
+                {...props.data}
+                ></ProductionDetailsTodayChart>
               <ProductionTodayChart
-                cols={6}
+                cols={4}
                 {...commonprops}
                 {...props.data}
                 ></ProductionTodayChart>

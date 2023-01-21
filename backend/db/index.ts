@@ -175,22 +175,6 @@ const GetLoadDay = async (area: string, fromDateIn: Date, toDateIn: Date, interv
   });
 };
 
-const GetCurrentGeneration = async (area: string, interval: string): Promise<DBResultSet> => {
-  const fromDate = new Date(),
-    toDate = new Date();
-
-  fromDate.setHours(fromDate.getHours() - 4, 0, 0, 0);
-  toDate.setHours(23, 59, 59, 999);
-
-  const parameterString = new URLSearchParams({ area, interval, f: fromDate.getTime().toString(), t: toDate.getTime().toString() }).toString(),
-    cacheLength = 86400;
-
-  return await DataCache("generation", parameterString, cacheLength, () => {
-    const data = database.query(sqlGeneration, [area, fromDate.getTime(), toDate.getTime(), interval]);
-    return { data };
-  });
-};
-
 const GetLastPricePerArea = async (): Promise<DBResultSet> => {
   const fromDate = new Date();
   fromDate.setMinutes(0, 0, 0);
@@ -247,17 +231,18 @@ const GetGenerationAndLoad = async (fromDateIn: Date, toDateIn: Date): Promise<D
   });
 };
 
-const GetGenerationDay = async (area: string, fromDateIn: Date, toDateIn: Date): Promise<DBResultSet> => {
+const GetGenerationDay = async (area: string, fromDateIn: Date, toDateIn: Date, interval: string): Promise<DBResultSet> => {
   const fromDate = new Date(fromDateIn.getTime()),
     toDate = new Date(toDateIn.getTime());
-  fromDate.setHours(0, 0, 0, 0);
-  toDate.setHours(23, 59, 59, 0);
 
-  const parameterString = new URLSearchParams({ area, f: fromDate.getTime().toString(), t: toDate.getTime().toString() }).toString(),
+  fromDate.setHours(0, 0, 0, 0);
+  toDate.setHours(23, 59, 59, 999);
+
+  const parameterString = new URLSearchParams({ area, f: fromDate.getTime().toString(), t: toDate.getTime().toString(), interval }).toString(),
     cacheLength = 86400;
 
   return await DataCache("generation", parameterString, cacheLength, () => {
-    const data = database.query(sqlGeneration, [area, fromDate.getTime(), toDate.getTime()]);
+    const data = database.query(sqlGeneration, [area, fromDate.getTime(), toDate.getTime(), interval]);
     return { data };
   });
 };
@@ -306,7 +291,6 @@ const GetExchangeRates = async (): Promise<ExchangeRateResult> => {
 export type { DBResultSet, ExchangeRateResult, Row, SpotApiRow };
 export {
   database,
-  GetCurrentGeneration,
   GetDataDay,
   GetDataMonth,
   GetExchangeRates,
