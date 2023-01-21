@@ -67,31 +67,31 @@ export default function HassIsland(props: PageProps<HelpPageProps>) {
                     <h3  class="content-title">Windows (Chrome)</h3>
                   </div>
                   <p>On your computer, open Chrome.</p>
-                  <ul>
-                    <ol>At the top right of the address bar, click Install.</ol>
-                    <ol>Follow the onscreen instructions.</ol>
-                  </ul>
+                  <ol>
+                    <li>At the top right of the address bar, click Install.</li>
+                    <li>Follow the onscreen instructions.</li>
+                  </ol>
                 </div>
                 <div class="px-card col-md-4">
                   <div class="card-title">
                     <h3 class="content-title">Android (Chrome)</h3>
                   </div>
                   <p>On your Android device, open Chrome.</p>
-                  <ul>
-                    <ol>Tap Install. If you've already dismissed the installation pop-up - you can use the three-dot menu, then click "Install".</ol>
-                    <ol>Follow the onscreen instructions.</ol>
-                  </ul>
+                  <ol>
+                    <li>Tap Install. If you've already dismissed the installation pop-up - you can use the three-dot menu, then click "Install".</li>
+                    <li>Follow the onscreen instructions.</li>
+                  </ol>
                 </div>
                 <div class="px-card col-md-4">
                   <div class="card-title">
                     <h3 class="content-title">Apple/iOS</h3>
                   </div>
                   <p>On your Apple device, open Safari. It is not possible to install Progressive web apps from Chrome on Apple devices.</p>
-                  <ul>
-                    <ol>Press the "Share" button.</ol>
-                    <ol>Select "Add to home screen"</ol>
-                    <ol>Tap "Add" in the top right corner to finish</ol>
-                  </ul>
+                  <ol>
+                    <li>Press the "Share" button.</li>
+                    <li>Select "Add to home screen"</li>
+                    <li>Tap "Add" in the top right corner to finish</li>
+                  </ol>
                 </div>
                 {/*
                 <h2 class="content-title">Infomation om elpris <a href="#information-electricity-prices" class="ml-5 text-decoration-none">#</a></h2>
