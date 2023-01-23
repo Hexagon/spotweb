@@ -1,10 +1,9 @@
 import { CommonProps} from "utils/common.ts";
 import { Country } from "config/countries.ts";
-import { PsrMap } from "config/psrmap.ts";
 
 import { DBResultSet, ExchangeRateResult } from "backend/db/index.ts";
 
-interface GenerationOverviewProps extends CommonProps {
+interface ProductionOverviewProps extends CommonProps {
   cols: number;
   country: Country;
   er: ExchangeRateResult;
@@ -17,17 +16,18 @@ interface LastGenerationEntry {
   value: number
 }
 
-export default function GenerationOverview(props: GenerationOverviewProps) {
+export default function ProductionOverview(props: ProductionOverviewProps) {
 
   // Find last value for each production type
   const lastGeneration : Record<string, LastGenerationEntry> = {};
   let lastGenerationDate = 0;
+  
   for(let i = 0; i < props.generation.data.length; i++) {
     // Only use data within three hours, or last row
     const 
       currentGeneration = props.generation.data[i],
       dateMs = currentGeneration[0] as number,
-      psr = currentGeneration[1] as string,
+      psr = currentGeneration[1] as string + "_" + (currentGeneration[4] || 0).toString(),
       value = currentGeneration[2] as number;
     // Update date
     if (!lastGenerationDate || lastGenerationDate < dateMs) lastGenerationDate = dateMs;
@@ -40,22 +40,8 @@ export default function GenerationOverview(props: GenerationOverviewProps) {
     }
   }
 
-  // Aggregate lastgeneration
-  const lastGenerationAggregated : Record<string,LastGenerationEntry> = {};
-  for(const lg of Object.entries(lastGeneration)) {
-    if (lastGenerationAggregated[lg[0]]) {
-      lastGenerationAggregated[lg[0]].date = lastGenerationAggregated[lg[0]].date > lg[1].date ? lastGenerationAggregated[lg[0]].date : lg[1].date,
-      lastGenerationAggregated[lg[0]].value = lastGenerationAggregated[lg[0]].value + lg[1].value;
-    } else {
-      lastGenerationAggregated[lg[0]] = {
-        date: lg[1].date,
-        value: lg[1].value
-      };
-    }
-  }
-
   const 
-    lastGenerationSorted = Object.entries(lastGenerationAggregated);
+    lastGenerationSorted = Object.entries(lastGeneration);
   lastGenerationSorted.sort((a,b) => b[1].value - a[1].value);
 
   const 
@@ -94,7 +80,7 @@ export default function GenerationOverview(props: GenerationOverviewProps) {
                   <tr><th data-t-key="common.generation.production" lang={props.lang}>Produktion</th><th>{ generationTotal } MW</th></tr>
                   { lastGenerationSorted.map(g => g[1].value !== 0 && (
                     <>
-                      <tr><td><span data-t-key={"common.generation.psr_"+g[0].toLowerCase().replace(/[^a-zA-Z]/g,"_")} lang={props.lang}>{ g[0] }</span> - {(g[1].value/generationTotal*100).toFixed(1)} %</td><td>{ g[1].value } MW</td></tr>
+                      <tr><td><span data-t-key={"common.generation.psr_"+g[0].toLowerCase().replace(/[^a-zA-Z0-9]/g,"_")} lang={props.lang}>{ g[0] }</span> - {(g[1].value/generationTotal*100).toFixed(1)} %</td><td>{ g[1].value } MW</td></tr>
                     </>
                   ))}
                   <tr><th data-t-key="common.generation.consumption" lang={props.lang}>Förbrukning</th><th>{ loadTotal } MW</th></tr>

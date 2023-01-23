@@ -53,7 +53,7 @@ export default function ProductionByCountry(props: ProductionByCountryProps) {
         <td>
             { res?.primary_psr_group && (
               <>
-                <span data-t-key={"common.generation.psr_"+res?.primary_psr_group}></span><span> ({Math.round((res?.primary_psr_group_generation as number)/(res?.generation_total as number)*100)}%)</span>
+                <span data-t-key={"common.generation.psr_"+res?.primary_psr_group+"_0"}></span><span> ({Math.round((res?.primary_psr_group_generation as number)/(res?.generation_total as number)*100)}%)</span>
               </>
             )}
         </td>
@@ -73,7 +73,7 @@ export default function ProductionByCountry(props: ProductionByCountryProps) {
           <td>
             { res?.primary_psr_group && (
               <>
-                <span data-t-key={"common.generation.psr_"+res?.primary_psr_group}></span><span> ({Math.round((res?.primary_psr_group_generation as number)/(res?.generation_total as number)*100)}%)</span>
+                <span data-t-key={"common.generation.psr_"+res?.primary_psr_group+"_0"}></span><span> ({Math.round((res?.primary_psr_group_generation as number)/(res?.generation_total as number)*100)}%)</span>
               </>
             )}
           </td>            

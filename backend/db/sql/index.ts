@@ -33,6 +33,7 @@ generation_per_psr_group AS (
         MIN(g.period) as period,
         g.interval,
         psr.psr_group,
+        g.consumption,
         SUM(CASE WHEN g.consumption THEN 0-g.value ELSE g.value END) as value
     FROM
         distinct_generation as g
@@ -42,6 +43,7 @@ generation_per_psr_group AS (
     GROUP BY
         g.area,
         g.interval,
+        g.consumption,
         psr.psr_group
 ),
 generation_total AS (
@@ -271,7 +273,8 @@ distinct_generation AS (
             period,
             psr_group,
             SUM(CASE WHEN consumption THEN 0-value ELSE value END) as value,
-            interval
+            interval,
+            consumption
         FROM
             distinct_generation
             LEFT JOIN psr ON psr.psr = distinct_generation.psr
@@ -283,7 +286,8 @@ distinct_generation AS (
         GROUP BY
             period,
             psr_group,
-            interval;`;
+            interval,
+            consumption;`;
 
 // ---- SQL related to exchange rates ---------------------------------------------------------
 const sqlExchangeRates = `

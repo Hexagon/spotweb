@@ -14,7 +14,7 @@ import SingleAreaMonthChart from "components/charts/SingleAreaMonthChart.tsx";
 import ProductionTodayChart from "components/charts/ProductionTodayChart.tsx";
 
 import InformationPane from "components/partials/InformationPane.tsx";
-import GenerationOverview from "components/partials/GenerationOverview.tsx";
+import ProductionOverview from "components/partials/ProductionOverview.tsx";
 import PriceFactorWarning from "components/partials/PriceFactorWarning.tsx";
 import SingleAreaOverview from "components/partials/SingleAreaOverview.tsx";
 
@@ -93,11 +93,11 @@ export default function AreaIsland(props: PageProps<AreaPageProps>) {
                 {...commonprops}
                 {...props.data}
               ></SingleAreaChart>
-              <GenerationOverview
+              <ProductionOverview
                 cols={3}
                 {...commonprops}
                 {...props.data}
-              ></GenerationOverview>
+              ></ProductionOverview>
             </div>
             <div class="row">
               <ProductionDetailsTodayChart

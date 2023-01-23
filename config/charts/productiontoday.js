@@ -13,6 +13,7 @@ const productionTodayChartOptions = {
     },
   },
   yaxis: {
+    min: (min) => min < 0 ? min : 0,
     forceNiceScale: true,
   },
   legend: {

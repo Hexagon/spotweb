@@ -16,16 +16,17 @@ const productionDetailsTodayChartOptions = {
   },
   yaxis: {
     forceNiceScale: true,
+    min: (min) => min < 0 ? min : 0,
   },
   legend: {
     show: true,
   },
   fill: {
     type: "solid",
-    opacity: 0.3,
+    opacity: 0.7,
   },
   stroke: {
-    width: 2,
+    width: 0,
     opacity: 1,
   },
   dataLabels: {

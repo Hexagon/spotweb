@@ -24,7 +24,7 @@ const areaViewChartOptions = {
     tickAmount: 6,
   },
   yaxis: {
-    min: 0,
+    min: (min) => min < 0 ? min : 0,
     forceNiceScale: true,
   },
   legend: {

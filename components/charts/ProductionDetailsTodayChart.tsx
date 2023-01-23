@@ -30,7 +30,7 @@ export default function ProductionDetailsTodayChart(props: ProductionDetailsToda
             return { x: new Date(e.time as number), y: e.value };
           }),
           name: locale_kit.t("common.generation.psr_"+(s.name as string), {lang: props.lang}),
-          type: 'area'
+          type: 'bar'
         },
       );
     }
@@ -65,8 +65,9 @@ export default function ProductionDetailsTodayChart(props: ProductionDetailsToda
     dataArr: Record<string,unknown>[] = [],
     types: Record<string,unknown[]> = {};
   for(const row of props.generation.data) {
-    types[row[1]] = types[row[1]] || [];
-    types[row[1]].push({
+    const key = row[1] + "_" + row[4];
+    types[key] = types[key] || [];
+    types[key].push({
       time: row[0],
       value: row[2]
     });
@@ -76,7 +77,6 @@ export default function ProductionDetailsTodayChart(props: ProductionDetailsToda
   }
 
   useEffect(() => {
-    console.log('wot');
     renderChart(dataArr, props);
   }, []);
 
