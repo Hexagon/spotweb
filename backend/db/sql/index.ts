@@ -274,7 +274,8 @@ distinct_generation AS (
             psr_group,
             SUM(CASE WHEN consumption THEN 0-value ELSE value END) as value,
             interval,
-            consumption
+            consumption,
+            COUNT(distinct_generation.psr) as count_psr
         FROM
             distinct_generation
             LEFT JOIN psr ON psr.psr = distinct_generation.psr
