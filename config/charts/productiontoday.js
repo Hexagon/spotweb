@@ -37,7 +37,7 @@ const productionTodayChartOptions = {
     theme: "dark",
     followCursor: true,
     x: {
-      format: "yyyy-MM-dd hh:mm:ss",
+      format: "yyyy-MM-dd HH:mm",
     },
   },
   grid: {

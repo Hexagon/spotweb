@@ -27,7 +27,7 @@ export default function ProductionDetailsTodayChart(props: ProductionDetailsToda
       series.push(
         {
           data: (s.data as Record<string,unknown>[]).map((e: Record<string,unknown>) => {
-            return { x: new Date(e.time as number), y: e.value };
+            return { x: e.time, y: e.value };
           }),
           name: locale_kit.t("common.generation.psr_"+(s.name as string), {lang: props.lang}),
           type: 'bar'

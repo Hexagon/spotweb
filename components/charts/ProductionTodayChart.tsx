@@ -25,7 +25,7 @@ export default function ProductionTodayChart(props: ProductionTodayProps) {
       series.push(
         {
           data: (s.data as Record<string,unknown>[]).map((e: Record<string,unknown>) => {
-            return { x: new Date(e.time as number), y: e.value };
+            return { x: e.time, y: e.value };
           }),
           name: s.name,
           type: 'bar'
