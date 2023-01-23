@@ -63,17 +63,26 @@ export default function ProductionDetailsTodayChart(props: ProductionDetailsToda
 
   const 
     dataArr: Record<string,unknown>[] = [],
-    types: Record<string,unknown[]> = {};
+    types: Record<string,unknown[]> = {},
+    timeSet = new Set<number>(),
+    typeSet = new Set<string>(),
+    valueSet = new Map<string,number>();
+
   for(const row of props.generation.data) {
-    const key = row[1] + "_" + row[4];
-    types[key] = types[key] || [];
-    types[key].push({
-      time: row[0],
-      value: row[2]
-    });
+    timeSet.add(row[0] as number);
+    typeSet.add(row[1] + "_" + row[4]);
+    valueSet.set(row[1] + "_" + row[4] + "_" + row[0],row[2] as number);
   }
-  for (const [key, typeData] of Object.entries(types)) {
-    dataArr.push({ name: key, data: typeData as SpotApiRow[] });
+
+  for(const ty of typeSet.keys()) {
+    const typeData: Record<string,number>[] = [];
+    for(const ti of timeSet.keys()) {
+      typeData.push({
+        time: ti,
+        value: valueSet.get(ty+"_"+ti) as number || 0
+      })
+    }
+    dataArr.push({ name: ty, data: typeData })
   }
 
   useEffect(() => {

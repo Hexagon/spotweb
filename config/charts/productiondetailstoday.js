@@ -5,12 +5,13 @@ const productionDetailsTodayChartOptions = {
       show: false,
     },
     height: 300,
-    type: "area",
+    type: "bar",
     stacked: true,
   },
   xaxis: {
     type: "datetime",
     labels: {
+      format: "yyyy-MM-dd HH:mm",
       datetimeUTC: false,
     },
   },
