@@ -11,7 +11,6 @@ const productionDetailsTodayChartOptions = {
   xaxis: {
     type: "datetime",
     labels: {
-      format: "yyyy-MM-dd HH:mm",
       datetimeUTC: false,
     },
   },
