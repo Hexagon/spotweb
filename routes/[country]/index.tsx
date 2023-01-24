@@ -61,8 +61,7 @@ export const handler: Handlers = {
       });
     }
 
-    const generationAndLoadInput = await GetGenerationAndLoad(yesterdayDate, tomorrowDate),
-      generationAndLoad = { data: generationAndLoadInput.data.filter((e) => e[0] === country.cty) };
+    const generationAndLoad = await GetGenerationAndLoad(country.cty, yesterdayDate, tomorrowDate);
 
     // Render all areas in country
     const pageProps: CountryPageProps = {

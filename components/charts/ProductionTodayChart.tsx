@@ -66,7 +66,7 @@ export default function ProductionTodayChart(props: ProductionTodayProps) {
     countries[row[0]] = countries[row[0]] || [];
      countries[row[0]].push({
        time: row[1],
-       value: row[7]
+       value: row[5]
      });
   }
   for (const [key, country] of Object.entries(countries)) {

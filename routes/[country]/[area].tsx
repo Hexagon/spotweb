@@ -67,8 +67,7 @@ export const handler: Handlers = {
       dataPrevMonth: await GetDataMonth(foundArea.name, prevMonthDate, country.interval),
     };
 
-    const generationAndLoadInput = await GetGenerationAndLoad(yesterdayDate, tomorrowDate),
-      generationAndLoad = { data: generationAndLoadInput.data.filter((e) => e[0] === area.id) };
+    const generationAndLoad = await GetGenerationAndLoad(area.id, yesterdayDate, tomorrowDate);
 
     const pageProps: AreaPageProps = {
       country,

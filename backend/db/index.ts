@@ -215,18 +215,18 @@ const GetLastGenerationAndLoad = async (): Promise<DBResultSet> => {
   });
 };
 
-const GetGenerationAndLoad = async (fromDateIn: Date, toDateIn: Date): Promise<DBResultSet> => {
+const GetGenerationAndLoad = async (area: string, fromDateIn: Date, toDateIn: Date): Promise<DBResultSet> => {
   const fromDate = new Date(fromDateIn.getTime()),
     toDate = new Date(toDateIn.getTime());
 
   fromDate.setHours(0, 0, 0, 0);
   toDate.setHours(0, 0, 0, 0);
 
-  const parameterString = new URLSearchParams({ query: "genload", f: fromDate.getTime().toString(), t: toDate.getTime().toString() }).toString(),
+  const parameterString = new URLSearchParams({ query: "genload", a: area, f: fromDate.getTime().toString(), t: toDate.getTime().toString() }).toString(),
     cacheLength = 86400;
 
   return await DataCache("generation", parameterString, cacheLength, () => {
-    const data = database.query(sqlLoadAndGeneration, [fromDate.getTime(), toDate.getTime()]);
+    const data = database.query(sqlLoadAndGeneration, [area, fromDate.getTime(), toDate.getTime()]);
     return { data };
   });
 };

@@ -2,13 +2,26 @@ import { log } from "utils/log.ts";
 
 const MemCache = new Map();
 
+const Timer = () => {
+  const startTime = performance.now();
+  return {
+    end: () => { return performance.now() - startTime }
+  }
+};
 const DataCache = async (realm: string, uniqueId: string, seconds: number, liveFetch: () => unknown) => {
+
+  // Time
+  const timer = Timer();
+
   // Check for realm, or create it
   if (!MemCache.has(realm)) {
     MemCache.set(realm, new Map());
   }
 
   const currentRealm = MemCache.get(realm);
+  
+  let data,
+      method;
 
   try {
     // Check for cache, throw if cache does not exist
@@ -29,8 +42,8 @@ const DataCache = async (realm: string, uniqueId: string, seconds: number, liveF
       throw new Error("Cache expired");
     }
 
-    log("debug", `Cache hit ${realm}:${uniqueId}`);
-    return cacheObj.data;
+    data = cacheObj.data;
+    method = "cache";
   } catch (_e) {
     // Live
     const result = await liveFetch();
@@ -41,9 +54,20 @@ const DataCache = async (realm: string, uniqueId: string, seconds: number, liveF
     });
 
     // Respond
-    log("debug", `Cache miss ${realm}:${uniqueId}`);
-    return result;
+    data = result;
+    method = "live";
   }
+
+  if (method === "live") {
+    const t = timer.end();
+    if (t > 200) {
+      log("info", `SLOW Query ${realm}:${uniqueId} completed from ${method} in ${t} ms`);
+    } else {
+      log("debug", `Query ${realm}:${uniqueId} completed from ${method} in ${t} ms`);
+    }
+  }
+
+  return data;
 };
 
 const InvalidateCache = (realm: string) => {

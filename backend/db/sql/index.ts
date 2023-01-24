@@ -86,7 +86,6 @@ const sqlLoadAndGeneration = `
     WITH 
     distinct_generation AS (
         SELECT 
-            DISTINCT
             generation.area,
             generation.period,
             generation.interval,
@@ -96,7 +95,8 @@ const sqlLoadAndGeneration = `
         FROM
             generation
         WHERE
-            period >= (?)
+            area = (?)
+            AND period >= (?)
             AND period <=(?)
     ),
     generation_per_psr_group AS (
@@ -120,16 +120,7 @@ const sqlLoadAndGeneration = `
             gen.area,
             gen.period,
             gen.interval,
-            SUM(gen.value) as sum_generation_value,
-            MAX(gen.value) as max_generation_value,
-            FIRST_VALUE(gen.psr_group) OVER (
-                PARTITION BY       
-                    gen.area,
-                    gen.period,
-                    gen.interval
-                ORDER BY 
-                    SUM(gen.value) DESC
-            ) as primary_psr_group
+            SUM(gen.value) as sum_generation_value
         FROM
             generation_per_psr_group as gen
         GROUP BY
@@ -142,8 +133,6 @@ const sqlLoadAndGeneration = `
         generation_total.area,
         generation_total.period,
         generation_total.interval,
-        generation_total.primary_psr_group,
-        generation_total.max_generation_value as primary_psr_group_generation,
         generation_total.sum_generation_value as generation_total,
         [load].value as load_total,
         generation_total.sum_generation_value-[load].value as net_generation
@@ -200,7 +189,6 @@ const sqlLatestPricePerCountry = `
         interval`;
 const sqlLatestPricePerArea = `
     SELECT
-        DISTINCT
         area,
         period,
         interval,
@@ -208,7 +196,12 @@ const sqlLatestPricePerArea = `
     FROM
         spotprice
     WHERE
-        period = (?)`;
+        period = (?)
+    GROUP BY
+        area,
+        period,
+        interval,
+        spotprice`;
 const sqlConverted = `
 WITH er AS (
     SELECT

@@ -57,6 +57,18 @@ const DBUpdates = [
     name: "bugfix_biomass_psr",
     sql: `UPDATE psr SET psr_group='other' WHERE psr='B01';`,
   },
+  {
+    name: "add_generation_period_index",
+    sql: `CREATE INDEX period ON generation (
+      period
+    );`
+  },
+  {
+    name: "add_spotprice_period_index",
+    sql: `CREATE INDEX period ON spotprice (
+      period
+    );`
+  }
 ];
 
 export { DBUpdates };
