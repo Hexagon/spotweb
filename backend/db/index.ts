@@ -222,7 +222,8 @@ const GetGenerationAndLoad = async (area: string, fromDateIn: Date, toDateIn: Da
   fromDate.setHours(0, 0, 0, 0);
   toDate.setHours(0, 0, 0, 0);
 
-  const parameterString = new URLSearchParams({ query: "genload", a: area, f: fromDate.getTime().toString(), t: toDate.getTime().toString() }).toString(),
+  const parameterString = new URLSearchParams({ query: "genload", a: area, f: fromDate.getTime().toString(), t: toDate.getTime().toString() })
+      .toString(),
     cacheLength = 86400;
 
   return await DataCache("generation", parameterString, cacheLength, () => {

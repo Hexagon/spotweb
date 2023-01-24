@@ -61,14 +61,14 @@ const DBUpdates = [
     name: "add_generation_period_index",
     sql: `CREATE INDEX period ON generation (
       period
-    );`
+    );`,
   },
   {
     name: "add_spotprice_period_index",
     sql: `CREATE INDEX period ON spotprice (
       period
-    );`
-  }
+    );`,
+  },
 ];
 
 export { DBUpdates };

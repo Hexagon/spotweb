@@ -5,11 +5,12 @@ const MemCache = new Map();
 const Timer = () => {
   const startTime = performance.now();
   return {
-    end: () => { return performance.now() - startTime }
-  }
+    end: () => {
+      return performance.now() - startTime;
+    },
+  };
 };
 const DataCache = async (realm: string, uniqueId: string, seconds: number, liveFetch: () => unknown) => {
-
   // Time
   const timer = Timer();
 
@@ -19,9 +20,9 @@ const DataCache = async (realm: string, uniqueId: string, seconds: number, liveF
   }
 
   const currentRealm = MemCache.get(realm);
-  
+
   let data,
-      method;
+    method;
 
   try {
     // Check for cache, throw if cache does not exist
