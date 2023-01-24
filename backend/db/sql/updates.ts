@@ -65,7 +65,7 @@ const DBUpdates = [
   },
   {
     name: "add_spotprice_period_index",
-    sql: `CREATE INDEX period ON spotprice (
+    sql: `CREATE INDEX spotprice_period ON spotprice (
       period
     );`,
   },
