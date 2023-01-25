@@ -7,6 +7,9 @@ const productionDetailsTodayChartOptions = {
     height: 300,
     type: "bar",
     stacked: true,
+    animations: {
+      enabled: false
+    }
   },
   xaxis: {
     type: "datetime",

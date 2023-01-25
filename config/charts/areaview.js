@@ -5,6 +5,9 @@ const areaViewChartOptions = {
       show: false,
     },
     height: 350,
+    animations: {
+      enabled: false
+    }
   },
   fill: {
     type: "gradient",

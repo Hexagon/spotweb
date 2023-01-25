@@ -5,6 +5,9 @@ const productionTodayChartOptions = {
       show: false,
     },
     height: 300,
+    animations: {
+      enabled: false
+    }
   },
   xaxis: {
     type: "datetime",

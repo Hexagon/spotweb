@@ -6,6 +6,9 @@ const tableChartOptions = {
       show: false,
     },
     height: 300,
+    animations: {
+      enabled: false
+    }
   },
   colors: ["#54EF54"],
   xaxis: {
