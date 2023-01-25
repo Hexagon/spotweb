@@ -6,8 +6,8 @@ const productionTodayChartOptions = {
     },
     height: 300,
     animations: {
-      enabled: false
-    }
+      enabled: false,
+    },
   },
   xaxis: {
     type: "datetime",

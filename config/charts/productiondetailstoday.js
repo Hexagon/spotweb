@@ -8,8 +8,8 @@ const productionDetailsTodayChartOptions = {
     type: "bar",
     stacked: true,
     animations: {
-      enabled: false
-    }
+      enabled: false,
+    },
   },
   xaxis: {
     type: "datetime",

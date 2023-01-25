@@ -6,8 +6,8 @@ const areaViewMonthChartOptions = {
     },
     height: 300,
     animations: {
-      enabled: false
-    }
+      enabled: false,
+    },
   },
   fill: {
     type: "gradient",

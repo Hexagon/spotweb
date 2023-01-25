@@ -7,8 +7,8 @@ const tableChartOptions = {
     },
     height: 300,
     animations: {
-      enabled: false
-    }
+      enabled: false,
+    },
   },
   colors: ["#54EF54"],
   xaxis: {
