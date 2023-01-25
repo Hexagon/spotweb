@@ -32,9 +32,9 @@ export default function ProductionOverview(props: ProductionOverviewProps) {
     const 
       currentGeneration = props.generation.data[i],
       dateMs = currentGeneration[0] as number,
-      psr = currentGeneration[1] as string + "_" + (currentGeneration[4] || 0).toString(),
+      psr = currentGeneration[1] as string + "_" + (currentGeneration[3] || 0).toString(),
       value = currentGeneration[2] as number,
-      noPsrs = currentGeneration[5] as number;
+      noPsrs = currentGeneration[4] as number;
       
     // Only use data within four hours, or last row
     if (dateMs < new Date().getTime()-3600*1000*4) continue;
@@ -59,7 +59,7 @@ export default function ProductionOverview(props: ProductionOverviewProps) {
     generationTotal = Object.values(lastGeneration).reduce((a, b) => {
       return a + b.value;
     },0),
-    lastGenerationDateEnd = props.generation?.data.length ? new Date(lastGenerationDate + (props.generation.data[0][3] == "PT60M" ? 3600 : 900 ) * 1000) : undefined;
+    lastGenerationDateEnd = props.generation?.data.length ? new Date(lastGenerationDate + (props.country.interval == "PT60M" ? 3600 : 900 ) * 1000) : undefined;
 
   // Find load at matching point of time
   let loadTotal = 0;

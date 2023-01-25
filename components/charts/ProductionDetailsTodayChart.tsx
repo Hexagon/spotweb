@@ -70,8 +70,8 @@ export default function ProductionDetailsTodayChart(props: ProductionDetailsToda
 
   for(const row of props.generation.data) {
     timeSet.add(row[0] as number);
-    typeSet.add(row[1] + "_" + row[4]);
-    valueSet.set(row[1] + "_" + row[4] + "_" + row[0],row[2] as number);
+    typeSet.add(row[1] + "_" + row[3]);
+    valueSet.set(row[1] + "_" + row[3] + "_" + row[0],row[2] as number);
   }
 
   for(const ty of typeSet.keys()) {

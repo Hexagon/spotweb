@@ -17,21 +17,19 @@ export default function ProductionTodayChart(props: ProductionTodayProps) {
   [chartElm, setChartElm] = useState<ApexCharts>(),
     [randomChartId] = useState((Math.random() * 10000).toFixed(0));
 
-  const renderChart = (seriesInput: Record<string,unknown>[], props: ProductionTodayProps) => {
+  const renderChart = (seriesInput: (string|number)[][], props: ProductionTodayProps) => {
 
     // Inject series into chart configuration
     const series = [];
-    for (const s of seriesInput) {
-      series.push(
-        {
-          data: (s.data as Record<string,unknown>[]).map((e: Record<string,unknown>) => {
-            return { x: e.time, y: e.value };
-          }),
-          name: s.name,
-          type: 'bar'
-        },
-      );
-    }
+    series.push(
+      {
+        data: seriesInput.map((e: (string|number)[]) => {
+          return { x: e[0], y: e[1] };
+        }),
+        name: "net_production",
+        type: 'bar'
+      },
+    );
 
     // deno-lint-ignore no-explicit-any
     const chartOptions: any = { ...productionTodayChartOptions };
@@ -59,22 +57,8 @@ export default function ProductionTodayChart(props: ProductionTodayProps) {
     setChartElm(chart);
   };
 
-  const 
-    dataArr: Record<string,unknown>[] = [],
-    countries: Record<string,unknown[]> = {};
-  for(const row of props.generationAndLoad.data) {
-    countries[row[0]] = countries[row[0]] || [];
-     countries[row[0]].push({
-       time: row[1],
-       value: row[5]
-     });
-  }
-  for (const [key, country] of Object.entries(countries)) {
-    dataArr.push({ name: key, data: country as SpotApiRow[] });
-  }
-
   useEffect(() => {
-    renderChart(dataArr, props);
+    renderChart(props.generationAndLoad.data, props);
   }, [props.priceFactor]);
 
   return (
@@ -91,7 +75,7 @@ export default function ProductionTodayChart(props: ProductionTodayProps) {
             </h2>
           </div>
           <div class="content px-card m-0 p-0 bg-very-dark">
-            {(dataArr) && <div class="col-lg" id={"chart_" + randomChartId}></div>}
+            {(props.generationAndLoad.data) && <div class="col-lg" id={"chart_" + randomChartId}></div>}
           </div>
         </div>
       </div>

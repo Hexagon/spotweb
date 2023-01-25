@@ -130,11 +130,7 @@ const sqlLoadAndGeneration = `
     ),
     generation_and_load AS (
     SELECT 
-        generation_total.area,
         generation_total.period,
-        generation_total.interval,
-        generation_total.sum_generation_value as generation_total,
-        [load].value as load_total,
         generation_total.sum_generation_value-[load].value as net_generation
     FROM
         generation_total
@@ -266,7 +262,6 @@ distinct_generation AS (
             period,
             psr_group,
             SUM(CASE WHEN consumption THEN 0-value ELSE value END) as value,
-            interval,
             consumption,
             COUNT(distinct_generation.psr) as count_psr
         FROM
