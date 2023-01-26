@@ -1,19 +1,12 @@
-const areaViewMonthChartOptions = {
-  chart: {
-    foreColor: "#ccc",
-    toolbar: {
-      show: false,
-    },
-    height: 300,
-    animations: {
-      enabled: false,
-    },
-  },
+import { baseChart } from "config/charts/basechart.js";
+
+const areaViewMonthChartOptions = Object.assign(structuredClone(baseChart), {
+  colors: ["rgba(24, 255, 124, 1.0)", "rgba(79, 96, 255, 0.7)"],
   fill: {
     type: "gradient",
     gradient: {
       shade: "dark",
-      gradientToColors: ["#FF3815"],
+      gradientToColors: ["#FD4835"],
       shadeIntensity: 1,
       type: "vertical",
       opacityFrom: 1,
@@ -21,37 +14,12 @@ const areaViewMonthChartOptions = {
       stops: [0, 100],
     },
   },
-  colors: ["rgba(24, 255, 124, 1.0)", "rgba(79, 96, 255, 0.7)"],
-  xaxis: {
-    type: "datetime",
-    labels: {
-      datetimeUTC: false,
-    },
-  },
-  yaxis: {
-    min: 0,
-    forceNiceScale: true,
-  },
-  legend: {
-    show: true,
-  },
   stroke: {
     width: 2,
     curve: "smooth",
   },
-  dataLabels: {
-    enabled: false,
-  },
-  tooltip: {
-    theme: "dark",
-    followCursor: true,
-    x: {
-      format: "yyyy MM dd",
-    },
-  },
-  grid: {
-    borderColor: "#535A6C",
-  },
-};
+});
+
+areaViewMonthChartOptions.tooltip.x.format = "yyyy MM dd";
 
 export { areaViewMonthChartOptions };
