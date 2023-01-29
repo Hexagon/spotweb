@@ -36,6 +36,40 @@ export default function Table(props: TableProps) {
     <div class="content">
       <div class="container">
         <div class="row">
+          <div class="col-md m-0 p-0">
+            <div class="mw-full m-0 p-0 mr-20 mt-20">
+              <div class="card p-0 m-0">
+                <div class={"px-card py-10 m-0 rounded-top"}>
+                  <h2 class="card-title font-size-18 m-0 text-center">
+                    <span>Result</span>
+                  </h2>
+                </div>
+                <div class="content px-card m-0 p-0 bg-very-dark">          
+                  <div class="row">
+                    <div class="col-md-8" id={"chart_" + randomChartId}></div>
+                    <div class="col-sm-4">
+                      <table>
+                        <tr>
+                          <td class="font-size-18">Average</td>
+                          <td class="font-size-24">{processPrice(avgPrice(props.resultSet), props)} {props.currency}</td>
+                        </tr>
+                        <tr>
+                          <td class="font-size-18">Minimum</td>
+                          <td class="font-size-24">{processPrice(minPrice(props.resultSet), props)} {props.currency}</td>
+                        </tr>
+                        <tr>
+                          <td class="font-size-18">Maximum</td>
+                          <td class="font-size-24">{processPrice(maxPrice(props.resultSet), props)} {props.currency}</td>
+                        </tr>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
           <div class="col-sm">
             <div class="mb-10 text-right">
               {props.permalink && <a href={props.permalink}>Permalink 🔗</a>}
@@ -45,40 +79,14 @@ export default function Table(props: TableProps) {
           </div>
         </div>
         <div class="row">
-          <div class="col-sm" id={"chart_" + randomChartId}></div>
-        </div>
-        <div class="row">
-          <div class="col-sm">
-            <div class="alert" role="alert">
-              <h4 class="alert-heading">Period max</h4>
-              <h2>
-                {processPrice(maxPrice(props.resultSet), props)} {props.currency}
-              </h2>
-            </div>
-          </div>
-          <div class="col-sm">
-            <div class="alert" role="alert">
-              <h4 class="alert-heading">Period min</h4>
-              <h2>{processPrice(minPrice(props.resultSet), props)} {props.currency}</h2>
-            </div>
-          </div>
-          <div class="col-sm">
-            <div class="alert" role="alert">
-              <h4 class="alert-heading">Period average</h4>
-              <h2>
-                {processPrice(avgPrice(props.resultSet), props)} {props.currency}
-              </h2>
-            </div>
-          </div>
-        </div>
-        <div class="row">
           <div class="col-sm">
             <table class="table">
               <thead>
                 <tr>
                   <th scope="col">Date/Time</th>
-                  <th scope="col">Area</th>
-                  <th scope="col">Spot price</th>
+                  <th scope="col">Price</th>
+                  <th scope="col">Min</th>
+                  <th scope="col">Max</th>
                   <th scope="col">Unit</th>
                 </tr>
               </thead>

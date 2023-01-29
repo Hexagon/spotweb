@@ -86,7 +86,6 @@ const sqlLoadAndGeneration = `
     WITH 
     distinct_generation AS (
         SELECT 
-            DISTINCT
             generation.area,
             generation.period,
             generation.interval,

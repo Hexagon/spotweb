@@ -10,7 +10,7 @@ const productionTodayChartOptions = Object.assign(structuredClone(baseChart), {
 
 productionTodayChartOptions.stroke.width = 0;
 
-productionTodayChartOptions.max = (max) => max > 0 ? max : 0;
-productionTodayChartOptions.min = (min) => min < 0 ? min : 0;
+productionTodayChartOptions.yaxis.max = (max) => max > 0 ? max : 0;
+productionTodayChartOptions.yaxis.min = (min) => min < 0 ? min : 0;
 
 export { productionTodayChartOptions };
