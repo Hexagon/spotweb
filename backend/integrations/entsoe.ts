@@ -44,8 +44,8 @@ const EntsoeGeneration = async (area: string, startDate: Date, endDate: Date): P
   // Compose a nice result set
   const output: GenerationRow[] = [];
 
-  if (result?.TimeSeries) {
-    for (const ts of result.TimeSeries) {
+  if (result?.length && result[0].TimeSeries) {
+    for (const ts of result[0].TimeSeries) {
       if (ts.Period?.Point?.length) {
         for (const point of ts.Period.Point) {
           const idx = point.position - 1,
@@ -85,16 +85,18 @@ const EntsoeLoad = async (area: string, startDate: Date, endDate: Date): Promise
   // Compose a nice result set
   const output: LoadRow[] = [];
 
-  for (const ts of result.TimeSeries) {
-    if (ts.Period?.Point?.length) {
-      for (const point of ts.Period.Point) {
-        const idx = point.position - 1,
-          periodLengthS = ts.Period.resolution === "PT60M" ? 3600 : 900;
-        output.push({
-          date: new Date(Date.parse(ts.Period.timeInterval.start) + (periodLengthS * 1000) * idx),
-          interval: ts.Period.resolution,
-          quantity: point.quantity,
-        });
+  if (result?.length) {
+    for (const ts of result[0].TimeSeries) {
+      if (ts.Period?.Point?.length) {
+        for (const point of ts.Period.Point) {
+          const idx = point.position - 1,
+            periodLengthS = ts.Period.resolution === "PT60M" ? 3600 : 900;
+          output.push({
+            date: new Date(Date.parse(ts.Period.timeInterval.start) + (periodLengthS * 1000) * idx),
+            interval: ts.Period.resolution,
+            quantity: point.quantity,
+          });
+        }
       }
     }
   }
@@ -104,9 +106,9 @@ const EntsoeLoad = async (area: string, startDate: Date, endDate: Date): Promise
 
 const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Promise<SpotRow[]> => {
   const output: SpotRow[] = [];
-  let resultJson: QueryResult | undefined;
+  let result: QueryResult[] = [];
   try {
-    resultJson = await Query(
+    result = await Query(
       Deno.env.get("API_TOKEN") || "",
       {
         documentType: "A44",
@@ -115,13 +117,13 @@ const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Pr
         startDateTime: startDate,
         endDateTime: endDate,
       },
-    ) as unknown as QueryResult;
+    );
   } catch (_e) {
     // Ignore
   }
-  if (resultJson) {
+  if (result?.length) {
     try {
-      for (const ts of resultJson.TimeSeries) {
+      for (const ts of result[0].TimeSeries) {
         const baseDate = new Date(ts.Period.timeInterval.start),
           periodLengthS = ts.Period.resolution === "PT60M" ? 3600 : 900;
         if (ts.Period?.Point?.length) {
