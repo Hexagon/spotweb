@@ -26,6 +26,7 @@ const scheduler = {
       job.resume();
       log("info", "Job started, next run is at " + job.next()?.toLocaleString());
     }
+    DailyOutageUpdate();
   },
   stop: () => {
     for (const job of jobs) {
