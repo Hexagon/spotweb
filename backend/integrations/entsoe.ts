@@ -1,5 +1,5 @@
 import { QueryGL, QueryPublication, QueryUnavailability } from "entsoe_api_client/mod.ts";
-import { PublicationDocument } from "../../../entsoe/src/parsedocument.ts";
+import { PublicationDocument } from "entsoe_api_client/src/parsedocument.ts";
 
 interface SpotRow {
   startTime: Date;
