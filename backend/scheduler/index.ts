@@ -6,6 +6,7 @@ import { DailyCurrencyUpdate } from "./jobs/daily.currencyupdate.ts";
 import { DailyPriceUpdate } from "./jobs/daily.priceupdate.ts";
 import { HourlyConsumptionUpdate } from "./jobs/hourly.consumptionupdate.ts";
 import { HourlyProductionUpdate } from "./jobs/hourly.productionupdate.ts";
+import { DailyOutageUpdate } from "./jobs/daily.outageupdate.ts";
 
 // Set up automated jobs. Pause them initially.
 const jobs = [
@@ -16,6 +17,7 @@ const jobs = [
   new Cron("0 14 * * * *", { paused: true, timezone: "Europe/Oslo" }, DailyCurrencyUpdate),
   new Cron("0 2,32 * * * *", { paused: true, timezone: "Europe/Oslo" }, HourlyConsumptionUpdate),
   new Cron("0 4,34 * * * *", { paused: true, timezone: "Europe/Oslo" }, HourlyProductionUpdate),
+  new Cron("0 5 8 * *", { paused: true, timezone: "Europe/Oslo" }, DailyOutageUpdate),
 ];
 
 const scheduler = {
@@ -37,6 +39,7 @@ const scheduler = {
     DailyCurrencyUpdate();
     HourlyConsumptionUpdate();
     HourlyProductionUpdate();
+    DailyOutageUpdate();
   },
 };
 

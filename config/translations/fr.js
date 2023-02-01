@@ -125,6 +125,14 @@ const fr = {
       "psr_wind_1": "Vent - Cons.",
       "psr_other_0": "Autre",
     },
+    "outage": {
+      "title_current": "Interruptions opérationnelles en cours",
+      "title_planned": "Interruptions planifiées",
+      "ressource": "Ressource",
+      "statut": "Statut",
+      "capacity_now": "Capacité actuelle",
+      "total_capacity": "Capacité totale",
+    },
   },
 };
 export { fr };

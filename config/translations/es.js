@@ -125,6 +125,14 @@ const es = {
       "psr_other_0": "Otro",
       "primary_source": "Fuente de alimentación principal",
     },
+    "outage": {
+      "title_current": "Interrupciones operativas en curso",
+      "title_planned": "Cortes planificados",
+      "recurso": "Recurso",
+      "estado": "Estado",
+      "capacity_now": "Capacidad en este momento",
+      "total_capacity": "Capacidad total",
+    },
   },
 };
 export { es };

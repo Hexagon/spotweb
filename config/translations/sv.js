@@ -124,6 +124,14 @@ const sv = {
       "psr_other_0": "Övrigt",
       "primary_source": "Huvudsaklig kraftkälla",
     },
+    "outage": {
+      "title_current": "Pågående driftstörningar",
+      "title_planned": "Planerade driftstörningar",
+      "resource": "Resurs",
+      "status": "Status",
+      "capacity_now": "Kapacitet just nu",
+      "total_capacity": "Total kapacitet",
+    },
   },
 };
 export { sv };

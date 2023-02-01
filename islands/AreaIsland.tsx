@@ -19,7 +19,8 @@ import PriceFactorWarning from "components/partials/PriceFactorWarning.tsx";
 import SingleAreaOverview from "components/partials/SingleAreaOverview.tsx";
 
 import { AreaPageProps } from "routes/[country]/[area].tsx";
-import ProductionDetailsTodayChart from "../components/charts/ProductionDetailsTodayChart.tsx";
+import ProductionDetailsTodayChart from "components/charts/ProductionDetailsTodayChart.tsx";
+import OutageOverview from "components/partials/OutageOverview.tsx";
 
 export default function AreaIsland(props: PageProps<AreaPageProps>) {
 
@@ -112,7 +113,7 @@ export default function AreaIsland(props: PageProps<AreaPageProps>) {
                 ></ProductionTodayChart>
             </div>
             <div class="row">
-            <SingleAreaMonthChart
+              <SingleAreaMonthChart
                 title={props.data.area.name + " - " + props.data.area.long}
                 highlight={"color-" + props.data.area.color}
                 cols={6}
@@ -126,6 +127,15 @@ export default function AreaIsland(props: PageProps<AreaPageProps>) {
                 {...props.data}
               ></InformationPane>
             </div>
+            { props.data.singleArea && (
+              <div class="row">
+              <OutageOverview
+                  cols={12}
+                  {...commonprops}
+                  {...props.data}
+                ></OutageOverview>
+              </div>
+            )}
           </div>
         </div>
       </div>

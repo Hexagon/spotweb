@@ -4,9 +4,11 @@ import ElomradeIsland from "islands/AreaIsland.tsx";
 import {
   DBResultSet,
   ExchangeRateResult,
+  GetCurrentOutages,
   GetDataDay,
   GetDataMonth,
   GetExchangeRates,
+  GetFutureOutages,
   GetGenerationAndLoad,
   GetGenerationDay,
   GetLoadDay,
@@ -19,6 +21,9 @@ interface AreaPageProps extends BasePageProps {
   area: DataArea;
   generationAndLoad: DBResultSet;
   generation: DBResultSet;
+  outages?: DBResultSet;
+  futureOutages?: DBResultSet;
+  singleArea?: boolean;
   load: DBResultSet;
   er: ExchangeRateResult;
 }
@@ -80,6 +85,12 @@ export const handler: Handlers = {
       lang: ctx.state.lang as string | undefined || ctx.params.country,
     };
 
+    // If this is a single area country, add outages
+    if (country.areas.length === 1) {
+      pageProps.outages = await GetCurrentOutages(country.id),
+        pageProps.futureOutages = await GetFutureOutages(country.id),
+        pageProps.singleArea = true;
+    }
     return ctx.render(pageProps);
   },
 };

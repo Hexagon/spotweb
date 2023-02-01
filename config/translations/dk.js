@@ -124,6 +124,14 @@ const dk = {
       "psr_other_0": "Andet",
       "primary_source": "Primær strømkilde",
     },
+    "outage": {
+      "title_current": "Igangværende driftsafbrydelser",
+      "title_planned": "Planlagte udfald",
+      "resource": "Ressource",
+      "status": "Status",
+      "capacity_now": "Kapacitet lige nu",
+      "total_capacity": "Samlet kapacitet",
+    },
   },
 };
 export { dk };

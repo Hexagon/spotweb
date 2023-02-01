@@ -10,7 +10,9 @@ import {
   sqlCreateSpotprice,
   sqlCreateUpdates,
   sqlCurrentLoadAndGeneration,
+  sqlCurrentOutagesPerArea,
   sqlExchangeRates,
+  sqlFutureOutagesPerArea,
   sqlGeneration,
   sqlGroupBy,
   sqlLatestPricePerArea,
@@ -204,7 +206,7 @@ const GetLastPricePerCountry = async (): Promise<DBResultSet> => {
 const GetLastGenerationAndLoad = async (): Promise<DBResultSet> => {
   const fromDate = new Date();
 
-  fromDate.setHours(fromDate.getHours() - 4, 0, 0, 0);
+  fromDate.setHours(fromDate.getHours() - 12, 0, 0, 0);
 
   const parameterString = new URLSearchParams({ query: "curgenload", f: fromDate.getTime().toString() }).toString(),
     cacheLength = 86400;
@@ -289,12 +291,40 @@ const GetExchangeRates = async (): Promise<ExchangeRateResult> => {
   return output.data;
 };
 
+const GetCurrentOutages = async (area: string): Promise<DBResultSet> => {
+  const parameterString = new URLSearchParams({ f: "current", area }).toString(),
+    cacheLength = 900;
+
+  return await DataCache("outage", parameterString, cacheLength, () => {
+    const data = database.query(sqlCurrentOutagesPerArea, [
+      new Date().getTime(),
+      new Date().getTime(),
+      area,
+      new Date().getTime(),
+      new Date().getTime(),
+    ]);
+    return { data };
+  });
+};
+
+const GetFutureOutages = async (area: string): Promise<DBResultSet> => {
+  const parameterString = new URLSearchParams({ f: "future", area }).toString(),
+    cacheLength = 900;
+
+  return await DataCache("outage", parameterString, cacheLength, () => {
+    const data = database.query(sqlFutureOutagesPerArea, [area, new Date().getTime()]);
+    return { data };
+  });
+};
+
 export type { DBResultSet, ExchangeRateResult, Row, SpotApiRow };
 export {
   database,
+  GetCurrentOutages,
   GetDataDay,
   GetDataMonth,
   GetExchangeRates,
+  GetFutureOutages,
   GetGenerationAndLoad,
   GetGenerationDay,
   GetLastGenerationAndLoad,

@@ -297,6 +297,53 @@ const sqlAppliedUpdates = `SELECT
 FROM
     updates;`;
 
+// ---- Queries related to outages -----------------------------------------------
+const sqlCurrentOutagesPerArea = `
+SELECT
+    outage.start_date,
+    outage.end_date,
+    outage.resource_name,
+    outage.business_type,
+    outage.location,
+    outage.country,
+    outage.psr_name,
+    outage.psr_nominal_power,
+    outage.psr_nominal_power_unit,
+    outage.psr_type,
+    outage.reason_code,
+    outage.reason_text,
+    outage_availability.*
+FROM
+    outage
+    LEFT JOIN outage_availability ON outage.mrid = outage_availability.mrid AND outage_availability.start_date < (?) AND outage_availability.end_date > (?)
+WHERE
+    country=(?)
+    AND outage.start_date < (?)
+    AND outage.end_date > (?)
+`;
+const sqlFutureOutagesPerArea = `
+SELECT
+    outage.start_date,
+    outage.end_date,
+    outage.resource_name,
+    outage.business_type,
+    outage.location,
+    outage.country,
+    outage.psr_name,
+    outage.psr_nominal_power,
+    outage.psr_nominal_power_unit,
+    outage.psr_type,
+    outage.reason_code,
+    outage.reason_text
+FROM
+    outage
+WHERE
+    country=(?)
+    AND outage.start_date > (?)
+ORDER BY
+    start_date ASC
+`;
+
 export {
   sqlAppliedUpdates,
   sqlConverted,
@@ -307,7 +354,9 @@ export {
   sqlCreateSpotprice,
   sqlCreateUpdates,
   sqlCurrentLoadAndGeneration,
+  sqlCurrentOutagesPerArea,
   sqlExchangeRates,
+  sqlFutureOutagesPerArea,
   sqlGeneration,
   sqlGroupBy,
   sqlLatestPricePerArea,

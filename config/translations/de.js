@@ -125,6 +125,14 @@ const de = {
       "psr_other_0": "Andere",
       "primary_source": "Primäre Stromquelle",
     },
+    "outage": {
+      "title_current": "Laufende Betriebsausfälle",
+      "title_planned": "Geplante Ausfälle",
+      "resource": "Ressource",
+      "status": "Status",
+      "capacity_now": "Kapazität im Moment",
+      "total_capacity": "Gesamtkapazität",
+    },
   },
 };
 export { de };

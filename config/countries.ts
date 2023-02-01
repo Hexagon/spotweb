@@ -36,6 +36,7 @@ const countries = [
     name: "Sverige",
     id: "sv",
     cty: "Sweden (SE)",
+    cta: "CTA|SE",
     interval: "PT60M",
     areas: [
       { name: "SE1", "id": "BZN|SE1", "long": "Norra Sverige", color: 1 },
@@ -47,6 +48,7 @@ const countries = [
   {
     name: "Norge",
     cty: "Norway (NO)",
+    cta: "CTA|NO",
     interval: "PT60M",
     id: "no",
     areas: [
@@ -60,6 +62,7 @@ const countries = [
   {
     name: "Finland",
     cty: "Finland (FI)",
+    cta: "CTA|FI",
     interval: "PT60M",
     id: "fi",
     areas: [
@@ -69,6 +72,7 @@ const countries = [
   {
     name: "Danmark",
     cty: "Denmark (DK)",
+    cta: "CTA|DK",
     interval: "PT60M",
     id: "dk",
     areas: [
@@ -79,6 +83,7 @@ const countries = [
   {
     name: "Deutschland",
     cty: "Germany (DE)",
+    cta: "CTA|DE",
     interval: "PT15M",
     id: "de",
     areas: [
@@ -88,6 +93,7 @@ const countries = [
   {
     name: "Österreich",
     cty: "Austria (AT)",
+    cta: "CTA|AT",
     interval: "PT15M",
     id: "at",
     areas: [
@@ -97,6 +103,7 @@ const countries = [
   {
     name: "Switzerland",
     cty: "Switzerland (CH)",
+    cta: "CTA|CH",
     interval: "PT60M",
     id: "ch",
     areas: [
@@ -106,6 +113,7 @@ const countries = [
   {
     name: "Spain",
     cty: "Spain (ES)",
+    cta: "CTA|ES",
     interval: "PT60M",
     id: "es",
     areas: [
@@ -115,6 +123,7 @@ const countries = [
   {
     name: "France",
     cty: "France (FR)",
+    cta: "CTA|FR",
     interval: "PT60M",
     id: "fr",
     areas: [
@@ -124,6 +133,7 @@ const countries = [
   {
     name: "Poland",
     cty: "Poland (PL)",
+    cta: "CTA|PL",
     interval: "PT60M",
     id: "pl",
     areas: [

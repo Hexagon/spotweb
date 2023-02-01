@@ -124,6 +124,14 @@ const en = {
       "psr_wind_1": "Wind - Cons.",
       "psr_other_0": "Other",
     },
+    "outage": {
+      "title_current": "Ongoing outages",
+      "title_planned": "Planned outages",
+      "resource": "Resource",
+      "status": "Status",
+      "capacity_now": "Capacity right now",
+      "total_capacity": "Total capacity",
+    },
   },
 };
 export { en };

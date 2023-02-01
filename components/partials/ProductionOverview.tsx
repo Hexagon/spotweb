@@ -37,7 +37,7 @@ export default function ProductionOverview(props: ProductionOverviewProps) {
       noPsrs = currentGeneration[4] as number;
       
     // Only use data within four hours, or last row
-    if (dateMs < new Date().getTime()-3600*1000*4) continue;
+    if (dateMs < new Date().getTime()-3600*1000*12) continue;
 
     // Update date
     if (!lastGenerationDate || lastGenerationDate < dateMs) lastGenerationDate = dateMs;

@@ -4,9 +4,11 @@ import CountryIsland from "islands/CountryIsland.tsx";
 import {
   DBResultSet,
   ExchangeRateResult,
+  GetCurrentOutages,
   GetDataDay,
   GetDataMonth,
   GetExchangeRates,
+  GetFutureOutages,
   GetGenerationAndLoad,
   GetGenerationDay,
   GetLoadDay,
@@ -19,6 +21,8 @@ interface CountryPageProps extends BasePageProps {
   areas: DataArea[];
   generationAndLoad: DBResultSet;
   generation: DBResultSet;
+  outages: DBResultSet;
+  futureOutages: DBResultSet;
   load: DBResultSet;
   er: ExchangeRateResult;
 }
@@ -69,6 +73,8 @@ export const handler: Handlers = {
       generationAndLoad,
       generation: await GetGenerationDay(country.cty, yesterdayDate, todayDate, country.interval),
       load: await GetLoadDay(country.cty, yesterdayDate, todayDate, country.interval),
+      outages: await GetCurrentOutages(country.id),
+      futureOutages: await GetFutureOutages(country.id),
       er,
       page: country.id,
       areas,

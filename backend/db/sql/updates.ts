@@ -69,6 +69,37 @@ const DBUpdates = [
       period
     );`,
   },
+  {
+    name: "add_outage_table",
+    sql: `CREATE TABLE outage (
+        mrid                   TEXT    PRIMARY KEY
+                                      UNIQUE
+                                      NOT NULL,
+        revision               NUMERIC,
+        business_type          TEXT,
+        document_type          TEXT,
+        start_date             NUMERIC,
+        end_date               NUMERIC,
+        resource_name          TEXT,
+        location               TEXT,
+        country                TEXT,
+        psr_name               TEXT,
+        psr_nominal_power_unit TEXT,
+        psr_nominal_power      NUMERIC,
+        psr_type               TEXT,
+        reason_code            TEXT,
+        reason_text            TEXT
+    );`,
+  },
+  {
+    name: "add_outage_availability_table",
+    sql: `CREATE TABLE outage_availability (
+        mrid     TEXT NOT NULL,
+        start_date    NUMERIC,
+        end_date    NUMERIC,
+        quantity NUMERIC
+    );`,
+  },
 ];
 
 export { DBUpdates };

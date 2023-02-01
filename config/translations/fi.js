@@ -125,6 +125,14 @@ const fi = {
       "psr_other_0": "Muu",
       "primary_source": "Ensisijainen virtalähde",
     },
+    "outage": {
+      "title_current": "Jatkuvat käyttökatkot",
+      "title_planned": "Suunnitellut käyttökatkot",
+      "resurssi": "Resurssi",
+      "status": "Tila",
+      "capacity_now": "Kapasiteetti juuri nyt",
+      "total_capacity": "Kokonaiskapasiteetti",
+    },
   },
 };
 export { fi };

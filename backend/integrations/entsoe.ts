@@ -1,4 +1,5 @@
-import { Query, QueryResult } from "entsoe_api_client/mod.ts";
+import { QueryGL, QueryPublication, QueryUnavailability } from "entsoe_api_client/mod.ts";
+import { PublicationDocument } from "../../../entsoe/src/parsedocument.ts";
 
 interface SpotRow {
   startTime: Date;
@@ -23,13 +24,104 @@ interface GenerationRow {
   quantity: number;
 }
 
+interface OutageAvailabilityRow {
+  start: Date;
+  end: Date;
+  quantity: number;
+  resolution: string;
+}
+
+interface OutageRow {
+  startDate?: Date;
+  endDate?: Date;
+  businessType: string;
+  documentType: string;
+  resourceName: string;
+  mRID?: string;
+  revision: number;
+  location?: string;
+  psrName?: string;
+  psrNominalPowerUnit?: string;
+  psrNominalPower?: string;
+  psrType?: string;
+  reasonCode?: string;
+  reasonText?: string;
+  availablePeriodArray: OutageAvailabilityRow[];
+}
+
+const EntsoeOutages = async (area: string, startDate: Date, endDate: Date): Promise<OutageRow[]> => {
+  // Prepare dates
+  startDate.setHours(0, 0, 0, 0);
+  endDate.setHours(23, 0, 0, 0);
+
+  // Run ENTSO-e transparency playform query
+  const resultGen = await QueryUnavailability(
+    Deno.env.get("API_TOKEN") as string, // Your entsoe api-token
+    {
+      documentType: "A80", // A80 - Generation unavailability
+      biddingZoneDomain: area, // biddingZone_Domain
+      startDateTime: startDate, // Start date
+      endDateTime: endDate, // End date
+      offset: 0,
+    },
+  );
+  const resultPro = await QueryUnavailability(
+    Deno.env.get("API_TOKEN") as string, // Your entsoe api-token
+    {
+      documentType: "A77", // A73 - Production unavailability
+      biddingZoneDomain: area, // biddingZone_Domain
+      startDateTime: startDate, // Start date
+      endDateTime: endDate, // End date
+      offset: 0,
+    },
+  );
+
+  const outageRows: OutageRow[] = [];
+
+  for (const outageDoc of [...resultGen, ...resultPro]) {
+    for (const outage of outageDoc.timeseries) {
+      // Construct base object
+      const outageRow: OutageRow = {
+        businessType: outage.businessTypeDescription || "",
+        documentType: outageDoc.documentTypeDescription || "",
+        startDate: outage.startDate,
+        endDate: outage.endDate,
+        resourceName: outage.resourceName || "",
+        mRID: outageDoc.mRID,
+        revision: outageDoc.revision,
+        location: outage.resourceLocation,
+        psrName: outage.psrName,
+        psrNominalPowerUnit: outage.psrNominalPowerUnit,
+        psrNominalPower: outage.psrNominalPower,
+        psrType: outage.psrType,
+        reasonCode: outage.reasonCode,
+        reasonText: outage.reasonText,
+        availablePeriodArray: ([] as OutageAvailabilityRow[]),
+      };
+
+      for (const avail of outage.periods) {
+        for (const p of avail.points) {
+          outageRow.availablePeriodArray.push({
+            start: p.startDate,
+            end: p.endDate,
+            quantity: p.quantity || 0,
+            resolution: avail.resolution,
+          });
+        }
+      }
+      outageRows.push(outageRow);
+    }
+  }
+  return outageRows;
+};
+
 const EntsoeGeneration = async (area: string, startDate: Date, endDate: Date): Promise<GenerationRow[]> => {
   // Prepare dates
   startDate.setHours(0, 0, 0, 0);
   endDate.setHours(23, 0, 0, 0);
 
   // Run ENTSO-e transparency playform query
-  const result = await Query(
+  const result = await QueryGL(
     Deno.env.get("API_TOKEN") || "", // Your entsoe api-token
     {
       documentType: "A75", // A75 - Actual generation per type
@@ -44,17 +136,15 @@ const EntsoeGeneration = async (area: string, startDate: Date, endDate: Date): P
   // Compose a nice result set
   const output: GenerationRow[] = [];
 
-  if (result?.length && result[0].TimeSeries) {
-    for (const ts of result[0].TimeSeries) {
-      if (ts.Period?.Point?.length) {
-        for (const point of ts.Period.Point) {
-          const idx = point.position - 1,
-            periodLengthS = ts.Period.resolution === "PT60M" ? 3600 : 900;
+  if (result?.length && result[0].timeseries) {
+    for (const ts of result[0].timeseries) {
+      for (const period of ts.periods) {
+        for (const point of period.points) {
           output.push({
-            date: new Date(Date.parse(ts.Period.timeInterval.start) + (periodLengthS * 1000) * idx),
-            psr: ts.MktPSRType?.psrType || "",
-            consumption: ts["outBiddingZone_Domain.mRID"] ? 1 : 0,
-            interval: ts.Period.resolution,
+            date: point.startDate,
+            psr: ts.mktPsrType || "",
+            consumption: ts.outBiddingZone ? 1 : 0,
+            interval: period.resolution,
             quantity: point.quantity || 0,
           });
         }
@@ -71,7 +161,7 @@ const EntsoeLoad = async (area: string, startDate: Date, endDate: Date): Promise
   endDate.setHours(23, 0, 0, 0);
 
   // Run ENTSO-e transparency playform query
-  const result = await Query(
+  const result = await QueryGL(
     Deno.env.get("API_TOKEN") || "", // Your entsoe api-token
     {
       documentType: "A65", // A75 - Actual generation per type
@@ -86,14 +176,12 @@ const EntsoeLoad = async (area: string, startDate: Date, endDate: Date): Promise
   const output: LoadRow[] = [];
 
   if (result?.length) {
-    for (const ts of result[0].TimeSeries) {
-      if (ts.Period?.Point?.length) {
-        for (const point of ts.Period.Point) {
-          const idx = point.position - 1,
-            periodLengthS = ts.Period.resolution === "PT60M" ? 3600 : 900;
+    for (const ts of result[0].timeseries) {
+      for (const period of ts.periods) {
+        for (const point of period.points) {
           output.push({
-            date: new Date(Date.parse(ts.Period.timeInterval.start) + (periodLengthS * 1000) * idx),
-            interval: ts.Period.resolution,
+            date: point.startDate,
+            interval: period.resolution,
             quantity: point.quantity,
           });
         }
@@ -106,9 +194,9 @@ const EntsoeLoad = async (area: string, startDate: Date, endDate: Date): Promise
 
 const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Promise<SpotRow[]> => {
   const output: SpotRow[] = [];
-  let result: QueryResult[] = [];
+  let result: PublicationDocument[] = [];
   try {
-    result = await Query(
+    result = await QueryPublication(
       Deno.env.get("API_TOKEN") || "",
       {
         documentType: "A44",
@@ -123,18 +211,16 @@ const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Pr
   }
   if (result?.length) {
     try {
-      for (const ts of result[0].TimeSeries) {
-        const baseDate = new Date(ts.Period.timeInterval.start),
-          periodLengthS = ts.Period.resolution === "PT60M" ? 3600 : 900;
-        if (ts.Period?.Point?.length) {
-          for (const p of ts.Period.Point) {
-            if (p["price.amount"] !== undefined) {
+      for (const ts of result[0].timeseries) {
+        for (const period of ts.periods) {
+          for (const p of period.points) {
+            if (p.price !== undefined) {
               output.push({
-                startTime: new Date(baseDate.getTime() + (p.position - 1) * periodLengthS * 1000),
-                endTime: new Date(baseDate.getTime() + p.position * periodLengthS * 1000),
-                interval: ts.Period.resolution,
+                startTime: p.startDate,
+                endTime: p.endDate,
+                interval: period.resolution,
                 areaCode: area,
-                spotPrice: p["price.amount"],
+                spotPrice: p.price,
                 unit: "EUR/MWh",
               });
             }
@@ -149,4 +235,4 @@ const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Pr
   return output;
 };
 
-export { EntsoeGeneration, EntsoeLoad, EntsoeSpotprice };
+export { EntsoeGeneration, EntsoeLoad, EntsoeOutages, EntsoeSpotprice };

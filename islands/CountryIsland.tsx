@@ -20,7 +20,7 @@ import InformationPane from "components/partials/InformationPane.tsx";
 import PriceFactorWarning from "components/partials/PriceFactorWarning.tsx";
 import ProductionOverview from "components/partials/ProductionOverview.tsx";
 import ProductionDetailsTodayChart from "components/charts/ProductionDetailsTodayChart.tsx";
-
+import OutageOverview from "../components/partials/OutageOverview.tsx";
 
 export default function CountryIsland(props: PageProps<CountryPageProps>) {
 
@@ -129,15 +129,24 @@ export default function CountryIsland(props: PageProps<CountryPageProps>) {
           </div>
           <div class="content mt-0 mr-0 ml-20">
             <div class="row mt-0">
-            <AllAreaChartLongTerm
-                {...commonprops}
-                {...props.data}
-              ></AllAreaChartLongTerm>
-            <InformationPane
-                cols={6}
-                {...commonprops}
-                {...props.data}
-              ></InformationPane>
+              <AllAreaChartLongTerm
+                  {...commonprops}
+                  {...props.data}
+                ></AllAreaChartLongTerm>
+              <InformationPane
+                  cols={6}
+                  {...commonprops}
+                  {...props.data}
+                ></InformationPane>
+            </div>
+          </div>
+          <div class="content mt-0 mr-0 ml-20">
+            <div class="row mt-0">
+              <OutageOverview
+                  cols={12}
+                  {...commonprops}
+                  {...props.data}
+                ></OutageOverview>
             </div>
           </div>
         </div>
