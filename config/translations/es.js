@@ -128,8 +128,8 @@ const es = {
     "outage": {
       "title_current": "Interrupciones operativas en curso",
       "title_planned": "Cortes planificados",
-      "recurso": "Recurso",
-      "estado": "Estado",
+      "resource": "Recurso",
+      "status": "Estado",
       "capacity_now": "Capacidad en este momento",
       "total_capacity": "Capacidad total",
     },

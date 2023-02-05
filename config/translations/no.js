@@ -127,7 +127,7 @@ const no = {
     "outage": {
       "title_current": "Pågående driftsstans",
       "title_planned": "Planlagte driftsstans",
-      "ressurs": "Ressurs",
+      "resource": "Ressurs",
       "status": "Status",
       "capacity_now": "Kapasitet akkurat nå",
       "total_capacity": "Total kapasitet",

@@ -38,7 +38,7 @@ interface OutageRow {
   documentType: string;
   resourceName: string;
   mRID?: string;
-  revision: number;
+  revision?: number;
   location?: string;
   psrName?: string;
   psrNominalPowerUnit?: string;
@@ -99,14 +99,16 @@ const EntsoeOutages = async (area: string, startDate: Date, endDate: Date): Prom
         availablePeriodArray: ([] as OutageAvailabilityRow[]),
       };
 
-      for (const avail of outage.periods) {
-        for (const p of avail.points) {
-          outageRow.availablePeriodArray.push({
-            start: p.startDate,
-            end: p.endDate,
-            quantity: p.quantity || 0,
-            resolution: avail.resolution,
-          });
+      if (outage.periods) {
+        for (const avail of outage.periods) {
+          for (const p of avail.points) {
+            outageRow.availablePeriodArray.push({
+              start: p.startDate,
+              end: p.endDate,
+              quantity: p.quantity || 0,
+              resolution: avail.resolution,
+            });
+          }
         }
       }
       outageRows.push(outageRow);
@@ -138,15 +140,17 @@ const EntsoeGeneration = async (area: string, startDate: Date, endDate: Date): P
 
   if (result?.length && result[0].timeseries) {
     for (const ts of result[0].timeseries) {
-      for (const period of ts.periods) {
-        for (const point of period.points) {
-          output.push({
-            date: point.startDate,
-            psr: ts.mktPsrType || "",
-            consumption: ts.outBiddingZone ? 1 : 0,
-            interval: period.resolution,
-            quantity: point.quantity || 0,
-          });
+      if (ts.periods) {
+        for (const period of ts.periods) {
+          for (const point of period.points) {
+            output.push({
+              date: point.startDate,
+              psr: ts.mktPsrType || "",
+              consumption: ts.outBiddingZone ? 1 : 0,
+              interval: period.resolution,
+              quantity: point.quantity || 0,
+            });
+          }
         }
       }
     }
@@ -177,13 +181,15 @@ const EntsoeLoad = async (area: string, startDate: Date, endDate: Date): Promise
 
   if (result?.length) {
     for (const ts of result[0].timeseries) {
-      for (const period of ts.periods) {
-        for (const point of period.points) {
-          output.push({
-            date: point.startDate,
-            interval: period.resolution,
-            quantity: point.quantity,
-          });
+      if (ts.periods) {
+        for (const period of ts.periods) {
+          for (const point of period.points) {
+            output.push({
+              date: point.startDate,
+              interval: period.resolution,
+              quantity: point.quantity,
+            });
+          }
         }
       }
     }
@@ -212,17 +218,19 @@ const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Pr
   if (result?.length) {
     try {
       for (const ts of result[0].timeseries) {
-        for (const period of ts.periods) {
-          for (const p of period.points) {
-            if (p.price !== undefined) {
-              output.push({
-                startTime: p.startDate,
-                endTime: p.endDate,
-                interval: period.resolution,
-                areaCode: area,
-                spotPrice: p.price,
-                unit: "EUR/MWh",
-              });
+        if (ts.periods) {
+          for (const period of ts.periods) {
+            for (const p of period.points) {
+              if (p.price !== undefined) {
+                output.push({
+                  startTime: p.startDate,
+                  endTime: p.endDate,
+                  interval: period.resolution,
+                  areaCode: area,
+                  spotPrice: p.price,
+                  unit: "EUR/MWh",
+                });
+              }
             }
           }
         }

@@ -128,8 +128,8 @@ const fr = {
     "outage": {
       "title_current": "Interruptions opérationnelles en cours",
       "title_planned": "Interruptions planifiées",
-      "ressource": "Ressource",
-      "statut": "Statut",
+      "resource": "Ressource",
+      "status": "Statut",
       "capacity_now": "Capacité actuelle",
       "total_capacity": "Capacité totale",
     },

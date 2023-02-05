@@ -5,15 +5,15 @@ import { DBResultSet } from "backend/db/index.ts";
 interface ProductionOverviewProps extends CommonProps {
   cols: number;
   country: Country;
-  outages: DBResultSet;
-  futureOutages: DBResultSet;
+  outages?: DBResultSet;
+  futureOutages?: DBResultSet;
 }
 
 export default function OutageOverview(props: ProductionOverviewProps) {
   return (
     <div class={`col-lg-${props.cols} m-0 p-0`}>
       <div class="mw-full m-0 p-0 mr-20 mt-20">
-        { props.outages.data.length > 0 && (
+        { props.outages && props.outages.data.length > 0 && (
           <div class="card p-0 m-0">
             <div class={"px-card py-10 m-0 rounded-top"}>
               <h2 class="card-title font-size-18 m-0 text-center">
@@ -44,7 +44,7 @@ export default function OutageOverview(props: ProductionOverviewProps) {
             </div>
           </div>
           )}
-          { props.futureOutages.data.length > 0 && (
+          { props.futureOutages && props.futureOutages.data.length > 0 && (
             <div class="card p-0 m-0">
             <div class={"px-card py-10 m-0"}>
               <h2 class="card-title font-size-18 m-0 text-center">

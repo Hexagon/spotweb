@@ -128,7 +128,7 @@ const fi = {
     "outage": {
       "title_current": "Jatkuvat käyttökatkot",
       "title_planned": "Suunnitellut käyttökatkot",
-      "resurssi": "Resurssi",
+      "resource": "Resurssi",
       "status": "Tila",
       "capacity_now": "Kapasiteetti juuri nyt",
       "total_capacity": "Kokonaiskapasiteetti",

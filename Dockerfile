@@ -1,15 +1,4 @@
-FROM denoland/deno:alpine-1.29.1
-
-# Install base packages
-RUN apk update
-RUN apk upgrade
-RUN apk add ca-certificates && update-ca-certificates
-
-# Change TimeZone
-RUN apk add --update tzdata
-
-# Clean APK cache
-RUN rm -rf /var/cache/apk/*
+FROM denoland/deno:debian-1.30.2
 
 # Copy spotweb script
 RUN mkdir /spotweb
