@@ -51,6 +51,15 @@
     color:antiquewhite;
     line-height: 2.4rem;
 }
+/* Halfmoon customizations */
+.on-this-page-nav {
+    position: fixed;
+    margin-right: 2rem;
+    z-index: 20;
+    background-color: #ffffff;
+    padding: 0.5rem;
+    border-radius: 0.4rem;
+}
 
 /* highlight.js customization */
 .hljs {

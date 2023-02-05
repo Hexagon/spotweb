@@ -96,7 +96,6 @@ export default function HassIsland(props: PageProps<HassPageProps>) {
           unique_id: "56k_spotprice_now"
           value_template: "{{ value_json.now }}"
           unit_of_measurement: "${currency}/kWh"
-          state_class: "measurement"
           device_class: "monetary"
           json_attributes:
             - data
