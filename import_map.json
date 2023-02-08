@@ -1,7 +1,7 @@
 {
   "imports": {
     "std/": "https://deno.land/std@0.171.0/",
-    "$fresh/": "https://deno.land/x/fresh@1.1.2/",
+    "$fresh/": "https://deno.land/x/fresh@1.1.3/",
     "preact": "https://esm.sh/preact@10.11.0",
     "preact/": "https://esm.sh/preact@10.11.0/",
     "preact-render-to-string": "https://esm.sh/*preact-render-to-string@5.2.4",
@@ -13,7 +13,7 @@
     "islands/": "./islands/",
     "utils/": "./utils/",
     "routes/": "./routes/",
-    "entsoe_api_client/": "https://deno.land/x/entsoe_api_client@0.6.0/",
+    "entsoe_api_client/": "https://deno.land/x/entsoe_api_client@0.9.3/",
     "fresh_seo": "https://deno.land/x/fresh_seo@0.2.1/mod.ts",
     "localekit_fresh": "https://deno.land/x/localekit_fresh@0.5.0/mod.ts",
     "croner": "https://deno.land/x/croner@5.5.1/src/croner.js",
