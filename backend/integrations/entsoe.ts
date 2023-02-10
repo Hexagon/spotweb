@@ -1,5 +1,4 @@
-import { QueryGL, QueryPublication, QueryUnavailability } from "entsoe_api_client/mod.ts";
-import { PublicationDocument } from "entsoe_api_client/src/parsedocument.ts";
+import { Area, DocumentType, ProcessType, PublicationDocument, QueryGL, QueryPublication, QueryUnavailability } from "entsoe_api_client";
 
 interface SpotRow {
   startTime: Date;
@@ -58,8 +57,8 @@ const EntsoeOutages = async (area: string, startDate: Date, endDate: Date): Prom
   const resultGen = await QueryUnavailability(
     Deno.env.get("API_TOKEN") as string, // Your entsoe api-token
     {
-      documentType: "A80", // A80 - Generation unavailability
-      biddingZoneDomain: area, // biddingZone_Domain
+      documentType: DocumentType("Generation unavailability") || "", // A80 - Generation unavailability
+      biddingZoneDomain: Area(area), // biddingZone_Domain
       startDateTime: startDate, // Start date
       endDateTime: endDate, // End date
       offset: 0,
@@ -68,8 +67,8 @@ const EntsoeOutages = async (area: string, startDate: Date, endDate: Date): Prom
   const resultPro = await QueryUnavailability(
     Deno.env.get("API_TOKEN") as string, // Your entsoe api-token
     {
-      documentType: "A77", // A73 - Production unavailability
-      biddingZoneDomain: area, // biddingZone_Domain
+      documentType: DocumentType("Production unavailability") || "", // A73 - Production unavailability
+      biddingZoneDomain: Area(area), // biddingZone_Domain
       startDateTime: startDate, // Start date
       endDateTime: endDate, // End date
       offset: 0,
@@ -126,10 +125,10 @@ const EntsoeGeneration = async (area: string, startDate: Date, endDate: Date): P
   const result = await QueryGL(
     Deno.env.get("API_TOKEN") || "", // Your entsoe api-token
     {
-      documentType: "A75", // A75 - Actual generation per type
-      processType: "A16", // A16 - Realised
-      inDomain: area, // In_Domain
-      outDomain: area, // Out_Domain
+      documentType: DocumentType("Actual generation per type") || "", // A75 - Actual generation per type
+      processType: ProcessType("Realised"), // A16 - Realised
+      inDomain: Area(area), // In_Domain
+      outDomain: Area(area), // Out_Domain
       startDateTime: startDate, // Start date
       endDateTime: endDate, // End date
     },
@@ -170,7 +169,7 @@ const EntsoeLoad = async (area: string, startDate: Date, endDate: Date): Promise
     {
       documentType: "A65", // A75 - Actual generation per type
       processType: "A16", // A16 - Realised
-      outBiddingZoneDomain: area, // OutBiddingZone_Domain
+      outBiddingZoneDomain: Area(area), // OutBiddingZone_Domain
       startDateTime: startDate, // Start date
       endDateTime: endDate, // End date
     },
@@ -206,8 +205,8 @@ const EntsoeSpotprice = async (area: string, startDate: Date, endDate: Date): Pr
       Deno.env.get("API_TOKEN") || "",
       {
         documentType: "A44",
-        inDomain: area,
-        outDomain: area,
+        inDomain: Area(area),
+        outDomain: Area(area),
         startDateTime: startDate,
         endDateTime: endDate,
       },
