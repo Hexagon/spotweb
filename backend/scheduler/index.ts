@@ -11,9 +11,9 @@ import { DailyOutageUpdate } from "./jobs/daily.outageupdate.ts";
 // Set up automated jobs. Pause them initially.
 const jobs = [
   new Cron("0 45,50,54,58 12 * * *", { paused: true, timezone: "Europe/Oslo" }, DailyPriceUpdate),
-  new Cron("0 0,2,4,7,11,15,20,27,35,45,55 13 * * *", { paused: true, timezone: "Europe/Oslo" }, DailyPriceUpdate),
-  new Cron("0 5,20,40,58 14 * * *", { paused: true, timezone: "Europe/Oslo" }, DailyPriceUpdate),
-  new Cron("0 4 8,9,10 * * *", { paused: true, timezone: "Europe/Oslo" }, DailyPriceUpdate),
+  new Cron("0 0,3,7,11,14,20,30,40,50 13 * * *", { paused: true, timezone: "Europe/Oslo" }, DailyPriceUpdate),
+  new Cron("0 0,30 14,15 * * *", { paused: true, timezone: "Europe/Oslo" }, DailyPriceUpdate),
+  new Cron("0 28 16-20 * * *", { paused: true, timezone: "Europe/Oslo" }, DailyPriceUpdate),
   new Cron("0 14 * * * *", { paused: true, timezone: "Europe/Oslo" }, DailyCurrencyUpdate),
   new Cron("0 2,32 * * * *", { paused: true, timezone: "Europe/Oslo" }, HourlyConsumptionUpdate),
   new Cron("0 4,34 * * * *", { paused: true, timezone: "Europe/Oslo" }, HourlyProductionUpdate),
