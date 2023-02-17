@@ -9,10 +9,10 @@ import { HourlyProductionUpdate } from "./jobs/hourly.productionupdate.ts";
 import { DailyOutageUpdate } from "./jobs/daily.outageupdate.ts";
 
 // Set up automated jobs. Pause them initially.
-const jobOptions = { 
+const jobOptions = {
   paused: true,
   unref: true,
-  timezone: "Europe/Oslo"
+  timezone: "Europe/Oslo",
 };
 const jobs = [
   new Cron("0 45,50,54,58 12 * * *", jobOptions, DailyPriceUpdate),
