@@ -2,19 +2,12 @@ import { ExchangeRate } from "backend/integrations/ecb.ts";
 import { database } from "backend/db/index.ts";
 import { log } from "utils/log.ts";
 import { InvalidateCache } from "utils/datacache.ts";
+import { Cron } from "croner";
 
-let running = false;
+const DailyCurrencyUpdate = async (inst?: Cron) => {
+  const jobName = inst?.name ? inst.name : "DailyCurrencyUpdate";
 
-const DailyCurrencyUpdate = async () => {
-  log("info", "Scheduled data update started");
-
-  // Do not run two just simulataneously
-  if (running) {
-    log("info", "Previous job still running, skipping");
-    return;
-  } else {
-    running = true;
-  }
+  log("info", `${jobName}: Scheduled data update started`);
 
   try {
     // Get current date
@@ -38,16 +31,14 @@ const DailyCurrencyUpdate = async () => {
       }
     }
   } catch (e) {
-    log("error", "Error occured while updating data, skipping. Error: " + e);
+    log("error", `${jobName}: Error occured while updating data, skipping. Error: ${e}`);
   }
 
   // Clear memory cache
-  log("info", "Database changed, clearing cache, realm extrate.");
+  log("info", `${jobName}: Database changed, clearing cache, realm extrate.`);
   InvalidateCache("exrate");
 
-  running = false;
-
-  log("info", "Scheduled data update done");
+  log("info", `${jobName} Scheduled data update done`);
 };
 
 export { DailyCurrencyUpdate };
