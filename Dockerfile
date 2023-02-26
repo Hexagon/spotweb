@@ -1,4 +1,4 @@
-FROM denoland/deno:debian-1.30.3
+FROM denoland/deno:debian-1.31.1
 
 # Copy spotweb script
 RUN mkdir /spotweb
