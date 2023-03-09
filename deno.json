@@ -3,6 +3,7 @@
     "dev": "deno run -A --watch=static/,routes/ dev.ts --no-schedules",
     "debug": "deno task dev --debug",
     "precommit": "deno fmt --check && deno lint && deno check main.ts && deno test",
+    "up": "deno run --allow-run --allow-read --allow-write --allow-net --allow-env https://deno.land/x/pup@0.0.4/pup.ts",
     "prod": "deno run --allow-run --allow-read --allow-write --allow-net --allow-env main.ts",
     "update-deps": "deno run --allow-read=. --allow-write=. --allow-net https://deno.land/x/udd/main.ts --dry-run import_map.json",
     "update-fresh": "deno run -A -r https://fresh.deno.dev/update ."

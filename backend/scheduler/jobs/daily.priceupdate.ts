@@ -118,4 +118,4 @@ const DailyPriceUpdate = async (inst?: Cron) => {
   log("info", `${jobName}: Scheduled data update done`);
 };
 
-export { DailyPriceUpdate };
+DailyPriceUpdate();

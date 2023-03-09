@@ -80,4 +80,4 @@ const HourlyProductionUpdate = async (inst?: Cron) => {
   log("info", `${jobName}: Scheduled data update done`);
 };
 
-export { HourlyProductionUpdate };
+HourlyProductionUpdate();

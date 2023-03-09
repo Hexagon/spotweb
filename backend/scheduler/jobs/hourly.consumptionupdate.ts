@@ -77,4 +77,4 @@ const HourlyConsumptionUpdate = async (inst?: Cron) => {
   log("info", `${jobName}: Scheduled data update done`);
 };
 
-export { HourlyConsumptionUpdate };
+HourlyConsumptionUpdate();

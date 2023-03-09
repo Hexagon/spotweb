@@ -101,4 +101,4 @@ const DailyOutageUpdate = async (inst?: Cron) => {
   log("info", `${jobName}: Scheduled data update done`);
 };
 
-export { DailyOutageUpdate };
+DailyOutageUpdate();

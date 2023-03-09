@@ -40,5 +40,5 @@ const DailyCurrencyUpdate = async (inst?: Cron) => {
 
   log("info", `${jobName} Scheduled data update done`);
 };
-
-export { DailyCurrencyUpdate };
+ 
+DailyCurrencyUpdate();

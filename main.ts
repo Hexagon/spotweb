@@ -4,7 +4,6 @@ import languageConfig from "config/translate.config.ts";
 import { start } from "$fresh/server.ts";
 import manifest from "./fresh.gen.ts";
 import { langFromUrl } from "utils/common.ts";
-import { scheduler } from "backend/scheduler/index.ts";
 import { log, setLevel } from "./utils/log.ts";
 
 // Enable debugging
@@ -25,14 +24,3 @@ start(
     },
   },
 );
-
-// Start back end
-if (!Deno.args.includes("--no-schedules")) {
-  scheduler.start();
-}
-
-// Do instant update if asked to
-if (Deno.args.includes("--instant-update")) {
-  log("info", "Doing instant update");
-  scheduler.instant();
-}
