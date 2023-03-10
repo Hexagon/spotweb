@@ -13689,14 +13689,14 @@ try {
     Deno.exit(1);
 }
 const sleep = (ms)=>new Promise((r)=>setTimeout(r, ms));
-const UpdateProductionForArea = async (area, jobName)=>{
+const UpdateProductionForArea = async (area)=>{
     const dateToday = new Date(), dateYesterday = new Date();
     dateYesterday.setDate(dateYesterday.getDate() - 1);
-    log("info", `${jobName}: Getting production for ${area} ${dateYesterday.toLocaleString()}-${dateToday.toLocaleString()}`);
+    log("info", `Getting production for ${area} ${dateYesterday.toLocaleString()}-${dateToday.toLocaleString()}`);
     try {
         const result = await EntsoeGeneration(area, dateYesterday, dateToday), preparedQuery = database.prepareQuery("INSERT INTO generation (area, value, period, psr, interval, consumption) VALUES (?,?,?,?,?,?)");
         if (result.length) {
-            log("info", `${jobName}: Got ${result.length} rows`);
+            log("info", `Got ${result.length} rows`);
             for (const row of result){
                 preparedQuery.execute([
                     area,
@@ -13709,35 +13709,34 @@ const UpdateProductionForArea = async (area, jobName)=>{
                 await sleep(1);
             }
         } else {
-            log("info", `${jobName}: No new data for ${area}`);
+            log("info", `No new data for ${area}`);
         }
     } catch (e) {
-        log("error", `${jobName}: entsoe request failed: ${e}`);
+        log("error", `entsoe request failed: ${e}`);
     }
 };
-const HourlyProductionUpdate = async (inst)=>{
-    const jobName = inst?.name ? inst.name : "HourlyProductionUpdate";
-    log("info", `${jobName}: Scheduled data update started`);
+const HourlyProductionUpdate = async ()=>{
+    log("info", `Scheduled data update started`);
     try {
         for (const country of countries){
-            await UpdateProductionForArea(country.cty, jobName);
+            await UpdateProductionForArea(country.cty);
             await sleep(2000);
             for (const area of country.areas){
-                await UpdateProductionForArea(area.id, jobName);
+                await UpdateProductionForArea(area.id);
                 await sleep(2000);
             }
         }
-        log("info", `${jobName}: Cleaning up.`);
+        log("info", `Cleaning up.`);
         database.query("DELETE FROM generation WHERE id NOT IN (SELECT MAX(id) FROM generation GROUP BY area,period,psr,consumption)");
         if (database.totalChanges) {
-            log("info", `${jobName}: Deleted ${database.totalChanges} duplicate rows.`);
+            log("info", `Deleted ${database.totalChanges} duplicate rows.`);
         }
     } catch (e) {
-        log("error", `${jobName}: Error occured while updating data, skipping. Error: ${e}`);
+        log("error", `Error occured while updating data, skipping. Error: ${e}`);
     }
-    log("info", `${jobName}: Database changed, clearing cache, realm generation.`);
+    log("info", `Database changed, clearing cache, realm generation.`);
     InvalidateCache("generation");
     InvalidateCache("load");
-    log("info", `${jobName}: Scheduled data update done`);
+    log("info", `Scheduled data update done`);
 };
 HourlyProductionUpdate();

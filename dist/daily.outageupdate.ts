@@ -13711,9 +13711,8 @@ const countries = [
     }
 ];
 const sleep = (ms)=>new Promise((r)=>setTimeout(r, ms));
-const DailyOutageUpdate = async (inst)=>{
-    const jobName = inst?.name ? inst.name : "DailyOutageUpdate";
-    log("info", `${jobName}: Scheduled data update started`);
+const DailyOutageUpdate = async ()=>{
+    log("info", `Scheduled data update started`);
     try {
         const dateStart = new Date(), dateEnd = new Date();
         dateStart.setDate(dateStart.getDate() - 30);
@@ -13739,10 +13738,10 @@ const DailyOutageUpdate = async (inst)=>{
         quantity) VALUES (?,?,?,?);`), preparedQueryOutageDelete = database.prepareQuery(`DELETE FROM outage WHERE mrid=(?);`), preparedQueryOutageAvailabilityDelete = database.prepareQuery(`DELETE FROM outage_availability WHERE mrid=(?);`);
         for (const country of countries){
             try {
-                log("info", `${jobName}: Getting outages for ${country.name}`);
+                log("info", `Getting outages for ${country.name}`);
                 const dataPast = await EntsoeOutages(country.cta, dateStart, dateEnd);
                 await sleep(3);
-                log("info", `${jobName}: Got ${dataPast.length} outages.`);
+                log("info", `Got ${dataPast.length} outages.`);
                 for (const dpEntry of [
                     ...dataPast
                 ]){
@@ -13779,15 +13778,15 @@ const DailyOutageUpdate = async (inst)=>{
                     await sleep(1);
                 }
             } catch (e) {
-                log("error", `${jobName}: Error occured while updating outage data for '${country.name}', skipping. Error: ${e}`);
+                log("error", `Error occured while updating outage data for '${country.name}', skipping. Error: ${e}`);
             }
             await sleep(3);
         }
     } catch (e) {
-        log("error", `${jobName}: Error occured while updating data, skipping. Error: ${e}`);
+        log("error", `Error occured while updating data, skipping. Error: ${e}`);
     }
-    log("info", `${jobName}: Database changed, clearing cache, realm outage.`);
+    log("info", `Database changed, clearing cache, realm outage.`);
     InvalidateCache("outage");
-    log("info", `${jobName}: Scheduled data update done`);
+    log("info", `Scheduled data update done`);
 };
 DailyOutageUpdate();

@@ -4,14 +4,12 @@ import { database } from "backend/db/index.ts";
 import { log } from "utils/log.ts";
 import { InvalidateCache } from "utils/datacache.ts";
 import { sleep } from "utils/common.ts";
-import { Cron } from "croner";
 
 const startDate = new Date(Date.parse("2020-12-31T12:00:00Z"));
 
-const DailyPriceUpdate = async (inst?: Cron) => {
-  const jobName = inst?.name ? inst.name : "DailyPriceUpdate";
+const DailyPriceUpdate = async () => {
 
-  log("info", `${jobName}: Scheduled data update started`);
+  log("info", `Scheduled data update started`);
 
   try {
     // Get current date
@@ -58,12 +56,12 @@ const DailyPriceUpdate = async (inst?: Cron) => {
           endOfPeriod = new Date(Math.min(endOfPeriod.getTime(), dateTomorrow.getTime()));
 
           // Get data
-          log("info", `${jobName}: Getting ${area.id} ${currentPeriod.toLocaleString()} ${endOfPeriod.toLocaleString()}`);
+          log("info", `Getting ${area.id} ${currentPeriod.toLocaleString()} ${endOfPeriod.toLocaleString()}`);
           try {
             const result = await EntsoeSpotprice(area.id, currentPeriod, endOfPeriod),
               preparedQuery = database.prepareQuery("INSERT INTO spotprice (country, area, spotprice, period, interval) VALUES (?,?,?,?,?)");
             if (result.length) {
-              log("info", `${jobName}: Got ${result.length} rows`);
+              log("info", `Got ${result.length} rows`);
               for (const row of result) {
                 preparedQuery.execute([
                   country.id,
@@ -85,11 +83,11 @@ const DailyPriceUpdate = async (inst?: Cron) => {
               // Add one day to start date if we are not at start
               currentPeriod.setDate(currentPeriod.getDate() + 1);
             } else {
-              log("info", `${jobName}: No new data for ${area.id}`);
+              log("info", `No new data for ${area.id}`);
               errored = true;
             }
           } catch (e) {
-            log("error", `${jobName}: entsoe request failed ${e}`);
+            log("error", `entsoe request failed ${e}`);
             errored = true;
           }
 
@@ -100,22 +98,22 @@ const DailyPriceUpdate = async (inst?: Cron) => {
     }
 
     // Delete duplicated
-    log("info", `${jobName}: Cleaning up.`);
+    log("info", `Cleaning up.`);
     database.query("DELETE FROM spotprice WHERE id NOT IN (SELECT MAX(id) FROM spotprice GROUP BY area,country,period,interval)");
     if (database.totalChanges) {
-      log("info", `${jobName}: Deleted ${database.totalChanges} duplicate rows.`);
+      log("info", `Deleted ${database.totalChanges} duplicate rows.`);
     }
 
     // Clear memory cache
     if (gotData) {
-      log("info", `${jobName}: Database changed, clearing cache, realm spotprice.`);
+      log("info", `Database changed, clearing cache, realm spotprice.`);
       InvalidateCache("spotprice");
     }
   } catch (e) {
-    log("error", `${jobName}: Error occured while updating data, skipping. Error: ${e}`);
+    log("error", `Error occured while updating data, skipping. Error: ${e}`);
   }
 
-  log("info", `${jobName}: Scheduled data update done`);
+  log("info", `Scheduled data update done`);
 };
 
 DailyPriceUpdate();

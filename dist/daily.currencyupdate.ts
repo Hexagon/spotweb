@@ -3086,9 +3086,8 @@ try {
     console.error("Fatal: Could not open database");
     Deno.exit(1);
 }
-const DailyCurrencyUpdate = async (inst)=>{
-    const jobName = inst?.name ? inst.name : "DailyCurrencyUpdate";
-    log("info", `${jobName}: Scheduled data update started`);
+const DailyCurrencyUpdate = async ()=>{
+    log("info", `Scheduled data update started`);
     try {
         const dateToday = new Date();
         dateToday.setHours(0, 0, 0, 0);
@@ -3108,10 +3107,10 @@ const DailyCurrencyUpdate = async (inst)=>{
             }
         }
     } catch (e) {
-        log("error", `${jobName}: Error occured while updating data, skipping. Error: ${e}`);
+        log("error", `Error occured while updating data, skipping. Error: ${e}`);
     }
-    log("info", `${jobName}: Database changed, clearing cache, realm extrate.`);
+    log("info", `Database changed, clearing cache, realm extrate.`);
     InvalidateCache("exrate");
-    log("info", `${jobName} Scheduled data update done`);
+    log("info", `Scheduled data update done`);
 };
 DailyCurrencyUpdate();
