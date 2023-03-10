@@ -2934,7 +2934,13 @@ const log = (type, t)=>{
     else if (type === "error") fn = console.error;
     else if (type === "debug") fn = console.debug;
     else throw new Error("Invalid log type, cannot log: " + t);
-    if (fn) fn(new Date().toLocaleString("sv-SE"), "Backend:", t);
+    if (fn) {
+        if (false) {
+            fn(new Date().toLocaleString("sv-SE"), "Backend:", t);
+        } else {
+            fn(t);
+        }
+    }
 };
 const MemCache = new Map();
 const InvalidateCache = (realm)=>{

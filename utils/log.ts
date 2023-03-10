@@ -1,4 +1,5 @@
 let level = "normal";
+const decorate = false;
 
 const setLevel = (requestedLevel: string) => {
   level = requestedLevel;
@@ -12,7 +13,13 @@ const log = (type: string, t: string) => {
   else if (type === "error") fn = console.error;
   else if (type === "debug") fn = console.debug;
   else throw new Error("Invalid log type, cannot log: " + t);
-  if (fn) fn(new Date().toLocaleString("sv-SE"), "Backend:", t);
+  if (fn) {
+    if (decorate) {
+      fn(new Date().toLocaleString("sv-SE"), "Backend:", t);
+    } else {
+      fn(t);
+    }
+  }
 };
 
 export { log, setLevel };

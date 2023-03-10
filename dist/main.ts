@@ -121468,7 +121468,7 @@ function bundleAssetUrl(path) {
 }
 globalThis.__FRSH_BUILD_ID = BUILD_ID;
 const importMeta5 = {
-    url: "https://deno.land/x/fresh@1.1.3/src/server/bundle.ts",
+    url: "https://deno.land/x/fresh@1.1.4/src/server/bundle.ts",
     main: false
 };
 let esbuildInitialized = false;
@@ -122513,13 +122513,29 @@ class ServerContext {
     handler() {
         const inner = mod5.router(...this.#handlers());
         const withMiddlewares = this.#composeMiddlewares(this.#middlewares);
-        return function handler(req, connInfo) {
+        return async function handler(req, connInfo) {
             const url = new URL(req.url);
             if (url.pathname.length > 1 && url.pathname.endsWith("/")) {
                 url.pathname = url.pathname.slice(0, -1);
                 return Response.redirect(url.href, Status.TemporaryRedirect);
             }
-            return withMiddlewares(req, connInfo, inner);
+            const originalMethod = req.method;
+            if (req.method === "HEAD") {
+                req = new Request(req.url, {
+                    method: "GET",
+                    headers: req.headers
+                });
+            }
+            const res = await withMiddlewares(req, connInfo, inner);
+            if (originalMethod === "HEAD") {
+                res.body?.cancel();
+                return new Response(null, {
+                    headers: res.headers,
+                    status: res.status,
+                    statusText: res.statusText
+                });
+            }
+            return res;
         };
     }
     #composeMiddlewares(middlewares) {
@@ -125908,9 +125924,10 @@ minitz.fromTZ = function(tp, throwOnInvalid) {
     }
 };
 minitz.toTZ = function(d, tzStr) {
-    const td = new Date(d.toLocaleString("sv-SE", {
+    const localDateString = d.toLocaleString("en-US", {
         timeZone: tzStr
-    }));
+    }).replace(/[\u202f]/, " ");
+    const td = new Date(localDateString);
     return {
         y: td.getFullYear(),
         m: td.getMonth() + 1,
@@ -125933,9 +125950,9 @@ minitz.tp = (y, m, d, h, i, s, tz)=>{
     };
 };
 function getTimezoneOffset(timeZone, date = new Date()) {
-    const tz = date.toLocaleString("en", {
-        timeZone,
-        timeStyle: "long"
+    const tz = date.toLocaleString("en-US", {
+        timeZone: timeZone,
+        timeZoneName: "short"
     }).split(" ").slice(-1)[0];
     const dateString = date.toLocaleString("en-US").replace(/[\u202f]/, " ");
     return Date.parse(`${dateString} GMT`) - Date.parse(`${dateString} ${tz}`);
@@ -126409,17 +126426,13 @@ function Cron(pattern, fnOrOptions1, fnOrOptions2) {
         once: void 0,
         currentTimeout: void 0,
         maxRuns: options ? options.maxRuns : void 0,
-        paused: options ? options.paused : false
+        paused: options ? options.paused : false,
+        pattern: void 0
     };
-    this.pattern = void 0;
     if (pattern && (pattern instanceof Date || typeof pattern === "string" && pattern.indexOf(":") > 0)) {
         this._states.once = new CronDate(pattern, this.options.timezone || this.options.utcOffset);
     } else {
-        this.pattern = new CronPattern(pattern, this.options.timezone);
-    }
-    if (func !== void 0) {
-        this.fn = func;
-        this.schedule();
+        this._states.pattern = new CronPattern(pattern, this.options.timezone);
     }
     if (this.name) {
         const existing = scheduledJobs.find((j)=>j.name === this.name);
@@ -126429,35 +126442,47 @@ function Cron(pattern, fnOrOptions1, fnOrOptions2) {
             scheduledJobs.push(this);
         }
     }
+    if (func !== void 0) {
+        this.fn = func;
+        this.schedule();
+    }
     return this;
 }
-Cron.prototype.next = function(prev) {
+Cron.prototype.nextRun = function(prev) {
     const next = this._next(prev);
     return next ? next.getDate() : null;
 };
-Cron.prototype.enumerate = function(n, previous) {
+Cron.prototype.nextRuns = function(n, previous) {
     if (n > this._states.maxRuns) {
         n = this._states.maxRuns;
     }
     const enumeration = [];
-    let prev = previous || this._states.previousRun;
-    while(n-- && (prev = this.next(prev))){
+    let prev = previous || this._states.currentRun;
+    while(n-- && (prev = this.nextRun(prev))){
         enumeration.push(prev);
     }
     return enumeration;
 };
-Cron.prototype.running = function() {
-    const msLeft = this.msToNext(this._states.previousRun);
-    const running = !this._states.paused && this.fn !== void 0;
-    return msLeft !== null && running;
+Cron.prototype.getPattern = function() {
+    return this._states.pattern ? this._states.pattern.pattern : void 0;
 };
-Cron.prototype.busy = function() {
+Cron.prototype.isRunning = function() {
+    const msLeft = this.msToNext(this._states.currentRun);
+    const isRunning = !this._states.paused;
+    const isScheduled = this.fn !== void 0;
+    const notIsKilled = !this._states.kill;
+    return isRunning && isScheduled && notIsKilled && msLeft !== null;
+};
+Cron.prototype.isStopped = function() {
+    return this._states.kill;
+};
+Cron.prototype.isBusy = function() {
     return this._states.blocking;
 };
-Cron.prototype.started = function() {
+Cron.prototype.currentRun = function() {
     return this._states.currentRun ? this._states.currentRun.getDate() : null;
 };
-Cron.prototype.previous = function() {
+Cron.prototype.previousRun = function() {
     return this._states.previousRun ? this._states.previousRun.getDate() : null;
 };
 Cron.prototype.msToNext = function(prev) {
@@ -126474,6 +126499,10 @@ Cron.prototype.stop = function() {
     if (this._states.currentTimeout) {
         clearTimeout(this._states.currentTimeout);
     }
+    const jobIndex = scheduledJobs.indexOf(this);
+    if (jobIndex >= 0) {
+        scheduledJobs.splice(jobIndex, 1);
+    }
 };
 Cron.prototype.pause = function() {
     this._states.paused = true;
@@ -126489,8 +126518,8 @@ Cron.prototype.schedule = function(func, partial) {
     } else if (func) {
         this.fn = func;
     }
-    let waitMs = this.msToNext(partial ? partial : this._states.previousRun);
-    const target = this.next(partial ? partial : this._states.previousRun);
+    let waitMs = this.msToNext(partial ? partial : this._states.currentRun);
+    const target = this.nextRun(partial ? partial : this._states.currentRun);
     if (waitMs === null || target === null) return this;
     if (waitMs > maxDelay) {
         waitMs = maxDelay;
@@ -126503,13 +126532,13 @@ Cron.prototype.schedule = function(func, partial) {
 };
 Cron.prototype._trigger = async function(initiationDate) {
     this._states.blocking = true;
-    this._states.currentRun = new CronDate(initiationDate, this.options.timezone || this.options.utcOffset);
+    this._states.currentRun = new CronDate(void 0, this.options.timezone || this.options.utcOffset);
     if (this.options.catch) {
         try {
             await this.fn(this, this.options.context);
         } catch (_e) {
             if (isFunction(this.options.catch)) {
-                setTimeout(()=>this.options.catch(_e, this), 0);
+                this.options.catch(_e, this);
             }
         }
     } else {
@@ -126522,7 +126551,7 @@ Cron.prototype.trigger = async function() {
     await this._trigger();
 };
 Cron.prototype._checkTrigger = function(target) {
-    const now = new Date(), shouldRun = !this._states.paused && now.getTime() >= target, isBlocked = this.blocking && this.options.protect;
+    const now = new Date(), shouldRun = !this._states.paused && now.getTime() >= target, isBlocked = this._states.blocking && this.options.protect;
     if (shouldRun && !isBlocked) {
         this._states.maxRuns--;
         this._trigger();
@@ -126534,12 +126563,12 @@ Cron.prototype._checkTrigger = function(target) {
     this.schedule(undefined, now);
 };
 Cron.prototype._next = function(prev) {
-    const hasPreviousRun = prev || this._states.previousRun ? true : false;
+    const hasPreviousRun = prev || this._states.currentRun ? true : false;
     prev = new CronDate(prev, this.options.timezone || this.options.utcOffset);
     if (this.options.startAt && prev && prev.getTime() < this.options.startAt.getTime()) {
         prev = this.options.startAt;
     }
-    const nextRun = this._states.once || new CronDate(prev, this.options.timezone || this.options.utcOffset).increment(this.pattern, this.options, hasPreviousRun);
+    const nextRun = this._states.once || new CronDate(prev, this.options.timezone || this.options.utcOffset).increment(this._states.pattern, this.options, hasPreviousRun);
     if (this._states.once && this._states.once.getTime() <= prev.getTime()) {
         return null;
     } else if (nextRun === null || this._states.maxRuns <= 0 || this._states.kill || this.options.stopAt && nextRun.getTime() >= this.options.stopAt.getTime()) {
@@ -130533,7 +130562,13 @@ const log = (type, t)=>{
     else if (type === "error") fn = console.error;
     else if (type === "debug") fn = console.debug;
     else throw new Error("Invalid log type, cannot log: " + t);
-    if (fn) fn(new Date().toLocaleString("sv-SE"), "Backend:", t);
+    if (fn) {
+        if (false) {
+            fn(new Date().toLocaleString("sv-SE"), "Backend:", t);
+        } else {
+            fn(t);
+        }
+    }
 };
 const MemCache = new Map();
 const Timer = ()=>{
