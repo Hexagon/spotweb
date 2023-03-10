@@ -1,4 +1,4 @@
-import { DB, Row } from "sqlite";
+import { Database } from "sqlite3";
 import { resolve } from "std/path/mod.ts";
 import {
   sqlAppliedUpdates,
@@ -42,31 +42,31 @@ interface DBResultSet {
 }
 
 // Try creating/opening database
-let database: DB;
+let database: Database;
 try {
   const path = resolve(Deno.cwd(), "./db/"),
     fileName = resolve(path, "main.db");
   await Deno.mkdir(path, { recursive: true });
-  database = new DB(fileName);
+  database = new Database(fileName);
 
   // Create tables
-  database.query(sqlCreateSpotprice);
-  database.query(sqlCreateExchangeRate);
-  database.query(sqlCreateGeneration);
-  database.query(sqlCreateLoad);
-  database.query(sqlCreateUpdates);
-  database.query(sqlCreatePsr);
+  database.exec(sqlCreateSpotprice);
+  database.exec(sqlCreateExchangeRate);
+  database.exec(sqlCreateGeneration);
+  database.exec(sqlCreateLoad);
+  database.exec(sqlCreateUpdates);
+  database.exec(sqlCreatePsr);
 
   // Apply updates
-  const appliedUpdates = database.query(sqlAppliedUpdates);
+  const appliedUpdates = database.prepare(sqlAppliedUpdates).values();
   for (const update of DBUpdates) {
     // Update alredy applied?
     if (!appliedUpdates.find((r) => r[0] == update.name)) {
       // Nope! Do apply!
       log("log", `Applying db update '${update.name}'`);
       try {
-        database.query(update.sql);
-        database.query("INSERT INTO updates(name, applied) VALUES(?,?)", [update.name, 1]);
+        database.exec(update.sql);
+        database.prepare("INSERT INTO updates(name, applied) VALUES(?,?)").values(update.name, 1);
       } catch (e) {
         log("log", `Database update '${update.name}' failed. Error: ${e.code} ${e}`);
       } finally {
@@ -75,7 +75,7 @@ try {
     }
   }
 } catch (_e) {
-  console.error("Fatal: Could not open database");
+  console.error("Fatal: Could not open database", _e);
   Deno.exit(1);
 }
 
@@ -118,19 +118,18 @@ const GetSpotprice = async (
   const result = await DataCache("spotprice", parameterString, cacheLength, (): SpotApiRow[] => {
     let data: Array<Array<number>>;
     if (currency) {
-      data = database.query(
+      data = database.prepare(
         sqlConverted
           .replaceAll("[[groupby]]", sqlGroupBy[period])
-          .replaceAll("[[areaField]]", country ? "country" : "area"),
-        [currency, country || area, fromDate.getTime(), toDate.getTime(), interval],
-      );
+          .replaceAll("[[areaField]]", country ? "country" : "area")
+      ).values(currency, country || area, fromDate.getTime(), toDate.getTime(), interval);
     } else {
-      data = database.query(
+      data = database.prepare(
         sqlRaw
           .replaceAll("[[groupby]]", sqlGroupBy[period])
-          .replaceAll("[[areaField]]", country ? "country" : "area"),
-        [country || area, fromDate.getTime(), toDate.getTime(), interval],
-      );
+          .replaceAll("[[areaField]]", country ? "country" : "area")).values(
+        country || area, fromDate.getTime(), toDate.getTime(), interval)
+      ;
     }
     return data.map((r) => {
       if (r.length > 2) {
@@ -172,7 +171,7 @@ const GetLoadDay = async (area: string, fromDateIn: Date, toDateIn: Date, interv
     cacheLength = 86400;
 
   return await DataCache("load", parameterString, cacheLength, () => {
-    const data = database.query(sqlLoad, [area, fromDate.getTime(), toDate.getTime(), interval]);
+    const data = database.prepare(sqlLoad).values(area, fromDate.getTime(), toDate.getTime(), interval);
     return { data };
   });
 };
@@ -185,7 +184,7 @@ const GetLastPricePerArea = async (): Promise<DBResultSet> => {
     cacheLength = 86400;
 
   return await DataCache("spotprice", parameterString, cacheLength, () => {
-    const data = database.query(sqlLatestPricePerArea, [fromDate.getTime()]);
+    const data = database.prepare(sqlLatestPricePerArea).values(fromDate.getTime());
     return { data };
   });
 };
@@ -198,7 +197,7 @@ const GetLastPricePerCountry = async (): Promise<DBResultSet> => {
     cacheLength = 86400;
 
   return await DataCache("spotprice", parameterString, cacheLength, () => {
-    const data = database.query(sqlLatestPricePerCountry, [fromDate.getTime()]);
+    const data = database.prepare(sqlLatestPricePerCountry).values(fromDate.getTime());
     return { data };
   });
 };
@@ -212,7 +211,7 @@ const GetLastGenerationAndLoad = async (): Promise<DBResultSet> => {
     cacheLength = 86400;
 
   return await DataCache("generation", parameterString, cacheLength, () => {
-    const data = database.query(sqlCurrentLoadAndGeneration, [fromDate.getTime()]);
+    const data = database.prepare(sqlCurrentLoadAndGeneration).run(fromDate.getTime());
     return { data };
   });
 };
@@ -229,7 +228,7 @@ const GetGenerationAndLoad = async (area: string, fromDateIn: Date, toDateIn: Da
     cacheLength = 86400;
 
   return await DataCache("generation", parameterString, cacheLength, () => {
-    const data = database.query(sqlLoadAndGeneration, [area, fromDate.getTime(), toDate.getTime()]);
+    const data = database.prepare(sqlLoadAndGeneration).values(area, fromDate.getTime(), toDate.getTime());
     return { data };
   });
 };
@@ -245,7 +244,7 @@ const GetGenerationDay = async (area: string, fromDateIn: Date, toDateIn: Date, 
     cacheLength = 86400;
 
   return await DataCache("generation", parameterString, cacheLength, () => {
-    const data = database.query(sqlGeneration, [area, fromDate.getTime(), toDate.getTime(), interval]);
+    const data = database.prepare(sqlGeneration).values(area, fromDate.getTime(), toDate.getTime(), interval);
     return { data };
   });
 };
@@ -273,7 +272,7 @@ const GetDataMonth = async (areaName: string, date: Date, interval: string, curr
 
 const GetExchangeRates = async (): Promise<ExchangeRateResult> => {
   const output = await DataCache("exrate", "__exrate", 86400, () => {
-    const result = database.query(sqlExchangeRates),
+    const result = database.prepare(sqlExchangeRates).values(),
       entries: Record<string, number> = {};
 
     for (const row of result) {
@@ -296,13 +295,13 @@ const GetCurrentOutages = async (area: string): Promise<DBResultSet> => {
     cacheLength = 900;
 
   return await DataCache("outage", parameterString, cacheLength, () => {
-    const data = database.query(sqlCurrentOutagesPerArea, [
+    const data = database.prepare(sqlCurrentOutagesPerArea).values(
       new Date().getTime(),
       new Date().getTime(),
       area,
       new Date().getTime(),
       new Date().getTime(),
-    ]);
+    );
     return { data };
   });
 };
@@ -312,12 +311,12 @@ const GetFutureOutages = async (area: string): Promise<DBResultSet> => {
     cacheLength = 900;
 
   return await DataCache("outage", parameterString, cacheLength, () => {
-    const data = database.query(sqlFutureOutagesPerArea, [area, new Date().getTime()]);
+    const data = database.prepare(sqlFutureOutagesPerArea).values(area, new Date().getTime());
     return { data };
   });
 };
 
-export type { DBResultSet, ExchangeRateResult, Row, SpotApiRow };
+export type { DBResultSet, ExchangeRateResult, SpotApiRow };
 export {
   database,
   GetCurrentOutages,

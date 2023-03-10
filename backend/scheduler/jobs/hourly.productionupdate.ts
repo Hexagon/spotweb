@@ -18,18 +18,18 @@ const UpdateProductionForArea = async (area: string) => {
 
   try {
     const result = await EntsoeGeneration(area, dateYesterday, dateToday),
-      preparedQuery = database.prepareQuery("INSERT INTO generation (area, value, period, psr, interval, consumption) VALUES (?,?,?,?,?,?)");
+      preparedQuery = database.prepare("INSERT INTO generation (area, value, period, psr, interval, consumption) VALUES (?,?,?,?,?,?)");
     if (result.length) {
       log("info", `Got ${result.length} rows`);
       for (const row of result) {
-        preparedQuery.execute([
+        preparedQuery.run(
           area,
           row.quantity,
           row.date.getTime(),
           row.psr,
           row.interval,
           row.consumption,
-        ]);
+        );
 
         // Sleep one millisecond between each row to allow clients to fetch data
         await sleep(1);
@@ -58,7 +58,7 @@ const HourlyProductionUpdate = async () => {
 
     // Delete duplicated
     log("info", `Cleaning up.`);
-    database.query("DELETE FROM generation WHERE id NOT IN (SELECT MAX(id) FROM generation GROUP BY area,period,psr,consumption)");
+    database.exec("DELETE FROM generation WHERE id NOT IN (SELECT MAX(id) FROM generation GROUP BY area,period,psr,consumption)");
     if (database.totalChanges) {
       log("info", `Deleted ${database.totalChanges} duplicate rows.`);
     }

@@ -32,7 +32,7 @@ const DailyPriceUpdate = async () => {
       for (const area of country.areas) {
         // Get maximum date from area, or fallback to startdate
         let currentPeriod;
-        const maxPeriodResult = database.query("SELECT MAX(period) as mp FROM spotprice WHERE country=(?) AND area=(?)", [country.id, area.name]);
+        const maxPeriodResult = database.prepare("SELECT MAX(period) as mp FROM spotprice WHERE country=(?) AND area=(?)").values(country.id, area.name);
         currentPeriod = new Date(maxPeriodResult[0][0] && typeof maxPeriodResult[0][0] === "number" ? new Date(maxPeriodResult[0][0]) : startDate);
 
         // Loop until we are at endDate
@@ -58,17 +58,17 @@ const DailyPriceUpdate = async () => {
           log("info", `Getting ${area.id} ${currentPeriod.toLocaleString()} ${endOfPeriod.toLocaleString()}`);
           try {
             const result = await EntsoeSpotprice(area.id, currentPeriod, endOfPeriod),
-              preparedQuery = database.prepareQuery("INSERT INTO spotprice (country, area, spotprice, period, interval) VALUES (?,?,?,?,?)");
+              preparedQuery = database.prepare("INSERT INTO spotprice (country, area, spotprice, period, interval) VALUES (?,?,?,?,?)");
             if (result.length) {
               log("info", `Got ${result.length} rows`);
               for (const row of result) {
-                preparedQuery.execute([
+                preparedQuery.run(
                   country.id,
                   area.name,
                   row.spotPrice,
                   row.startTime.getTime(),
                   row.interval,
-                ]);
+                );
 
                 // Sleep one millisecond between each row to allow clients to fetch data
                 await sleep(1);
@@ -98,7 +98,7 @@ const DailyPriceUpdate = async () => {
 
     // Delete duplicated
     log("info", `Cleaning up.`);
-    database.query("DELETE FROM spotprice WHERE id NOT IN (SELECT MAX(id) FROM spotprice GROUP BY area,country,period,interval)");
+    database.exec("DELETE FROM spotprice WHERE id NOT IN (SELECT MAX(id) FROM spotprice GROUP BY area,country,period,interval)");
     if (database.totalChanges) {
       log("info", `Deleted ${database.totalChanges} duplicate rows.`);
     }

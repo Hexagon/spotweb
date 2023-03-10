@@ -17,16 +17,16 @@ const UpdateLoadForArea = async (area: string) => {
   log("info", `Getting load for ${area} ${dateToday.toLocaleString()}-${dateYesterday.toLocaleString()}`);
   try {
     const result = await EntsoeLoad(area, dateYesterday, dateToday),
-      preparedQuery = database.prepareQuery("INSERT INTO load (area, value, period, interval) VALUES (?,?,?,?)");
+      preparedQuery = database.prepare("INSERT INTO load (area, value, period, interval) VALUES (?,?,?,?)");
     if (result.length) {
       log("info", `Got ${result.length} rows`);
       for (const row of result) {
-        preparedQuery.execute([
+        preparedQuery.run(
           area,
           row.quantity,
           row.date.getTime(),
           row.interval,
-        ]);
+        );
 
         // Sleep one millisecond between each row to allow clients to fetch data
         await sleep(1);
@@ -55,7 +55,7 @@ const HourlyConsumptionUpdate = async () => {
 
     // Delete duplicated
     log("info", `Cleaning up.`);
-    database.query("DELETE FROM load WHERE id NOT IN (SELECT MAX(id) FROM load GROUP BY area,period,interval)");
+    database.exec("DELETE FROM load WHERE id NOT IN (SELECT MAX(id) FROM load GROUP BY area,period,interval)");
     if (database.totalChanges) {
       log("info", `Deleted ${database.totalChanges} duplicate rows.`);
     }

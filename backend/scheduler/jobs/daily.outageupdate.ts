@@ -17,7 +17,7 @@ const DailyOutageUpdate = async () => {
     dateStart.setDate(dateStart.getDate() - 30);
     dateEnd.setDate(dateEnd.getDate() + 30);
 
-    const preparedQueryOutage = database.prepareQuery(`INSERT INTO outage (
+    const preparedQueryOutage = database.prepare(`INSERT INTO outage (
         mrid,
         revision,
         business_type,
@@ -32,13 +32,13 @@ const DailyOutageUpdate = async () => {
         psr_type,
         reason_code,
         reason_text) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?);`),
-      preparedQueryOutageAvailability = database.prepareQuery(`INSERT INTO outage_availability (
+      preparedQueryOutageAvailability = database.prepare(`INSERT INTO outage_availability (
         mrid,
         start_date,
         end_date,
         quantity) VALUES (?,?,?,?);`),
-      preparedQueryOutageDelete = database.prepareQuery(`DELETE FROM outage WHERE mrid=(?);`),
-      preparedQueryOutageAvailabilityDelete = database.prepareQuery(`DELETE FROM outage_availability WHERE mrid=(?);`);
+      preparedQueryOutageDelete = database.prepare(`DELETE FROM outage WHERE mrid=(?);`),
+      preparedQueryOutageAvailabilityDelete = database.prepare(`DELETE FROM outage_availability WHERE mrid=(?);`);
 
     // Updating outages
     for (const country of countries) {
@@ -52,9 +52,9 @@ const DailyOutageUpdate = async () => {
         log("info", `Got ${dataPast.length} outages.`);
 
         for (const dpEntry of [...dataPast]) {
-          preparedQueryOutageDelete.execute([dpEntry.mRID]);
-          preparedQueryOutageAvailabilityDelete.execute([dpEntry.mRID]);
-          preparedQueryOutage.execute([
+          preparedQueryOutageDelete.run(dpEntry.mRID);
+          preparedQueryOutageAvailabilityDelete.run(dpEntry.mRID);
+          preparedQueryOutage.run(
             dpEntry.mRID,
             dpEntry.revision,
             dpEntry.businessType,
@@ -69,14 +69,14 @@ const DailyOutageUpdate = async () => {
             dpEntry.psrType,
             dpEntry.reasonCode,
             dpEntry.reasonText,
-          ]);
+          );
           for (const apEntry of dpEntry.availablePeriodArray) {
-            preparedQueryOutageAvailability.execute([
+            preparedQueryOutageAvailability.run(
               dpEntry.mRID,
               apEntry.start.getTime(),
               apEntry.end.getTime(),
               apEntry.quantity,
-            ]);
+            );
           }
           // Sleep one millisecond between each row to allow clients to fetch data
           await sleep(1);

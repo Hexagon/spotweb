@@ -18,6 +18,7 @@
     "localekit_fresh": "https://deno.land/x/localekit_fresh@0.5.0/mod.ts",
     "croner": "https://deno.land/x/croner@6.0.3-dev.0/dist/croner.js",
     "sqlite": "https://deno.land/x/sqlite@v3.7.0/mod.ts",
-    "xml": "https://deno.land/x/xml@2.1.0/mod.ts"
+    "xml": "https://deno.land/x/xml@2.1.0/mod.ts",
+    "sqlite3": "https://deno.land/x/sqlite3@0.8.2/mod.ts"
   }
 }

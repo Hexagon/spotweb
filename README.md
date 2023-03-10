@@ -46,7 +46,6 @@ Note that the types declarations in deno.json have to be updated if updating dep
 ### Build docker container
 
 ```
-deno task release # Generates main.release.ts using deno bundle
 docker build . --tag=local-spotweb
 ```
 
