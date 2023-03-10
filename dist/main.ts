@@ -121468,7 +121468,7 @@ function bundleAssetUrl(path) {
 }
 globalThis.__FRSH_BUILD_ID = BUILD_ID;
 const importMeta5 = {
-    url: "https://deno.land/x/fresh@1.1.4/src/server/bundle.ts",
+    url: "https://deno.land/x/fresh@1.1.3/src/server/bundle.ts",
     main: false
 };
 let esbuildInitialized = false;
@@ -122513,29 +122513,13 @@ class ServerContext {
     handler() {
         const inner = mod5.router(...this.#handlers());
         const withMiddlewares = this.#composeMiddlewares(this.#middlewares);
-        return async function handler(req, connInfo) {
+        return function handler(req, connInfo) {
             const url = new URL(req.url);
             if (url.pathname.length > 1 && url.pathname.endsWith("/")) {
                 url.pathname = url.pathname.slice(0, -1);
                 return Response.redirect(url.href, Status.TemporaryRedirect);
             }
-            const originalMethod = req.method;
-            if (req.method === "HEAD") {
-                req = new Request(req.url, {
-                    method: "GET",
-                    headers: req.headers
-                });
-            }
-            const res = await withMiddlewares(req, connInfo, inner);
-            if (originalMethod === "HEAD") {
-                res.body?.cancel();
-                return new Response(null, {
-                    headers: res.headers,
-                    status: res.status,
-                    statusText: res.statusText
-                });
-            }
-            return res;
+            return withMiddlewares(req, connInfo, inner);
         };
     }
     #composeMiddlewares(middlewares) {
