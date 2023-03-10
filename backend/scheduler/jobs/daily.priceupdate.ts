@@ -8,7 +8,6 @@ import { sleep } from "utils/common.ts";
 const startDate = new Date(Date.parse("2020-12-31T12:00:00Z"));
 
 const DailyPriceUpdate = async () => {
-
   log("info", `Scheduled data update started`);
 
   try {

@@ -40,7 +40,6 @@ const UpdateLoadForArea = async (area: string) => {
 };
 
 const HourlyConsumptionUpdate = async () => {
-
   log("info", `Scheduled data update started`);
 
   try {

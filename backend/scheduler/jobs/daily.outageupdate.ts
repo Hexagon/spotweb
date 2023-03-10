@@ -6,7 +6,6 @@ import { countries } from "config/countries.ts";
 import { sleep } from "../../../utils/common.ts";
 
 const DailyOutageUpdate = async () => {
-
   log("info", `Scheduled data update started`);
 
   try {

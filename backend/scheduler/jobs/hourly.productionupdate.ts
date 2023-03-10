@@ -43,7 +43,6 @@ const UpdateProductionForArea = async (area: string) => {
 };
 
 const HourlyProductionUpdate = async () => {
-
   log("info", `Scheduled data update started`);
 
   try {

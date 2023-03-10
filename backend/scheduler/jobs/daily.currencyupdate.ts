@@ -4,7 +4,6 @@ import { log } from "utils/log.ts";
 import { InvalidateCache } from "utils/datacache.ts";
 
 const DailyCurrencyUpdate = async () => {
-
   log("info", `Scheduled data update started`);
 
   try {
