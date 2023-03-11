@@ -1,1 +1,0 @@
-{"pid":16752,"heartbeat":"2023-03-10T20:01:32.797Z","taskRegistry":{"spotweb-main":{"name":"spotweb-main","pid":9056,"lastUpdate":"2023-03-10T20:01:32.797Z","started":"2023-03-10T20:01:31.807Z","lastStderr":"    at async \u001b[0m\u001b[36mhttps://deno.land/x/sqlite3@0.8.2/src/ffi.ts\u001b[0m:\u001b[0m\u001b[33m567\u001b[0m:\u001b[0m\u001b[33m7\u001b[0m"}}}

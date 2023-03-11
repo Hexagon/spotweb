@@ -3,3 +3,4 @@ db
 !backend/db
 main.release.ts
 deno.lock
+pup.jsonc.status
