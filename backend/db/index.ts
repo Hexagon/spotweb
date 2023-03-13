@@ -1,4 +1,4 @@
-import { Database } from "sqlite3";
+import { Database, DatabaseOpenOptions } from "sqlite3";
 import { resolve } from "std/path/mod.ts";
 import {
   sqlAppliedUpdates,
@@ -41,13 +41,18 @@ interface DBResultSet {
   data: Array<Array<string | number>>;
 }
 
-// Try creating/opening database
-let database: Database;
-try {
+async function openDatabase(options: DatabaseOpenOptions) {
   const path = resolve(Deno.cwd(), "./db/"),
     fileName = resolve(path, "main.db");
   await Deno.mkdir(path, { recursive: true });
-  database = new Database(fileName, { int64: true });
+  const database = new Database(fileName, options);
+  return database;
+}
+
+// Try creating/opening database
+let database: Database;
+try {
+  database = await openDatabase({int64: true, readonly: true});
 
   // Create tables
   database.exec(sqlCreateSpotprice);
@@ -323,6 +328,7 @@ const GetFutureOutages = async (area: string): Promise<DBResultSet> => {
 export type { DBResultSet, ExchangeRateResult, SpotApiRow };
 export {
   database,
+  openDatabase,
   GetCurrentOutages,
   GetDataDay,
   GetDataMonth,

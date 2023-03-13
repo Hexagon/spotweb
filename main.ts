@@ -22,5 +22,6 @@ start(
       ctx.lang = langFromUrl(ctx.url);
       render();
     },
+    port: parseInt(Deno.env.get("SPOTWEB_PORT") ?? "3000",10)
   },
 );

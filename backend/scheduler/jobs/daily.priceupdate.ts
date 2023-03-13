@@ -1,9 +1,11 @@
 import { countries } from "config/countries.ts";
 import { EntsoeSpotprice } from "backend/integrations/entsoe.ts";
-import { database } from "backend/db/index.ts";
+import { openDatabase } from "backend/db/rw.ts";
 import { log } from "utils/log.ts";
 import { InvalidateCache } from "utils/datacache.ts";
 import { sleep } from "utils/common.ts";
+
+const database = await openDatabase({int64: true, readonly: false});
 
 const startDate = new Date(Date.parse("2020-12-31T12:00:00Z"));
 

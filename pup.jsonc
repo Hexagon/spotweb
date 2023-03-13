@@ -2,12 +2,37 @@
   "processes": [
     // Main process
     {
-      "id": "spotweb-main", // Required
+      "id": "spotweb-main-1", // Required
       "cmd": ["deno", "task", "prod"], // Required
+      "env": {
+        "SPOTWEB_PORT": "6000"
+      },
       "autostart": true,
       "restart": "always"
     },
 
+    // Main process
+    {
+      "id": "spotweb-main-2", // Required
+      "cmd": ["deno", "task", "prod"], // Required
+      "env": {
+        "SPOTWEB_PORT": "6001"
+      },
+      "autostart": true,
+      "restart": "always"
+    },
+
+    // Main process
+    {
+      "id": "spotweb-main-3", // Required
+      "cmd": ["deno", "task", "prod"], // Required
+      "env": {
+        "SPOTWEB_PORT": "6003"
+      },
+      "autostart": true,
+      "restart": "always"
+    },
+    
     // Scheduled jobs
     {
       "id": "daily-currency-update",

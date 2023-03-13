@@ -1,9 +1,11 @@
 import { countries } from "config/countries.ts";
 import { EntsoeLoad } from "backend/integrations/entsoe.ts";
-import { database } from "backend/db/index.ts";
+import { openDatabase } from "backend/db/rw.ts";
 import { log } from "utils/log.ts";
 import { sleep } from "utils/common.ts";
 import { InvalidateCache } from "utils/datacache.ts";
+
+const database = await openDatabase({int64: true});
 
 const UpdateLoadForArea = async (area: string) => {
   // Get current date

@@ -1,9 +1,11 @@
 import { EntsoeOutages } from "backend/integrations/entsoe.ts";
-import { database } from "backend/db/index.ts";
+import { openDatabase } from "backend/db/rw.ts";
 import { log } from "utils/log.ts";
 import { InvalidateCache } from "utils/datacache.ts";
 import { countries } from "config/countries.ts";
 import { sleep } from "../../../utils/common.ts";
+
+const database = await openDatabase({int64: true});
 
 const DailyOutageUpdate = async () => {
   log("info", `Scheduled data update started`);
@@ -63,7 +65,7 @@ const DailyOutageUpdate = async () => {
             dpEntry.resourceName,
             dpEntry.location,
             country.id,
-            dpEntry.psrName,
+            dpEntry.psrName||"undefined",
             dpEntry.psrNominalPowerUnit,
             dpEntry.psrNominalPower,
             dpEntry.psrType,

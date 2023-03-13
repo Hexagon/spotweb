@@ -1,7 +1,9 @@
 import { ExchangeRate } from "backend/integrations/ecb.ts";
-import { database } from "backend/db/index.ts";
+import { openDatabase } from "backend/db/rw.ts";
 import { log } from "utils/log.ts";
 import { InvalidateCache } from "utils/datacache.ts";
+
+const database = await openDatabase({int64: true});
 
 const DailyCurrencyUpdate = async () => {
   log("info", `Scheduled data update started`);
