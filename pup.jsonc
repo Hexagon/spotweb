@@ -12,42 +12,58 @@
     {
       "id": "daily-currency-update",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.currencyupdate.ts"],
-      "cron": "0 42 9,14 * * *"
+      "cron": "0 42 9,14 * * *",
+      "restartLimit": 2,
+      "restartDelay": 240000
     },
     {
       "id": "daily-outage-update",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.outageupdate.ts"],
-      "cron": "0 0 5 8 * *"
+      "cron": "0 5 8 * * *",
+      "restartLimit": 2,
+      "restartDelay": 120000
     },
     {
       "id": "daily-price-update-12",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.priceupdate.ts"],
-      "cron": "0 45,50,54,58 12 * * *"
+      "cron": "0 45,50,54,58 12 * * *",
+      "restartLimit": 2,
+      "restartDelay": 120000
     },
     {
       "id": "daily-price-update-13",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.priceupdate.ts"],
-      "cron": "0 11,20,40,50 13 * * *"
+      "cron": "0 11,20,40,50 13 * * *",
+      "restartLimit": 2,
+      "restartDelay": 120000
     },
     {
       "id": "daily-price-update-14-15",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.priceupdate.ts"],
-      "cron": "0 0 14,15 * * *"
+      "cron": "0 0 14,15 * * *",
+      "restartLimit": 2,
+      "restartDelay": 120000
     },
     {
       "id": "daily-price-update-all",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.priceupdate.ts"],
-      "cron": "0 28 * * * *"
+      "cron": "0 28 * * * *",
+      "restartLimit": 2,
+      "restartDelay": 120000
     },
     {
       "id": "hourly-consumption-update",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/hourly.consumptionupdate.ts"],
-      "cron": "0 2,32 * * * *"
+      "cron": "0 32 * * * *",
+      "restartLimit": 2,
+      "restartDelay": 120000
     },
     {
       "id": "hourly-productionupdate-update",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/hourly.productionupdate.ts"],
-      "cron": "0 6,36 * * * *"
+      "cron": "0 37 * * * *",
+      "restartLimit": 2,
+      "restartDelay": 120000
     }
   ]
 }
