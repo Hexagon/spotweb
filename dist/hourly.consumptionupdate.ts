@@ -16753,7 +16753,9 @@ try {
     await Deno.mkdir(path, {
         recursive: true
     });
-    database = new Database(fileName);
+    database = new Database(fileName, {
+        int64: true
+    });
     database.exec(sqlCreateSpotprice);
     database.exec(sqlCreateExchangeRate);
     database.exec(sqlCreateGeneration);
