@@ -14,7 +14,9 @@ const DailyCurrencyUpdate = async () => {
     dateToday.setHours(0, 0, 0, 0);
 
     // Updating currencies
-    const maxCurrencyResult = database.prepare("SELECT MAX(period) as mp FROM exchangerate WHERE date >= (?)").values(dateToday.toLocaleDateString("sv-SE"));
+    const maxCurrencyResult = database.prepare("SELECT MAX(period) as mp FROM exchangerate WHERE date >= (?)").values(
+      dateToday.toLocaleDateString("sv-SE"),
+    );
     if (maxCurrencyResult[0][0] === null) {
       const result = await ExchangeRate();
       const entries: [string, string][] = Object.entries(result.entries);

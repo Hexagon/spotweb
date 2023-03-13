@@ -2,7 +2,7 @@
   "processes": [
     // Main process
     {
-      "name": "spotweb-main", // Required
+      "id": "spotweb-main", // Required
       "cmd": ["deno", "task", "prod"], // Required
       "autostart": true,
       "restart": "always"
@@ -10,44 +10,44 @@
 
     // Scheduled jobs
     {
-      "name": "daily-currency-update",
+      "id": "daily-currency-update",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.currencyupdate.ts"],
-      "startPattern": "0 42 9,14 * * *"
+      "cron": "0 42 9,14 * * *"
     },
     {
-      "name": "daily-outage-update",
+      "id": "daily-outage-update",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.outageupdate.ts"],
-      "startPattern": "0 0 5 8 * *"
+      "cron": "0 0 5 8 * *"
     },
     {
-      "name": "daily-price-update-12",
+      "id": "daily-price-update-12",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.priceupdate.ts"],
-      "startPattern": "0 45,50,54,58 12 * * *"
+      "cron": "0 45,50,54,58 12 * * *"
     },
     {
-      "name": "daily-price-update-13",
+      "id": "daily-price-update-13",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.priceupdate.ts"],
-      "startPattern": "0 11,20,40,50 13 * * *"
+      "cron": "0 11,20,40,50 13 * * *"
     },
     {
-      "name": "daily-price-update-14-15",
+      "id": "daily-price-update-14-15",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.priceupdate.ts"],
-      "startPattern": "0 0 14,15 * * *"
+      "cron": "0 0 14,15 * * *"
     },
     {
-      "name": "daily-price-update-all",
+      "id": "daily-price-update-all",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.priceupdate.ts"],
-      "startPattern": "0 28 * * * *"
+      "cron": "0 28 * * * *"
     },
     {
-      "name": "hourly-consumption-update",
+      "id": "hourly-consumption-update",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/hourly.consumptionupdate.ts"],
-      "startPattern": "0 2,32 * * * *"
+      "cron": "0 2,32 * * * *"
     },
     {
-      "name": "hourly-productionupdate-update",
+      "id": "hourly-productionupdate-update",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/hourly.productionupdate.ts"],
-      "startPattern": "0 6,36 * * * *"
+      "cron": "0 6,36 * * * *"
     }
   ]
 }

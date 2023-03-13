@@ -32,7 +32,10 @@ const DailyPriceUpdate = async () => {
       for (const area of country.areas) {
         // Get maximum date from area, or fallback to startdate
         let currentPeriod;
-        const maxPeriodResult = database.prepare("SELECT MAX(period) as mp FROM spotprice WHERE country=(?) AND area=(?)").values(country.id, area.name);
+        const maxPeriodResult = database.prepare("SELECT MAX(period) as mp FROM spotprice WHERE country=(?) AND area=(?)").values(
+          country.id,
+          area.name,
+        );
         currentPeriod = new Date(maxPeriodResult[0][0] && typeof maxPeriodResult[0][0] === "number" ? new Date(maxPeriodResult[0][0]) : startDate);
 
         // Loop until we are at endDate

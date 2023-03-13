@@ -47,7 +47,7 @@ try {
   const path = resolve(Deno.cwd(), "./db/"),
     fileName = resolve(path, "main.db");
   await Deno.mkdir(path, { recursive: true });
-  database = new Database(fileName);
+  database = new Database(fileName, { int64: true });
 
   // Create tables
   database.exec(sqlCreateSpotprice);
@@ -121,15 +121,19 @@ const GetSpotprice = async (
       data = database.prepare(
         sqlConverted
           .replaceAll("[[groupby]]", sqlGroupBy[period])
-          .replaceAll("[[areaField]]", country ? "country" : "area")
+          .replaceAll("[[areaField]]", country ? "country" : "area"),
       ).values(currency, country || area, fromDate.getTime(), toDate.getTime(), interval);
     } else {
       data = database.prepare(
         sqlRaw
           .replaceAll("[[groupby]]", sqlGroupBy[period])
-          .replaceAll("[[areaField]]", country ? "country" : "area")).values(
-        country || area, fromDate.getTime(), toDate.getTime(), interval)
-      ;
+          .replaceAll("[[areaField]]", country ? "country" : "area"),
+      ).values(
+        country || area,
+        fromDate.getTime(),
+        toDate.getTime(),
+        interval,
+      );
     }
     return data.map((r) => {
       if (r.length > 2) {
