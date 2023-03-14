@@ -55,7 +55,7 @@ try {
   database = await openDatabase({int64: true, readonly: true});
 
   // Create tables
-  database.exec(sqlCreateSpotprice);
+  /*database.exec(sqlCreateSpotprice);
   database.exec(sqlCreateExchangeRate);
   database.exec(sqlCreateGeneration);
   database.exec(sqlCreateLoad);
@@ -78,7 +78,7 @@ try {
         log("log", `Database update '${update.name}' finalized`);
       }
     }
-  }
+  }*/
 } catch (_e) {
   console.error("Fatal: Could not open database", _e);
   Deno.exit(1);
