@@ -220,7 +220,7 @@ const GetLastGenerationAndLoad = async (): Promise<DBResultSet> => {
     cacheLength = 86400;
 
   return await DataCache("generation", parameterString, cacheLength, () => {
-    const data = database.prepare(sqlCurrentLoadAndGeneration).run(fromDate.getTime());
+    const data = database.prepare(sqlCurrentLoadAndGeneration).values(fromDate.getTime());
     return { data };
   });
 };
