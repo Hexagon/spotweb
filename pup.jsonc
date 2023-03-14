@@ -15,7 +15,7 @@
     {
       "id": "daily-currency-update",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.currencyupdate.ts"],
-      "cron": "0 42 9,14 * * *",
+      "cron": "0 5 9 * * *",
       "restartLimit": 2,
       "restartDelayMs": 240000
     },
@@ -29,42 +29,35 @@
     {
       "id": "daily-price-update-12",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.priceupdate.ts"],
-      "cron": "0 45,50,54,58 12 * * *",
+      "cron": "0 45 12 * * *",
       "restartLimit": 2,
       "restartDelayMs": 120000
     },
     {
       "id": "daily-price-update-13",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.priceupdate.ts"],
-      "cron": "0 11,20,40,50 13 * * *",
-      "restartLimit": 2,
-      "restartDelayMs": 120000
-    },
-    {
-      "id": "daily-price-update-14-15",
-      "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.priceupdate.ts"],
-      "cron": "0 0 14,15 * * *",
+      "cron": "0 15,30,45 13 * * *",
       "restartLimit": 2,
       "restartDelayMs": 120000
     },
     {
       "id": "daily-price-update-all",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.priceupdate.ts"],
-      "cron": "0 28 * * * *",
+      "cron": "0 0 * * * *",
       "restartLimit": 2,
       "restartDelayMs": 120000
     },
     {
       "id": "hourly-consumption-update",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/hourly.consumptionupdate.ts"],
-      "cron": "0 32 * * * *",
+      "cron": "0 35 * * * *",
       "restartLimit": 2,
       "restartDelayMs": 120000
     },
     {
       "id": "hourly-productionupdate-update",
       "cmd": ["deno", "run", "-A", "--unstable", "dist/hourly.productionupdate.ts"],
-      "cron": "0 37 * * * *",
+      "cron": "0 50 * * * *",
       "restartLimit": 2,
       "restartDelayMs": 120000
     }
