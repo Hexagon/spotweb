@@ -4,7 +4,7 @@
     "dev": "deno run -A --unstable --watch=static/,routes/ dev.ts --no-schedules",
     "debug": "deno task dev --debug",
     "precommit": "deno fmt --check && deno lint && deno check main.ts && deno test",
-    "up": "deno run --allow-run --allow-read --allow-write --allow-net --allow-env https://deno.land/x/pup@1.0.0-alpha-12/pup.ts",
+    "up": "deno run --allow-run --allow-read --allow-write --allow-net --allow-env https://deno.land/x/pup@1.0.0-alpha-13/pup.ts",
     "prod": "deno run -A --unstable main.ts",
     "update-deps": "deno run --allow-read=. --allow-write=. --allow-net https://deno.land/x/udd/main.ts --dry-run import_map.json",
     "update-fresh": "deno run -A -r https://fresh.deno.dev/update ."
