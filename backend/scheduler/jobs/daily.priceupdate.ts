@@ -5,7 +5,7 @@ import { log } from "utils/log.ts";
 import { InvalidateCache } from "utils/datacache.ts";
 import { sleep } from "utils/common.ts";
 
-const database = await openDatabase({int64: true, readonly: false});
+const database = await openDatabase({ int64: true, readonly: false });
 
 const startDate = new Date(Date.parse("2020-12-31T12:00:00Z"));
 
@@ -118,6 +118,8 @@ const DailyPriceUpdate = async () => {
   }
 
   log("info", `Scheduled data update done`);
+
+  database.close();
 };
 
 DailyPriceUpdate();

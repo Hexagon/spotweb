@@ -3,7 +3,7 @@ import { openDatabase } from "backend/db/rw.ts";
 import { log } from "utils/log.ts";
 import { InvalidateCache } from "utils/datacache.ts";
 
-const database = await openDatabase({int64: true});
+const database = await openDatabase({ int64: true });
 
 const DailyCurrencyUpdate = async () => {
   log("info", `Scheduled data update started`);
@@ -40,6 +40,8 @@ const DailyCurrencyUpdate = async () => {
   InvalidateCache("exrate");
 
   log("info", `Scheduled data update done`);
+
+  database.close();
 };
 
 DailyCurrencyUpdate();

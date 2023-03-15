@@ -5,7 +5,7 @@ import { InvalidateCache } from "utils/datacache.ts";
 import { countries } from "config/countries.ts";
 import { sleep } from "../../../utils/common.ts";
 
-const database = await openDatabase({int64: true});
+const database = await openDatabase({ int64: true });
 
 const DailyOutageUpdate = async () => {
   log("info", `Scheduled data update started`);
@@ -65,7 +65,7 @@ const DailyOutageUpdate = async () => {
             dpEntry.resourceName,
             dpEntry.location,
             country.id,
-            dpEntry.psrName||"undefined",
+            dpEntry.psrName || "undefined",
             dpEntry.psrNominalPowerUnit,
             dpEntry.psrNominalPower,
             dpEntry.psrType,
@@ -98,6 +98,8 @@ const DailyOutageUpdate = async () => {
   InvalidateCache("outage");
 
   log("info", `Scheduled data update done`);
+
+  database.close();
 };
 
 DailyOutageUpdate();

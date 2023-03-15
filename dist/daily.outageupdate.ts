@@ -16424,5 +16424,6 @@ const DailyOutageUpdate = async ()=>{
     log("info", `Database changed, clearing cache, realm outage.`);
     InvalidateCache("outage");
     log("info", `Scheduled data update done`);
+    database.close();
 };
 DailyOutageUpdate();

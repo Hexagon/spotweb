@@ -5,7 +5,7 @@ import { log } from "utils/log.ts";
 import { sleep } from "utils/common.ts";
 import { InvalidateCache } from "utils/datacache.ts";
 
-const database = await openDatabase({int64: true});
+const database = await openDatabase({ int64: true });
 
 const UpdateProductionForArea = async (area: string) => {
   // Get current date
@@ -77,6 +77,8 @@ const HourlyProductionUpdate = async () => {
   InvalidateCache("load");
 
   log("info", `Scheduled data update done`);
+
+  database.close();
 };
 
 HourlyProductionUpdate();

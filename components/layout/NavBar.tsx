@@ -1,3 +1,5 @@
+// @deno-types="../../types/halfmoon.d.ts"
+
 import { Area, countries, Country } from "config/countries.ts";
 import { CommonProps } from "utils/common.ts";
 

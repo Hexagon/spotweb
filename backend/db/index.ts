@@ -1,14 +1,14 @@
 import { Database, DatabaseOpenOptions } from "sqlite3";
 import { resolve } from "std/path/mod.ts";
 import {
-  sqlAppliedUpdates,
-  sqlConverted,
+  /*sqlAppliedUpdates,
   sqlCreateExchangeRate,
   sqlCreateGeneration,
   sqlCreateLoad,
   sqlCreatePsr,
   sqlCreateSpotprice,
-  sqlCreateUpdates,
+  sqlCreateUpdates,*/
+  sqlConverted,
   sqlCurrentLoadAndGeneration,
   sqlCurrentOutagesPerArea,
   sqlExchangeRates,
@@ -22,8 +22,8 @@ import {
   sqlRaw,
 } from "backend/db/sql/index.ts";
 import { DataCache } from "utils/datacache.ts";
-import { log } from "utils/log.ts";
-import { DBUpdates } from "./sql/updates.ts";
+/*import { log } from "utils/log.ts";
+import { DBUpdates } from "./sql/updates.ts";*/
 
 interface SpotApiRow {
   time: number;
@@ -52,7 +52,7 @@ async function openDatabase(options: DatabaseOpenOptions) {
 // Try creating/opening database
 let database: Database;
 try {
-  database = await openDatabase({int64: true, readonly: true});
+  database = await openDatabase({ int64: true, readonly: true });
 
   // Create tables
   /*database.exec(sqlCreateSpotprice);
@@ -328,7 +328,6 @@ const GetFutureOutages = async (area: string): Promise<DBResultSet> => {
 export type { DBResultSet, ExchangeRateResult, SpotApiRow };
 export {
   database,
-  openDatabase,
   GetCurrentOutages,
   GetDataDay,
   GetDataMonth,
@@ -341,4 +340,5 @@ export {
   GetLastPricePerCountry,
   GetLoadDay,
   GetSpotprice,
+  openDatabase,
 };

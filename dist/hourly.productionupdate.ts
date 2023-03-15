@@ -16391,5 +16391,6 @@ const HourlyProductionUpdate = async ()=>{
     InvalidateCache("generation");
     InvalidateCache("load");
     log("info", `Scheduled data update done`);
+    database.close();
 };
 HourlyProductionUpdate();

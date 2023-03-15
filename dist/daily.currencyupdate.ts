@@ -5765,5 +5765,6 @@ const DailyCurrencyUpdate = async ()=>{
     log("info", `Database changed, clearing cache, realm extrate.`);
     InvalidateCache("exrate");
     log("info", `Scheduled data update done`);
+    database.close();
 };
 DailyCurrencyUpdate();

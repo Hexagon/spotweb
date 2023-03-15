@@ -16413,5 +16413,6 @@ const DailyPriceUpdate = async ()=>{
         log("error", `Error occured while updating data, skipping. Error: ${e}`);
     }
     log("info", `Scheduled data update done`);
+    database.close();
 };
 DailyPriceUpdate();
