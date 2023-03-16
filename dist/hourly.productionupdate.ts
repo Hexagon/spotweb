@@ -12699,7 +12699,11 @@ async function download(options) {
 async function dlopen(options, symbols) {
     return Deno.dlopen(await download(options), symbols);
 }
-const __default = JSON.parse("{\n  \"name\": \"sqlite3\",\n  \"version\": \"0.8.2\",\n  \"github\": \"https://github.com/denodrivers/sqlite3\",\n\n  \"tasks\": {\n    \"test\": \"deno test --unstable -A test/test.ts\",\n    \"build-sqlite-win\": \"mkdir -p build && cd build && nmake /f ..\\\\sqlite\\\\Makefile.msc sqlite3.dll TOP=..\\\\sqlite\",\n    \"bench-deno\": \"deno run -A --unstable bench/bench_deno.js 50 1000000\",\n    \"bench-deno-ffi\": \"deno run -A --unstable bench/bench_deno_ffi.js 50 1000000\",\n    \"bench-deno-wasm\": \"deno run -A --unstable bench/bench_deno_wasm.js 50 1000000\",\n    \"bench-node\": \"node bench/bench_node.js 50 1000000\",\n    \"bench-bun\": \"bun run bench/bench_bun.js 50 1000000\",\n    \"bench-bun-ffi\": \"bun run bench/bench_bun_ffi.js 50 1000000\",\n    \"bench-c\": \"./bench/bench 50 1000000\",\n    \"bench-python\": \"python ./bench/bench_python.py\",\n    \"bench:northwind\": \"deno bench -A --unstable bench/northwind/deno.js\",\n    \"bench-wasm:northwind\": \"deno run -A --unstable bench/northwind/deno_wasm.js\",\n    \"bench-node:northwind\": \"node bench/northwind/node.mjs\",\n    \"bench-bun:northwind\": \"bun run bench/northwind/bun.js\"\n  },\n\n  \"lint\": {\n    \"rules\": {\n      \"exclude\": [\n        \"camelcase\",\n        \"no-explicit-any\"\n      ],\n      \"include\": [\n        \"explicit-function-return-type\",\n        \"eqeqeq\",\n        \"explicit-module-boundary-types\"\n      ]\n    }\n  }\n}");
+const __default = JSON.parse("{\n  \"name\": \"sqlite3\",\n  \"version\": \"0.9.1\",\n  \"github\": \"https://github.com/denodrivers/sqlite3\",\n\n  \"tasks\": {\n    \"test\": \"deno test --unstable -A test/test.ts\",\n    \"build\": \"deno run -A --unstable scripts/build.ts\",\n    \"bench-deno\": \"deno run -A --unstable bench/bench_deno.js 50 1000000\",\n    \"bench-deno-ffi\": \"deno run -A --unstable bench/bench_deno_ffi.js 50 1000000\",\n    \"bench-deno-wasm\": \"deno run -A --unstable bench/bench_deno_wasm.js 50 1000000\",\n    \"bench-node\": \"node bench/bench_node.js 50 1000000\",\n    \"bench-bun\": \"bun run bench/bench_bun.js 50 1000000\",\n    \"bench-bun-ffi\": \"bun run bench/bench_bun_ffi.js 50 1000000\",\n    \"bench-c\": \"./bench/bench 50 1000000\",\n    \"bench-python\": \"python ./bench/bench_python.py\",\n    \"bench:northwind\": \"deno bench -A --unstable bench/northwind/deno.js\",\n    \"bench-wasm:northwind\": \"deno run -A --unstable bench/northwind/deno_wasm.js\",\n    \"bench-node:northwind\": \"node bench/northwind/node.mjs\",\n    \"bench-bun:northwind\": \"bun run bench/northwind/bun.js\"\n  },\n\n  \"lint\": {\n    \"rules\": {\n      \"exclude\": [\n        \"camelcase\",\n        \"no-explicit-any\"\n      ],\n      \"include\": [\n        \"explicit-function-return-type\",\n        \"eqeqeq\",\n        \"explicit-module-boundary-types\"\n      ]\n    }\n  }\n}");
+const importMeta1 = {
+    url: "https://deno.land/x/sqlite3@0.9.1/src/ffi.ts",
+    main: false
+};
 const symbols = {
     sqlite3_open_v2: {
         parameters: [
@@ -13188,12 +13192,29 @@ const symbols = {
             "buffer"
         ],
         result: "i32"
+    },
+    sqlite3_initialize: {
+        parameters: [],
+        result: "i32"
     }
 };
 let lib;
+function tryGetEnv(key) {
+    try {
+        return Deno.env.get(key);
+    } catch (e) {
+        if (e instanceof Deno.errors.PermissionDenied) {
+            return undefined;
+        }
+        throw e;
+    }
+}
 try {
-    const customPath = Deno.env.get("DENO_SQLITE_PATH");
-    if (customPath) {
+    const customPath = tryGetEnv("DENO_SQLITE_PATH");
+    const sqliteLocal = tryGetEnv("DENO_SQLITE_LOCAL");
+    if (sqliteLocal === "1") {
+        lib = Deno.dlopen(new URL(`../build/${Deno.build.os === "windows" ? "" : "lib"}sqlite3${Deno.build.arch !== "x86_64" ? `_${Deno.build.arch}` : ""}.${Deno.build.os === "windows" ? "dll" : Deno.build.os === "darwin" ? "dylib" : "so"}`, importMeta1.url), symbols).symbols;
+    } else if (customPath) {
         lib = Deno.dlopen(customPath, symbols).symbols;
     } else {
         lib = (await dlopen({
@@ -13208,9 +13229,13 @@ try {
     if (e instanceof Deno.errors.PermissionDenied) {
         throw e;
     }
-    const error = new Error("Failed to load SQLite3 Dynamic Library");
-    error.cause = e;
-    throw error;
+    throw new Error("Failed to load SQLite3 Dynamic Library", {
+        cause: e
+    });
+}
+const init = lib.sqlite3_initialize();
+if (init !== 0) {
+    throw new Error(`Failed to initialize SQLite3: ${init}`);
 }
 const osType1 = (()=>{
     const { Deno: Deno1  } = globalThis;
@@ -13296,6 +13321,7 @@ function _format1(sep, pathObject) {
     const dir = pathObject.dir || pathObject.root;
     const base = pathObject.base || (pathObject.name || "") + (pathObject.ext || "");
     if (!dir) return base;
+    if (base === sep) return dir;
     if (dir === pathObject.root) return dir + base;
     return dir + sep + base;
 }
@@ -13311,6 +13337,48 @@ function encodeWhitespace1(string) {
     return string.replaceAll(/[\s]/g, (c)=>{
         return WHITESPACE_ENCODINGS1[c] ?? c;
     });
+}
+function lastPathSegment1(path, isSep, start = 0) {
+    let matchedNonSeparator = false;
+    let end = path.length;
+    for(let i = path.length - 1; i >= start; --i){
+        if (isSep(path.charCodeAt(i))) {
+            if (matchedNonSeparator) {
+                start = i + 1;
+                break;
+            }
+        } else if (!matchedNonSeparator) {
+            matchedNonSeparator = true;
+            end = i + 1;
+        }
+    }
+    return path.slice(start, end);
+}
+function stripTrailingSeparators1(segment, isSep) {
+    if (segment.length <= 1) {
+        return segment;
+    }
+    let end = segment.length;
+    for(let i = segment.length - 1; i > 0; i--){
+        if (isSep(segment.charCodeAt(i))) {
+            end = i;
+        } else {
+            break;
+        }
+    }
+    return segment.slice(0, end);
+}
+function stripSuffix1(name, suffix) {
+    if (suffix.length >= name.length) {
+        return name;
+    }
+    const lenDiff = name.length - suffix.length;
+    for(let i = suffix.length - 1; i >= 0; --i){
+        if (name.charCodeAt(lenDiff + i) !== suffix.charCodeAt(i)) {
+            return name;
+        }
+    }
+    return name.slice(0, -suffix.length);
 }
 class DenoStdInternalError1 extends Error {
     constructor(message){
@@ -13709,69 +13777,24 @@ function dirname3(path) {
         if (rootEnd === -1) return ".";
         else end = rootEnd;
     }
-    return path.slice(0, end);
+    return stripTrailingSeparators1(path.slice(0, end), isPosixPathSeparator1);
 }
-function basename3(path, ext = "") {
-    if (ext !== undefined && typeof ext !== "string") {
-        throw new TypeError('"ext" argument must be a string');
-    }
+function basename3(path, suffix = "") {
     assertPath1(path);
+    if (path.length === 0) return path;
+    if (typeof suffix !== "string") {
+        throw new TypeError(`Suffix must be a string. Received ${JSON.stringify(suffix)}`);
+    }
     let start = 0;
-    let end = -1;
-    let matchedSlash = true;
-    let i;
     if (path.length >= 2) {
         const drive = path.charCodeAt(0);
         if (isWindowsDeviceRoot1(drive)) {
             if (path.charCodeAt(1) === 58) start = 2;
         }
     }
-    if (ext !== undefined && ext.length > 0 && ext.length <= path.length) {
-        if (ext.length === path.length && ext === path) return "";
-        let extIdx = ext.length - 1;
-        let firstNonSlashEnd = -1;
-        for(i = path.length - 1; i >= start; --i){
-            const code = path.charCodeAt(i);
-            if (isPathSeparator1(code)) {
-                if (!matchedSlash) {
-                    start = i + 1;
-                    break;
-                }
-            } else {
-                if (firstNonSlashEnd === -1) {
-                    matchedSlash = false;
-                    firstNonSlashEnd = i + 1;
-                }
-                if (extIdx >= 0) {
-                    if (code === ext.charCodeAt(extIdx)) {
-                        if (--extIdx === -1) {
-                            end = i;
-                        }
-                    } else {
-                        extIdx = -1;
-                        end = firstNonSlashEnd;
-                    }
-                }
-            }
-        }
-        if (start === end) end = firstNonSlashEnd;
-        else if (end === -1) end = path.length;
-        return path.slice(start, end);
-    } else {
-        for(i = path.length - 1; i >= start; --i){
-            if (isPathSeparator1(path.charCodeAt(i))) {
-                if (!matchedSlash) {
-                    start = i + 1;
-                    break;
-                }
-            } else if (end === -1) {
-                matchedSlash = false;
-                end = i + 1;
-            }
-        }
-        if (end === -1) return "";
-        return path.slice(start, end);
-    }
+    const lastSegment = lastPathSegment1(path, isPathSeparator1, start);
+    const strippedSegment = stripTrailingSeparators1(lastSegment, isPathSeparator1);
+    return suffix ? stripSuffix1(strippedSegment, suffix) : strippedSegment;
 }
 function extname3(path) {
     assertPath1(path);
@@ -13862,6 +13885,7 @@ function parse3(path) {
                     if (isPathSeparator1(path.charCodeAt(2))) {
                         if (len === 3) {
                             ret.root = ret.dir = path;
+                            ret.base = "\\";
                             return ret;
                         }
                         rootEnd = 3;
@@ -13874,6 +13898,7 @@ function parse3(path) {
         }
     } else if (isPathSeparator1(code)) {
         ret.root = ret.dir = path;
+        ret.base = "\\";
         return ret;
     }
     if (rootEnd > 0) ret.root = path.slice(0, rootEnd);
@@ -13912,6 +13937,7 @@ function parse3(path) {
         ret.base = path.slice(startPart, end);
         ret.ext = path.slice(startDot, end);
     }
+    ret.base = ret.base || "\\";
     if (startPart > 0 && startPart !== rootEnd) {
         ret.dir = path.slice(0, startPart - 1);
     } else ret.dir = ret.root;
@@ -13980,7 +14006,7 @@ function resolve4(...pathSegments) {
             continue;
         }
         resolvedPath = `${path}/${resolvedPath}`;
-        resolvedAbsolute = path.charCodeAt(0) === CHAR_FORWARD_SLASH1;
+        resolvedAbsolute = isPosixPathSeparator1(path.charCodeAt(0));
     }
     resolvedPath = normalizeString1(resolvedPath, !resolvedAbsolute, "/", isPosixPathSeparator1);
     if (resolvedAbsolute) {
@@ -13992,8 +14018,8 @@ function resolve4(...pathSegments) {
 function normalize5(path) {
     assertPath1(path);
     if (path.length === 0) return ".";
-    const isAbsolute = path.charCodeAt(0) === 47;
-    const trailingSeparator = path.charCodeAt(path.length - 1) === 47;
+    const isAbsolute = isPosixPathSeparator1(path.charCodeAt(0));
+    const trailingSeparator = isPosixPathSeparator1(path.charCodeAt(path.length - 1));
     path = normalizeString1(path, !isAbsolute, "/", isPosixPathSeparator1);
     if (path.length === 0 && !isAbsolute) path = ".";
     if (path.length > 0 && trailingSeparator) path += "/";
@@ -14002,7 +14028,7 @@ function normalize5(path) {
 }
 function isAbsolute4(path) {
     assertPath1(path);
-    return path.length > 0 && path.charCodeAt(0) === 47;
+    return path.length > 0 && isPosixPathSeparator1(path.charCodeAt(0));
 }
 function join5(...paths) {
     if (paths.length === 0) return ".";
@@ -14028,13 +14054,13 @@ function relative4(from, to) {
     let fromStart = 1;
     const fromEnd = from.length;
     for(; fromStart < fromEnd; ++fromStart){
-        if (from.charCodeAt(fromStart) !== 47) break;
+        if (!isPosixPathSeparator1(from.charCodeAt(fromStart))) break;
     }
     const fromLen = fromEnd - fromStart;
     let toStart = 1;
     const toEnd = to.length;
     for(; toStart < toEnd; ++toStart){
-        if (to.charCodeAt(toStart) !== 47) break;
+        if (!isPosixPathSeparator1(to.charCodeAt(toStart))) break;
     }
     const toLen = toEnd - toStart;
     const length = fromLen < toLen ? fromLen : toLen;
@@ -14043,13 +14069,13 @@ function relative4(from, to) {
     for(; i <= length; ++i){
         if (i === length) {
             if (toLen > length) {
-                if (to.charCodeAt(toStart + i) === 47) {
+                if (isPosixPathSeparator1(to.charCodeAt(toStart + i))) {
                     return to.slice(toStart + i + 1);
                 } else if (i === 0) {
                     return to.slice(toStart + i);
                 }
             } else if (fromLen > length) {
-                if (from.charCodeAt(fromStart + i) === 47) {
+                if (isPosixPathSeparator1(from.charCodeAt(fromStart + i))) {
                     lastCommonSep = i;
                 } else if (i === 0) {
                     lastCommonSep = 0;
@@ -14060,11 +14086,11 @@ function relative4(from, to) {
         const fromCode = from.charCodeAt(fromStart + i);
         const toCode = to.charCodeAt(toStart + i);
         if (fromCode !== toCode) break;
-        else if (fromCode === 47) lastCommonSep = i;
+        else if (isPosixPathSeparator1(fromCode)) lastCommonSep = i;
     }
     let out = "";
     for(i = fromStart + lastCommonSep + 1; i <= fromEnd; ++i){
-        if (i === fromEnd || from.charCodeAt(i) === 47) {
+        if (i === fromEnd || isPosixPathSeparator1(from.charCodeAt(i))) {
             if (out.length === 0) out += "..";
             else out += "/..";
         }
@@ -14072,7 +14098,7 @@ function relative4(from, to) {
     if (out.length > 0) return out + to.slice(toStart + lastCommonSep);
     else {
         toStart += lastCommonSep;
-        if (to.charCodeAt(toStart) === 47) ++toStart;
+        if (isPosixPathSeparator1(to.charCodeAt(toStart))) ++toStart;
         return to.slice(toStart);
     }
 }
@@ -14080,80 +14106,33 @@ function toNamespacedPath4(path) {
     return path;
 }
 function dirname4(path) {
-    assertPath1(path);
     if (path.length === 0) return ".";
-    const hasRoot = path.charCodeAt(0) === 47;
     let end = -1;
-    let matchedSlash = true;
+    let matchedNonSeparator = false;
     for(let i = path.length - 1; i >= 1; --i){
-        if (path.charCodeAt(i) === 47) {
-            if (!matchedSlash) {
+        if (isPosixPathSeparator1(path.charCodeAt(i))) {
+            if (matchedNonSeparator) {
                 end = i;
                 break;
             }
         } else {
-            matchedSlash = false;
+            matchedNonSeparator = true;
         }
     }
-    if (end === -1) return hasRoot ? "/" : ".";
-    if (hasRoot && end === 1) return "//";
-    return path.slice(0, end);
+    if (end === -1) {
+        return isPosixPathSeparator1(path.charCodeAt(0)) ? "/" : ".";
+    }
+    return stripTrailingSeparators1(path.slice(0, end), isPosixPathSeparator1);
 }
-function basename4(path, ext = "") {
-    if (ext !== undefined && typeof ext !== "string") {
-        throw new TypeError('"ext" argument must be a string');
-    }
+function basename4(path, suffix = "") {
     assertPath1(path);
-    let start = 0;
-    let end = -1;
-    let matchedSlash = true;
-    let i;
-    if (ext !== undefined && ext.length > 0 && ext.length <= path.length) {
-        if (ext.length === path.length && ext === path) return "";
-        let extIdx = ext.length - 1;
-        let firstNonSlashEnd = -1;
-        for(i = path.length - 1; i >= 0; --i){
-            const code = path.charCodeAt(i);
-            if (code === 47) {
-                if (!matchedSlash) {
-                    start = i + 1;
-                    break;
-                }
-            } else {
-                if (firstNonSlashEnd === -1) {
-                    matchedSlash = false;
-                    firstNonSlashEnd = i + 1;
-                }
-                if (extIdx >= 0) {
-                    if (code === ext.charCodeAt(extIdx)) {
-                        if (--extIdx === -1) {
-                            end = i;
-                        }
-                    } else {
-                        extIdx = -1;
-                        end = firstNonSlashEnd;
-                    }
-                }
-            }
-        }
-        if (start === end) end = firstNonSlashEnd;
-        else if (end === -1) end = path.length;
-        return path.slice(start, end);
-    } else {
-        for(i = path.length - 1; i >= 0; --i){
-            if (path.charCodeAt(i) === 47) {
-                if (!matchedSlash) {
-                    start = i + 1;
-                    break;
-                }
-            } else if (end === -1) {
-                matchedSlash = false;
-                end = i + 1;
-            }
-        }
-        if (end === -1) return "";
-        return path.slice(start, end);
+    if (path.length === 0) return path;
+    if (typeof suffix !== "string") {
+        throw new TypeError(`Suffix must be a string. Received ${JSON.stringify(suffix)}`);
     }
+    const lastSegment = lastPathSegment1(path, isPosixPathSeparator1);
+    const strippedSegment = stripTrailingSeparators1(lastSegment, isPosixPathSeparator1);
+    return suffix ? stripSuffix1(strippedSegment, suffix) : strippedSegment;
 }
 function extname4(path) {
     assertPath1(path);
@@ -14164,7 +14143,7 @@ function extname4(path) {
     let preDotState = 0;
     for(let i = path.length - 1; i >= 0; --i){
         const code = path.charCodeAt(i);
-        if (code === 47) {
+        if (isPosixPathSeparator1(code)) {
             if (!matchedSlash) {
                 startPart = i + 1;
                 break;
@@ -14203,7 +14182,7 @@ function parse4(path) {
         name: ""
     };
     if (path.length === 0) return ret;
-    const isAbsolute = path.charCodeAt(0) === 47;
+    const isAbsolute = isPosixPathSeparator1(path.charCodeAt(0));
     let start;
     if (isAbsolute) {
         ret.root = "/";
@@ -14219,7 +14198,7 @@ function parse4(path) {
     let preDotState = 0;
     for(; i >= start; --i){
         const code = path.charCodeAt(i);
-        if (code === 47) {
+        if (isPosixPathSeparator1(code)) {
             if (!matchedSlash) {
                 startPart = i + 1;
                 break;
@@ -14245,6 +14224,7 @@ function parse4(path) {
                 ret.base = ret.name = path.slice(startPart, end);
             }
         }
+        ret.base = ret.base || "/";
     } else {
         if (startPart === 0 && isAbsolute) {
             ret.name = path.slice(1, startDot);
@@ -14255,8 +14235,9 @@ function parse4(path) {
         }
         ret.ext = path.slice(startDot, end);
     }
-    if (startPart > 0) ret.dir = path.slice(0, startPart - 1);
-    else if (isAbsolute) ret.dir = "/";
+    if (startPart > 0) {
+        ret.dir = stripTrailingSeparators1(path.slice(0, startPart - 1), isPosixPathSeparator1);
+    } else if (isAbsolute) ret.dir = "/";
     return ret;
 }
 function fromFileUrl4(url) {
@@ -14348,13 +14329,7 @@ function getColumn(handle, i, int64) {
             }
         case 1:
             {
-                const v = sqlite3_column_int64(handle, i);
-                const numv = Number(v);
-                if (Number.isSafeInteger(numv)) {
-                    return numv;
-                } else {
-                    return v;
-                }
+                return sqlite3_column_int64(handle, i);
             }
         case 2:
             {
@@ -14529,32 +14504,44 @@ class Statement {
         }
     }
     #runNoArgs() {
+        const handle = this.#handle;
         this.#begin();
-        const step = this.callback ? sqlite3_step_cb : sqlite3_step;
-        const status = step(this.#handle);
+        let status;
+        if (this.callback) {
+            status = sqlite3_step_cb(handle);
+        } else {
+            status = sqlite3_step(handle);
+        }
         if (status !== 100 && status !== 101) {
             unwrap(status, this.db.unsafeHandle);
         }
-        sqlite3_reset(this.#handle);
+        sqlite3_reset(handle);
         return sqlite3_changes(this.db.unsafeHandle);
     }
     #runWithArgs(...params1) {
+        const handle = this.#handle;
         this.#begin();
         this.#bindAll(params1);
-        const step = this.callback ? sqlite3_step_cb : sqlite3_step;
-        const status = step(this.#handle);
+        let status;
+        if (this.callback) {
+            status = sqlite3_step_cb(handle);
+        } else {
+            status = sqlite3_step(handle);
+        }
         if (!this.#hasNoArgs && !this.#bound && params1.length) {
             this.#bindRefs.clear();
         }
         if (status !== 100 && status !== 101) {
             unwrap(status, this.db.unsafeHandle);
         }
-        sqlite3_reset(this.#handle);
+        sqlite3_reset(handle);
         return sqlite3_changes(this.db.unsafeHandle);
     }
     #valuesNoArgs() {
+        const handle = this.#handle;
+        const callback = this.callback;
         this.#begin();
-        const columnCount = sqlite3_column_count(this.#handle);
+        const columnCount = sqlite3_column_count(handle);
         const result = [];
         const getRowArray = new Function("getColumn", `
       return function(h) {
@@ -14563,22 +14550,32 @@ class Statement {
         }).map((_, i)=>`getColumn(h, ${i}, ${this.db.int64})`).join(", ")}];
       };
       `)(getColumn);
-        const step = this.callback ? sqlite3_step_cb : sqlite3_step;
-        let status = step(this.#handle);
+        let status;
+        if (callback) {
+            status = sqlite3_step_cb(handle);
+        } else {
+            status = sqlite3_step(handle);
+        }
         while(status === 100){
-            result.push(getRowArray(this.#handle));
-            status = step(this.#handle);
+            result.push(getRowArray(handle));
+            if (callback) {
+                status = sqlite3_step_cb(handle);
+            } else {
+                status = sqlite3_step(handle);
+            }
         }
         if (status !== 101) {
             unwrap(status, this.db.unsafeHandle);
         }
-        sqlite3_reset(this.#handle);
+        sqlite3_reset(handle);
         return result;
     }
     #valuesWithArgs(...params2) {
+        const handle = this.#handle;
+        const callback = this.callback;
         this.#begin();
         this.#bindAll(params2);
-        const columnCount = sqlite3_column_count(this.#handle);
+        const columnCount = sqlite3_column_count(handle);
         const result = [];
         const getRowArray = new Function("getColumn", `
       return function(h) {
@@ -14587,11 +14584,19 @@ class Statement {
         }).map((_, i)=>`getColumn(h, ${i}, ${this.db.int64})`).join(", ")}];
       };
       `)(getColumn);
-        const step = this.callback ? sqlite3_step_cb : sqlite3_step;
-        let status = step(this.#handle);
+        let status;
+        if (callback) {
+            status = sqlite3_step_cb(handle);
+        } else {
+            status = sqlite3_step(handle);
+        }
         while(status === 100){
-            result.push(getRowArray(this.#handle));
-            status = step(this.#handle);
+            result.push(getRowArray(handle));
+            if (callback) {
+                status = sqlite3_step_cb(handle);
+            } else {
+                status = sqlite3_step(handle);
+            }
         }
         if (!this.#hasNoArgs && !this.#bound && params2.length) {
             this.#bindRefs.clear();
@@ -14599,7 +14604,7 @@ class Statement {
         if (status !== 101) {
             unwrap(status, this.db.unsafeHandle);
         }
-        sqlite3_reset(this.#handle);
+        sqlite3_reset(handle);
         return result;
     }
     #rowObjectFn;
@@ -14618,31 +14623,51 @@ class Statement {
         return this.#rowObjectFn;
     }
     #allNoArgs() {
+        const handle = this.#handle;
+        const callback = this.callback;
         this.#begin();
         const getRowObject = this.getRowObject();
         const result = [];
-        const step = this.callback ? sqlite3_step_cb : sqlite3_step;
-        let status = step(this.#handle);
+        let status;
+        if (callback) {
+            status = sqlite3_step_cb(handle);
+        } else {
+            status = sqlite3_step(handle);
+        }
         while(status === 100){
-            result.push(getRowObject(this.#handle));
-            status = step(this.#handle);
+            result.push(getRowObject(handle));
+            if (callback) {
+                status = sqlite3_step_cb(handle);
+            } else {
+                status = sqlite3_step(handle);
+            }
         }
         if (status !== 101) {
             unwrap(status, this.db.unsafeHandle);
         }
-        sqlite3_reset(this.#handle);
+        sqlite3_reset(handle);
         return result;
     }
     #allWithArgs(...params3) {
+        const handle = this.#handle;
+        const callback = this.callback;
         this.#begin();
         this.#bindAll(params3);
         const getRowObject = this.getRowObject();
         const result = [];
-        const step = this.callback ? sqlite3_step_cb : sqlite3_step;
-        let status = step(this.#handle);
+        let status;
+        if (callback) {
+            status = sqlite3_step_cb(handle);
+        } else {
+            status = sqlite3_step(handle);
+        }
         while(status === 100){
-            result.push(getRowObject(this.#handle));
-            status = step(this.#handle);
+            result.push(getRowObject(handle));
+            if (callback) {
+                status = sqlite3_step_cb(handle);
+            } else {
+                status = sqlite3_step(handle);
+            }
         }
         if (!this.#hasNoArgs && !this.#bound && params3.length) {
             this.#bindRefs.clear();
@@ -14650,7 +14675,7 @@ class Statement {
         if (status !== 101) {
             unwrap(status, this.db.unsafeHandle);
         }
-        sqlite3_reset(this.#handle);
+        sqlite3_reset(handle);
         return result;
     }
     value(...params) {
@@ -14665,8 +14690,12 @@ class Statement {
                 this.#bindAll(params);
             }
         }
-        const step = this.callback ? sqlite3_step_cb : sqlite3_step;
-        const status = step(handle);
+        let status;
+        if (this.callback) {
+            status = sqlite3_step_cb(handle);
+        } else {
+            status = sqlite3_step(handle);
+        }
         if (!this.#hasNoArgs && !this.#bound && params.length) {
             this.#bindRefs.clear();
         }
@@ -14688,8 +14717,12 @@ class Statement {
         const cc = sqlite3_column_count(handle);
         const arr = new Array(cc);
         sqlite3_reset(handle);
-        const step = this.callback ? sqlite3_step_cb : sqlite3_step;
-        const status = step(handle);
+        let status;
+        if (this.callback) {
+            status = sqlite3_step_cb(handle);
+        } else {
+            status = sqlite3_step(handle);
+        }
         if (status === 100) {
             for(let i = 0; i < cc; i++){
                 arr[i] = getColumn(handle, i, int64);
@@ -14732,8 +14765,12 @@ class Statement {
                 this.#bindAll(params);
             }
         }
-        const step = this.callback ? sqlite3_step_cb : sqlite3_step;
-        const status = step(handle);
+        let status;
+        if (this.callback) {
+            status = sqlite3_step_cb(handle);
+        } else {
+            status = sqlite3_step(handle);
+        }
         if (!this.#hasNoArgs && !this.#bound && params.length) {
             this.#bindRefs.clear();
         }
@@ -14755,13 +14792,17 @@ class Statement {
         const columnNames = this.columnNames();
         const row = this.#rowObject;
         sqlite3_reset(handle);
-        const step = this.callback ? sqlite3_step_cb : sqlite3_step;
-        const status = step(handle);
+        let status;
+        if (this.callback) {
+            status = sqlite3_step_cb(handle);
+        } else {
+            status = sqlite3_step(handle);
+        }
         if (status === 100) {
             for(let i = 0; i < columnNames?.length; i++){
                 row[columnNames[i]] = getColumn(handle, i, int64);
             }
-            sqlite3_reset(this.#handle);
+            sqlite3_reset(handle);
             return row;
         } else if (status === 101) {
             return;
@@ -14782,11 +14823,19 @@ class Statement {
     *[Symbol.iterator]() {
         this.#begin();
         const getRowObject = this.getRowObject();
-        const step = this.callback ? sqlite3_step_cb : sqlite3_step;
-        let status = step(this.#handle);
+        let status;
+        if (this.callback) {
+            status = sqlite3_step_cb(this.#handle);
+        } else {
+            status = sqlite3_step(this.#handle);
+        }
         while(status === 100){
             yield getRowObject(this.#handle);
-            status = step(this.#handle);
+            if (this.callback) {
+                status = sqlite3_step_cb(this.#handle);
+            } else {
+                status = sqlite3_step(this.#handle);
+            }
         }
         if (status !== 101) {
             unwrap(status, this.db.unsafeHandle);
@@ -15274,1047 +15323,8 @@ const wrapTransaction = (fn, db, { begin , commit , rollback , savepoint , relea
             throw ex;
         }
     };
-const osType2 = (()=>{
-    const { Deno: Deno1  } = globalThis;
-    if (typeof Deno1?.build?.os === "string") {
-        return Deno1.build.os;
-    }
-    const { navigator: navigator1  } = globalThis;
-    if (navigator1?.appVersion?.includes?.("Win")) {
-        return "windows";
-    }
-    return "linux";
-})();
-const isWindows2 = osType2 === "windows";
-const CHAR_FORWARD_SLASH2 = 47;
-function assertPath2(path) {
-    if (typeof path !== "string") {
-        throw new TypeError(`Path must be a string. Received ${JSON.stringify(path)}`);
-    }
-}
-function isPosixPathSeparator2(code) {
-    return code === 47;
-}
-function isPathSeparator2(code) {
-    return isPosixPathSeparator2(code) || code === 92;
-}
-function isWindowsDeviceRoot2(code) {
-    return code >= 97 && code <= 122 || code >= 65 && code <= 90;
-}
-function normalizeString2(path, allowAboveRoot, separator, isPathSeparator) {
-    let res = "";
-    let lastSegmentLength = 0;
-    let lastSlash = -1;
-    let dots = 0;
-    let code;
-    for(let i = 0, len = path.length; i <= len; ++i){
-        if (i < len) code = path.charCodeAt(i);
-        else if (isPathSeparator(code)) break;
-        else code = CHAR_FORWARD_SLASH2;
-        if (isPathSeparator(code)) {
-            if (lastSlash === i - 1 || dots === 1) {} else if (lastSlash !== i - 1 && dots === 2) {
-                if (res.length < 2 || lastSegmentLength !== 2 || res.charCodeAt(res.length - 1) !== 46 || res.charCodeAt(res.length - 2) !== 46) {
-                    if (res.length > 2) {
-                        const lastSlashIndex = res.lastIndexOf(separator);
-                        if (lastSlashIndex === -1) {
-                            res = "";
-                            lastSegmentLength = 0;
-                        } else {
-                            res = res.slice(0, lastSlashIndex);
-                            lastSegmentLength = res.length - 1 - res.lastIndexOf(separator);
-                        }
-                        lastSlash = i;
-                        dots = 0;
-                        continue;
-                    } else if (res.length === 2 || res.length === 1) {
-                        res = "";
-                        lastSegmentLength = 0;
-                        lastSlash = i;
-                        dots = 0;
-                        continue;
-                    }
-                }
-                if (allowAboveRoot) {
-                    if (res.length > 0) res += `${separator}..`;
-                    else res = "..";
-                    lastSegmentLength = 2;
-                }
-            } else {
-                if (res.length > 0) res += separator + path.slice(lastSlash + 1, i);
-                else res = path.slice(lastSlash + 1, i);
-                lastSegmentLength = i - lastSlash - 1;
-            }
-            lastSlash = i;
-            dots = 0;
-        } else if (code === 46 && dots !== -1) {
-            ++dots;
-        } else {
-            dots = -1;
-        }
-    }
-    return res;
-}
-function _format2(sep, pathObject) {
-    const dir = pathObject.dir || pathObject.root;
-    const base = pathObject.base || (pathObject.name || "") + (pathObject.ext || "");
-    if (!dir) return base;
-    if (base === sep) return dir;
-    if (dir === pathObject.root) return dir + base;
-    return dir + sep + base;
-}
-const WHITESPACE_ENCODINGS2 = {
-    "\u0009": "%09",
-    "\u000A": "%0A",
-    "\u000B": "%0B",
-    "\u000C": "%0C",
-    "\u000D": "%0D",
-    "\u0020": "%20"
-};
-function encodeWhitespace2(string) {
-    return string.replaceAll(/[\s]/g, (c)=>{
-        return WHITESPACE_ENCODINGS2[c] ?? c;
-    });
-}
-function lastPathSegment1(path, isSep, start = 0) {
-    let matchedNonSeparator = false;
-    let end = path.length;
-    for(let i = path.length - 1; i >= start; --i){
-        if (isSep(path.charCodeAt(i))) {
-            if (matchedNonSeparator) {
-                start = i + 1;
-                break;
-            }
-        } else if (!matchedNonSeparator) {
-            matchedNonSeparator = true;
-            end = i + 1;
-        }
-    }
-    return path.slice(start, end);
-}
-function stripTrailingSeparators1(segment, isSep) {
-    if (segment.length <= 1) {
-        return segment;
-    }
-    let end = segment.length;
-    for(let i = segment.length - 1; i > 0; i--){
-        if (isSep(segment.charCodeAt(i))) {
-            end = i;
-        } else {
-            break;
-        }
-    }
-    return segment.slice(0, end);
-}
-function stripSuffix1(name, suffix) {
-    if (suffix.length >= name.length) {
-        return name;
-    }
-    const lenDiff = name.length - suffix.length;
-    for(let i = suffix.length - 1; i >= 0; --i){
-        if (name.charCodeAt(lenDiff + i) !== suffix.charCodeAt(i)) {
-            return name;
-        }
-    }
-    return name.slice(0, -suffix.length);
-}
-class DenoStdInternalError2 extends Error {
-    constructor(message){
-        super(message);
-        this.name = "DenoStdInternalError";
-    }
-}
-function assert2(expr, msg = "") {
-    if (!expr) {
-        throw new DenoStdInternalError2(msg);
-    }
-}
-const sep6 = "\\";
-const delimiter6 = ";";
-function resolve6(...pathSegments) {
-    let resolvedDevice = "";
-    let resolvedTail = "";
-    let resolvedAbsolute = false;
-    for(let i = pathSegments.length - 1; i >= -1; i--){
-        let path;
-        const { Deno: Deno1  } = globalThis;
-        if (i >= 0) {
-            path = pathSegments[i];
-        } else if (!resolvedDevice) {
-            if (typeof Deno1?.cwd !== "function") {
-                throw new TypeError("Resolved a drive-letter-less path without a CWD.");
-            }
-            path = Deno1.cwd();
-        } else {
-            if (typeof Deno1?.env?.get !== "function" || typeof Deno1?.cwd !== "function") {
-                throw new TypeError("Resolved a relative path without a CWD.");
-            }
-            path = Deno1.cwd();
-            if (path === undefined || path.slice(0, 3).toLowerCase() !== `${resolvedDevice.toLowerCase()}\\`) {
-                path = `${resolvedDevice}\\`;
-            }
-        }
-        assertPath2(path);
-        const len = path.length;
-        if (len === 0) continue;
-        let rootEnd = 0;
-        let device = "";
-        let isAbsolute = false;
-        const code = path.charCodeAt(0);
-        if (len > 1) {
-            if (isPathSeparator2(code)) {
-                isAbsolute = true;
-                if (isPathSeparator2(path.charCodeAt(1))) {
-                    let j = 2;
-                    let last = j;
-                    for(; j < len; ++j){
-                        if (isPathSeparator2(path.charCodeAt(j))) break;
-                    }
-                    if (j < len && j !== last) {
-                        const firstPart = path.slice(last, j);
-                        last = j;
-                        for(; j < len; ++j){
-                            if (!isPathSeparator2(path.charCodeAt(j))) break;
-                        }
-                        if (j < len && j !== last) {
-                            last = j;
-                            for(; j < len; ++j){
-                                if (isPathSeparator2(path.charCodeAt(j))) break;
-                            }
-                            if (j === len) {
-                                device = `\\\\${firstPart}\\${path.slice(last)}`;
-                                rootEnd = j;
-                            } else if (j !== last) {
-                                device = `\\\\${firstPart}\\${path.slice(last, j)}`;
-                                rootEnd = j;
-                            }
-                        }
-                    }
-                } else {
-                    rootEnd = 1;
-                }
-            } else if (isWindowsDeviceRoot2(code)) {
-                if (path.charCodeAt(1) === 58) {
-                    device = path.slice(0, 2);
-                    rootEnd = 2;
-                    if (len > 2) {
-                        if (isPathSeparator2(path.charCodeAt(2))) {
-                            isAbsolute = true;
-                            rootEnd = 3;
-                        }
-                    }
-                }
-            }
-        } else if (isPathSeparator2(code)) {
-            rootEnd = 1;
-            isAbsolute = true;
-        }
-        if (device.length > 0 && resolvedDevice.length > 0 && device.toLowerCase() !== resolvedDevice.toLowerCase()) {
-            continue;
-        }
-        if (resolvedDevice.length === 0 && device.length > 0) {
-            resolvedDevice = device;
-        }
-        if (!resolvedAbsolute) {
-            resolvedTail = `${path.slice(rootEnd)}\\${resolvedTail}`;
-            resolvedAbsolute = isAbsolute;
-        }
-        if (resolvedAbsolute && resolvedDevice.length > 0) break;
-    }
-    resolvedTail = normalizeString2(resolvedTail, !resolvedAbsolute, "\\", isPathSeparator2);
-    return resolvedDevice + (resolvedAbsolute ? "\\" : "") + resolvedTail || ".";
-}
-function normalize8(path) {
-    assertPath2(path);
-    const len = path.length;
-    if (len === 0) return ".";
-    let rootEnd = 0;
-    let device;
-    let isAbsolute = false;
-    const code = path.charCodeAt(0);
-    if (len > 1) {
-        if (isPathSeparator2(code)) {
-            isAbsolute = true;
-            if (isPathSeparator2(path.charCodeAt(1))) {
-                let j = 2;
-                let last = j;
-                for(; j < len; ++j){
-                    if (isPathSeparator2(path.charCodeAt(j))) break;
-                }
-                if (j < len && j !== last) {
-                    const firstPart = path.slice(last, j);
-                    last = j;
-                    for(; j < len; ++j){
-                        if (!isPathSeparator2(path.charCodeAt(j))) break;
-                    }
-                    if (j < len && j !== last) {
-                        last = j;
-                        for(; j < len; ++j){
-                            if (isPathSeparator2(path.charCodeAt(j))) break;
-                        }
-                        if (j === len) {
-                            return `\\\\${firstPart}\\${path.slice(last)}\\`;
-                        } else if (j !== last) {
-                            device = `\\\\${firstPart}\\${path.slice(last, j)}`;
-                            rootEnd = j;
-                        }
-                    }
-                }
-            } else {
-                rootEnd = 1;
-            }
-        } else if (isWindowsDeviceRoot2(code)) {
-            if (path.charCodeAt(1) === 58) {
-                device = path.slice(0, 2);
-                rootEnd = 2;
-                if (len > 2) {
-                    if (isPathSeparator2(path.charCodeAt(2))) {
-                        isAbsolute = true;
-                        rootEnd = 3;
-                    }
-                }
-            }
-        }
-    } else if (isPathSeparator2(code)) {
-        return "\\";
-    }
-    let tail;
-    if (rootEnd < len) {
-        tail = normalizeString2(path.slice(rootEnd), !isAbsolute, "\\", isPathSeparator2);
-    } else {
-        tail = "";
-    }
-    if (tail.length === 0 && !isAbsolute) tail = ".";
-    if (tail.length > 0 && isPathSeparator2(path.charCodeAt(len - 1))) {
-        tail += "\\";
-    }
-    if (device === undefined) {
-        if (isAbsolute) {
-            if (tail.length > 0) return `\\${tail}`;
-            else return "\\";
-        } else if (tail.length > 0) {
-            return tail;
-        } else {
-            return "";
-        }
-    } else if (isAbsolute) {
-        if (tail.length > 0) return `${device}\\${tail}`;
-        else return `${device}\\`;
-    } else if (tail.length > 0) {
-        return device + tail;
-    } else {
-        return device;
-    }
-}
-function isAbsolute6(path) {
-    assertPath2(path);
-    const len = path.length;
-    if (len === 0) return false;
-    const code = path.charCodeAt(0);
-    if (isPathSeparator2(code)) {
-        return true;
-    } else if (isWindowsDeviceRoot2(code)) {
-        if (len > 2 && path.charCodeAt(1) === 58) {
-            if (isPathSeparator2(path.charCodeAt(2))) return true;
-        }
-    }
-    return false;
-}
-function join8(...paths) {
-    const pathsCount = paths.length;
-    if (pathsCount === 0) return ".";
-    let joined;
-    let firstPart = null;
-    for(let i = 0; i < pathsCount; ++i){
-        const path = paths[i];
-        assertPath2(path);
-        if (path.length > 0) {
-            if (joined === undefined) joined = firstPart = path;
-            else joined += `\\${path}`;
-        }
-    }
-    if (joined === undefined) return ".";
-    let needsReplace = true;
-    let slashCount = 0;
-    assert2(firstPart != null);
-    if (isPathSeparator2(firstPart.charCodeAt(0))) {
-        ++slashCount;
-        const firstLen = firstPart.length;
-        if (firstLen > 1) {
-            if (isPathSeparator2(firstPart.charCodeAt(1))) {
-                ++slashCount;
-                if (firstLen > 2) {
-                    if (isPathSeparator2(firstPart.charCodeAt(2))) ++slashCount;
-                    else {
-                        needsReplace = false;
-                    }
-                }
-            }
-        }
-    }
-    if (needsReplace) {
-        for(; slashCount < joined.length; ++slashCount){
-            if (!isPathSeparator2(joined.charCodeAt(slashCount))) break;
-        }
-        if (slashCount >= 2) joined = `\\${joined.slice(slashCount)}`;
-    }
-    return normalize8(joined);
-}
-function relative6(from, to) {
-    assertPath2(from);
-    assertPath2(to);
-    if (from === to) return "";
-    const fromOrig = resolve6(from);
-    const toOrig = resolve6(to);
-    if (fromOrig === toOrig) return "";
-    from = fromOrig.toLowerCase();
-    to = toOrig.toLowerCase();
-    if (from === to) return "";
-    let fromStart = 0;
-    let fromEnd = from.length;
-    for(; fromStart < fromEnd; ++fromStart){
-        if (from.charCodeAt(fromStart) !== 92) break;
-    }
-    for(; fromEnd - 1 > fromStart; --fromEnd){
-        if (from.charCodeAt(fromEnd - 1) !== 92) break;
-    }
-    const fromLen = fromEnd - fromStart;
-    let toStart = 0;
-    let toEnd = to.length;
-    for(; toStart < toEnd; ++toStart){
-        if (to.charCodeAt(toStart) !== 92) break;
-    }
-    for(; toEnd - 1 > toStart; --toEnd){
-        if (to.charCodeAt(toEnd - 1) !== 92) break;
-    }
-    const toLen = toEnd - toStart;
-    const length = fromLen < toLen ? fromLen : toLen;
-    let lastCommonSep = -1;
-    let i = 0;
-    for(; i <= length; ++i){
-        if (i === length) {
-            if (toLen > length) {
-                if (to.charCodeAt(toStart + i) === 92) {
-                    return toOrig.slice(toStart + i + 1);
-                } else if (i === 2) {
-                    return toOrig.slice(toStart + i);
-                }
-            }
-            if (fromLen > length) {
-                if (from.charCodeAt(fromStart + i) === 92) {
-                    lastCommonSep = i;
-                } else if (i === 2) {
-                    lastCommonSep = 3;
-                }
-            }
-            break;
-        }
-        const fromCode = from.charCodeAt(fromStart + i);
-        const toCode = to.charCodeAt(toStart + i);
-        if (fromCode !== toCode) break;
-        else if (fromCode === 92) lastCommonSep = i;
-    }
-    if (i !== length && lastCommonSep === -1) {
-        return toOrig;
-    }
-    let out = "";
-    if (lastCommonSep === -1) lastCommonSep = 0;
-    for(i = fromStart + lastCommonSep + 1; i <= fromEnd; ++i){
-        if (i === fromEnd || from.charCodeAt(i) === 92) {
-            if (out.length === 0) out += "..";
-            else out += "\\..";
-        }
-    }
-    if (out.length > 0) {
-        return out + toOrig.slice(toStart + lastCommonSep, toEnd);
-    } else {
-        toStart += lastCommonSep;
-        if (toOrig.charCodeAt(toStart) === 92) ++toStart;
-        return toOrig.slice(toStart, toEnd);
-    }
-}
-function toNamespacedPath6(path) {
-    if (typeof path !== "string") return path;
-    if (path.length === 0) return "";
-    const resolvedPath = resolve6(path);
-    if (resolvedPath.length >= 3) {
-        if (resolvedPath.charCodeAt(0) === 92) {
-            if (resolvedPath.charCodeAt(1) === 92) {
-                const code = resolvedPath.charCodeAt(2);
-                if (code !== 63 && code !== 46) {
-                    return `\\\\?\\UNC\\${resolvedPath.slice(2)}`;
-                }
-            }
-        } else if (isWindowsDeviceRoot2(resolvedPath.charCodeAt(0))) {
-            if (resolvedPath.charCodeAt(1) === 58 && resolvedPath.charCodeAt(2) === 92) {
-                return `\\\\?\\${resolvedPath}`;
-            }
-        }
-    }
-    return path;
-}
-function dirname6(path) {
-    assertPath2(path);
-    const len = path.length;
-    if (len === 0) return ".";
-    let rootEnd = -1;
-    let end = -1;
-    let matchedSlash = true;
-    let offset = 0;
-    const code = path.charCodeAt(0);
-    if (len > 1) {
-        if (isPathSeparator2(code)) {
-            rootEnd = offset = 1;
-            if (isPathSeparator2(path.charCodeAt(1))) {
-                let j = 2;
-                let last = j;
-                for(; j < len; ++j){
-                    if (isPathSeparator2(path.charCodeAt(j))) break;
-                }
-                if (j < len && j !== last) {
-                    last = j;
-                    for(; j < len; ++j){
-                        if (!isPathSeparator2(path.charCodeAt(j))) break;
-                    }
-                    if (j < len && j !== last) {
-                        last = j;
-                        for(; j < len; ++j){
-                            if (isPathSeparator2(path.charCodeAt(j))) break;
-                        }
-                        if (j === len) {
-                            return path;
-                        }
-                        if (j !== last) {
-                            rootEnd = offset = j + 1;
-                        }
-                    }
-                }
-            }
-        } else if (isWindowsDeviceRoot2(code)) {
-            if (path.charCodeAt(1) === 58) {
-                rootEnd = offset = 2;
-                if (len > 2) {
-                    if (isPathSeparator2(path.charCodeAt(2))) rootEnd = offset = 3;
-                }
-            }
-        }
-    } else if (isPathSeparator2(code)) {
-        return path;
-    }
-    for(let i = len - 1; i >= offset; --i){
-        if (isPathSeparator2(path.charCodeAt(i))) {
-            if (!matchedSlash) {
-                end = i;
-                break;
-            }
-        } else {
-            matchedSlash = false;
-        }
-    }
-    if (end === -1) {
-        if (rootEnd === -1) return ".";
-        else end = rootEnd;
-    }
-    return stripTrailingSeparators1(path.slice(0, end), isPosixPathSeparator2);
-}
-function basename6(path, suffix = "") {
-    assertPath2(path);
-    if (path.length === 0) return path;
-    if (typeof suffix !== "string") {
-        throw new TypeError(`Suffix must be a string. Received ${JSON.stringify(suffix)}`);
-    }
-    let start = 0;
-    if (path.length >= 2) {
-        const drive = path.charCodeAt(0);
-        if (isWindowsDeviceRoot2(drive)) {
-            if (path.charCodeAt(1) === 58) start = 2;
-        }
-    }
-    const lastSegment = lastPathSegment1(path, isPathSeparator2, start);
-    const strippedSegment = stripTrailingSeparators1(lastSegment, isPathSeparator2);
-    return suffix ? stripSuffix1(strippedSegment, suffix) : strippedSegment;
-}
-function extname6(path) {
-    assertPath2(path);
-    let start = 0;
-    let startDot = -1;
-    let startPart = 0;
-    let end = -1;
-    let matchedSlash = true;
-    let preDotState = 0;
-    if (path.length >= 2 && path.charCodeAt(1) === 58 && isWindowsDeviceRoot2(path.charCodeAt(0))) {
-        start = startPart = 2;
-    }
-    for(let i = path.length - 1; i >= start; --i){
-        const code = path.charCodeAt(i);
-        if (isPathSeparator2(code)) {
-            if (!matchedSlash) {
-                startPart = i + 1;
-                break;
-            }
-            continue;
-        }
-        if (end === -1) {
-            matchedSlash = false;
-            end = i + 1;
-        }
-        if (code === 46) {
-            if (startDot === -1) startDot = i;
-            else if (preDotState !== 1) preDotState = 1;
-        } else if (startDot !== -1) {
-            preDotState = -1;
-        }
-    }
-    if (startDot === -1 || end === -1 || preDotState === 0 || preDotState === 1 && startDot === end - 1 && startDot === startPart + 1) {
-        return "";
-    }
-    return path.slice(startDot, end);
-}
-function format6(pathObject) {
-    if (pathObject === null || typeof pathObject !== "object") {
-        throw new TypeError(`The "pathObject" argument must be of type Object. Received type ${typeof pathObject}`);
-    }
-    return _format2("\\", pathObject);
-}
-function parse6(path) {
-    assertPath2(path);
-    const ret = {
-        root: "",
-        dir: "",
-        base: "",
-        ext: "",
-        name: ""
-    };
-    const len = path.length;
-    if (len === 0) return ret;
-    let rootEnd = 0;
-    let code = path.charCodeAt(0);
-    if (len > 1) {
-        if (isPathSeparator2(code)) {
-            rootEnd = 1;
-            if (isPathSeparator2(path.charCodeAt(1))) {
-                let j = 2;
-                let last = j;
-                for(; j < len; ++j){
-                    if (isPathSeparator2(path.charCodeAt(j))) break;
-                }
-                if (j < len && j !== last) {
-                    last = j;
-                    for(; j < len; ++j){
-                        if (!isPathSeparator2(path.charCodeAt(j))) break;
-                    }
-                    if (j < len && j !== last) {
-                        last = j;
-                        for(; j < len; ++j){
-                            if (isPathSeparator2(path.charCodeAt(j))) break;
-                        }
-                        if (j === len) {
-                            rootEnd = j;
-                        } else if (j !== last) {
-                            rootEnd = j + 1;
-                        }
-                    }
-                }
-            }
-        } else if (isWindowsDeviceRoot2(code)) {
-            if (path.charCodeAt(1) === 58) {
-                rootEnd = 2;
-                if (len > 2) {
-                    if (isPathSeparator2(path.charCodeAt(2))) {
-                        if (len === 3) {
-                            ret.root = ret.dir = path;
-                            ret.base = "\\";
-                            return ret;
-                        }
-                        rootEnd = 3;
-                    }
-                } else {
-                    ret.root = ret.dir = path;
-                    return ret;
-                }
-            }
-        }
-    } else if (isPathSeparator2(code)) {
-        ret.root = ret.dir = path;
-        ret.base = "\\";
-        return ret;
-    }
-    if (rootEnd > 0) ret.root = path.slice(0, rootEnd);
-    let startDot = -1;
-    let startPart = rootEnd;
-    let end = -1;
-    let matchedSlash = true;
-    let i = path.length - 1;
-    let preDotState = 0;
-    for(; i >= rootEnd; --i){
-        code = path.charCodeAt(i);
-        if (isPathSeparator2(code)) {
-            if (!matchedSlash) {
-                startPart = i + 1;
-                break;
-            }
-            continue;
-        }
-        if (end === -1) {
-            matchedSlash = false;
-            end = i + 1;
-        }
-        if (code === 46) {
-            if (startDot === -1) startDot = i;
-            else if (preDotState !== 1) preDotState = 1;
-        } else if (startDot !== -1) {
-            preDotState = -1;
-        }
-    }
-    if (startDot === -1 || end === -1 || preDotState === 0 || preDotState === 1 && startDot === end - 1 && startDot === startPart + 1) {
-        if (end !== -1) {
-            ret.base = ret.name = path.slice(startPart, end);
-        }
-    } else {
-        ret.name = path.slice(startPart, startDot);
-        ret.base = path.slice(startPart, end);
-        ret.ext = path.slice(startDot, end);
-    }
-    ret.base = ret.base || "\\";
-    if (startPart > 0 && startPart !== rootEnd) {
-        ret.dir = path.slice(0, startPart - 1);
-    } else ret.dir = ret.root;
-    return ret;
-}
-function fromFileUrl6(url) {
-    url = url instanceof URL ? url : new URL(url);
-    if (url.protocol != "file:") {
-        throw new TypeError("Must be a file URL.");
-    }
-    let path = decodeURIComponent(url.pathname.replace(/\//g, "\\").replace(/%(?![0-9A-Fa-f]{2})/g, "%25")).replace(/^\\*([A-Za-z]:)(\\|$)/, "$1\\");
-    if (url.hostname != "") {
-        path = `\\\\${url.hostname}${path}`;
-    }
-    return path;
-}
-function toFileUrl6(path) {
-    if (!isAbsolute6(path)) {
-        throw new TypeError("Must be an absolute path.");
-    }
-    const [, hostname, pathname] = path.match(/^(?:[/\\]{2}([^/\\]+)(?=[/\\](?:[^/\\]|$)))?(.*)/);
-    const url = new URL("file:///");
-    url.pathname = encodeWhitespace2(pathname.replace(/%/g, "%25"));
-    if (hostname != null && hostname != "localhost") {
-        url.hostname = hostname;
-        if (!url.hostname) {
-            throw new TypeError("Invalid hostname.");
-        }
-    }
-    return url;
-}
-const mod4 = {
-    sep: sep6,
-    delimiter: delimiter6,
-    resolve: resolve6,
-    normalize: normalize8,
-    isAbsolute: isAbsolute6,
-    join: join8,
-    relative: relative6,
-    toNamespacedPath: toNamespacedPath6,
-    dirname: dirname6,
-    basename: basename6,
-    extname: extname6,
-    format: format6,
-    parse: parse6,
-    fromFileUrl: fromFileUrl6,
-    toFileUrl: toFileUrl6
-};
-const sep7 = "/";
-const delimiter7 = ":";
-function resolve7(...pathSegments) {
-    let resolvedPath = "";
-    let resolvedAbsolute = false;
-    for(let i = pathSegments.length - 1; i >= -1 && !resolvedAbsolute; i--){
-        let path;
-        if (i >= 0) path = pathSegments[i];
-        else {
-            const { Deno: Deno1  } = globalThis;
-            if (typeof Deno1?.cwd !== "function") {
-                throw new TypeError("Resolved a relative path without a CWD.");
-            }
-            path = Deno1.cwd();
-        }
-        assertPath2(path);
-        if (path.length === 0) {
-            continue;
-        }
-        resolvedPath = `${path}/${resolvedPath}`;
-        resolvedAbsolute = isPosixPathSeparator2(path.charCodeAt(0));
-    }
-    resolvedPath = normalizeString2(resolvedPath, !resolvedAbsolute, "/", isPosixPathSeparator2);
-    if (resolvedAbsolute) {
-        if (resolvedPath.length > 0) return `/${resolvedPath}`;
-        else return "/";
-    } else if (resolvedPath.length > 0) return resolvedPath;
-    else return ".";
-}
-function normalize9(path) {
-    assertPath2(path);
-    if (path.length === 0) return ".";
-    const isAbsolute = isPosixPathSeparator2(path.charCodeAt(0));
-    const trailingSeparator = isPosixPathSeparator2(path.charCodeAt(path.length - 1));
-    path = normalizeString2(path, !isAbsolute, "/", isPosixPathSeparator2);
-    if (path.length === 0 && !isAbsolute) path = ".";
-    if (path.length > 0 && trailingSeparator) path += "/";
-    if (isAbsolute) return `/${path}`;
-    return path;
-}
-function isAbsolute7(path) {
-    assertPath2(path);
-    return path.length > 0 && isPosixPathSeparator2(path.charCodeAt(0));
-}
-function join9(...paths) {
-    if (paths.length === 0) return ".";
-    let joined;
-    for(let i = 0, len = paths.length; i < len; ++i){
-        const path = paths[i];
-        assertPath2(path);
-        if (path.length > 0) {
-            if (!joined) joined = path;
-            else joined += `/${path}`;
-        }
-    }
-    if (!joined) return ".";
-    return normalize9(joined);
-}
-function relative7(from, to) {
-    assertPath2(from);
-    assertPath2(to);
-    if (from === to) return "";
-    from = resolve7(from);
-    to = resolve7(to);
-    if (from === to) return "";
-    let fromStart = 1;
-    const fromEnd = from.length;
-    for(; fromStart < fromEnd; ++fromStart){
-        if (!isPosixPathSeparator2(from.charCodeAt(fromStart))) break;
-    }
-    const fromLen = fromEnd - fromStart;
-    let toStart = 1;
-    const toEnd = to.length;
-    for(; toStart < toEnd; ++toStart){
-        if (!isPosixPathSeparator2(to.charCodeAt(toStart))) break;
-    }
-    const toLen = toEnd - toStart;
-    const length = fromLen < toLen ? fromLen : toLen;
-    let lastCommonSep = -1;
-    let i = 0;
-    for(; i <= length; ++i){
-        if (i === length) {
-            if (toLen > length) {
-                if (isPosixPathSeparator2(to.charCodeAt(toStart + i))) {
-                    return to.slice(toStart + i + 1);
-                } else if (i === 0) {
-                    return to.slice(toStart + i);
-                }
-            } else if (fromLen > length) {
-                if (isPosixPathSeparator2(from.charCodeAt(fromStart + i))) {
-                    lastCommonSep = i;
-                } else if (i === 0) {
-                    lastCommonSep = 0;
-                }
-            }
-            break;
-        }
-        const fromCode = from.charCodeAt(fromStart + i);
-        const toCode = to.charCodeAt(toStart + i);
-        if (fromCode !== toCode) break;
-        else if (isPosixPathSeparator2(fromCode)) lastCommonSep = i;
-    }
-    let out = "";
-    for(i = fromStart + lastCommonSep + 1; i <= fromEnd; ++i){
-        if (i === fromEnd || isPosixPathSeparator2(from.charCodeAt(i))) {
-            if (out.length === 0) out += "..";
-            else out += "/..";
-        }
-    }
-    if (out.length > 0) return out + to.slice(toStart + lastCommonSep);
-    else {
-        toStart += lastCommonSep;
-        if (isPosixPathSeparator2(to.charCodeAt(toStart))) ++toStart;
-        return to.slice(toStart);
-    }
-}
-function toNamespacedPath7(path) {
-    return path;
-}
-function dirname7(path) {
-    if (path.length === 0) return ".";
-    let end = -1;
-    let matchedNonSeparator = false;
-    for(let i = path.length - 1; i >= 1; --i){
-        if (isPosixPathSeparator2(path.charCodeAt(i))) {
-            if (matchedNonSeparator) {
-                end = i;
-                break;
-            }
-        } else {
-            matchedNonSeparator = true;
-        }
-    }
-    if (end === -1) {
-        return isPosixPathSeparator2(path.charCodeAt(0)) ? "/" : ".";
-    }
-    return stripTrailingSeparators1(path.slice(0, end), isPosixPathSeparator2);
-}
-function basename7(path, suffix = "") {
-    assertPath2(path);
-    if (path.length === 0) return path;
-    if (typeof suffix !== "string") {
-        throw new TypeError(`Suffix must be a string. Received ${JSON.stringify(suffix)}`);
-    }
-    const lastSegment = lastPathSegment1(path, isPosixPathSeparator2);
-    const strippedSegment = stripTrailingSeparators1(lastSegment, isPosixPathSeparator2);
-    return suffix ? stripSuffix1(strippedSegment, suffix) : strippedSegment;
-}
-function extname7(path) {
-    assertPath2(path);
-    let startDot = -1;
-    let startPart = 0;
-    let end = -1;
-    let matchedSlash = true;
-    let preDotState = 0;
-    for(let i = path.length - 1; i >= 0; --i){
-        const code = path.charCodeAt(i);
-        if (isPosixPathSeparator2(code)) {
-            if (!matchedSlash) {
-                startPart = i + 1;
-                break;
-            }
-            continue;
-        }
-        if (end === -1) {
-            matchedSlash = false;
-            end = i + 1;
-        }
-        if (code === 46) {
-            if (startDot === -1) startDot = i;
-            else if (preDotState !== 1) preDotState = 1;
-        } else if (startDot !== -1) {
-            preDotState = -1;
-        }
-    }
-    if (startDot === -1 || end === -1 || preDotState === 0 || preDotState === 1 && startDot === end - 1 && startDot === startPart + 1) {
-        return "";
-    }
-    return path.slice(startDot, end);
-}
-function format7(pathObject) {
-    if (pathObject === null || typeof pathObject !== "object") {
-        throw new TypeError(`The "pathObject" argument must be of type Object. Received type ${typeof pathObject}`);
-    }
-    return _format2("/", pathObject);
-}
-function parse7(path) {
-    assertPath2(path);
-    const ret = {
-        root: "",
-        dir: "",
-        base: "",
-        ext: "",
-        name: ""
-    };
-    if (path.length === 0) return ret;
-    const isAbsolute = isPosixPathSeparator2(path.charCodeAt(0));
-    let start;
-    if (isAbsolute) {
-        ret.root = "/";
-        start = 1;
-    } else {
-        start = 0;
-    }
-    let startDot = -1;
-    let startPart = 0;
-    let end = -1;
-    let matchedSlash = true;
-    let i = path.length - 1;
-    let preDotState = 0;
-    for(; i >= start; --i){
-        const code = path.charCodeAt(i);
-        if (isPosixPathSeparator2(code)) {
-            if (!matchedSlash) {
-                startPart = i + 1;
-                break;
-            }
-            continue;
-        }
-        if (end === -1) {
-            matchedSlash = false;
-            end = i + 1;
-        }
-        if (code === 46) {
-            if (startDot === -1) startDot = i;
-            else if (preDotState !== 1) preDotState = 1;
-        } else if (startDot !== -1) {
-            preDotState = -1;
-        }
-    }
-    if (startDot === -1 || end === -1 || preDotState === 0 || preDotState === 1 && startDot === end - 1 && startDot === startPart + 1) {
-        if (end !== -1) {
-            if (startPart === 0 && isAbsolute) {
-                ret.base = ret.name = path.slice(1, end);
-            } else {
-                ret.base = ret.name = path.slice(startPart, end);
-            }
-        }
-        ret.base = ret.base || "/";
-    } else {
-        if (startPart === 0 && isAbsolute) {
-            ret.name = path.slice(1, startDot);
-            ret.base = path.slice(1, end);
-        } else {
-            ret.name = path.slice(startPart, startDot);
-            ret.base = path.slice(startPart, end);
-        }
-        ret.ext = path.slice(startDot, end);
-    }
-    if (startPart > 0) {
-        ret.dir = stripTrailingSeparators1(path.slice(0, startPart - 1), isPosixPathSeparator2);
-    } else if (isAbsolute) ret.dir = "/";
-    return ret;
-}
-function fromFileUrl7(url) {
-    url = url instanceof URL ? url : new URL(url);
-    if (url.protocol != "file:") {
-        throw new TypeError("Must be a file URL.");
-    }
-    return decodeURIComponent(url.pathname.replace(/%(?![0-9A-Fa-f]{2})/g, "%25"));
-}
-function toFileUrl7(path) {
-    if (!isAbsolute7(path)) {
-        throw new TypeError("Must be an absolute path.");
-    }
-    const url = new URL("file:///");
-    url.pathname = encodeWhitespace2(path.replace(/%/g, "%25").replace(/\\/g, "%5C"));
-    return url;
-}
-const mod5 = {
-    sep: sep7,
-    delimiter: delimiter7,
-    resolve: resolve7,
-    normalize: normalize9,
-    isAbsolute: isAbsolute7,
-    join: join9,
-    relative: relative7,
-    toNamespacedPath: toNamespacedPath7,
-    dirname: dirname7,
-    basename: basename7,
-    extname: extname7,
-    format: format7,
-    parse: parse7,
-    fromFileUrl: fromFileUrl7,
-    toFileUrl: toFileUrl7
-};
-const path4 = isWindows2 ? mod4 : mod5;
-const { join: join10 , normalize: normalize10  } = path4;
-const path5 = isWindows2 ? mod4 : mod5;
-const { basename: basename8 , delimiter: delimiter8 , dirname: dirname8 , extname: extname8 , format: format8 , fromFileUrl: fromFileUrl8 , isAbsolute: isAbsolute8 , join: join11 , normalize: normalize11 , parse: parse8 , relative: relative8 , resolve: resolve8 , sep: sep8 , toFileUrl: toFileUrl8 , toNamespacedPath: toNamespacedPath8  } = path5;
 async function openDatabase(options) {
-    const path = resolve8(Deno.cwd(), "./db/"), fileName = resolve8(path, "main.db");
+    const path = resolve5(Deno.cwd(), "./db/"), fileName = resolve5(path, "main.db");
     await Deno.mkdir(path, {
         recursive: true
     });
