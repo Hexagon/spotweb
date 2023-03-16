@@ -16328,13 +16328,6 @@ const log = (type, t)=>{
     }
 };
 const sleep = (ms)=>new Promise((r)=>setTimeout(r, ms));
-const MemCache = new Map();
-const InvalidateCache = (realm)=>{
-    if (MemCache.has(realm)) {
-        const currentRealm = MemCache.get(realm);
-        currentRealm.clear();
-    }
-};
 const database = await openDatabase({
     int64: true
 });
@@ -16377,8 +16370,6 @@ const HourlyConsumptionUpdate = async ()=>{
         log("error", `Error occured while updating data, skipping. Error: ${e}`);
     }
     log("info", `Database changed, clearing cache, realm load.`);
-    InvalidateCache("generation");
-    InvalidateCache("load");
     log("info", `Scheduled data update done`);
     database.close();
 };

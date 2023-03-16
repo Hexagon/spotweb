@@ -1,9 +1,8 @@
 import { countries } from "config/countries.ts";
 import { EntsoeLoad } from "backend/integrations/entsoe.ts";
-import { openDatabase } from "backend/db/rw.ts";
+import { openDatabase } from "backend/db/minimal.ts";
 import { log } from "utils/log.ts";
 import { sleep } from "utils/common.ts";
-import { InvalidateCache } from "utils/datacache.ts";
 
 const database = await openDatabase({ int64: true });
 
@@ -67,11 +66,6 @@ const HourlyConsumptionUpdate = async () => {
 
   // Clear memory cache
   log("info", `Database changed, clearing cache, realm load.`);
-
-  // Consumption (load) is updated after generation, but they are often
-  // used together, clear both caches on completion
-  InvalidateCache("generation");
-  InvalidateCache("load");
 
   log("info", `Scheduled data update done`);
 

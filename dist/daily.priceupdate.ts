@@ -16337,13 +16337,6 @@ const log = (type, t)=>{
         }
     }
 };
-const MemCache = new Map();
-const InvalidateCache = (realm)=>{
-    if (MemCache.has(realm)) {
-        const currentRealm = MemCache.get(realm);
-        currentRealm.clear();
-    }
-};
 const sleep = (ms)=>new Promise((r)=>setTimeout(r, ms));
 const database = await openDatabase({
     int64: true,
@@ -16354,7 +16347,6 @@ const DailyPriceUpdate = async ()=>{
     log("info", `Scheduled data update started`);
     try {
         const dateToday = new Date(), dateTomorrow = new Date(), dateFirstOfMonth = new Date();
-        let gotData = false;
         dateTomorrow.setDate(dateTomorrow.getDate() + 1);
         dateFirstOfMonth.setDate(1);
         dateTomorrow.setHours(23, 0, 0, 0);
@@ -16384,7 +16376,7 @@ const DailyPriceUpdate = async ()=>{
                             for (const row of result){
                                 preparedQuery.run(country.id, area.name, row.spotPrice, row.startTime.getTime(), row.interval);
                                 await sleep(1);
-                                gotData = true;
+                                true;
                             }
                             currentPeriod = endOfPeriod;
                             currentPeriod.setDate(currentPeriod.getDate() + 1);
@@ -16404,10 +16396,6 @@ const DailyPriceUpdate = async ()=>{
         database.exec("DELETE FROM spotprice WHERE id NOT IN (SELECT MAX(id) FROM spotprice GROUP BY area,country,period,interval)");
         if (database.totalChanges) {
             log("info", `Deleted ${database.totalChanges} duplicate rows.`);
-        }
-        if (gotData) {
-            log("info", `Database changed, clearing cache, realm spotprice.`);
-            InvalidateCache("spotprice");
         }
     } catch (e) {
         log("error", `Error occured while updating data, skipping. Error: ${e}`);

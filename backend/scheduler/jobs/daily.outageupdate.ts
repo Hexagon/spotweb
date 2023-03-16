@@ -1,7 +1,6 @@
 import { EntsoeOutages } from "backend/integrations/entsoe.ts";
-import { openDatabase } from "backend/db/rw.ts";
+import { openDatabase } from "backend/db/minimal.ts";
 import { log } from "utils/log.ts";
-import { InvalidateCache } from "utils/datacache.ts";
 import { countries } from "config/countries.ts";
 import { sleep } from "../../../utils/common.ts";
 
@@ -92,10 +91,6 @@ const DailyOutageUpdate = async () => {
   } catch (e) {
     log("error", `Error occured while updating data, skipping. Error: ${e}`);
   }
-
-  // Clear memory cache
-  log("info", `Database changed, clearing cache, realm outage.`);
-  InvalidateCache("outage");
 
   log("info", `Scheduled data update done`);
 

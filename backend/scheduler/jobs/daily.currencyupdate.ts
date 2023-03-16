@@ -1,7 +1,6 @@
 import { ExchangeRate } from "backend/integrations/ecb.ts";
-import { openDatabase } from "backend/db/rw.ts";
+import { openDatabase } from "backend/db/minimal.ts";
 import { log } from "utils/log.ts";
-import { InvalidateCache } from "utils/datacache.ts";
 
 const database = await openDatabase({ int64: true });
 
@@ -34,10 +33,6 @@ const DailyCurrencyUpdate = async () => {
       }
     }
   }
-
-  // Clear memory cache
-  log("info", `Database changed, clearing cache, realm extrate.`);
-  InvalidateCache("exrate");
 
   log("info", `Scheduled data update done`);
 

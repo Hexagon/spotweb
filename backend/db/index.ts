@@ -1,13 +1,13 @@
 import { Database, DatabaseOpenOptions } from "sqlite3";
 import { resolve } from "std/path/mod.ts";
 import {
-  /*sqlAppliedUpdates,
+  sqlAppliedUpdates,
   sqlCreateExchangeRate,
   sqlCreateGeneration,
   sqlCreateLoad,
   sqlCreatePsr,
   sqlCreateSpotprice,
-  sqlCreateUpdates,*/
+  sqlCreateUpdates,
   sqlConverted,
   sqlCurrentLoadAndGeneration,
   sqlCurrentOutagesPerArea,
@@ -22,8 +22,8 @@ import {
   sqlRaw,
 } from "backend/db/sql/index.ts";
 import { DataCache } from "utils/datacache.ts";
-/*import { log } from "utils/log.ts";
-import { DBUpdates } from "./sql/updates.ts";*/
+import { log } from "utils/log.ts";
+import { DBUpdates } from "./sql/updates.ts";
 
 interface SpotApiRow {
   time: number;
@@ -52,10 +52,10 @@ async function openDatabase(options: DatabaseOpenOptions) {
 // Try creating/opening database
 let database: Database;
 try {
-  database = await openDatabase({ int64: true, readonly: true });
+  database = await openDatabase({ int64: true });
 
   // Create tables
-  /*database.exec(sqlCreateSpotprice);
+  database.exec(sqlCreateSpotprice);
   database.exec(sqlCreateExchangeRate);
   database.exec(sqlCreateGeneration);
   database.exec(sqlCreateLoad);
@@ -78,7 +78,7 @@ try {
         log("log", `Database update '${update.name}' finalized`);
       }
     }
-  }*/
+  }
 } catch (_e) {
   console.error("Fatal: Could not open database", _e);
   Deno.exit(1);
@@ -108,11 +108,12 @@ const GetSpotprice = async (
     toDate: toDate.toISOString(),
   }).toString();
 
-  let cacheLength = 86400;
+  // Use very short cache as default
+  let cacheLength = 360;
 
-  // If endDate is before now, use hourly cache
+  // If endDate is before now, use short cache
   if (toDate.getTime() < new Date().getTime()) {
-    cacheLength = 3600 * 6;
+    cacheLength = 3600;
   }
 
   // If aggrated monthly, use long cache
@@ -177,7 +178,7 @@ const GetLoadDay = async (area: string, fromDateIn: Date, toDateIn: Date, interv
   toDate.setHours(23, 59, 59, 999);
 
   const parameterString = new URLSearchParams({ interval, area, f: fromDate.getTime().toString(), t: toDate.getTime().toString() }).toString(),
-    cacheLength = 86400;
+    cacheLength = 1800;
 
   return await DataCache("load", parameterString, cacheLength, () => {
     const data = database.prepare(sqlLoad).values(area, fromDate.getTime(), toDate.getTime(), interval);
@@ -190,7 +191,7 @@ const GetLastPricePerArea = async (): Promise<DBResultSet> => {
   fromDate.setMinutes(0, 0, 0);
 
   const parameterString = new URLSearchParams({ query: "lastprice", f: fromDate.getTime().toString() }).toString(),
-    cacheLength = 86400;
+    cacheLength = 1800;
 
   return await DataCache("spotprice", parameterString, cacheLength, () => {
     const data = database.prepare(sqlLatestPricePerArea).values(fromDate.getTime());
@@ -203,7 +204,7 @@ const GetLastPricePerCountry = async (): Promise<DBResultSet> => {
   fromDate.setMinutes(0, 0, 0);
 
   const parameterString = new URLSearchParams({ query: "lastpricec", f: fromDate.getTime().toString() }).toString(),
-    cacheLength = 86400;
+    cacheLength = 1800;
 
   return await DataCache("spotprice", parameterString, cacheLength, () => {
     const data = database.prepare(sqlLatestPricePerCountry).values(fromDate.getTime());
@@ -217,7 +218,7 @@ const GetLastGenerationAndLoad = async (): Promise<DBResultSet> => {
   fromDate.setHours(fromDate.getHours() - 12, 0, 0, 0);
 
   const parameterString = new URLSearchParams({ query: "curgenload", f: fromDate.getTime().toString() }).toString(),
-    cacheLength = 86400;
+    cacheLength = 1800;
 
   return await DataCache("generation", parameterString, cacheLength, () => {
     const data = database.prepare(sqlCurrentLoadAndGeneration).values(fromDate.getTime());
@@ -234,7 +235,7 @@ const GetGenerationAndLoad = async (area: string, fromDateIn: Date, toDateIn: Da
 
   const parameterString = new URLSearchParams({ query: "genload", a: area, f: fromDate.getTime().toString(), t: toDate.getTime().toString() })
       .toString(),
-    cacheLength = 86400;
+    cacheLength = 1800;
 
   return await DataCache("generation", parameterString, cacheLength, () => {
     const data = database.prepare(sqlLoadAndGeneration).values(area, fromDate.getTime(), toDate.getTime());
@@ -250,7 +251,7 @@ const GetGenerationDay = async (area: string, fromDateIn: Date, toDateIn: Date, 
   toDate.setHours(23, 59, 59, 999);
 
   const parameterString = new URLSearchParams({ area, f: fromDate.getTime().toString(), t: toDate.getTime().toString(), interval }).toString(),
-    cacheLength = 86400;
+    cacheLength = 1800;
 
   return await DataCache("generation", parameterString, cacheLength, () => {
     const data = database.prepare(sqlGeneration).values(area, fromDate.getTime(), toDate.getTime(), interval);

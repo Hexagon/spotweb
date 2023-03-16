@@ -1,8 +1,7 @@
 import { countries } from "config/countries.ts";
 import { EntsoeSpotprice } from "backend/integrations/entsoe.ts";
-import { openDatabase } from "backend/db/rw.ts";
+import { openDatabase } from "backend/db/minimal.ts";
 import { log } from "utils/log.ts";
-import { InvalidateCache } from "utils/datacache.ts";
 import { sleep } from "utils/common.ts";
 
 const database = await openDatabase({ int64: true, readonly: false });
@@ -108,11 +107,6 @@ const DailyPriceUpdate = async () => {
       log("info", `Deleted ${database.totalChanges} duplicate rows.`);
     }
 
-    // Clear memory cache
-    if (gotData) {
-      log("info", `Database changed, clearing cache, realm spotprice.`);
-      InvalidateCache("spotprice");
-    }
   } catch (e) {
     log("error", `Error occured while updating data, skipping. Error: ${e}`);
   }
