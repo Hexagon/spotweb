@@ -2,13 +2,14 @@
   "processes": [
     // Main process
     {
-      "id": "spotweb-main-1", // Required
+      "id": "spotweb-main", // Required
       "cmd": ["deno", "task", "prod"], // Required
-      "env": {
-        "SPOTWEB_PORT": "6000"
-      },
-      "autostart": true,
-      "restart": "always"
+      "cluster": {
+        "instances": 3,
+        "commonPort": 8000,
+        "startPort": 6020,
+        "strategy": "ip-hash"
+      }
     },
 
     // Scheduled jobs
