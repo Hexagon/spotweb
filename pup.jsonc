@@ -7,7 +7,7 @@
       "cluster": {
         "instances": 3,
         "commonPort": 6000,
-        "startPort": 6040,
+        "startPort": 6030,
         "strategy": "ip-hash"
       }
     },
