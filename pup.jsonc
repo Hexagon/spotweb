@@ -6,7 +6,7 @@
       "cmd": ["deno", "task", "prod"], // Required
       "cluster": {
         "instances": 3,
-        "commonPort": 8000,
+        "commonPort": 6000,
         "startPort": 6020,
         "strategy": "ip-hash"
       }
