@@ -1,3 +1,6 @@
+import { PupTelemetry } from "pup/telemetry.ts"
+PupTelemetry();
+
 import { countries } from "config/countries.ts";
 import { EntsoeGeneration } from "backend/integrations/entsoe.ts";
 import { openDatabase } from "backend/db/minimal.ts";

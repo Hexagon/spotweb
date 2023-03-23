@@ -1,3 +1,6 @@
+import { PupTelemetry } from "pup/telemetry.ts"
+PupTelemetry();
+
 import { ExchangeRate } from "backend/integrations/ecb.ts";
 import { openDatabase } from "backend/db/minimal.ts";
 import { log } from "utils/log.ts";
