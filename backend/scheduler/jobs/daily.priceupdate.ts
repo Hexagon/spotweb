@@ -66,24 +66,29 @@ const DailyPriceUpdate = async () => {
           try {
             const result = await EntsoeSpotprice(area.id, currentPeriod, endOfPeriod),
               preparedQuery = database.prepare("INSERT INTO spotprice (country, area, spotprice, period, interval) VALUES (?,?,?,?,?)");
+            const runTransaction = database.transaction((data: any[]) => {
+              for (const item of data) {
+                preparedQuery.run(...item);
+              }
+            });
             if (result.length) {
               log("info", `Got ${result.length} rows`);
+              const transaction = []
               for (const row of result) {
-                preparedQuery.run(
-                  country.id,
-                  area.name,
-                  row.spotPrice,
-                  row.startTime.getTime(),
-                  row.interval,
-                );
-
-                // Sleep one millisecond between each row to allow clients to fetch data
-                await sleep(1);
+                  transaction.push([
+                    country.id,
+                    area.name,
+                    row.spotPrice,
+                    row.startTime.getTime(),
+                    row.interval,
+                  ]);
 
                 // Go data
                 gotData = true;
               }
 
+              runTransaction(transaction);
+              
               currentPeriod = endOfPeriod;
 
               // Add one day to start date if we are not at start

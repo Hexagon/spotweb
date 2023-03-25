@@ -21612,13 +21612,25 @@ const DailyPriceUpdate = async ()=>{
                     log("info", `Getting ${area.id} ${currentPeriod.toLocaleString()} ${endOfPeriod.toLocaleString()}`);
                     try {
                         const result = await EntsoeSpotprice(area.id, currentPeriod, endOfPeriod), preparedQuery = database.prepare("INSERT INTO spotprice (country, area, spotprice, period, interval) VALUES (?,?,?,?,?)");
+                        const runTransaction = database.transaction((data)=>{
+                            for (const item of data){
+                                preparedQuery.run(...item);
+                            }
+                        });
                         if (result.length) {
                             log("info", `Got ${result.length} rows`);
+                            const transaction = [];
                             for (const row of result){
-                                preparedQuery.run(country.id, area.name, row.spotPrice, row.startTime.getTime(), row.interval);
-                                await sleep(1);
+                                transaction.push([
+                                    country.id,
+                                    area.name,
+                                    row.spotPrice,
+                                    row.startTime.getTime(),
+                                    row.interval
+                                ]);
                                 true;
                             }
+                            runTransaction(transaction);
                             currentPeriod = endOfPeriod;
                             currentPeriod.setDate(currentPeriod.getDate() + 1);
                         } else {
