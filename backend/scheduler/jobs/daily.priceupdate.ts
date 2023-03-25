@@ -116,9 +116,9 @@ const DailyPriceUpdate = async () => {
 
   log("info", `Scheduled data update done`);
 
-  tm.emit("spotweb-main-1", "clear_cache", "spotprices");
-  tm.emit("spotweb-main-2", "clear_cache", "spotprices");
-  tm.emit("spotweb-main-3", "clear_cache", "spotprices");
+  tm.emit("spotweb-main-1", "clear_cache", { cache: "spotprices" });
+  tm.emit("spotweb-main-2", "clear_cache", { cache: "spotprices" });
+  tm.emit("spotweb-main-3", "clear_cache", { cache: "spotprices" });
 
   database.close();
 };

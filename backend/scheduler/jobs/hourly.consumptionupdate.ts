@@ -72,12 +72,12 @@ const HourlyConsumptionUpdate = async () => {
 
   log("info", `Scheduled data update done`);
 
-  tm.emit("spotweb-main-1", "clear_cache", "load");
-  tm.emit("spotweb-main-1", "clear_cache", "generation");
-  tm.emit("spotweb-main-2", "clear_cache", "load");
-  tm.emit("spotweb-main-2", "clear_cache", "generation");
-  tm.emit("spotweb-main-3", "clear_cache", "load");
-  tm.emit("spotweb-main-3", "clear_cache", "generation");
+  tm.emit("spotweb-main-1", "clear_cache", { cache: "load" });
+  tm.emit("spotweb-main-1", "clear_cache", { cache: "generation" });
+  tm.emit("spotweb-main-2", "clear_cache", { cache: "load" });
+  tm.emit("spotweb-main-2", "clear_cache", { cache: "generation" });
+  tm.emit("spotweb-main-3", "clear_cache", { cache: "load" });
+  tm.emit("spotweb-main-3", "clear_cache", { cache: "generation" });
 
   database.close();
 };

@@ -97,9 +97,9 @@ const DailyOutageUpdate = async () => {
 
   log("info", `Scheduled data update done`);
 
-  tm.emit("spotweb-main-1", "clear_cache", "outage");
-  tm.emit("spotweb-main-2", "clear_cache", "outage");
-  tm.emit("spotweb-main-3", "clear_cache", "outage");
+  tm.emit("spotweb-main-1", "clear_cache", { cache: "outage" });
+  tm.emit("spotweb-main-2", "clear_cache", { cache: "outage" });
+  tm.emit("spotweb-main-3", "clear_cache", { cache: "outage" });
 
   database.close();
 };
