@@ -23,21 +23,27 @@ const UpdateProductionForArea = async (area: string) => {
   try {
     const result = await EntsoeGeneration(area, dateYesterday, dateToday),
       preparedQuery = database.prepare("INSERT INTO generation (area, value, period, psr, interval, consumption) VALUES (?,?,?,?,?,?)");
-    if (result.length) {
+      // deno-lint-ignore no-explicit-any
+      const runTransaction = database.transaction((data: any[]) => {
+        for (const item of data) {
+          preparedQuery.run(...item);
+        }
+      });
+
+      if (result.length) {
       log("info", `Got ${result.length} rows`);
+      const transaction = []
       for (const row of result) {
-        preparedQuery.run(
+        transaction.push([
           area,
           row.quantity,
           row.date.getTime(),
           row.psr,
           row.interval,
           row.consumption,
-        );
-
-        // Sleep one millisecond between each row to allow clients to fetch data
-        await sleep(1);
+        ]);
       }
+      runTransaction(transaction);
     } else {
       log("info", `No new data for ${area}`);
     }
