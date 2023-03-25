@@ -1,9 +1,9 @@
 import { PupTelemetry } from "pup/telemetry.ts"
-PupTelemetry();
-
 import { ExchangeRate } from "backend/integrations/ecb.ts";
 import { openDatabase } from "backend/db/minimal.ts";
 import { log } from "utils/log.ts";
+
+const tm = new PupTelemetry();
 
 const database = await openDatabase({ int64: true });
 
@@ -38,6 +38,10 @@ const DailyCurrencyUpdate = async () => {
   }
 
   log("info", `Scheduled data update done`);
+
+  tm.emit("spotweb-main-1", "clear_cache", { cache: "exrate"} );
+  tm.emit("spotweb-main-2", "clear_cache", { cache: "exrate"} );
+  tm.emit("spotweb-main-3", "clear_cache", { cache: "exrate"} );
 
   database.close();
 };

@@ -1,11 +1,11 @@
 import { PupTelemetry } from "pup/telemetry.ts"
-PupTelemetry();
-
 import { countries } from "config/countries.ts";
 import { EntsoeSpotprice } from "backend/integrations/entsoe.ts";
 import { openDatabase } from "backend/db/minimal.ts";
 import { log } from "utils/log.ts";
 import { sleep } from "utils/common.ts";
+
+const tm = new PupTelemetry();
 
 const database = await openDatabase({ int64: true, readonly: false });
 
@@ -115,6 +115,10 @@ const DailyPriceUpdate = async () => {
   }
 
   log("info", `Scheduled data update done`);
+
+  tm.emit("spotweb-main-1", "clear_cache", "spotprices");
+  tm.emit("spotweb-main-2", "clear_cache", "spotprices");
+  tm.emit("spotweb-main-3", "clear_cache", "spotprices");
 
   database.close();
 };
