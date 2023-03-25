@@ -21578,12 +21578,23 @@ const UpdateLoadForArea = async (area)=>{
     log("info", `Getting load for ${area} ${dateToday.toLocaleString()}-${dateYesterday.toLocaleString()}`);
     try {
         const result = await EntsoeLoad(area, dateYesterday, dateToday), preparedQuery = database.prepare("INSERT INTO load (area, value, period, interval) VALUES (?,?,?,?)");
+        const runTransaction = database.transaction((data)=>{
+            for (const item of data){
+                preparedQuery.run(...item);
+            }
+        });
         if (result.length) {
             log("info", `Got ${result.length} rows`);
+            const transaction = [];
             for (const row of result){
-                preparedQuery.run(area, row.quantity, row.date.getTime(), row.interval);
-                await sleep(1);
+                transaction.push([
+                    area,
+                    row.quantity,
+                    row.date.getTime(),
+                    row.interval
+                ]);
             }
+            runTransaction(transaction);
         } else {
             log("info", `No new data for ${area}`);
         }
