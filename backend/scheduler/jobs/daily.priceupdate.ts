@@ -1,4 +1,4 @@
-import { PupTelemetry } from "pup/telemetry.ts"
+import { PupTelemetry } from "pup/telemetry.ts";
 import { countries } from "config/countries.ts";
 import { EntsoeSpotprice } from "backend/integrations/entsoe.ts";
 import { openDatabase } from "backend/db/minimal.ts";
@@ -73,22 +73,22 @@ const DailyPriceUpdate = async () => {
             });
             if (result.length) {
               log("info", `Got ${result.length} rows`);
-              const transaction = []
+              const transaction = [];
               for (const row of result) {
-                  transaction.push([
-                    country.id,
-                    area.name,
-                    row.spotPrice,
-                    row.startTime.getTime(),
-                    row.interval,
-                  ]);
+                transaction.push([
+                  country.id,
+                  area.name,
+                  row.spotPrice,
+                  row.startTime.getTime(),
+                  row.interval,
+                ]);
 
                 // Go data
                 gotData = true;
               }
 
               runTransaction(transaction);
-              
+
               currentPeriod = endOfPeriod;
 
               // Add one day to start date if we are not at start
@@ -114,7 +114,6 @@ const DailyPriceUpdate = async () => {
     if (database.totalChanges) {
       log("info", `Deleted ${database.totalChanges} duplicate rows.`);
     }
-
   } catch (e) {
     log("error", `Error occured while updating data, skipping. Error: ${e}`);
   }

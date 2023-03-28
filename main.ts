@@ -1,4 +1,4 @@
-import { PupTelemetry } from "pup/telemetry.ts"
+import { PupTelemetry } from "pup/telemetry.ts";
 import languagePlugin from "localekit_fresh";
 import languageConfig from "config/translate.config.ts";
 
@@ -7,17 +7,17 @@ import manifest from "./fresh.gen.ts";
 import { langFromUrl } from "utils/common.ts";
 import { log, setLevel } from "./utils/log.ts";
 
-import { InvalidateCache } from "./utils/datacache.ts"
+import { InvalidateCache } from "./utils/datacache.ts";
 
 const tm = new PupTelemetry();
 
 // Clear cache on telemetry request
 tm.on("clear_cache", (data) => {
   // deno-lint-ignore no-explicit-any
-  const cacheName = (data as any).cache
-  log("info", `Received request to clear cache '${cacheName}' fron IPC`)
-  InvalidateCache(cacheName)
-})
+  const cacheName = (data as any).cache;
+  log("info", `Received request to clear cache '${cacheName}' fron IPC`);
+  InvalidateCache(cacheName);
+});
 
 // Enable debugging
 if (Deno.args.includes("--debug")) {

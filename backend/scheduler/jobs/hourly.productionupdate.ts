@@ -1,4 +1,4 @@
-import { PupTelemetry } from "pup/telemetry.ts"
+import { PupTelemetry } from "pup/telemetry.ts";
 import { countries } from "config/countries.ts";
 import { EntsoeGeneration } from "backend/integrations/entsoe.ts";
 import { openDatabase } from "backend/db/minimal.ts";
@@ -23,16 +23,16 @@ const UpdateProductionForArea = async (area: string) => {
   try {
     const result = await EntsoeGeneration(area, dateYesterday, dateToday),
       preparedQuery = database.prepare("INSERT INTO generation (area, value, period, psr, interval, consumption) VALUES (?,?,?,?,?,?)");
-      // deno-lint-ignore no-explicit-any
-      const runTransaction = database.transaction((data: any[]) => {
-        for (const item of data) {
-          preparedQuery.run(...item);
-        }
-      });
+    // deno-lint-ignore no-explicit-any
+    const runTransaction = database.transaction((data: any[]) => {
+      for (const item of data) {
+        preparedQuery.run(...item);
+      }
+    });
 
-      if (result.length) {
+    if (result.length) {
       log("info", `Got ${result.length} rows`);
-      const transaction = []
+      const transaction = [];
       for (const row of result) {
         transaction.push([
           area,

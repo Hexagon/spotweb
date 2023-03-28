@@ -1,4 +1,4 @@
-import { PupTelemetry } from "pup/telemetry.ts"
+import { PupTelemetry } from "pup/telemetry.ts";
 import { countries } from "config/countries.ts";
 import { EntsoeLoad } from "backend/integrations/entsoe.ts";
 import { openDatabase } from "backend/db/minimal.ts";
@@ -29,16 +29,16 @@ const UpdateLoadForArea = async (area: string) => {
     });
     if (result.length) {
       log("info", `Got ${result.length} rows`);
-      const transaction = []
+      const transaction = [];
       for (const row of result) {
-          transaction.push([
-            area,
-            row.quantity,
-            row.date.getTime(),
-            row.interval,
-          ]);
-        }
-        runTransaction(transaction);    
+        transaction.push([
+          area,
+          row.quantity,
+          row.date.getTime(),
+          row.interval,
+        ]);
+      }
+      runTransaction(transaction);
     } else {
       log("info", `No new data for ${area}`);
     }

@@ -2,13 +2,13 @@ import { Database, DatabaseOpenOptions } from "sqlite3";
 import { resolve } from "std/path/mod.ts";
 import {
   sqlAppliedUpdates,
+  sqlConverted,
   sqlCreateExchangeRate,
   sqlCreateGeneration,
   sqlCreateLoad,
   sqlCreatePsr,
   sqlCreateSpotprice,
   sqlCreateUpdates,
-  sqlConverted,
   sqlCurrentLoadAndGeneration,
   sqlCurrentOutagesPerArea,
   sqlExchangeRates,

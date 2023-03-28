@@ -9914,13 +9914,13 @@ function toCString(str) {
     return encoder1.encode(str + "\0");
 }
 class SqliteError extends Error {
+    code;
     name;
     constructor(code = 1, message = "Unknown Error"){
         super(`${code}: ${message}`);
         this.code = code;
         this.name = "SqliteError";
     }
-    code;
 }
 function unwrap(code, db) {
     if (code === 0) return;
@@ -9976,6 +9976,7 @@ function getColumn(handle, i, int64) {
     }
 }
 class Statement {
+    db;
     #handle;
     #finalizerToken;
     #bound;
@@ -10470,7 +10471,6 @@ class Statement {
         }
         sqlite3_reset(this.#handle);
     }
-    db;
 }
 const { sqlite3_blob_open , sqlite3_blob_bytes , sqlite3_blob_close , sqlite3_blob_read , sqlite3_blob_write  } = lib;
 class SQLBlob {

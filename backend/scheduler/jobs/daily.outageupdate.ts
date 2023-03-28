@@ -1,4 +1,4 @@
-import { PupTelemetry } from "pup/telemetry.ts"
+import { PupTelemetry } from "pup/telemetry.ts";
 import { EntsoeOutages } from "backend/integrations/entsoe.ts";
 import { openDatabase } from "backend/db/minimal.ts";
 import { log } from "utils/log.ts";
