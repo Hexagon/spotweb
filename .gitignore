@@ -4,3 +4,5 @@ db
 main.release.ts
 deno.lock
 pup.jsonc.status
+.pup.jsonc*
+pup.jsonc.ipc

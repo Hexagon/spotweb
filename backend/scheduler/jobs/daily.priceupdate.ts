@@ -58,7 +58,7 @@ const DailyPriceUpdate = async () => {
           endOfPeriod.setMonth(endOfPeriod.getMonth() + 1);
           endOfPeriod = new Date(endOfPeriod);
           endOfPeriod.setDate(endOfPeriod.getDate() - 1);
-          endOfPeriod.setHours(23, 0, 0, 0);
+          endOfPeriod.setHours(23, 45, 0, 0);
           endOfPeriod = new Date(Math.min(endOfPeriod.getTime(), dateTomorrow.getTime()));
 
           // Get data

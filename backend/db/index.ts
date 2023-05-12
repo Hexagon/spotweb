@@ -166,7 +166,7 @@ const GetDataDay = async (areaName: string, date: Date, interval: string, curren
     startDate,
     endDate,
     interval,
-    currency,
+    currency === "EUR" ? undefined : currency,
   );
 };
 

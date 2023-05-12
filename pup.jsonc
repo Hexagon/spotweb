@@ -3,7 +3,7 @@
     // Main process
     {
       "id": "spotweb-main", // Required
-      "cmd": ["deno", "task", "prod"], // Required
+      "cmd": "deno task prod", // Required
       "cluster": {
         "instances": 3,
         "commonPort": 6000,
@@ -15,7 +15,7 @@
     // Scheduled jobs
     {
       "id": "daily-currency-update",
-      "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.currencyupdate.ts"],
+      "cmd": "deno run -A --unstabl dist/daily.currencyupdate.ts",
       "cron": "0 5 9 * * *",
       "restart": "error",
       "restartLimit": 2,
@@ -23,7 +23,7 @@
     },
     {
       "id": "daily-outage-update",
-      "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.outageupdate.ts"],
+      "cmd": "deno run -A --unstable dist/daily.outageupdate.ts",
       "cron": "0 5 8 * * *",
       "restart": "error",
       "restartLimit": 2,
@@ -31,7 +31,7 @@
     },
     {
       "id": "daily-price-update-12",
-      "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.priceupdate.ts"],
+      "cmd": "deno run -A --unstable dist/daily.priceupdate.ts",
       "cron": "0 45 12 * * *",
       "restart": "error",
       "restartLimit": 2,
@@ -39,7 +39,7 @@
     },
     {
       "id": "daily-price-update-13",
-      "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.priceupdate.ts"],
+      "cmd": "deno run -A --unstable dist/daily.priceupdate.ts",
       "cron": "0 15,30,45 13 * * *",
       "restart": "error",
       "restartLimit": 2,
@@ -47,7 +47,7 @@
     },
     {
       "id": "daily-price-update-all",
-      "cmd": ["deno", "run", "-A", "--unstable", "dist/daily.priceupdate.ts"],
+      "cmd": "deno run -A --unstable dist/daily.priceupdate.ts",
       "cron": "0 0 * * * *",
       "restart": "error",
       "restartLimit": 2,
@@ -55,7 +55,7 @@
     },
     {
       "id": "hourly-consumption-update",
-      "cmd": ["deno", "run", "-A", "--unstable", "dist/hourly.consumptionupdate.ts"],
+      "cmd": "deno run -A --unstable dist/hourly.consumptionupdate.ts",
       "cron": "0 35 * * * *",
       "restart": "error",
       "restartLimit": 2,
@@ -63,11 +63,15 @@
     },
     {
       "id": "hourly-productionupdate-update",
-      "cmd": ["deno", "run", "-A", "--unstable", "dist/hourly.productionupdate.ts"],
+      "cmd": "deno run -A --unstable dist/hourly.productionupdate.ts",
       "cron": "0 50 * * * *",
       "restart": "error",
       "restartLimit": 2,
       "restartDelayMs": 120000
     }
-  ]
+  ],
+  "plugins": [ {
+    "url": "https://deno.land/x/pup@1.0.0-beta.23/plugins/splunk-hec/mod.ts",
+    "options": { }
+  } ]
 }
