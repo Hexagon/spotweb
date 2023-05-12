@@ -70,8 +70,8 @@
       "restartDelayMs": 120000
     }
   ],
-  "plugins": [ {
+  "plugins": [{
     "url": "https://deno.land/x/pup@1.0.0-beta.23/plugins/splunk-hec/mod.ts",
-    "options": { }
-  } ]
+    "options": {}
+  }]
 }
