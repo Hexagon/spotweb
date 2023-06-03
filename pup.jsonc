@@ -4,6 +4,7 @@
     {
       "id": "spotweb-main", // Required
       "cmd": "deno run -A --unstable main.ts", // Required
+      "terminate": "0 50 0 * * *",
       "cluster": {
         "instances": 3,
         "commonPort": 6000,
