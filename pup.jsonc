@@ -3,7 +3,7 @@
     // Main process
     {
       "id": "spotweb-main", // Required
-      "cmd": "deno task prod", // Required
+      "cmd": "deno run -A --unstable main.ts", // Required
       "cluster": {
         "instances": 3,
         "commonPort": 6000,
