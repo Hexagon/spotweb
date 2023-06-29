@@ -4,15 +4,16 @@
     "dev": "deno run -A --unstable --watch=static/,routes/ dev.ts --no-schedules",
     "debug": "deno task dev --debug",
     "precommit": "deno fmt --check && deno lint && deno check main.ts && deno test",
-    "up": "deno run --allow-run --allow-read --allow-write --allow-net --allow-env https://deno.land/x/pup@1.0.0-alpha-26/pup.ts",
     "prod": "deno run -A --unstable main.ts",
-    "update-deps": "deno run --allow-read=. --allow-write=. --allow-net https://deno.land/x/udd/main.ts --dry-run import_map.json",
+    "update-deps": "deno run --allow-read=. --allow-write=. --allow-net https://deno.land/x/udd/main.ts --dry-run deno.json",
     "update-fresh": "deno run -A -r https://fresh.deno.dev/update ."
   },
-  "importMap": "./import_map.json",
   "fmt": {
     "files": {
-      "exclude": ["components/", "islands/"]
+      "exclude": [
+        "components/",
+        "islands/"
+      ]
     },
     "options": {
       "lineWidth": 150
@@ -24,5 +25,28 @@
     "types": [
       "https://cdn.jsdelivr.net/npm/apexcharts@3.36.3/types/apexcharts.d.ts"
     ]
+  },
+  "imports": {
+    "std/": "https://deno.land/std@0.192.0/",
+    "$fresh/": "https://deno.land/x/fresh@1.2.0/",
+    "preact": "https://esm.sh/preact@10.15.1",
+    "preact/": "https://esm.sh/preact@10.15.1/",
+    "preact-render-to-string": "https://esm.sh/*preact-render-to-string@6.1.0",
+    "@preact/signals": "https://esm.sh/*@preact/signals@1.1.3",
+    "@preact/signals-core": "https://esm.sh/*@preact/signals-core@1.2.3",
+    "config/": "./config/",
+    "backend/": "./backend/",
+    "components/": "./components/",
+    "islands/": "./islands/",
+    "utils/": "./utils/",
+    "routes/": "./routes/",
+    "entsoe_api_client": "https://deno.land/x/entsoe_api_client@1.0.1/mod.ts",
+    "fresh_seo": "https://deno.land/x/fresh_seo@0.2.1/mod.ts",
+    "localekit_fresh": "https://deno.land/x/localekit_fresh@0.5.0/mod.ts",
+    "croner": "https://deno.land/x/croner@6.0.6-dev.0/dist/croner.js",
+    "sqlite": "https://deno.land/x/sqlite@v3.7.2/mod.ts",
+    "xml": "https://deno.land/x/xml@2.1.1/mod.ts",
+    "sqlite3": "https://deno.land/x/sqlite3@0.9.1/mod.ts",
+    "pup/": "https://deno.land/x/pup@1.0.0-beta.36/"
   }
 }
