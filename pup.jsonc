@@ -72,9 +72,9 @@
     }
   ],
   "plugins": [{
-      "url": "https://deno.land/x/pup@$VERSION/plugins/web-interface/mod.ts",
-      "options": {
-        "port": 5000
-      }
- }]
+    "url": "https://deno.land/x/pup@$VERSION/plugins/web-interface/mod.ts",
+    "options": {
+      "port": 5000
+    }
+  }]
 }

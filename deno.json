@@ -9,15 +9,11 @@
     "update-fresh": "deno run -A -r https://fresh.deno.dev/update ."
   },
   "fmt": {
-    "files": {
-      "exclude": [
-        "components/",
-        "islands/"
-      ]
-    },
-    "options": {
-      "lineWidth": 150
-    }
+    "exclude": [
+      "components/",
+      "islands/"
+    ],
+    "lineWidth": 150
   },
   "compilerOptions": {
     "jsx": "react-jsx",

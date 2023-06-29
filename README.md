@@ -45,7 +45,8 @@ Note that the types declarations in deno.json have to be updated if updating dep
 
 ### Running in production
 
-Spotweb is set up to run using [Pup](https://github.com/hexagon/pup) in production. Follow tre quick guide there to run `pup run` or install as a system service `pup install --name spotweb`
+Spotweb is set up to run using [Pup](https://github.com/hexagon/pup) in production. Follow tre quick guide there to run `pup run` or install as a
+system service `pup install --name spotweb`
 
 The database will be stored in `<project-directory>/db/`
 
