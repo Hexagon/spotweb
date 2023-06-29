@@ -43,21 +43,11 @@ Also check `SwHead.tsx` for dependencies included by script tags.
 
 Note that the types declarations in deno.json have to be updated if updating dependencies in `import_map.json` or script-tags in `SwHead.tsx`.
 
-### Build docker container
+### Running in production
 
-```
-docker build . --tag=local-spotweb
-```
+Spotweb is set up to run using [Pup](https://github.com/hexagon/pup) in production. Follow tre quick guide there to run `pup run` or install as a system service `pup install --name spotweb`
 
-### Run local docker container
-
-Expose only to localhost
-
-```
-docker run -d -p 127.0.0.1:8135:8000 -e API_TOKEN="your-entsoe-api-token" -e TZ='Europe/Stockholm' --name="spotweb" local-spotweb
-```
-
-To use persistant database in a host folder, add this parameter to the `docker run` command
+The database will be stored in `<project-directory>/db/`
 
 ```
 -v /path/on/host/spotweb/db:/spotweb/db
