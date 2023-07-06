@@ -1,26 +1,23 @@
 import FilteredTable from "components/FilteredTable.tsx";
-import { useState } from "preact/hooks";
+import { useCallback, useState } from "preact/hooks";
 import { PageProps } from "$fresh/server.ts";
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
 import { preferences } from "config/preferences.js";
 import { CommonProps } from "utils/common.ts";
 
-//import { CustomPageProps } from "routes/custom.tsx";
+export default function CustomIsland({ data }: PageProps) {
+  const [currency, setCurrency] = useState(() => preferences.currency(data.lang));
+  const [unit, setUnit] = useState(preferences.unit);
+  const [factor, setFactor] = useState(() => preferences.factor(data.lang));
+  const [extra, setExtra] = useState(() => preferences.extra(data.lang));
+  const [decimals, setDecimals] = useState(() => preferences.decimals(data.lang));
+  const [priceFactor, setPriceFactor] = useState(() => preferences.pricefactor(data.lang));
 
-export default function CustomIsland(props: PageProps) {
-
-  const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
-  const [unit, setUnit] = useState(preferences.unit());
-  const [factor, setFactor] = useState(preferences.factor(props.data.lang));
-  const [extra, setExtra] = useState(preferences.extra(props.data.lang));
-  const [decimals, setDecimals] = useState(preferences.decimals(props.data.lang));
-  const [priceFactor, setPriceFactor] = useState(preferences.pricefactor(props.data.lang));
-
-  const setPriceFactorStored = (pf: boolean) => {
+  const setPriceFactorStored = useCallback((pf: boolean) => {
     localStorage.setItem("sw_pricefactor", pf ? "true" : "false");
     setPriceFactor(pf);
-  };
+  }, []);
 
   const commonprops: CommonProps = {
     unit,
@@ -29,7 +26,7 @@ export default function CustomIsland(props: PageProps) {
     decimals,
     currency,
     priceFactor,
-    ...props.data
+    ...data
   };
 
   return (
@@ -51,7 +48,7 @@ export default function CustomIsland(props: PageProps) {
         ></Sidebar>
         <FilteredTable
           {...commonprops}
-          {...props.data}
+          {...data}
         ></FilteredTable>
       </div>
     </div>

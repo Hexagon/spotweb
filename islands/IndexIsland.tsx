@@ -1,5 +1,5 @@
 import { PageProps } from "$fresh/server.ts";
-import { useState } from "preact/hooks";
+import { useCallback, useState, useEffect } from "preact/hooks";
 
 import { preferences } from "config/preferences.js";
 import { CommonProps } from "utils/common.ts";
@@ -13,19 +13,18 @@ import Sidebar from "components/layout/Sidebar.tsx";
 import PriceFactorWarning from "components/partials/PriceFactorWarning.tsx";
 import ProductionByCountry from "components/ProductionByCountry.tsx";
 
-export default function IndexIsland(props: PageProps<IndexPageProps>) {
-  
-  const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
-  const [unit, setUnit] = useState(preferences.unit());
-  const [factor, setFactor] = useState(preferences.factor(props.data.lang));
-  const [extra, setExtra] = useState(preferences.extra(props.data.lang));
-  const [decimals, setDecimals] = useState(preferences.decimals(props.data.lang));
-  const [priceFactor, setPriceFactor] = useState(preferences.pricefactor(props.data.lang));
+export default function IndexIsland({ data }: PageProps<IndexPageProps>) {
+  const [currency, setCurrency] = useState(() => preferences.currency(data.lang));
+  const [unit, setUnit] = useState(preferences.unit);
+  const [factor, setFactor] = useState(() => preferences.factor(data.lang));
+  const [extra, setExtra] = useState(() => preferences.extra(data.lang));
+  const [decimals, setDecimals] = useState(() => preferences.decimals(data.lang));
+  const [priceFactor, setPriceFactor] = useState(() => preferences.pricefactor(data.lang));
 
-  const setPriceFactorStored = (pf: boolean) => {
+  const setPriceFactorStored = useCallback((pf: boolean) => {
     localStorage.setItem("sw_pricefactor", pf ? "true" : "false");
     setPriceFactor(pf);
-  };
+  }, []);
 
   const commonprops: CommonProps = {
     unit,
@@ -34,16 +33,23 @@ export default function IndexIsland(props: PageProps<IndexPageProps>) {
     decimals,
     currency,
     priceFactor,
-    ...props.data,
+    ...data
   };
 
-  // Register a cron job which reloads the page at each full hour, if at least two minutes has passed since entering
-  const pageLoadTime = new Date();
-  const reloadJob = new Cron("0 0 * * * *", () => {
-    if (new Date().getTime()-pageLoadTime.getTime()>120*1000) {
-      window?.location?.reload();
-    }
-  });
+  useEffect(() => {
+    // Register a cron job which reloads the page at each full hour, if at least two minutes has passed since entering
+    const pageLoadTime = new Date();
+    const reloadJob = new Cron("0 0 * * * *", () => {
+      if ((new Date().getTime() - pageLoadTime.getTime()) > 120 * 1000) {
+        window?.location?.reload();
+      }
+    });
+
+    // Returning a cleanup function
+    return () => {
+      reloadJob.stop();  // stopping the cron job when component unmounts
+    };
+  }, []);  // empty dependency array so this effect runs once on mount and cleanup on unmount
 
   return (
     <div>
@@ -64,9 +70,9 @@ export default function IndexIsland(props: PageProps<IndexPageProps>) {
         ></Sidebar>
         <div class="content-wrapper">
           <div class="content mt-0 mb-0 pr-0 mr-0 ml-5">
-            <PriceFactorWarning priceFactor={!!priceFactor} factor={factor} extra={extra} lang={props.data.lang}></PriceFactorWarning>
+            <PriceFactorWarning priceFactor={!!priceFactor} factor={factor} extra={extra} lang={data.lang}></PriceFactorWarning>
             <div class="row">
-              <ProductionByCountry cols={12} {...commonprops} {...props.data} {...props}></ProductionByCountry>
+              <ProductionByCountry cols={12} {...commonprops} {...data}></ProductionByCountry>
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { PageProps } from "$fresh/server.ts";
-import { useState } from "preact/hooks";
+import { useCallback, useEffect, useState } from "preact/hooks";
 
 import { Cron } from "croner";
 
@@ -22,19 +22,18 @@ import { AreaPageProps } from "routes/[country]/[area].tsx";
 import ProductionDetailsTodayChart from "components/charts/ProductionDetailsTodayChart.tsx";
 import OutageOverview from "components/partials/OutageOverview.tsx";
 
-export default function AreaIsland(props: PageProps<AreaPageProps>) {
+export default function AreaIsland({ data }: PageProps<AreaPageProps>) {
+  const [currency, setCurrency] = useState(() => preferences.currency(data.lang));
+  const [unit, setUnit] = useState(preferences.unit);
+  const [factor, setFactor] = useState(() => preferences.factor(data.lang));
+  const [extra, setExtra] = useState(() => preferences.extra(data.lang));
+  const [decimals, setDecimals] = useState(() => preferences.decimals(data.lang));
+  const [priceFactor, setPriceFactor] = useState(() => preferences.pricefactor(data.lang));
 
-  const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
-  const [unit, setUnit] = useState(preferences.unit());
-  const [factor, setFactor] = useState(preferences.factor(props.data.lang));
-  const [extra, setExtra] = useState(preferences.extra(props.data.lang));
-  const [decimals, setDecimals] = useState(preferences.decimals(props.data.lang));
-  const [priceFactor, setPriceFactor] = useState(preferences.pricefactor(props.data.lang));
-
-  const setPriceFactorStored = (pf: boolean) => {
+  const setPriceFactorStored = useCallback((pf: boolean) => {
     localStorage.setItem("sw_pricefactor", pf ? "true" : "false");
     setPriceFactor(pf);
-  };
+  }, []);
 
   const dToday = new Date().toLocaleDateString("sv-SE");
 
@@ -45,16 +44,22 @@ export default function AreaIsland(props: PageProps<AreaPageProps>) {
     decimals,
     currency,
     priceFactor,
-    ...props.data
+    ...data
   };
 
   // Register a cron job which reloads the page at each full hour, if at least two minutes has passed since entering
-  const pageLoadTime = new Date();
-  const _reloadJob = new Cron("0 0 * * * *", () => {
-    if (new Date().getTime()-pageLoadTime.getTime()>120*1000) {
-      window?.location?.reload();
+  useEffect(() => {
+    const pageLoadTime = new Date();
+    const _reloadJob = new Cron("0 0 * * * *", () => {
+      if (new Date().getTime()-pageLoadTime.getTime()>120*1000) {
+        window?.location?.reload();
+      }
+    });
+    
+    return () => {
+      _reloadJob.stop();
     }
-  });
+  }, []);
 
   return (
     <div>
@@ -63,7 +68,7 @@ export default function AreaIsland(props: PageProps<AreaPageProps>) {
           setPriceFactor={setPriceFactorStored}
           pageType={"area"}
           {...commonprops}
-          {...props.data}
+          {...data}
         ></Navbar>
         <Sidebar
           setUnit={setUnit}
@@ -77,62 +82,62 @@ export default function AreaIsland(props: PageProps<AreaPageProps>) {
         <div class="content-wrapper">
           <div class="content pr-0 mr-0 ml-20 mt-0">
             <div class="row mt-0">
-              <PriceFactorWarning priceFactor={!!priceFactor} factor={factor} extra={extra} lang={props.data.lang}></PriceFactorWarning>
+              <PriceFactorWarning priceFactor={!!priceFactor} factor={factor} extra={extra} lang={data.lang}></PriceFactorWarning>
               <div class="sticky-alerts"></div>
               <SingleAreaOverview
-                title={props.data.area.name + " - " + props.data.area.long}
-                highlight={"color-" + props.data.area.color}
+                title={data.area.name + " - " + data.area.long}
+                highlight={"color-" + data.area.color}
                 cols={3}
                 detailed={true}
                 {...commonprops}
-                {...props.data}
+                {...data}
               ></SingleAreaOverview>
               <SingleAreaChart
-                title={props.data.area.name + " - " + props.data.area.long}
-                highlight={"color-" + props.data.area.color}
+                title={data.area.name + " - " + data.area.long}
+                highlight={"color-" + data.area.color}
                 cols={6}
                 {...commonprops}
-                {...props.data}
+                {...data}
               ></SingleAreaChart>
               <ProductionOverview
                 cols={3}
                 {...commonprops}
-                {...props.data}
+                {...data}
               ></ProductionOverview>
             </div>
             <div class="row">
               <ProductionDetailsTodayChart
                 cols={6}
                 {...commonprops}
-                {...props.data}
+                {...data}
                 ></ProductionDetailsTodayChart>
               <ProductionTodayChart
                 cols={6}
                 {...commonprops}
-                {...props.data}
+                {...data}
                 ></ProductionTodayChart>
             </div>
             <div class="row">
               <SingleAreaMonthChart
-                title={props.data.area.name + " - " + props.data.area.long}
-                highlight={"color-" + props.data.area.color}
+                title={data.area.name + " - " + data.area.long}
+                highlight={"color-" + data.area.color}
                 cols={6}
                 date={dToday}
                 {...commonprops}
-                {...props.data}
+                {...data}
               ></SingleAreaMonthChart>
               <InformationPane
                 cols={6}
                 {...commonprops}
-                {...props.data}
+                {...data}
               ></InformationPane>
             </div>
-            { props.data.singleArea && (
+            { data.singleArea && (
               <div class="row">
               <OutageOverview
                   cols={12}
                   {...commonprops}
-                  {...props.data}
+                  {...data}
                 ></OutageOverview>
               </div>
             )}

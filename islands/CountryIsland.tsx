@@ -1,5 +1,5 @@
 import { PageProps } from "$fresh/server.ts";
-import { useState } from "preact/hooks";
+import { useCallback, useEffect, useState } from "preact/hooks";
 
 import Cron from "croner";
 
@@ -22,19 +22,18 @@ import ProductionOverview from "components/partials/ProductionOverview.tsx";
 import ProductionDetailsTodayChart from "components/charts/ProductionDetailsTodayChart.tsx";
 import OutageOverview from "../components/partials/OutageOverview.tsx";
 
-export default function CountryIsland(props: PageProps<CountryPageProps>) {
+export default function CountryIsland({ data }: PageProps<CountryPageProps>) {
+  const [currency, setCurrency] = useState(() => preferences.currency(data.lang));
+  const [unit, setUnit] = useState(preferences.unit);
+  const [factor, setFactor] = useState(() => preferences.factor(data.lang));
+  const [extra, setExtra] = useState(() => preferences.extra(data.lang));
+  const [decimals, setDecimals] = useState(() => preferences.decimals(data.lang));
+  const [priceFactor, setPriceFactor] = useState(() => preferences.pricefactor(data.lang));
 
-  const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
-  const [unit, setUnit] = useState(preferences.unit());
-  const [factor, setFactor] = useState(preferences.factor(props.data.lang));
-  const [extra, setExtra] = useState(preferences.extra(props.data.lang));
-  const [decimals, setDecimals] = useState(preferences.decimals(props.data.lang));
-  const [priceFactor, setPriceFactor] = useState(preferences.pricefactor(props.data.lang));
-
-  const setPriceFactorStored = (pf: boolean) => {
+  const setPriceFactorStored = useCallback((pf: boolean) => {
     localStorage.setItem("sw_pricefactor", pf ? "true" : "false");
     setPriceFactor(pf);
-  };
+  }, []);
 
   const commonprops: CommonProps = {
     unit,
@@ -43,30 +42,35 @@ export default function CountryIsland(props: PageProps<CountryPageProps>) {
     decimals,
     currency,
     priceFactor,
-    ...props.data
+    ...data
   };
 
-  const countryElms = props.data.areas?.map((a, idx) => {
+  const countryElms = data.areas?.map((a) => {
     return (
       <SingleAreaOverview
-        key={idx}
+        key={a.id} // if there's a unique identifier for each area
         title={a.name + " - " + a.long}
         highlight={"color-" + a.color}
         area={a}
         cols={3}
         {...commonprops}
-        {...props.data}
       ></SingleAreaOverview>
     );
   });
 
   // Register a cron job which reloads the page at each full hour, if at least two minutes has passed since entering
-  const pageLoadTime = new Date();
-  new Cron("0 0 * * * *", () => {
-    if (new Date().getTime()-pageLoadTime.getTime()>120*1000) {
-      window?.location?.reload();
+  useEffect(() => {
+    const pageLoadTime = new Date();
+    const _reloadJob = new Cron("0 0 * * * *", () => {
+      if (new Date().getTime()-pageLoadTime.getTime()>120*1000) {
+        window?.location?.reload();
+      }
+    });
+    
+    return () => {
+      _reloadJob.stop();
     }
-  });
+  }, []);
 
   return (
     <div>
@@ -87,7 +91,7 @@ export default function CountryIsland(props: PageProps<CountryPageProps>) {
         ></Sidebar>
         <div class="content-wrapper">
           <div class="content mt-0 mb-0 pr-0 mr-0 ml-20">
-            <PriceFactorWarning priceFactor={!!priceFactor} factor={factor} extra={extra} lang={props.data.lang}></PriceFactorWarning>
+            <PriceFactorWarning priceFactor={!!priceFactor} factor={factor} extra={extra} lang={data.lang}></PriceFactorWarning>
             <div class="row">
               {countryElms}
             </div>
@@ -98,13 +102,13 @@ export default function CountryIsland(props: PageProps<CountryPageProps>) {
                 title="today"
                 highlight="color-5"
                 {...commonprops}
-                {...props.data}
+                {...data}
               ></AllAreaChart>
               <AllAreaChart
                 title="tomorrow"
                 highlight="color-6"
                 {...commonprops}
-                {...props.data}
+                {...data}
               ></AllAreaChart>
             </div>
           </div>
@@ -113,17 +117,17 @@ export default function CountryIsland(props: PageProps<CountryPageProps>) {
             <ProductionOverview
                 cols={4}
                 {...commonprops}
-                {...props.data}
+                {...data}
               ></ProductionOverview>
               <ProductionDetailsTodayChart
                 cols={4}
                 {...commonprops}
-                {...props.data}
+                {...data}
                 ></ProductionDetailsTodayChart>
               <ProductionTodayChart
                 cols={4}
                 {...commonprops}
-                {...props.data}
+                {...data}
                 ></ProductionTodayChart>
             </div>
           </div>
@@ -131,12 +135,12 @@ export default function CountryIsland(props: PageProps<CountryPageProps>) {
             <div class="row mt-0">
               <AllAreaChartLongTerm
                   {...commonprops}
-                  {...props.data}
+                  {...data}
                 ></AllAreaChartLongTerm>
               <InformationPane
                   cols={6}
                   {...commonprops}
-                  {...props.data}
+                  {...data}
                 ></InformationPane>
             </div>
           </div>
@@ -145,7 +149,7 @@ export default function CountryIsland(props: PageProps<CountryPageProps>) {
               <OutageOverview
                   cols={12}
                   {...commonprops}
-                  {...props.data}
+                  {...data}
                 ></OutageOverview>
             </div>
           </div>
