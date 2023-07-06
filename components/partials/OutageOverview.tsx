@@ -24,9 +24,11 @@ export default function OutageOverview(props: ProductionOverviewProps) {
               <div>
                 <table class="table">
                   <thead>
-                    <th data-t-key="common.outage.resource" lang={props.lang}>Resource</th>
-                    <th data-t-key="common.outage.status" lang={props.lang}>Status</th>
-                    <th data-t-key="common.outage.capacity_now" lang={props.lang}>Kapacitet just nu</th>
+                    <tr>
+                      <th data-t-key="common.outage.resource" lang={props.lang}>Resource</th>
+                      <th data-t-key="common.outage.status" lang={props.lang}>Status</th>
+                      <th data-t-key="common.outage.capacity_now" lang={props.lang}>Kapacitet just nu</th>
+                    </tr>
                   </thead>
                   <tbody>
                     { props.outages.data.length && props.outages.data.map(g => (
@@ -55,9 +57,11 @@ export default function OutageOverview(props: ProductionOverviewProps) {
               <div>
                 <table class="table">
                   <thead>
-                    <th data-t-key="common.outage.resource" lang={props.lang}>Resource</th>
-                    <th data-t-key="common.outage.status" lang={props.lang}>Status</th>
-                    <th data-t-key="common.outage.total_capacity" lang={props.lang}>Total capacity</th>
+                    <tr>
+                      <th data-t-key="common.outage.resource" lang={props.lang}>Resource</th>
+                      <th data-t-key="common.outage.status" lang={props.lang}>Status</th>
+                      <th data-t-key="common.outage.total_capacity" lang={props.lang}>Total capacity</th>
+                    </tr>
                   </thead>
                   <tbody>
                     { props.futureOutages.data.length && props.futureOutages.data.map(g => (
