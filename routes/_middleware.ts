@@ -8,7 +8,7 @@ export const handler = [
     // deno-lint-ignore no-explicit-any
     ctx: MiddlewareHandlerContext<Record<string, any>>,
   ) {
-    const SUPPORTED_LANGUAGES = ['sv', 'fi', 'no', 'dk', 'de', 'en'];
+    const SUPPORTED_LANGUAGES = ["sv", "fi", "no", "dk", "de", "en"];
     const langRaw = req.headers.get("accept-language");
     const urlParsed = new URL(req.url);
 
@@ -16,7 +16,7 @@ export const handler = [
 
     if (langRaw) {
       const primaryLang = langRaw.split(";")[0].split(",")[0].split("-")[0];
-      const matchedLang = SUPPORTED_LANGUAGES.find(lng => primaryLang.includes(lng));
+      const matchedLang = SUPPORTED_LANGUAGES.find((lng) => primaryLang.includes(lng));
 
       if (matchedLang) {
         lang = matchedLang;

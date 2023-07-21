@@ -5,6 +5,7 @@
       "id": "spotweb-main", // Required
       "cmd": "deno run -A --unstable main.ts", // Required
       "terminate": "0 50 0 * * *",
+      "autostart": true,
       "cluster": {
         "instances": 3,
         "commonPort": 6000,
@@ -57,13 +58,13 @@
     {
       "id": "hourly-consumption-update",
       "cmd": "deno run -A --unstable --unsafely-ignore-certificate-errors dist/hourly.consumptionupdate.ts",
-      "cron": "0 35 * * * *",
+      "cron": "0 5 * * * *",
       "restart": "error",
       "restartLimit": 2,
       "restartDelayMs": 120000
     },
     {
-      "id": "hourly-productionupdate-update",
+      "id": "hourly-production-update",
       "cmd": "deno run -A --unstable --unsafely-ignore-certificate-errors dist/hourly.productionupdate.ts",
       "cron": "0 50 * * * *",
       "restart": "error",
@@ -72,7 +73,7 @@
     }
   ],
   "plugins": [{
-    "url": "https://deno.land/x/pup@$VERSION/plugins/web-interface/mod.ts",
+    "url": "https://deno.land/x/pup/plugins/web-interface/mod.ts",
     "options": {
       "port": 5000
     }
