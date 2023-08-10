@@ -36,7 +36,7 @@ export const handler: Handlers = {
 export default function Home(props: PageProps) {
   return (
     <>
-      <SwHead title={" - Anpassad period"} {...props} {...props.data}></SwHead>
+      <SwHead title={" - Anpassad period"} adsense={Deno.env.get("SPOTWEB_ADSENSE")} {...props} {...props.data}></SwHead>
       <body lang={props.data.lang} class="dark-mode">
         <CustomIsland {...props}></CustomIsland>
       </body>

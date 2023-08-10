@@ -27,7 +27,7 @@ export const handler: Handlers = {
 export default function HomeAssistant(props: PageProps) {
   return (
     <>
-      <SwHead title={"Help - Install app, more information"} {...props} {...props.data}></SwHead>
+      <SwHead title={"Help - Install app, more information"} adsense={Deno.env.get("SPOTWEB_ADSENSE")} {...props} {...props.data}></SwHead>
       <body lang={props.data.lang} class="dark-mode">
         <HelpIsland {...props}></HelpIsland>
       </body>

@@ -51,7 +51,13 @@ export const handler: Handlers = {
 export default function Index(props: PageProps<IndexPageProps>) {
   return (
     <>
-      <SwHead title={locale_kit.t("common.header.title", { lang: props.data.lang })} {...props} {...props.data}></SwHead>
+      <SwHead
+        title={locale_kit.t("common.header.title", { lang: props.data.lang })}
+        {...props}
+        {...props.data}
+        adsense={Deno.env.get("SPOTWEB_ADSENSE")}
+      >
+      </SwHead>
       <body lang={props.data.lang} class="dark-mode">
         <IndexIsland {...props}></IndexIsland>
       </body>

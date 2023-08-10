@@ -98,7 +98,8 @@ export const handler: Handlers = {
 export default function Area(props: PageProps<AreaPageProps>) {
   return (
     <>
-      <SwHead title={props.data.area.name + " - " + props.data.area.long} {...props} {...props.data}></SwHead>
+      <SwHead title={props.data.area.name + " - " + props.data.area.long} adsense={Deno.env.get("SPOTWEB_ADSENSE")} {...props} {...props.data}>
+      </SwHead>
       <body lang={props.data.lang} class="dark-mode">
         <ElomradeIsland {...props}></ElomradeIsland>
       </body>

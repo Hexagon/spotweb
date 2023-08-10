@@ -88,7 +88,13 @@ export const handler: Handlers = {
 export default function Index(props: PageProps<CountryPageProps>) {
   return (
     <>
-      <SwHead title={props.data.country?.name + " - " + props.data.country?.areas.map((a) => a.name).join(", ")} {...props} {...props.data}></SwHead>
+      <SwHead
+        title={props.data.country?.name + " - " + props.data.country?.areas.map((a) => a.name).join(", ")}
+        adsense={Deno.env.get("SPOTWEB_ADSENSE")}
+        {...props}
+        {...props.data}
+      >
+      </SwHead>
       <body lang={props.data.lang} class="dark-mode">
         <CountryIsland {...props}></CountryIsland>
       </body>

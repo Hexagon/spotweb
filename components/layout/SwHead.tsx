@@ -12,6 +12,7 @@ interface HeadProps extends PageProps {
   page: string;
   country?: Country;
   area?: DataArea;
+  adsense?: string;
 }
 
 export default function SwHead(props: HeadProps) {
@@ -69,6 +70,13 @@ export default function SwHead(props: HeadProps) {
       <title>{locale_kit.t("common.page.title",{ lang: props.data.lang })}  - {props.title}</title>
       <link rel="icon" type="image/png" href={asset("/icon-192x192.png")}></link>
       <meta name="description" content={locale_kit.t("common.header.title",{ lang: props.data.lang }) + " - " + props.title} />
+
+      {/* Google Ad-sense, activated by specifying env SPOTWEB_ADSENSE */}
+      { props.adsense && (
+        <>
+          <script async src={"https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client="+props.adsense} crossOrigin="anonymous"></script>
+        </>
+      )}
 
       {/* Halfmoon CSS */}
       <link
