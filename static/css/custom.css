@@ -79,3 +79,8 @@
     border-radius: 4px;
     padding:3px;
 }
+
+/* Ads */
+.display-height {
+    max-height: 70px;
+}

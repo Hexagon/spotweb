@@ -11,6 +11,7 @@ import { preferences } from "config/preferences.js";
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
 
+import MultiPlexAd from "components/ads/MultiPlexAd.tsx";
 import AllAreaChart from "components/charts/AllAreaChart.tsx";
 import AllAreaChartLongTerm from "components/charts/AllAreaChartLongTerm.tsx";
 import ProductionTodayChart from "components/charts/ProductionTodayChart.tsx";
@@ -96,6 +97,16 @@ export default function CountryIsland({ data }: PageProps<CountryPageProps>) {
               {countryElms}
             </div>
           </div>
+          <div class="content mt-0 mr-0 ml-20">
+            <div class="row mt-0">
+              <ProductionOverview
+                  cols={6}
+                  {...commonprops}
+                  {...data}
+                ></ProductionOverview>
+                <MultiPlexAd cols={6} {...commonprops} {...data}></MultiPlexAd>
+            </div>
+          </div>
           <div class="content mt-0 mb-0 mr-0 ml-20">
             <div class="row">
               <AllAreaChart
@@ -114,21 +125,16 @@ export default function CountryIsland({ data }: PageProps<CountryPageProps>) {
           </div>
           <div class="content mt-0 mr-0 ml-20">
             <div class="row mt-0">
-            <ProductionOverview
-                cols={4}
-                {...commonprops}
-                {...data}
-              ></ProductionOverview>
-              <ProductionDetailsTodayChart
-                cols={4}
-                {...commonprops}
-                {...data}
-                ></ProductionDetailsTodayChart>
-              <ProductionTodayChart
-                cols={4}
-                {...commonprops}
-                {...data}
-                ></ProductionTodayChart>
+            <ProductionDetailsTodayChart
+                  cols={6}
+                  {...commonprops}
+                  {...data}
+            ></ProductionDetailsTodayChart>
+            <ProductionTodayChart
+              cols={6}
+              {...commonprops}
+              {...data}
+              ></ProductionTodayChart>
             </div>
           </div>
           <div class="content mt-0 mr-0 ml-20">

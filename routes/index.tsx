@@ -41,6 +41,7 @@ export const handler: Handlers = {
       pricePerArea,
       er,
       page: "index",
+      adsense: Deno.env.get("SPOTWEB_ADSENSE"),
       lang: ctx.state.lang as string | undefined || ctx.params.country,
     };
 
@@ -55,7 +56,6 @@ export default function Index(props: PageProps<IndexPageProps>) {
         title={locale_kit.t("common.header.title", { lang: props.data.lang })}
         {...props}
         {...props.data}
-        adsense={Deno.env.get("SPOTWEB_ADSENSE")}
       >
       </SwHead>
       <body lang={props.data.lang} class="dark-mode">

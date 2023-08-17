@@ -2,7 +2,9 @@ import { SpotApiRow } from "backend/db/index.ts";
 
 interface BasePageProps {
   page: string;
+  adsense?: string;
   lang: string;
+  disable_auto_adsense?: boolean;
 }
 
 interface CommonProps extends BasePageProps {

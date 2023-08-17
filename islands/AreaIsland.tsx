@@ -21,6 +21,7 @@ import SingleAreaOverview from "components/partials/SingleAreaOverview.tsx";
 import { AreaPageProps } from "routes/[country]/[area].tsx";
 import ProductionDetailsTodayChart from "components/charts/ProductionDetailsTodayChart.tsx";
 import OutageOverview from "components/partials/OutageOverview.tsx";
+import MultiPlexAd from "components/ads/MultiPlexAd.tsx";
 
 export default function AreaIsland({ data }: PageProps<AreaPageProps>) {
   const [currency, setCurrency] = useState(() => preferences.currency(data.lang));
@@ -55,7 +56,6 @@ export default function AreaIsland({ data }: PageProps<AreaPageProps>) {
         window?.location?.reload();
       }
     });
-    
     return () => {
       _reloadJob.stop();
     }
@@ -104,6 +104,9 @@ export default function AreaIsland({ data }: PageProps<AreaPageProps>) {
                 {...commonprops}
                 {...data}
               ></ProductionOverview>
+            </div>
+            <div class="row">
+              <MultiPlexAd cols={12} {...commonprops} {...data}></MultiPlexAd>
             </div>
             <div class="row">
               <ProductionDetailsTodayChart

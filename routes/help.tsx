@@ -17,6 +17,7 @@ export const handler: Handlers = {
     const pageProps: HelpPageProps = {
       er,
       page: "index",
+      adsense: Deno.env.get("SPOTWEB_ADSENSE"),
       lang: ctx.state.lang as string | undefined || ctx.params.country,
     };
 

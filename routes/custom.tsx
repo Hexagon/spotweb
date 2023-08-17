@@ -28,6 +28,7 @@ export const handler: Handlers = {
       startDate,
       endDate,
       er,
+      adsense: Deno.env.get("SPOTWEB_ADSENSE"),
       lang: ctx.state.lang,
     });
   },

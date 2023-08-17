@@ -81,6 +81,7 @@ export const handler: Handlers = {
       generation: await GetGenerationDay(area.id, yesterdayDate, todayDate, country.interval),
       load: await GetLoadDay(area.id, yesterdayDate, todayDate, country.interval),
       page: area.id,
+      adsense: Deno.env.get("SPOTWEB_ADSENSE"),
       er,
       lang: ctx.state.lang as string | undefined || ctx.params.country,
     };

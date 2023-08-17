@@ -77,6 +77,7 @@ export const handler: Handlers = {
       futureOutages: await GetFutureOutages(country.id),
       er,
       page: country.id,
+      adsense: Deno.env.get("SPOTWEB_ADSENSE"),
       areas,
       lang: ctx.state.lang as string | undefined || ctx.params.country,
     };
@@ -90,7 +91,6 @@ export default function Index(props: PageProps<CountryPageProps>) {
     <>
       <SwHead
         title={props.data.country?.name + " - " + props.data.country?.areas.map((a) => a.name).join(", ")}
-        adsense={Deno.env.get("SPOTWEB_ADSENSE")}
         {...props}
         {...props.data}
       >

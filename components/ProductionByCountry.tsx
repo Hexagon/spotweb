@@ -2,6 +2,8 @@ import { CommonProps } from "utils/common.ts";
 import { countries } from "config/countries.ts";
 import { DBResultSet, ExchangeRateResult } from "../backend/db/index.ts";
 import { applyExchangeRateSingle, processPrice } from "utils/price.ts";
+import DisplayAd from "components/ads/DisplayAd.tsx";
+import FixedAd from "components/ads/FixedAd.tsx";
 
 interface ProductionByCountryProps extends CommonProps {
   cols: number;
@@ -59,26 +61,29 @@ export default function ProductionByCountry(props: ProductionByCountryProps) {
         </td>
       </tr>
     ));
-    if (country.areas && country.areas.length > 1) for(const area of country.areas) {
-      const 
-        res = GenLoadRow(area.id),
-        resArea = GetPriceRowArea(area.name,country.interval);
-      countryElms.push((
-        <tr class="pl-20 font-size-14 bg-very-dark">
-          <td><a class="hyperlink text-white" href={"/"+country.id+"/"+area.name}>{area.name} - {area.long}</a></td>
-          <td>{processPrice(applyExchangeRateSingle(resArea as number,props.er,props.currency),props)}</td>
-          <td>{res?.generation_total}</td>
-          <td>{res?.load_total}</td>
-          <td><span class={"text-"+ ((res?.net_generation && res.net_generation < 0) ? "danger" : "success")}>{res?.net_generation}</span></td>
-          <td>
-            { res?.primary_psr_group && (
-              <>
-                <span data-t-key={"common.generation.psr_"+res?.primary_psr_group+"_0"}></span><span> ({Math.round((res?.primary_psr_group_generation as number)/(res?.generation_total as number)*100)}%)</span>
-              </>
-            )}
-          </td>            
-        </tr>
-      ));
+    if (country.areas && country.areas.length > 1) {
+      for(const area of country.areas) {
+        const 
+          res = GenLoadRow(area.id),
+          resArea = GetPriceRowArea(area.name,country.interval);
+        countryElms.push((
+          <tr class="pl-20 font-size-14 bg-very-dark">
+            <td><a class="hyperlink text-white" href={"/"+country.id+"/"+area.name}>{area.name} - {area.long}</a></td>
+            <td>{processPrice(applyExchangeRateSingle(resArea as number,props.er,props.currency),props)}</td>
+            <td>{res?.generation_total}</td>
+            <td>{res?.load_total}</td>
+            <td><span class={"text-"+ ((res?.net_generation && res.net_generation < 0) ? "danger" : "success")}>{res?.net_generation}</span></td>
+            <td>
+              { res?.primary_psr_group && (
+                <>
+                  <span data-t-key={"common.generation.psr_"+res?.primary_psr_group+"_0"}></span><span> ({Math.round((res?.primary_psr_group_generation as number)/(res?.generation_total as number)*100)}%)</span>
+                </>
+              )}
+            </td>            
+          </tr>
+        ));
+      }
+      countryElms.push(<tr><td colSpan={6} class={"text-center display-height"}><FixedAd {...props}></FixedAd></td></tr>)
     }
   }
 
