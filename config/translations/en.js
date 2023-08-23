@@ -148,6 +148,8 @@ const en = {
       "priceFactorDescriptionPart1": "The electricity price shown in the table is based on the following formula: ([spot price] +",
       "priceFactorDescriptionPart2": "(fees)) *",
       "priceFactorDescriptionPart3": "(tax). This is adjusted according to your current settings.",
+      "nonPriceFactorDescription":
+        "The electricity price in the table represents the current spot price. Keep in mind that additional fees and taxes may apply. You can choose to display either the spot price or the actual price through the settings on the page.",
     },
   },
 };

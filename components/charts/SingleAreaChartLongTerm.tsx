@@ -98,7 +98,7 @@ export default function SingleAreaLongTermChart(props: SingleAreaLongTermChartPr
                         </>
                         )}
                         {!props.priceFactor && (
-                        <p data-t-key={"common.longtermchart.nonPpriceFactorDescription"} lang={props.lang}>Elpriset i tabellen representerar det aktuella spotpriset. Tänk på att ytterligare avgifter och moms kan tillkomma. Du kan dock justera detta via inställningarna på sidan.</p>
+                        <p data-t-key={"common.longtermchart.nonPriceFactorDescription"} lang={props.lang}>Elpriset i tabellen representerar det aktuella spotpriset. Tänk på att ytterligare avgifter och moms kan tillkomma. Du kan dock justera detta via inställningarna på sidan.</p>
                         )}
                     </div>
                     <div class="content px-card m-0 p-0">

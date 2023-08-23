@@ -149,6 +149,8 @@ const fi = {
       "priceFactorDescriptionPart1": "Taulukossa näkyvä sähkön hinta perustuu seuraavaan kaavaan: ([spot-hinta] +",
       "priceFactorDescriptionPart2": "(maksut)) *",
       "priceFactorDescriptionPart3": "(ALV). Tämä on mukautettu nykyisten asetustesi mukaan.",
+      "nonPriceFactorDescription":
+        "Taulukon sähkön hinta edustaa nykyistä spot-hintaa. Huomioi, että lisämaksuja ja arvonlisäveroa saattaa lisääntyä. Voit valita, näytetäänkö spot-hinta vai todellinen hinta sivun asetuksista.",
     },
   },
 };

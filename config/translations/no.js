@@ -148,6 +148,8 @@ const no = {
       "priceFactorDescriptionPart1": "Strømprisen som vises i tabellen er basert på følgende formel: ([spotpris] +",
       "priceFactorDescriptionPart2": "(avgifter)) *",
       "priceFactorDescriptionPart3": "(mva). Dette er justert etter dine nåværende innstillinger.",
+      "nonPriceFactorDescription":
+        "Elektrisitetsprisen i tabellen representerer den aktuelle spotprisen. Vær oppmerksom på at ytterligere avgifter og mva kan tilkomme. Du kan velge å vise enten spotprisen eller den faktiske prisen gjennom innstillingene på siden.",
     },
   },
 };

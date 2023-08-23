@@ -129,7 +129,7 @@ const de = {
       "ongoing_planned": "Laufende Geplante",
       "ongoing_unplanned": "Laufende Ungeplante",
       "upcoming": "Bevorstehende",
-      "description": "Unten sehen Sie die aktuellen Betriebsstörungen, die die Stromerzeugung in ",
+      "description": "Unten sehen Sie aktuelle Betriebsstörungen, Ausfälle und Stillstände, die die Stromproduktion in",
       "details": "Wenn Sie bevorstehende geplante Störungen einbeziehen möchten, klicken Sie hier.",
       "capacity_ongoing": "Kapazität während des Ausfalls",
       "capacity_total": "Gesamtkapazität",
@@ -149,6 +149,8 @@ const de = {
       "priceFactorDescriptionPart1": "Der in der Tabelle angezeigte Strompreis basiert auf der folgenden Formel: ([Spotpreis] +",
       "priceFactorDescriptionPart2": "(Gebühren)) *",
       "priceFactorDescriptionPart3": "(Steuer). Dies wird entsprechend Ihren aktuellen Einstellungen angepasst.",
+      "nonPriceFactorDescription":
+        "Der Strompreis in der Tabelle repräsentiert den aktuellen Spotpreis. Beachten Sie, dass zusätzliche Gebühren und Steuern anfallen können. Sie können über die Einstellungen auf der Seite wählen, ob Sie den Spotpreis oder den tatsächlichen Preis anzeigen möchten.",
     },
   },
 };

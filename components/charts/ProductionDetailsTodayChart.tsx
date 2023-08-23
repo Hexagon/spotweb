@@ -3,7 +3,7 @@ import { productionDetailsTodayChartOptions } from "config/charts/productiondeta
 import { CommonProps } from "utils/common.ts";
 import { DBResultSet, SpotApiRow } from "backend/db/index.ts";
 import { Area, Country } from "config/countries.ts";
-import { locale_kit } from "https://deno.land/x/localekit_fresh@0.5.0/mod.ts";
+import { locale_kit } from "localekit_fresh";
 
 interface ProductionDetailsTodayProps extends CommonProps {
   cols: number;
@@ -33,6 +33,7 @@ export default function ProductionDetailsTodayChart(props: ProductionDetailsToda
           type: 'bar'
         },
       );
+      console.log("common.generation.psr_"+(s.name as string),locale_kit.t("common.generation.psr_"+(s.name as string),{ lang: props.lang }),{ lang: props.lang });
     }
 
     // deno-lint-ignore no-explicit-any

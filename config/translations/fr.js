@@ -149,6 +149,8 @@ const fr = {
       "priceFactorDescriptionPart1": "Le prix de l'électricité affiché dans le tableau est basé sur la formule suivante : ([prix spot] +",
       "priceFactorDescriptionPart2": "(frais)) *",
       "priceFactorDescriptionPart3": "(taxe). Ceci est ajusté en fonction de vos paramètres actuels.",
+      "nonPriceFactorDescription":
+        "Le prix de l'électricité dans le tableau représente le prix spot actuel. Gardez à l'esprit que des frais supplémentaires et des taxes peuvent s'appliquer. Vous pouvez choisir d'afficher soit le prix spot, soit le prix réel à travers les paramètres de la page.",
     },
   },
 };

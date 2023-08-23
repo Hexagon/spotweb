@@ -148,6 +148,8 @@ const dk = {
       "priceFactorDescriptionPart1": "Elprisen vist i tabellen er baseret på følgende formel: ([spotpris] +",
       "priceFactorDescriptionPart2": "(gebyrer)) *",
       "priceFactorDescriptionPart3": "(moms). Dette er justeret ifølge dine nuværende indstillinger.",
+      "nonPriceFactorDescription":
+        "Elprisen i tabellen repræsenterer den aktuelle spotpris. Vær opmærksom på, at yderligere gebyrer og moms kan pålægges. Du kan vælge at vise enten spotprisen eller den faktiske pris gennem indstillingerne på siden.",
     },
   },
 };

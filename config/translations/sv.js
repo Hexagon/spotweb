@@ -128,7 +128,7 @@ const sv = {
       "ongoing_planned": "Pågående planerade",
       "ongoing_unplanned": "Pågående oplanerade",
       "upcoming": "Kommande",
-      "description": "Här nedanför ser du aktuella driftstöringar som berör elproduktionen i ",
+      "description": "Här nedanför ser du aktuella driftstörningar, avbrott och driftstopp som berör elproduktionen i ",
       "details": "Vill du inkludera kommande planerade driftstörningar, klicka här.",
       "capacity_ongoing": "Kapacitet under avbrottet",
       "capacity_total": "Total kapacitet",
@@ -148,6 +148,8 @@ const sv = {
       "priceFactorDescriptionPart1": "Elpriset som visas i tabellen baseras på följande formel: ([spotpris] +",
       "priceFactorDescriptionPart2": "(avgifter)) *",
       "priceFactorDescriptionPart3": "(moms). Detta är justerat efter dina nuvarande inställningar.",
+      "nonPriceFactorDescription":
+        "Elpriset i tabellen representerar det aktuella spotpriset. Tänk på att ytterligare avgifter och moms kan tillkomma. Du kan välja mellan att visa spotpris eller faktiskt pris genom inställningarna på sidan.",
     },
   },
 };
