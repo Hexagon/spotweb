@@ -15,16 +15,20 @@ export default function AllAreaChartLongTerm(props: AllAreaLongTermChartProps) {
 
   const 
     [chartElm, setChartElm] = useState<ApexCharts>(),
-    [randomChartId] = useState((Math.random() * 10000).toFixed(0));
+    [randomChartId] = useState((Math.random() * 10000).toFixed(0)),
+    [dataSets, setDataSets] = useState<Map<string, SpotApiRow[]>>(new Map());
 
   const renderChart = async (props: AllAreaLongTermChartProps) => {
   
+    const results: Map<string, SpotApiRow[]> = new Map();
     const seriesInput: ChartSeries[] = [];
     for (const area of props.areas) {
       let dataSet = await getDataLongTerm(area.name);
       dataSet = applyExchangeRate(dataSet, props.er, props.currency);
       if (dataSet) seriesInput.push({ name: area.name, data: dataSet });
+      if (dataSet) results.set(area.name, dataSet);
     }
+    setDataSets(results);
     
     // Inject series into chart configuration
     const series = [];
@@ -67,11 +71,65 @@ export default function AllAreaChartLongTerm(props: AllAreaLongTermChartProps) {
         <div class="card p-0 m-0">
           <div class={"px-card py-10 m-0 rounded-top"}>
             <h2 class="card-title font-size-18 m-0 text-center">
-              <span data-t-key={"common.overview.all_areas_longterm"} lang={props.lang}>All areas</span>
+              <h2 class="card-title font-size-18 m-0 text-center">
+                  <span data-t-key={"common.longtermchart.title"} lang={props.lang}></span>
+                  <span>{props.country.name}</span>
+              </h2>
             </h2>
           </div>
           <div class="content px-card m-0 p-0 bg-very-dark">
             <div class="col-lg" id={"chart_" + randomChartId}></div>
+          </div>
+          <div class="content px-card m-0 p-10 bg-very-dark">
+            <p>
+                <span data-t-key={"common.longtermchart.countryDescriptionPart1"} lang={props.lang}></span>
+                <span>{ props.country.name }</span>
+                <span data-t-key={"common.longtermchart.countryDescriptionPart2"} lang={props.lang}></span>
+            </p>
+            {props.priceFactor && (
+              <>
+                <p>
+                  <span data-t-key={"common.longtermchart.priceFactorDescriptionPart1"} lang={props.lang}>Elpriset som visas i tabellen baseras på följande formel: ([spotpris] +</span>
+                  <span>{props.extra}</span>
+                  <span data-t-key={"common.longtermchart.priceFactorDescriptionPart2"} lang={props.lang}>(avgifter)) *</span>
+                  <span>{props.factor}</span>
+                  <span data-t-key={"common.longtermchart.priceFactorDescriptionPart3"} lang={props.lang}>(moms). Detta är justerat efter dina nuvarande inställningar.</span>
+                </p>
+              </>
+            )}
+            {!props.priceFactor && (
+              <p data-t-key={"common.longtermchart.nonPpriceFactorDescription"} lang={props.lang}>Elpriset i tabellen representerar det aktuella spotpriset. Tänk på att ytterligare avgifter och moms kan tillkomma. Du kan dock justera detta via inställningarna på sidan.</p>
+            )}
+          </div>
+          <div class="content px-card m-0 p-0">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  {props.areas.map(area => <th key={area.name}>{area.name}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {dataSets.size > 0 && dataSets.get(props.areas[0].name).map(dataPoint => {
+                  const dateFromTimestamp = new Date(dataPoint.time);
+
+                  return (
+                    <tr key={dataPoint.time}>
+                      <td>{dateFromTimestamp.toLocaleString('default', { month: 'long' })} {dateFromTimestamp.getFullYear()}</td>
+                      {props.areas.map(area => {
+                        const dataSetForArea = dataSets.get(area.name);
+                        const dataSetForMonth = dataSetForArea?.find(data => new Date(data.time).getMonth() === dateFromTimestamp.getMonth() && new Date(data.time).getFullYear() === dateFromTimestamp.getFullYear());
+                        return (
+                          <td key={area.name}>
+                            {dataSetForMonth ? processPrice(dataSetForMonth.price, props) : '-'}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

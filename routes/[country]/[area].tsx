@@ -92,6 +92,7 @@ export const handler: Handlers = {
         pageProps.futureOutages = await GetFutureOutages(country.id),
         pageProps.singleArea = true;
     }
+
     return ctx.render(pageProps);
   },
 };

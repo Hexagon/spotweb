@@ -10,6 +10,7 @@ interface AllAreaChartProps extends CommonProps {
   title: string;
   areas: DataArea[];
   er: ExchangeRateResult;
+  cols: number;
 }
 
 export default function AllAreaChart(props: AllAreaChartProps) {
@@ -86,7 +87,7 @@ export default function AllAreaChart(props: AllAreaChartProps) {
   }, [props.priceFactor]);
 
   return (
-    <div class="col-lg-6 m-0 p-0">
+    <div class={`col-lg-${props.cols} m-0 p-0`}>
       <div class="mw-full m-0 p-0 mr-20 mt-20">
         <div class="card p-0 m-0">
           <div class={"px-card py-10 m-0 rounded-top"}>

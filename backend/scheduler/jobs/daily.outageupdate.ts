@@ -59,20 +59,20 @@ const DailyOutageUpdate = async () => {
           preparedQueryOutageDelete.run(dpEntry.mRID);
           preparedQueryOutageAvailabilityDelete.run(dpEntry.mRID);
           preparedQueryOutage.run(
-            dpEntry.mRID,
-            dpEntry.revision,
-            dpEntry.businessType,
-            dpEntry.startDate?.getTime(),
-            dpEntry.endDate?.getTime(),
-            dpEntry.resourceName,
-            dpEntry.location,
-            country.id,
+            dpEntry.mRID ?? null,
+            dpEntry.revision ?? null,
+            dpEntry.businessType ?? null,
+            dpEntry.startDate?.getTime() ?? null,
+            dpEntry.endDate?.getTime() ?? null,
+            dpEntry.resourceName ?? null,
+            dpEntry.location ?? null,
+            country.id ?? null,
             dpEntry.psrName || "undefined",
-            dpEntry.psrNominalPowerUnit,
-            dpEntry.psrNominalPower,
-            dpEntry.psrType,
-            dpEntry.reasonCode,
-            dpEntry.reasonText,
+            dpEntry.psrNominalPowerUnit ?? null,
+            dpEntry.psrNominalPower ?? null,
+            dpEntry.psrType ?? null,
+            dpEntry.reasonCode ?? null,
+            dpEntry.reasonText ?? null,
           );
           for (const apEntry of dpEntry.availablePeriodArray) {
             preparedQueryOutageAvailability.run(
@@ -86,7 +86,7 @@ const DailyOutageUpdate = async () => {
           await sleep(1);
         }
       } catch (e) {
-        log("error", `Error occured while updating outage data for '${country.name}', skipping. Error: ${e}`);
+        log("error", `Error occured while updating outage data for '${country.name}', skipping. Error: ${e}. Stack ${e.stack}`);
       }
 
       await sleep(3);

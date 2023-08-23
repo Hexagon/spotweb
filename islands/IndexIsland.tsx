@@ -13,6 +13,8 @@ import Sidebar from "components/layout/Sidebar.tsx";
 import PriceFactorWarning from "components/partials/PriceFactorWarning.tsx";
 import ProductionByCountry from "components/ProductionByCountry.tsx";
 
+import MultiPlexAd from  "components/ads/MultiPlexAd.tsx";
+
 export default function IndexIsland({ data }: PageProps<IndexPageProps>) {
   const [currency, setCurrency] = useState(() => preferences.currency(data.lang));
   const [unit, setUnit] = useState(preferences.unit);
@@ -71,6 +73,9 @@ export default function IndexIsland({ data }: PageProps<IndexPageProps>) {
         <div class="content-wrapper">
           <div class="content mt-0 mb-0 pr-0 mr-0 ml-5">
             <PriceFactorWarning priceFactor={!!priceFactor} factor={factor} extra={extra} lang={data.lang}></PriceFactorWarning>
+            <div class="row">
+              <MultiPlexAd cols={12} {...commonprops} {...data}></MultiPlexAd>
+            </div>
             <div class="row">
               <ProductionByCountry cols={12} {...commonprops} {...data}></ProductionByCountry>
             </div>

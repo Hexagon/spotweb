@@ -20,8 +20,6 @@ const DailyPriceUpdate = async () => {
       dateTomorrow = new Date(),
       dateFirstOfMonth = new Date();
 
-    let gotData = false;
-
     // Set dates
     dateTomorrow.setDate(dateTomorrow.getDate() + 1);
     dateFirstOfMonth.setDate(1);
@@ -82,9 +80,6 @@ const DailyPriceUpdate = async () => {
                   row.startTime.getTime(),
                   row.interval,
                 ]);
-
-                // Go data
-                gotData = true;
               }
 
               runTransaction(transaction);

@@ -83,7 +83,6 @@ export default function ProductionByCountry(props: ProductionByCountryProps) {
           </tr>
         ));
       }
-      countryElms.push(<tr><td colSpan={6} class={"text-center display-height"}><FixedAd {...props}></FixedAd></td></tr>)
     }
   }
 

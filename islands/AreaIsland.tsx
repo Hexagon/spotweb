@@ -20,8 +20,9 @@ import SingleAreaOverview from "components/partials/SingleAreaOverview.tsx";
 
 import { AreaPageProps } from "routes/[country]/[area].tsx";
 import ProductionDetailsTodayChart from "components/charts/ProductionDetailsTodayChart.tsx";
-import OutageOverview from "components/partials/OutageOverview.tsx";
+import OutageNewsOverview from "../components/partials/OutageNewsOverview.tsx";
 import MultiPlexAd from "components/ads/MultiPlexAd.tsx";
+import SingleAreaChartLongTerm from "components/charts/SingleAreaChartLongTerm.tsx";
 
 export default function AreaIsland({ data }: PageProps<AreaPageProps>) {
   const [currency, setCurrency] = useState(() => preferences.currency(data.lang));
@@ -121,6 +122,20 @@ export default function AreaIsland({ data }: PageProps<AreaPageProps>) {
                 ></ProductionTodayChart>
             </div>
             <div class="row">
+              <SingleAreaChartLongTerm
+                cols={data.singleArea ? 6 : 12}
+                date={dToday}
+                {...commonprops}
+                {...data}
+              ></SingleAreaChartLongTerm>
+              { data.singleArea && (
+                <OutageNewsOverview
+                  cols={6}
+                  {...commonprops}
+                  {...data}
+                ></OutageNewsOverview>
+              )}
+              <div class="row mt-0">
               <SingleAreaMonthChart
                 title={data.area.name + " - " + data.area.long}
                 highlight={"color-" + data.area.color}
@@ -129,21 +144,13 @@ export default function AreaIsland({ data }: PageProps<AreaPageProps>) {
                 {...commonprops}
                 {...data}
               ></SingleAreaMonthChart>
-              <InformationPane
-                cols={6}
-                {...commonprops}
-                {...data}
-              ></InformationPane>
-            </div>
-            { data.singleArea && (
-              <div class="row">
-              <OutageOverview
-                  cols={12}
-                  {...commonprops}
-                  {...data}
-                ></OutageOverview>
+                <InformationPane
+                    cols={6}
+                    {...commonprops}
+                    {...data}
+                  ></InformationPane>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
