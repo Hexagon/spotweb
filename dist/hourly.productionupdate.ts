@@ -20133,6 +20133,21 @@ const countries = [
         ]
     },
     {
+        name: "Belgium",
+        id: "be",
+        cty: "Belgium (BE)",
+        cta: "CTA|BE",
+        interval: "PT60M",
+        areas: [
+            {
+                name: "BE",
+                "id": "BZN|BE",
+                "long": "Belgium",
+                color: 1
+            }
+        ]
+    },
+    {
         name: "Switzerland",
         cty: "Switzerland (CH)",
         cta: "CTA|CH",

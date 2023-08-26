@@ -87,6 +87,7 @@ const sv = {
       "dk": "Danmark",
       "de": "Tyskland",
       "at": "Österrike",
+      "be": "Belgien",
       "ch": "Schweiz",
       "es": "Spanien",
       "fr": "Frankrike",

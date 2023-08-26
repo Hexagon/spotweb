@@ -87,6 +87,7 @@ const no = {
       "dk": "Danmark",
       "de": "Tyskland",
       "at": "Østerrike",
+      "be": "Belgien",
       "ch": "Sveits",
       "es": "Spania",
       "fr": "Frankrike",

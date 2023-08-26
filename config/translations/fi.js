@@ -88,6 +88,7 @@ const fi = {
       "dk": "Tanska",
       "de": "Saksa",
       "at": "Itävalta",
+      "be": "Belgia",
       "ch": "Sveitsi",
       "es": "Espanja",
       "fr": "Ranska",

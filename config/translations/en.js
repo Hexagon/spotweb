@@ -87,6 +87,7 @@ const en = {
       "dk": "Denmark",
       "de": "Germany",
       "at": "Austria",
+      "be": "Belgium",
       "ch": "Schweiz",
       "es": "Spain",
       "fr": "France",

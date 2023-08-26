@@ -88,6 +88,7 @@ const de = {
       "dk": "Dänemark",
       "de": "Deutschland",
       "at": "Österreich",
+      "be": "Belgien",
       "ch": "Schweiz",
       "es": "Spanien",
       "fr": "Frankreich",
