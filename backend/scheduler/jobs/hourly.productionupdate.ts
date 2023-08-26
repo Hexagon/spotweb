@@ -87,7 +87,7 @@ const HourlyProductionUpdate = async () => {
 
   database.close();
 
-  Deno.exit(0);
+  tm.close();
 };
 
 HourlyProductionUpdate();

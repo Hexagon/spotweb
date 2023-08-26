@@ -44,7 +44,7 @@
     "sqlite": "https://deno.land/x/sqlite@v3.8/mod.ts",
     "xml": "https://deno.land/x/xml@2.1.1/mod.ts",
     "sqlite3": "https://deno.land/x/sqlite3@0.9.1/mod.ts",
-    "pup/": "https://deno.land/x/pup@1.0.0-rc.7/"
+    "pup/": "https://deno.land/x/pup@1.0.0-rc.9/"
   },
   "lint": {
     "rules": {

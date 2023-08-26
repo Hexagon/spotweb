@@ -85,7 +85,7 @@ const HourlyConsumptionUpdate = async () => {
 
   database.close();
 
-  Deno.exit(0);
+  tm.close();
 };
 
 HourlyConsumptionUpdate();
