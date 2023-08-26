@@ -122,7 +122,6 @@ const DailyPriceUpdate = async () => {
   database.close();
 
   Deno.exit(0);
-
 };
 
 DailyPriceUpdate();

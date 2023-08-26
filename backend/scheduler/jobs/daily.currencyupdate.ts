@@ -46,7 +46,6 @@ const DailyCurrencyUpdate = async () => {
   database.close();
 
   Deno.exit(0);
-  
 };
 
 DailyCurrencyUpdate();

@@ -104,7 +104,6 @@ const DailyOutageUpdate = async () => {
   database.close();
 
   Deno.exit(0);
-
 };
 
 DailyOutageUpdate();
