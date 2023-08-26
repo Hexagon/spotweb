@@ -86,6 +86,9 @@ const HourlyProductionUpdate = async () => {
   tm.emit("spotweb-main-3", "clear_cache", { cache: "generation" });
 
   database.close();
+
+  Deno.exit(0);
+
 };
 
 HourlyProductionUpdate();

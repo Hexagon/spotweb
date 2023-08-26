@@ -36574,5 +36574,6 @@ const HourlyProductionUpdate = async ()=>{
         cache: "generation"
     });
     database.close();
+    Deno.exit(0);
 };
 HourlyProductionUpdate();

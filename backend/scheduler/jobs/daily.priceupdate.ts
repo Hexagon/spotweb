@@ -120,6 +120,9 @@ const DailyPriceUpdate = async () => {
   tm.emit("spotweb-main-3", "clear_cache", { cache: "spotprices" });
 
   database.close();
+
+  Deno.exit(0);
+
 };
 
 DailyPriceUpdate();
