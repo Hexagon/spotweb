@@ -44,6 +44,8 @@ const DailyCurrencyUpdate = async () => {
   tm.emit("spotweb-main-3", "clear_cache", { cache: "exrate" });
 
   database.close();
+
+  Deno.exit(0);
 };
 
 DailyCurrencyUpdate();

@@ -36601,5 +36601,6 @@ const DailyOutageUpdate = async ()=>{
         cache: "outage"
     });
     database.close();
+    Deno.exit(0);
 };
 DailyOutageUpdate();

@@ -36598,5 +36598,6 @@ const DailyPriceUpdate = async ()=>{
         cache: "spotprices"
     });
     database.close();
+    Deno.exit(0);
 };
 DailyPriceUpdate();

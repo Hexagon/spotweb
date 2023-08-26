@@ -102,6 +102,8 @@ const DailyOutageUpdate = async () => {
   tm.emit("spotweb-main-3", "clear_cache", { cache: "outage" });
 
   database.close();
+
+  Deno.exit(0);
 };
 
 DailyOutageUpdate();
