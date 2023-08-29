@@ -20,6 +20,7 @@ export default function SwHead(props: HeadProps) {
   const priceProps = {
     currency: preferences.currency(props.data.lang),
     unit: preferences.unit(),
+    multiplier: 1,
     factor: 1,
     extra: 0,
     decimals: 5,

@@ -10,6 +10,7 @@ export const handler: Handlers = {
     // Get raw parameters
     const area = url.searchParams.get("area")?.trim().toUpperCase(),
       currency = url.searchParams.get("currency")?.trim().toUpperCase(),
+      multiplier = parseFloat(url.searchParams.get("multiplier")?.trim() || "1"),
       factor = parseFloat(url.searchParams.get("factor")?.trim() || "1"),
       extra = parseFloat(url.searchParams.get("extra")?.trim().toUpperCase() || "0"),
       decimals = parseInt(url.searchParams.get("decimals")?.trim().toUpperCase() || "5", 10),
@@ -41,7 +42,7 @@ export const handler: Handlers = {
         ...tomorrow,
       ];
 
-      return new Response(JSON.stringify(processData(data, yesterday, today, tomorrow, currency, extra, factor, decimals)), { status: 200 });
+      return new Response(JSON.stringify(processData(data, yesterday, today, tomorrow, currency, extra, factor, multiplier, decimals)), { status: 200 });
     } catch (e) {
       return new Response(
         JSON.stringify({ status: "error", details: "Query failed" }),
@@ -59,24 +60,25 @@ const processData = (
   currency: string,
   extra: number,
   factor: number,
+  multiplier: number,
   decimals: number,
 ) => {
   return {
     updated: new Date(),
-    now: processPrice(nowPrice(today), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
-    avg: processPrice(avgPrice(today), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
-    min: processPrice(minPrice(today), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
-    max: processPrice(maxPrice(today), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
-    avg_tomorrow: processPrice(avgPrice(tomorrow), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
-    min_tomorrow: processPrice(minPrice(tomorrow), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
-    max_tomorrow: processPrice(maxPrice(tomorrow), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
-    avg_yesterday: processPrice(avgPrice(yesterday), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
-    min_yesterday: processPrice(minPrice(yesterday), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
-    max_yesterday: processPrice(maxPrice(yesterday), { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
+    now: processPrice(nowPrice(today), { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),
+    avg: processPrice(avgPrice(today), { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),
+    min: processPrice(minPrice(today), { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),
+    max: processPrice(maxPrice(today), { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),
+    avg_tomorrow: processPrice(avgPrice(tomorrow), { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),
+    min_tomorrow: processPrice(minPrice(tomorrow), { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),
+    max_tomorrow: processPrice(maxPrice(tomorrow), { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),
+    avg_yesterday: processPrice(avgPrice(yesterday), { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),
+    min_yesterday: processPrice(minPrice(yesterday), { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),
+    max_yesterday: processPrice(maxPrice(yesterday), { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),
     data: data.map((r) => {
       return {
         st: new Date(r.time),
-        p: processPrice(r.price, { currency, extra, factor, unit: "kWh", decimals, priceFactor: true }),
+        p: processPrice(r.price, { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),
       };
     }),
   };

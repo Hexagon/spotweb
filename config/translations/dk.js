@@ -79,6 +79,7 @@ const dk = {
       "fees": "Afgifter",
       "factor": "Faktor",
       "decimals": "Decimaler",
+      "multiplier": "Multiplikator"
     },
     "countries": {
       "sv": "Sverige",

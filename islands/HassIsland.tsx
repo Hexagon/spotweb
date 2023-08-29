@@ -15,6 +15,7 @@ export default function HassIsland(props: PageProps<HassPageProps>) {
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
   const [factor, setFactor] = useState(preferences.factor(props.data.lang));
+  const [multiplier, setMultiplier] = useState(() => preferences.multiplier(data.lang));
   const [extra, setExtra] = useState(preferences.extra(props.data.lang));
   const [decimals, setDecimals] = useState(preferences.decimals(props.data.lang));
   const [priceFactor, setPriceFactor] = useState(preferences.pricefactor(props.data.lang));
@@ -26,6 +27,7 @@ export default function HassIsland(props: PageProps<HassPageProps>) {
 
   const commonprops: CommonProps = {
     unit,
+    multiplier,
     factor,
     extra,
     decimals,
@@ -92,7 +94,7 @@ export default function HassIsland(props: PageProps<HassPageProps>) {
               return [[new Date(),entity.attributes.avg_tomorrow]]`;
     const hassConf = `rest:
     - scan_interval: 180
-      resource: https://spot.56k.guru/api/v2/hass?currency=${currency}&area=SE2&extra=${extra}&factor=${factor}&decimals=${decimals}
+      resource: https://spot.56k.guru/api/v2/hass?currency=${currency}&area=SE2&multiplier=${multiplier}&extra=${extra}&factor=${factor}&decimals=${decimals}
       sensor:
         - name: "Spotprice Now"
           unique_id: "56k_spotprice_now"
@@ -130,6 +132,7 @@ export default function HassIsland(props: PageProps<HassPageProps>) {
           setUnit={setUnit}
           setExtra={setExtra}
           setFactor={setFactor}
+          setMultiplier={setMultiplier}
           setDecimals={setDecimals}
           setPriceFactor={setPriceFactorStored}
           setCurrency={setCurrency}
@@ -172,6 +175,9 @@ export default function HassIsland(props: PageProps<HassPageProps>) {
                     </li>
                     <li>
                       <strong>extra</strong><span> - Your fees per kWh in chosen currency, before VAT. Example: <code class="code">0.05</code> for 5 cents per kWh</span>
+                    </li>
+                    <li>
+                      <strong>multiplier</strong><span> - Multiplier for spot price before adding fees and VAT. <code class="code">1</code> is no multiplier, <code class="code">1.02</code> is 2% added fee on spot price before adding extra fees and VAT.</span>
                     </li>
                     <li>
                       <strong>factor</strong><span> - Factor for VAT. <code class="code">1</code> is no VAT, <code class="code">1.25</code> is 25% VAT and so on.</span>

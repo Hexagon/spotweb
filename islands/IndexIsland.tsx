@@ -19,6 +19,7 @@ export default function IndexIsland({ data }: PageProps<IndexPageProps>) {
   const [currency, setCurrency] = useState(() => preferences.currency(data.lang));
   const [unit, setUnit] = useState(preferences.unit);
   const [factor, setFactor] = useState(() => preferences.factor(data.lang));
+  const [multiplier, setMultiplier] = useState(() => preferences.multiplier(data.lang));
   const [extra, setExtra] = useState(() => preferences.extra(data.lang));
   const [decimals, setDecimals] = useState(() => preferences.decimals(data.lang));
   const [priceFactor, setPriceFactor] = useState(() => preferences.pricefactor(data.lang));
@@ -30,6 +31,7 @@ export default function IndexIsland({ data }: PageProps<IndexPageProps>) {
 
   const commonprops: CommonProps = {
     unit,
+    multiplier,
     factor,
     extra,
     decimals,
@@ -65,6 +67,7 @@ export default function IndexIsland({ data }: PageProps<IndexPageProps>) {
           setUnit={setUnit}
           setExtra={setExtra}
           setFactor={setFactor}
+          setMultiplier={setMultiplier}
           setDecimals={setDecimals}
           setPriceFactor={setPriceFactorStored}
           setCurrency={setCurrency}

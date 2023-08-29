@@ -9,6 +9,7 @@ interface BasePageProps {
 
 interface CommonProps extends BasePageProps {
   unit: string;
+  multiplier: number;
   factor: number;
   extra: number;
   decimals: number;

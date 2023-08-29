@@ -3,6 +3,7 @@ import { ExchangeRateResult, SpotApiRow } from "backend/db/index.ts";
 interface PriceProcessorProps {
   unit: string;
   extra: number;
+  multiplier: number;
   factor: number;
   decimals: number;
   priceFactor: boolean;
@@ -19,6 +20,8 @@ const processPrice = (
   price = price / 1000;
 
   if (props.priceFactor) {
+    // Multiply
+    price *= props.multiplier;
     // Add extra
     price += props.extra;
     // Multiply by factor

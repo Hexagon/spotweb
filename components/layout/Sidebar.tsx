@@ -5,6 +5,7 @@ import { CommonProps } from "utils/common.ts";
 interface SidebarProps extends CommonProps {
   setUnit: Function;
   setFactor: Function;
+  setMultiplier: Function;
   setExtra: Function;
   setDecimals: Function;
   setPriceFactor: Function;

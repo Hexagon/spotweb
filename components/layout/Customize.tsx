@@ -4,8 +4,10 @@ import { useCallback, useState } from "preact/hooks";
 interface CustomizeProps {
   extra: number;
   factor: number;
+  multiplier: number;
   setUnit: Function;
   setFactor: Function;
+  setMultiplier: Function;
   setExtra: Function;
   decimals: number;
   setDecimals: Function;
@@ -25,6 +27,11 @@ export default function Table(props: CustomizeProps) {
   const setFactorStored = (f: string) => {
     localStorage.setItem("sw_factor", f);
     props.setFactor(parseFloat(f));
+  };
+
+  const setMultiplierStored = (f: string) => {
+    localStorage.setItem("sw_multiplier", f);
+    props.setMultiplier(parseFloat(f));
   };
 
   const setExtraStored = (e: string) => {
@@ -72,6 +79,19 @@ export default function Table(props: CustomizeProps) {
           value={props.extra}
           onChange={(e) => setExtraStored((e.target as HTMLInputElement).value)}
           placeholder="Totala avgifter exklsive moms"
+        >
+        </input>
+      </div>
+      <div class="sidebar-content">
+        <label for="multiplier" data-toggle="tooltip" data-t-key="common.customize.multiplier" lang={props.lang}>Multiplikator</label>
+        <input
+          class="form-control"
+          type="text"
+          name="multiplier"
+          disabled={!props.disabled}
+          value={props.multiplier}
+          onChange={(e) => setMultiplierStored((e.target as HTMLInputElement).value)}
+          placeholder="Multiplikator (t.ex. 1.02 för 2% prispåslag)"
         >
         </input>
       </div>

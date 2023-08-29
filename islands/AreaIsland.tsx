@@ -27,6 +27,7 @@ import SingleAreaChartLongTerm from "components/charts/SingleAreaChartLongTerm.t
 export default function AreaIsland({ data }: PageProps<AreaPageProps>) {
   const [currency, setCurrency] = useState(() => preferences.currency(data.lang));
   const [unit, setUnit] = useState(preferences.unit);
+  const [multiplier, setMultiplier] = useState(() => preferences.multiplier(data.lang));
   const [factor, setFactor] = useState(() => preferences.factor(data.lang));
   const [extra, setExtra] = useState(() => preferences.extra(data.lang));
   const [decimals, setDecimals] = useState(() => preferences.decimals(data.lang));
@@ -42,6 +43,7 @@ export default function AreaIsland({ data }: PageProps<AreaPageProps>) {
   const commonprops: CommonProps = {
     unit,
     factor,
+    multiplier,
     extra,
     decimals,
     currency,
@@ -75,6 +77,7 @@ export default function AreaIsland({ data }: PageProps<AreaPageProps>) {
           setUnit={setUnit}
           setExtra={setExtra}
           setFactor={setFactor}
+          setMultiplier={setMultiplier}
           setDecimals={setDecimals}
           setPriceFactor={setPriceFactorStored}
           setCurrency={setCurrency}

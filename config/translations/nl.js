@@ -79,6 +79,7 @@ const nl = {
         "fees": "kosten",
         "factor": "Factor",
         "decimals": "Decimalen",
+        "multiplier": "Vermenigvuldiger"
       },
       "countries": {
         "sv": "Sweden",

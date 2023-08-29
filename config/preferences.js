@@ -23,6 +23,10 @@ const defaultFactor = () => {
   return "1";
 };
 
+const defaultMultiplier = () => {
+  return "1";
+};
+
 const defaultDecimals = (lang) => {
   const usedCurrency = localStorage.getItem("sw_currency") ?? defaultCurrency(lang);
   if (usedCurrency === "öre") {
@@ -42,6 +46,7 @@ const preferences = {
   lang: (lang) => localStorage.getItem("sw_lang") ?? lang,
   currency: (lang) => localStorage.getItem("sw_currency") ?? defaultCurrency(lang),
   unit: () => localStorage.getItem("sw_unit") ?? "kWh",
+  multiplier: () => parseFloat(localStorage.getItem("sw_multiplier") ?? defaultMultiplier()),
   factor: (lang) => parseFloat(localStorage.getItem("sw_factor") ?? defaultFactor(lang)),
   extra: (lang) => parseFloat(localStorage.getItem("sw_extra") ?? defaultExtra(lang)),
   decimals: (lang) => parseInt(localStorage.getItem("sw_decimals") ?? defaultDecimals(lang), 10),

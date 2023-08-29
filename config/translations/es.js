@@ -80,6 +80,7 @@ const es = {
       "fees": "Tarifas",
       "factor": "Factor",
       "decimals": "decimales",
+      "multiplier": "Multiplicador"
     },
     "countries": {
       "sv": "Suecia",

@@ -3,6 +3,7 @@ import { useState } from "preact/hooks";
 interface PriceFactorWarningProps {
   extra: number;
   factor: number;
+  multiplier: number;
   priceFactor: boolean;
   lang: string;
 }
