@@ -47,6 +47,8 @@ const generateUrl = (area: string, startDate: Date, endDate: Date, interval: str
 const langFromUrl = (url: URL) => {
   if (url?.pathname?.startsWith("/sv")) {
     return "sv";
+  } else if (url?.pathname?.startsWith("/be")) {
+    return "nl";
   } else if (url?.pathname?.startsWith("/no")) {
     return "no";
   } else if (url?.pathname?.startsWith("/fi")) {

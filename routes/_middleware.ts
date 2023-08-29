@@ -8,7 +8,7 @@ export const handler = [
     // deno-lint-ignore no-explicit-any
     ctx: MiddlewareHandlerContext<Record<string, any>>,
   ) {
-    const SUPPORTED_LANGUAGES = ["sv", "fi", "no", "dk", "de", "en"];
+    const SUPPORTED_LANGUAGES = ["sv", "fi", "no", "dk", "de", "en", "nl", "fr", "es"];
     const langRaw = req.headers.get("accept-language");
     const urlParsed = new URL(req.url);
 
