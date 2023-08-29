@@ -90,7 +90,7 @@ export default function SingleAreaLongTermChart(props: SingleAreaLongTermChartPr
                         <>
                             <p>
                             <span data-t-key={"common.longtermchart.priceFactorDescriptionPart1"} lang={props.lang}>Elpriset som visas i tabellen baseras på följande formel: (([spotpris]*</span>
-                            <span>{props.multiplicator}</span>
+                            <span>{props.multiplier}</span>
                             <span>) +</span>
                             <span data-t-key={"common.longtermchart.priceFactorDescriptionPart2"} lang={props.lang}>(avgifter)) *</span>
                             <span>{props.factor}</span>

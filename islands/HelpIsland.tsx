@@ -17,7 +17,7 @@ export default function HassIsland(props: PageProps<HelpPageProps>) {
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
   const [factor, setFactor] = useState(preferences.factor(props.data.lang));
-  const [multiplier, setMultiplier] = useState(() => preferences.multiplier(props.data.lang));
+  const [multiplier, setMultiplier] = useState(() => preferences.multiplier());
   const [extra, setExtra] = useState(preferences.extra(props.data.lang));
   const [decimals, setDecimals] = useState(preferences.decimals(props.data.lang));
   const [priceFactor, setPriceFactor] = useState(preferences.pricefactor(props.data.lang));
@@ -40,10 +40,29 @@ export default function HassIsland(props: PageProps<HelpPageProps>) {
   return (
     <div class="page-wrapper with-navbar with-sidebar" data-sidebar-hidden="hidden">
       <Navbar setPriceFactor={setPriceFactorStored} pageType={"generic"} {...commonprops}></Navbar>
-      <Sidebar {...commonprops}></Sidebar>
+      <Sidebar
+          setUnit={setUnit}
+          setExtra={setExtra}
+          setFactor={setFactor}
+          setMultiplier={setMultiplier}
+          setDecimals={setDecimals}
+          setPriceFactor={setPriceFactorStored}
+          setCurrency={setCurrency}
+          {...commonprops}
+        ></Sidebar>
       <div class="content-wrapper">
-        {/* Information about Electricity Prices */}
+        {/* Table of Contents */}
         <section class="content mb-50">
+          <h2 class="content-title">Table of Contents</h2>
+          <ul>
+            <li><a href="#electricity-prices-info">Information on Electricity Prices</a></li>
+            <li><a href="#electricity-price-calculation">Electricity Price Calculation at spot.56k.guru</a></li>
+            <li><a href="#installing-as-app">Installing as an app</a></li>
+          </ul>
+        </section>
+  
+        {/* Information about Electricity Prices */}
+        <section id="electricity-prices-info" class="content mb-50">
           <h2 class="content-title">Information on Electricity Prices</h2>
           <p>Learn about hourly prices, variable prices, taxes, and fees under each respective category below.</p>
           <div class="row mb-50">
@@ -72,10 +91,15 @@ export default function HassIsland(props: PageProps<HelpPageProps>) {
           <p>Note also that, in addition to these 1.37, you also pay about 50 öre in tax, and 20 öre in VAT for each consumed kWh. Each consumed kilowatt-hour therefore costs roughly 2 kr, at a spot price of 1 kr.</p>
           <p>On this page, you can choose between <i>actual price</i> or <i>spot price</i>. You can do this by pressing the hamburger menu at the top left.</p>
         </section>
-        <DisplayAd cols={12} {...commonprops} {...props}></DisplayAd>
         <hr />
-        {/* Customizing electicity prices */}
+
         <section class="content mb-50">
+          <DisplayAd cols={12} {...commonprops} {...props}></DisplayAd>
+        </section>
+        <hr />
+
+        {/* Customizing electicity prices */}
+        <section id="electricity-price-calculation" class="content mb-50">
           <h2 class="content-title">Electricity Price Calculation at spot.56k.guru</h2>
           <p>At spot.56k.guru, the default setting displays the spot prices of electricity. But did you know you can customize how these prices are shown based on various factors?</p>
 
@@ -105,8 +129,9 @@ export default function HassIsland(props: PageProps<HelpPageProps>) {
           </ul>
         </section>
         <hr />
+        
         {/* Installing as an app */}
-        <section class="content mb-50">
+        <section id="installing-as-app" class="content mb-50">
           <h2 class="content-title">Installing as an app</h2>
           <p>spot.56k.guru is available as an app (<a href="https://web.dev/what-are-pwas/">PWA</a>) for Windows, Android and Apple OS devices. Follow the instructions below to install the app.</p>
           <div class="row mb-50">

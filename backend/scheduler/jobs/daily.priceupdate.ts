@@ -64,6 +64,7 @@ const DailyPriceUpdate = async () => {
           try {
             const result = await EntsoeSpotprice(area.id, currentPeriod, endOfPeriod),
               preparedQuery = database.prepare("INSERT INTO spotprice (country, area, spotprice, period, interval) VALUES (?,?,?,?,?)");
+            // deno-lint-ignore no-explicit-any
             const runTransaction = database.transaction((data: any[]) => {
               for (const item of data) {
                 preparedQuery.run(...item);

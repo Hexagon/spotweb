@@ -22,6 +22,7 @@ const UpdateLoadForArea = async (area: string) => {
   try {
     const result = await EntsoeLoad(area, dateYesterday, dateToday),
       preparedQuery = database.prepare("INSERT INTO load (area, value, period, interval) VALUES (?,?,?,?)");
+    // deno-lint-ignore no-explicit-any
     const runTransaction = database.transaction((data: any[]) => {
       for (const item of data) {
         preparedQuery.run(...item);

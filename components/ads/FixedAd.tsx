@@ -14,10 +14,14 @@ export default function FixedAd(props: FixedAdProps) {
     adsbygoogle.push({});
   });
 
-  return props.adsense && (
-    <ins class="adsbygoogle"
-        style="display:inline-block;width:728px;height:90px"
-        data-ad-client="ca-pub-9224018205432249"
-        data-ad-slot="8951211842"></ins>
-  );
+  if (props.adsense) {
+    return (
+      <ins class="adsbygoogle"
+          style="display:inline-block;width:728px;height:90px"
+          data-ad-client="ca-pub-9224018205432249"
+          data-ad-slot="8951211842"></ins>
+    )
+  }
+
+  return null
 }

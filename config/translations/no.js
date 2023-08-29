@@ -79,7 +79,7 @@ const no = {
       "fees": "Avgifter",
       "factor": "Faktor",
       "decimals": "Desimaler",
-      "multiplier": "Multiplikator"
+      "multiplier": "Multiplikator",
     },
     "countries": {
       "sv": "Sverige",
