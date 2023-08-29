@@ -10,6 +10,8 @@ import Sidebar from "components/layout/Sidebar.tsx";
 
 import InformationPane from "components/partials/InformationPane.tsx";
 
+import DisplayAd from "components/ads/DisplayAd.tsx";
+
 export default function HassIsland(props: PageProps<HelpPageProps>) {
 
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
@@ -45,20 +47,20 @@ export default function HassIsland(props: PageProps<HelpPageProps>) {
           <h2 class="content-title">Information on Electricity Prices</h2>
           <p>Learn about hourly prices, variable prices, taxes, and fees under each respective category below.</p>
           <div class="row mb-50">
-            <div class="col-md-4">
-              <div class="card m-0 p-50">
+            <div class="col-lg-4">
+              <div class="card m-0 mb-lg-20 p-50">
                 <h3 class="card-title">Spot Price</h3>
                 <p>The spot price is the price your electricity trading company has to pay for the electricity. This number is often the one shown in various comparisons, newspaper articles, etc.</p>
                 <p>Spot price does <strong>not</strong> include any surcharges and VAT.</p>
               </div>
             </div>
-            <div class="col-md-4">
-              <div class="card m-0 mr-md-20 ml-md-20 p-20">
+            <div class="col-lg-4">
+              <div class="card m-0 mb-lg-20 mr-lg-20 ml-lg-20 p-20">
                 <h3 class="content-title">Hourly Price</h3>
                 <p>The hourly price, or variable hourly price, means you pay for your consumption and your electricity price hour by hour. This allows you to use less electricity during expensive hours and more electricity during cheap hours. It's a good choice for those who can move large consumers to times when electricity is cheap. If you have little opportunity to move consumption, this might be a more expensive or at least more stressful alternative than the monthly price.</p>
               </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-lg-4">
               <div class="card m-0 p-50">
                 <h3 class="content-title">Variable Monthly Price</h3>
                 <p>The variable price, or variable monthly price, works much like the hourly price. But instead of your consumption being measured hour by hour, it is summed up to a monthly total. This is then multiplied by the electricity company's variable electricity price, which is determined at the end of the month. The variable monthly price is not a straight average of all hours/days prices, but is weighted like the hourly price hour by hour against the entire collective's consumption.</p>
@@ -70,6 +72,7 @@ export default function HassIsland(props: PageProps<HelpPageProps>) {
           <p>Note also that, in addition to these 1.37, you also pay about 50 öre in tax, and 20 öre in VAT for each consumed kWh. Each consumed kilowatt-hour therefore costs roughly 2 kr, at a spot price of 1 kr.</p>
           <p>On this page, you can choose between <i>actual price</i> or <i>spot price</i>. You can do this by pressing the hamburger menu at the top left.</p>
         </section>
+        <DisplayAd cols={12} {...commonprops} {...props}></DisplayAd>
         <hr />
         {/* Customizing electicity prices */}
         <section class="content mb-50">
@@ -107,8 +110,8 @@ export default function HassIsland(props: PageProps<HelpPageProps>) {
           <h2 class="content-title">Installing as an app</h2>
           <p>spot.56k.guru is available as an app (<a href="https://web.dev/what-are-pwas/">PWA</a>) for Windows, Android and Apple OS devices. Follow the instructions below to install the app.</p>
           <div class="row mb-50">
-            <div class="col-md-4">
-              <div class="card m-0 p-50">
+            <div class="col-lg-4">
+              <div class="card m-0 mb-lg-50 p-50">
                 <div class="card-title">
                   <h3 class="content-title">Windows (Chrome)</h3>
                 </div>
@@ -119,8 +122,8 @@ export default function HassIsland(props: PageProps<HelpPageProps>) {
                 </ol>
               </div>
             </div>
-            <div class="col-md-4">
-              <div class="card m-0 ml-md-20 mr-md-20 p-50">
+            <div class="col-lg-4">
+              <div class="card m-0 mb-lg-50 ml-lg-20 mr-lg-20 p-50">
                 <div class="card-title">
                   <h3 class="content-title">Android (Chrome)</h3>
                 </div>
@@ -131,8 +134,8 @@ export default function HassIsland(props: PageProps<HelpPageProps>) {
                 </ol>
               </div>
             </div>
-            <div class="col-md-4">
-              <div class=" card m-0 p-50">
+            <div class="col-lg-4">
+              <div class=" card mb-lg-50 m-0 p-50">
                 <div class="card-title">
                   <h3 class="content-title">Apple/iOS</h3>
                 </div>

@@ -10,12 +10,14 @@ import { preferences } from "config/preferences.js";
 import { CommonProps } from "utils/common.ts";
 import { HassPageProps } from "routes/homeassistant.tsx";
 
+import MultiPlexAd from "components/ads/MultiPlexAd.tsx";
+
 export default function HassIsland(props: PageProps<HassPageProps>) {
 
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
   const [factor, setFactor] = useState(preferences.factor(props.data.lang));
-  const [multiplier, setMultiplier] = useState(() => preferences.multiplier(data.lang));
+  const [multiplier, setMultiplier] = useState(() => preferences.multiplier());
   const [extra, setExtra] = useState(preferences.extra(props.data.lang));
   const [decimals, setDecimals] = useState(preferences.decimals(props.data.lang));
   const [priceFactor, setPriceFactor] = useState(preferences.pricefactor(props.data.lang));
@@ -161,6 +163,9 @@ export default function HassIsland(props: PageProps<HassPageProps>) {
                   </ul>
                   <p>If you customize your price settings on the page (using the hamburger menu), your changes will be immediately reflected in the configuration to the right.</p>
                   <p>The service is free and open to everyone, no API key is required. However, it is used at your own risk, no guarantees are given! More information about data source and data quality can be found at the bottom of the page.</p>
+                </div>
+                <div class="content">
+                  <MultiPlexAd cols={12} {...commonprops} {...props}></MultiPlexAd>
                 </div>
                 <div class="content">
                   <h2 class="font-size-24">Parameters</h2>
