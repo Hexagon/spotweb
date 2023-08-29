@@ -6,14 +6,15 @@ import * as $0 from "./routes/[country]/[area].tsx";
 import * as $1 from "./routes/[country]/index.tsx";
 import * as $2 from "./routes/_404.tsx";
 import * as $3 from "./routes/_500.tsx";
-import * as $4 from "./routes/_middleware.ts";
-import * as $5 from "./routes/api/v2/hass.tsx";
-import * as $6 from "./routes/api/v2/spot.tsx";
-import * as $7 from "./routes/custom.tsx";
-import * as $8 from "./routes/help.tsx";
-import * as $9 from "./routes/homeassistant.tsx";
-import * as $10 from "./routes/index.tsx";
-import * as $11 from "./routes/sitemap.xml.ts";
+import * as $4 from "./routes/_app.tsx";
+import * as $5 from "./routes/_middleware.ts";
+import * as $6 from "./routes/api/v2/hass.tsx";
+import * as $7 from "./routes/api/v2/spot.tsx";
+import * as $8 from "./routes/custom.tsx";
+import * as $9 from "./routes/help.tsx";
+import * as $10 from "./routes/homeassistant.tsx";
+import * as $11 from "./routes/index.tsx";
+import * as $12 from "./routes/sitemap.xml.ts";
 import * as $$0 from "./islands/AreaIsland.tsx";
 import * as $$1 from "./islands/CountryIsland.tsx";
 import * as $$2 from "./islands/CustomIsland.tsx";
@@ -27,14 +28,15 @@ const manifest = {
     "./routes/[country]/index.tsx": $1,
     "./routes/_404.tsx": $2,
     "./routes/_500.tsx": $3,
-    "./routes/_middleware.ts": $4,
-    "./routes/api/v2/hass.tsx": $5,
-    "./routes/api/v2/spot.tsx": $6,
-    "./routes/custom.tsx": $7,
-    "./routes/help.tsx": $8,
-    "./routes/homeassistant.tsx": $9,
-    "./routes/index.tsx": $10,
-    "./routes/sitemap.xml.ts": $11,
+    "./routes/_app.tsx": $4,
+    "./routes/_middleware.ts": $5,
+    "./routes/api/v2/hass.tsx": $6,
+    "./routes/api/v2/spot.tsx": $7,
+    "./routes/custom.tsx": $8,
+    "./routes/help.tsx": $9,
+    "./routes/homeassistant.tsx": $10,
+    "./routes/index.tsx": $11,
+    "./routes/sitemap.xml.ts": $12,
   },
   islands: {
     "./islands/AreaIsland.tsx": $$0,

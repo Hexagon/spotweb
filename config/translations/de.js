@@ -80,7 +80,7 @@ const de = {
       "fees": "Gebühren",
       "factor": "Faktor",
       "decimals": "Dezimalstellen",
-      "multiplier": "Multiplikator"
+      "multiplier": "Multiplikator",
     },
     "countries": {
       "sv": "Schweden",

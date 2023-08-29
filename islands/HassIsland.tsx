@@ -15,7 +15,7 @@ export default function HassIsland(props: PageProps<HassPageProps>) {
   const [currency, setCurrency] = useState(preferences.currency(props.data.lang));
   const [unit, setUnit] = useState(preferences.unit());
   const [factor, setFactor] = useState(preferences.factor(props.data.lang));
-  const [multiplier, setMultiplier] = useState(() => preferences.multiplier(data.lang));
+  const [multiplier, setMultiplier] = useState(() => preferences.multiplier());
   const [extra, setExtra] = useState(preferences.extra(props.data.lang));
   const [decimals, setDecimals] = useState(preferences.decimals(props.data.lang));
   const [priceFactor, setPriceFactor] = useState(preferences.pricefactor(props.data.lang));

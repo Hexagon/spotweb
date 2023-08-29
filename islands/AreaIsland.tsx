@@ -27,7 +27,7 @@ import SingleAreaChartLongTerm from "components/charts/SingleAreaChartLongTerm.t
 export default function AreaIsland({ data }: PageProps<AreaPageProps>) {
   const [currency, setCurrency] = useState(() => preferences.currency(data.lang));
   const [unit, setUnit] = useState(preferences.unit);
-  const [multiplier, setMultiplier] = useState(() => preferences.multiplier(data.lang));
+  const [multiplier, setMultiplier] = useState(() => preferences.multiplier());
   const [factor, setFactor] = useState(() => preferences.factor(data.lang));
   const [extra, setExtra] = useState(() => preferences.extra(data.lang));
   const [decimals, setDecimals] = useState(() => preferences.decimals(data.lang));
@@ -86,7 +86,7 @@ export default function AreaIsland({ data }: PageProps<AreaPageProps>) {
         <div class="content-wrapper">
           <div class="content pr-0 mr-0 ml-20 mt-0">
             <div class="row mt-0">
-              <PriceFactorWarning priceFactor={!!priceFactor} factor={factor} extra={extra} lang={data.lang}></PriceFactorWarning>
+              <PriceFactorWarning priceFactor={!!priceFactor} multiplier={multiplier} factor={factor} extra={extra} lang={data.lang}></PriceFactorWarning>
               <div class="sticky-alerts"></div>
               <SingleAreaOverview
                 title={data.area.name + " - " + data.area.long}

@@ -19,7 +19,7 @@ export default function IndexIsland({ data }: PageProps<IndexPageProps>) {
   const [currency, setCurrency] = useState(() => preferences.currency(data.lang));
   const [unit, setUnit] = useState(preferences.unit);
   const [factor, setFactor] = useState(() => preferences.factor(data.lang));
-  const [multiplier, setMultiplier] = useState(() => preferences.multiplier(data.lang));
+  const [multiplier, setMultiplier] = useState(() => preferences.multiplier());
   const [extra, setExtra] = useState(() => preferences.extra(data.lang));
   const [decimals, setDecimals] = useState(() => preferences.decimals(data.lang));
   const [priceFactor, setPriceFactor] = useState(() => preferences.pricefactor(data.lang));
@@ -75,7 +75,7 @@ export default function IndexIsland({ data }: PageProps<IndexPageProps>) {
         ></Sidebar>
         <div class="content-wrapper">
           <div class="content mt-0 mb-0 pr-0 mr-0 ml-5">
-            <PriceFactorWarning priceFactor={!!priceFactor} factor={factor} extra={extra} lang={data.lang}></PriceFactorWarning>
+            <PriceFactorWarning priceFactor={!!priceFactor} multiplier={multiplier} factor={factor} extra={extra} lang={data.lang}></PriceFactorWarning>
             <div class="row">
               <MultiPlexAd cols={12} {...commonprops} {...data}></MultiPlexAd>
             </div>

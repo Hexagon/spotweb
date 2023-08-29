@@ -80,7 +80,7 @@ const fi = {
       "fees": "Maksut",
       "factor": "Tekijä",
       "decimals": "Desimaalit",
-      "multiplier": "Kerroin"
+      "multiplier": "Kerroin",
     },
     "countries": {
       "sv": "Ruotsi",

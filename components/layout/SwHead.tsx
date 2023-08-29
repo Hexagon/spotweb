@@ -13,6 +13,7 @@ interface HeadProps extends PageProps {
   country?: Country;
   area?: DataArea;
   adsense?: string;
+  children?: never[];
 }
 
 export default function SwHead(props: HeadProps) {
@@ -129,6 +130,7 @@ export default function SwHead(props: HeadProps) {
       { jsonLdPriceFlag && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdPriceDocument }}></script>
       )}
+
     </Head>
   );
 }
