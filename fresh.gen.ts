@@ -2,51 +2,52 @@
 // This file SHOULD be checked into source version control.
 // This file is automatically updated during development when running `dev.ts`.
 
-import * as $0 from "./routes/[country]/[area].tsx";
-import * as $1 from "./routes/[country]/index.tsx";
-import * as $2 from "./routes/_404.tsx";
-import * as $3 from "./routes/_500.tsx";
-import * as $4 from "./routes/_app.tsx";
-import * as $5 from "./routes/_middleware.ts";
-import * as $6 from "./routes/api/v2/hass.tsx";
-import * as $7 from "./routes/api/v2/spot.tsx";
-import * as $8 from "./routes/custom.tsx";
-import * as $9 from "./routes/help.tsx";
-import * as $10 from "./routes/homeassistant.tsx";
-import * as $11 from "./routes/index.tsx";
-import * as $12 from "./routes/sitemap.xml.ts";
-import * as $$0 from "./islands/AreaIsland.tsx";
-import * as $$1 from "./islands/CountryIsland.tsx";
-import * as $$2 from "./islands/CustomIsland.tsx";
-import * as $$3 from "./islands/HassIsland.tsx";
-import * as $$4 from "./islands/HelpIsland.tsx";
-import * as $$5 from "./islands/IndexIsland.tsx";
+import * as $_country_area_ from "./routes/[country]/[area].tsx";
+import * as $_country_index from "./routes/[country]/index.tsx";
+import * as $_404 from "./routes/_404.tsx";
+import * as $_500 from "./routes/_500.tsx";
+import * as $_app from "./routes/_app.tsx";
+import * as $_middleware from "./routes/_middleware.ts";
+import * as $api_v2_hass from "./routes/api/v2/hass.tsx";
+import * as $api_v2_spot from "./routes/api/v2/spot.tsx";
+import * as $custom from "./routes/custom.tsx";
+import * as $help from "./routes/help.tsx";
+import * as $homeassistant from "./routes/homeassistant.tsx";
+import * as $index from "./routes/index.tsx";
+import * as $sitemap_xml from "./routes/sitemap.xml.ts";
+import * as $AreaIsland from "./islands/AreaIsland.tsx";
+import * as $CountryIsland from "./islands/CountryIsland.tsx";
+import * as $CustomIsland from "./islands/CustomIsland.tsx";
+import * as $HassIsland from "./islands/HassIsland.tsx";
+import * as $HelpIsland from "./islands/HelpIsland.tsx";
+import * as $IndexIsland from "./islands/IndexIsland.tsx";
+import { type Manifest } from "$fresh/server.ts";
 
 const manifest = {
   routes: {
-    "./routes/[country]/[area].tsx": $0,
-    "./routes/[country]/index.tsx": $1,
-    "./routes/_404.tsx": $2,
-    "./routes/_500.tsx": $3,
-    "./routes/_app.tsx": $4,
-    "./routes/_middleware.ts": $5,
-    "./routes/api/v2/hass.tsx": $6,
-    "./routes/api/v2/spot.tsx": $7,
-    "./routes/custom.tsx": $8,
-    "./routes/help.tsx": $9,
-    "./routes/homeassistant.tsx": $10,
-    "./routes/index.tsx": $11,
-    "./routes/sitemap.xml.ts": $12,
+    "./routes/[country]/[area].tsx": $_country_area_,
+    "./routes/[country]/index.tsx": $_country_index,
+    "./routes/_404.tsx": $_404,
+    "./routes/_500.tsx": $_500,
+    "./routes/_app.tsx": $_app,
+    "./routes/_middleware.ts": $_middleware,
+    "./routes/api/v2/hass.tsx": $api_v2_hass,
+    "./routes/api/v2/spot.tsx": $api_v2_spot,
+    "./routes/custom.tsx": $custom,
+    "./routes/help.tsx": $help,
+    "./routes/homeassistant.tsx": $homeassistant,
+    "./routes/index.tsx": $index,
+    "./routes/sitemap.xml.ts": $sitemap_xml,
   },
   islands: {
-    "./islands/AreaIsland.tsx": $$0,
-    "./islands/CountryIsland.tsx": $$1,
-    "./islands/CustomIsland.tsx": $$2,
-    "./islands/HassIsland.tsx": $$3,
-    "./islands/HelpIsland.tsx": $$4,
-    "./islands/IndexIsland.tsx": $$5,
+    "./islands/AreaIsland.tsx": $AreaIsland,
+    "./islands/CountryIsland.tsx": $CountryIsland,
+    "./islands/CustomIsland.tsx": $CustomIsland,
+    "./islands/HassIsland.tsx": $HassIsland,
+    "./islands/HelpIsland.tsx": $HelpIsland,
+    "./islands/IndexIsland.tsx": $IndexIsland,
   },
   baseUrl: import.meta.url,
-};
+} satisfies Manifest;
 
 export default manifest;

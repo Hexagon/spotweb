@@ -6,3 +6,6 @@ deno.lock
 pup.jsonc.status
 .pup.jsonc*
 pup.jsonc.ipc
+
+# Fresh build directory
+_fresh/

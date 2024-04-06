@@ -3,7 +3,7 @@
     // Main process
     {
       "id": "spotweb-main", // Required
-      "cmd": "deno run -A --unstable main.ts", // Required
+      "cmd": "deno run -A --unstable-ffi main.ts", // Required
       "terminate": "0 50 0 * * *",
       "autostart": true,
       "cluster": {
@@ -17,58 +17,65 @@
     // Scheduled jobs
     {
       "id": "daily-currency-update",
-      "cmd": "deno run -A --unstable dist/daily.currencyupdate.ts",
+      "cmd": "deno run -A --unstable-ffi dist/daily.currencyupdate.ts",
       "cron": "0 5 9 * * *",
       "restart": "error",
       "restartLimit": 2,
-      "restartDelayMs": 240000
+      "timeout": 900,
+      "restartDelayMs": 240000,
     },
     {
       "id": "daily-outage-update",
-      "cmd": "deno run -A --unstable --unsafely-ignore-certificate-errors dist/daily.outageupdate.ts",
+      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors dist/daily.outageupdate.ts",
       "cron": "0 5 8 * * *",
       "restart": "error",
       "restartLimit": 2,
+      "timeout": 3600,
       "restartDelayMs": 120000
     },
     {
       "id": "daily-price-update-12",
-      "cmd": "deno run -A --unstable --unsafely-ignore-certificate-errors dist/daily.priceupdate.ts",
+      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors dist/daily.priceupdate.ts",
       "cron": "0 45 12 * * *",
       "restart": "error",
       "restartLimit": 2,
+      "timeout": 900,
       "restartDelayMs": 120000
     },
     {
       "id": "daily-price-update-13",
-      "cmd": "deno run -A --unstable --unsafely-ignore-certificate-errors dist/daily.priceupdate.ts",
+      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors dist/daily.priceupdate.ts",
       "cron": "0 15,30,45 13 * * *",
       "restart": "error",
       "restartLimit": 2,
+      "timeout": 900,
       "restartDelayMs": 120000
     },
     {
       "id": "daily-price-update-all",
-      "cmd": "deno run -A --unstable --unsafely-ignore-certificate-errors dist/daily.priceupdate.ts",
+      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors dist/daily.priceupdate.ts",
       "cron": "0 0 * * * *",
       "restart": "error",
       "restartLimit": 2,
+      "timeout": 900,
       "restartDelayMs": 120000
     },
     {
       "id": "hourly-consumption-update",
-      "cmd": "deno run -A --unstable --unsafely-ignore-certificate-errors dist/hourly.consumptionupdate.ts",
+      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors dist/hourly.consumptionupdate.ts",
       "cron": "0 5 * * * *",
       "restart": "error",
       "restartLimit": 2,
+      "timeout": 900,
       "restartDelayMs": 120000
     },
     {
       "id": "hourly-production-update",
-      "cmd": "deno run -A --unstable --unsafely-ignore-certificate-errors dist/hourly.productionupdate.ts",
+      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors dist/hourly.productionupdate.ts",
       "cron": "0 50 * * * *",
       "restart": "error",
       "restartLimit": 2,
+      "timeout": 900,
       "restartDelayMs": 120000
     }
   ],

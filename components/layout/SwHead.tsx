@@ -6,6 +6,7 @@ import { applyExchangeRate } from "utils/price.ts";
 import { locale_kit } from "localekit_fresh";
 import { PageProps } from "$fresh/server.ts";
 import { preferences } from "config/preferences.js";
+import { useEffect } from "preact/hooks";
 
 interface HeadProps extends PageProps {
   title: string;
@@ -72,6 +73,20 @@ export default function SwHead(props: HeadProps) {
       <title>{locale_kit.t("common.page.title",{ lang: props.data.lang })}  - {props.title}</title>
       <link rel="icon" type="image/png" href={asset("/icon-192x192.png")}></link>
       <meta name="description" content={locale_kit.t("common.header.title",{ lang: props.data.lang }) + " - " + props.title} />
+
+      {/* Google analytics */}
+      <script async={true} src="https://www.googletagmanager.com/gtag/js?id=G-873B7M42VH"></script>
+      <script dangerouslySetInnerHTML={{
+        __html: `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+      
+          gtag('config', 'G-873B7M42VH');`
+      }}></script>
+      
+      {/* WebPulse Analytics */}
+      <script async src="https://track.webpulseanalytics.com/client/653eb47258a80dc2c3133ff8" type="module"></script>
 
       {/* Google Ad-sense, activated by specifying env SPOTWEB_ADSENSE */}
       { props.adsense && (
