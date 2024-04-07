@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { areaViewMonthChartOptions } from "config/charts/areaviewmonth.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
-import { ChartSeries, CommonProps, generateUrl } from "utils/common.ts";
+import { CommonProps, generateUrl } from "utils/common.ts";
 import { ExchangeRateResult, SpotApiRow } from "backend/db/index.ts";
 import { Area, Country } from "config/countries.ts";
 
@@ -27,11 +27,12 @@ export default function SingleAreaLongTermChart(props: SingleAreaLongTermChartPr
     };
 
     const groupByYear = (data: SpotApiRow[]): { [year: number]: { [month: number]: SpotApiRow } } => {
-        return data.reduce((acc, curr) => {
+        // deno-lint-ignore no-explicit-any
+        return data.reduce((acc: any, curr) => {
             const date = new Date(curr.time);
             const year = date.getFullYear();
             const month = date.getMonth();
-
+            
             if (!acc[year]) acc[year] = {};
             acc[year][month] = curr;
             return acc;
@@ -118,7 +119,10 @@ export default function SingleAreaLongTermChart(props: SingleAreaLongTermChartPr
                                     return (
                                         <tr key={month}>
                                             <td>{monthName}</td>
-                                            {years.map(year => (
+                                            
+                                            {
+                                            // deno-lint-ignore no-explicit-any
+                                            years.map((year: any) => (
                                                 <td>{groupedData[year] && groupedData[year][month] ? processPrice(groupedData[year][month].price, props) : "-"}</td>
                                             ))}
                                         </tr>

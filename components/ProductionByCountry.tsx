@@ -51,7 +51,7 @@ export default function ProductionByCountry(props: ProductionByCountryProps) {
         <td>{processPrice(applyExchangeRateSingle(resPrice as number,props.er,props.currency),props)}</td>
         <td>{res?.generation_total}</td>
         <td>{res?.load_total}</td>
-        <td><span class={"text-"+ ((res?.net_generation && res.net_generation < 0) ? "danger" : "success")}>{res?.net_generation}</span></td>
+        <td><span class={"text-"+ ((res?.net_generation && (res.net_generation as number) < 0) ? "danger" : "success")}>{res?.net_generation}</span></td>
         <td>
             { res?.primary_psr_group && (
               <>
@@ -72,7 +72,7 @@ export default function ProductionByCountry(props: ProductionByCountryProps) {
             <td>{processPrice(applyExchangeRateSingle(resArea as number,props.er,props.currency),props)}</td>
             <td>{res?.generation_total}</td>
             <td>{res?.load_total}</td>
-            <td><span class={"text-"+ ((res?.net_generation && res.net_generation < 0) ? "danger" : "success")}>{res?.net_generation}</span></td>
+            <td><span class={"text-"+ ((res?.net_generation && (res.net_generation as number) < 0) ? "danger" : "success")}>{res?.net_generation}</span></td>
             <td>
               { res?.primary_psr_group && (
                 <>

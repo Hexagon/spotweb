@@ -61,7 +61,7 @@ export default function Navbar(props: NavbarProps) {
             <i class="fa fa-angle-down ml-5" aria-hidden="true"></i>
           </a>
           <div class="dropdown-menu dropdown-menu-left" aria-labelledby="nav-link-dropdown-toggle">
-            { countries && countries.map((c) => (
+            { countries && countries.map((c: Country) => (
               <a key={c.id} class={"nav-link"} href={"/" + c.id}>
                 <span data-t-key={"common.countries." + c.id} lang={props.lang}>
                   {c.name}
@@ -86,7 +86,7 @@ export default function Navbar(props: NavbarProps) {
               <i class="fa fa-angle-down ml-5" aria-hidden="true"></i>
             </a>
             <div class="dropdown-menu dropdown-menu-left" aria-labelledby="nav-link-dropdown-toggle">
-              { props.country.areas && props.country.areas.map((a) => (
+              { props.country.areas && props.country.areas.map((a: Area) => (
                 <a key={a.id} class={"nav-link"} href={"/" + props.country?.id + "/" + a.name}>
                   <span>
                     {a.name}
@@ -98,9 +98,9 @@ export default function Navbar(props: NavbarProps) {
         )}
 
         {/* Display areas as individual links if using a wide screen*/}
-        { countries && countries.map((c) => { 
+        { countries && countries.map((c: Country) => { 
           if (c.id === props.country?.id) return (<>
-            { c.areas && c.areas.length > 1 && c.areas.map((a) => { return (
+            { c.areas && c.areas.length > 1 && c.areas.map((a: Area) => { return (
             <li class={"nav-item d-none d-lg-flex" + (props.page === a.id ? " active" : "")}>
               <a key={c.id} class={"nav-link"} href={"/" + c.id + "/" + a.name}>
                   {a.name}

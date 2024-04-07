@@ -22,7 +22,7 @@
       "restart": "error",
       "restartLimit": 2,
       "timeout": 900,
-      "restartDelayMs": 240000,
+      "restartDelayMs": 240000
     },
     {
       "id": "daily-outage-update",

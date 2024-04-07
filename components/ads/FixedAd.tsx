@@ -1,7 +1,6 @@
 import { CommonProps } from "utils/common.ts";
 import { useEffect } from "preact/hooks";
 
-// deno-lint-ignore no-empty-interface
 interface FixedAdProps extends CommonProps {
 
 }

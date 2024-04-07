@@ -37,6 +37,7 @@ const generateUrl = (area: string, startDate: Date, endDate: Date, interval: str
     endDate: endDate.toLocaleDateString("sv-SE"),
     interval: interval,
   };
+  // deno-lint-ignore no-window
   const url = window.location || new URL("https://spot.56k.guru/"),
     inPath = "api/v2/spot",
     fullUrl = url.protocol + "//" + url.host + "/" +

@@ -45,6 +45,7 @@ export default function IndexIsland({ data }: PageProps<IndexPageProps>) {
     const pageLoadTime = new Date();
     const reloadJob = new Cron("0 0 * * * *", () => {
       if ((new Date().getTime() - pageLoadTime.getTime()) > 120 * 1000) {
+        // deno-lint-ignore no-window
         window?.location?.reload();
       }
     });

@@ -56,6 +56,7 @@ export default function AreaIsland({ data }: PageProps<AreaPageProps>) {
     const pageLoadTime = new Date();
     const _reloadJob = new Cron("0 0 * * * *", () => {
       if (new Date().getTime()-pageLoadTime.getTime()>120*1000) {
+        // deno-lint-ignore no-window
         window?.location?.reload();
       }
     });
@@ -127,7 +128,6 @@ export default function AreaIsland({ data }: PageProps<AreaPageProps>) {
             <div class="row">
               <SingleAreaChartLongTerm
                 cols={data.singleArea ? 6 : 12}
-                date={dToday}
                 {...commonprops}
                 {...data}
               ></SingleAreaChartLongTerm>

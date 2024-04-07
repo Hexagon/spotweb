@@ -33,7 +33,6 @@ const processPrice = (
   if (props.currency === "öre") {
     price *= 100;
   }
-
   return price.toFixed(props.decimals);
 };
 

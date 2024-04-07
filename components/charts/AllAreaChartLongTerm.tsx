@@ -9,6 +9,7 @@ interface AllAreaLongTermChartProps extends CommonProps {
   areas: DataArea[];
   country: Country;
   er: ExchangeRateResult;
+  cols: number;
 }
 
 export default function AllAreaChartLongTerm(props: AllAreaLongTermChartProps) {
@@ -66,7 +67,7 @@ export default function AllAreaChartLongTerm(props: AllAreaLongTermChartProps) {
   }, [props.priceFactor]);
 
   return (
-    <div class={"col-lg-6 m-0 p-0"}>
+    <div class={`col-lg-${props.cols} m-0 p-0`}>
       <div class="mw-full m-0 p-0 mr-20 mt-20">
         <div class="card p-0 m-0">
           <div class={"px-card py-10 m-0 rounded-top"}>
@@ -90,7 +91,7 @@ export default function AllAreaChartLongTerm(props: AllAreaLongTermChartProps) {
               <>
                 <p>
                   <span data-t-key={"common.longtermchart.priceFactorDescriptionPart1"} lang={props.lang}>Elpriset som visas i tabellen baseras på följande formel: (([spotpris]*</span>
-                  <span>{props.multiplicator}</span>
+                  <span>{props.multiplier}</span>
                   <span>) +</span>
                   <span>{props.extra}</span>
                   <span data-t-key={"common.longtermchart.priceFactorDescriptionPart2"} lang={props.lang}>(avgifter)) *</span>
@@ -112,7 +113,7 @@ export default function AllAreaChartLongTerm(props: AllAreaLongTermChartProps) {
                 </tr>
               </thead>
               <tbody>
-                {dataSets.size > 0 && dataSets.get(props.areas[0].name).map(dataPoint => {
+                {dataSets.size > 0 && dataSets.get(props.areas[0].name)?.map(dataPoint => {
                   const dateFromTimestamp = new Date(dataPoint.time);
 
                   return (

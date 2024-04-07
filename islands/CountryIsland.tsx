@@ -56,6 +56,8 @@ export default function CountryIsland({ data }: PageProps<CountryPageProps>) {
         highlight={"color-" + a.color}
         area={a}
         cols={3}
+        country={data.country}
+        er={data.er}
         {...commonprops}
       ></SingleAreaOverview>
     );
@@ -66,6 +68,7 @@ export default function CountryIsland({ data }: PageProps<CountryPageProps>) {
     const pageLoadTime = new Date();
     const _reloadJob = new Cron("0 0 * * * *", () => {
       if (new Date().getTime()-pageLoadTime.getTime()>120*1000) {
+        // deno-lint-ignore no-window
         window?.location?.reload();
       }
     });

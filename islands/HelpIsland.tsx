@@ -94,7 +94,7 @@ export default function HassIsland(props: PageProps<HelpPageProps>) {
         <hr />
 
         <section class="content mb-50">
-          <DisplayAd cols={12} {...commonprops} {...props}></DisplayAd>
+          <DisplayAd {...commonprops} {...props}></DisplayAd>
         </section>
         <hr />
 
