@@ -1,12 +1,11 @@
 import { asset, Head } from "$fresh/runtime.ts";
-import { Area, Country, DataArea } from "config/countries.ts";
+import { Country, DataArea } from "config/countries.ts";
 import { maxPrice, minPrice, processPrice } from "utils/price.ts";
 import { avgPrice } from "utils/price.ts";
 import { applyExchangeRate } from "utils/price.ts";
 import { locale_kit } from "localekit_fresh";
 import { PageProps } from "$fresh/server.ts";
 import { preferences } from "config/preferences.js";
-import { useEffect } from "preact/hooks";
 
 interface HeadProps extends PageProps {
   title: string;

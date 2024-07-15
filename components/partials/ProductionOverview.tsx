@@ -31,7 +31,7 @@ export default function ProductionOverview(props: ProductionOverviewProps) {
   for(let i = 0; i < props.generation.data.length; i++) {
     const 
       currentGeneration = props.generation.data[i],
-      dateMs = currentGeneration[0] as number,
+      dateMs = Number(currentGeneration[0]),
       psr = currentGeneration[1] as string + "_" + (currentGeneration[3] || 0).toString(),
       value = currentGeneration[2] as number,
       noPsrs = currentGeneration[4] as number;
@@ -64,8 +64,8 @@ export default function ProductionOverview(props: ProductionOverviewProps) {
   // Find load at matching point of time
   let loadTotal = 0;
   for(const loadEntry of props.load.data) {
-    if (loadEntry[0] === lastGenerationDate) {
-      loadTotal = loadEntry[1] as number;
+    if (Number(loadEntry[0]) === lastGenerationDate) {
+      loadTotal = Number(loadEntry[1]);
     }
   }
 

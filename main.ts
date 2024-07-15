@@ -1,4 +1,4 @@
-import { PupTelemetry } from "pup/telemetry.ts";
+import { PupTelemetry } from "@pup/telemetry";
 import languagePlugin from "localekit_fresh";
 import languageConfig from "config/translate.config.ts";
 

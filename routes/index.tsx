@@ -23,8 +23,7 @@ export type { IndexPageProps };
 
 export const handler: Handlers = {
   async GET(_req, ctx) {
-    const dateStart = new Date(),
-      dateEnd = new Date();
+    const dateStart = new Date();
 
     dateStart.setDate(dateStart.getDate() - 1);
 

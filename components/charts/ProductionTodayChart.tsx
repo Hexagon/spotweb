@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { productionTodayChartOptions } from "config/charts/productiontoday.js";
 import { CommonProps } from "utils/common.ts";
-import { DBResultSet, SpotApiRow } from "backend/db/index.ts";
+import { DBResultSet } from "backend/db/index.ts";
 import { Area, Country } from "config/countries.ts";
 
 interface ProductionTodayProps extends CommonProps {
@@ -17,14 +17,14 @@ export default function ProductionTodayChart(props: ProductionTodayProps) {
   [chartElm, setChartElm] = useState<ApexCharts>(),
     [randomChartId] = useState((Math.random() * 10000).toFixed(0));
 
-  const renderChart = (seriesInput: (string|number)[][], props: ProductionTodayProps) => {
+  const renderChart = (seriesInput: (string|number)[][]) => {
 
     // Inject series into chart configuration
     const series = [];
     series.push(
       {
         data: seriesInput.map((e: (string|number)[]) => {
-          return { x: e[0], y: e[1] };
+          return { x: Number(e[0]), y: e[1] };
         }),
         name: "net_production",
         type: 'bar'
@@ -58,7 +58,7 @@ export default function ProductionTodayChart(props: ProductionTodayProps) {
   };
 
   useEffect(() => {
-    renderChart(props.generationAndLoad.data, props);
+    renderChart(props.generationAndLoad.data);
   }, [props.priceFactor]);
 
   return (

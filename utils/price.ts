@@ -73,7 +73,7 @@ const avgPrice = (rs: SpotApiRow[] | undefined): number | null => {
 
 const nowPrice = (rs: SpotApiRow[] | undefined): number | null => {
   if (rs && rs.length > 0) {
-    const result = rs.find((e) => e.time <= new Date().getTime() && e.time + 3600 * 1000 >= new Date().getTime());
+    const result = rs.find((e) => Number(e.time) <= new Date().getTime() && Number(e.time) + 3600 * 1000 >= new Date().getTime());
     return result ? result.price : null;
   } else {
     return null;

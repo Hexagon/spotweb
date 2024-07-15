@@ -1,4 +1,4 @@
-import { PupTelemetry } from "pup/telemetry.ts";
+import { PupTelemetry } from "@pup/telemetry";
 import { countries } from "config/countries.ts";
 import { EntsoeLoad } from "backend/integrations/entsoe.ts";
 import { openDatabase } from "backend/db/minimal.ts";
@@ -77,12 +77,12 @@ const HourlyConsumptionUpdate = async () => {
 
   log("info", `Scheduled data update done`);
 
-  tm.emit("spotweb-main-1", "clear_cache", { cache: "load" });
-  tm.emit("spotweb-main-1", "clear_cache", { cache: "generation" });
-  tm.emit("spotweb-main-2", "clear_cache", { cache: "load" });
-  tm.emit("spotweb-main-2", "clear_cache", { cache: "generation" });
-  tm.emit("spotweb-main-3", "clear_cache", { cache: "load" });
-  tm.emit("spotweb-main-3", "clear_cache", { cache: "generation" });
+  tm.emit("spotweb-main", "clear_cache", { cache: "load" });
+  tm.emit("spotweb-main", "clear_cache", { cache: "generation" });
+  //tm.emit("spotweb-main-2", "clear_cache", { cache: "load" });
+  //tm.emit("spotweb-main-2", "clear_cache", { cache: "generation" });
+  //tm.emit("spotweb-main-3", "clear_cache", { cache: "load" });
+  //tm.emit("spotweb-main-3", "clear_cache", { cache: "generation" });
 
   database.close();
 

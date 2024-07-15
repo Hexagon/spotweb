@@ -1,7 +1,7 @@
 import { applyExchangeRate, avgPrice, maxPrice, minPrice, nowPrice, processPrice } from "utils/price.ts";
 import { CommonProps } from "utils/common.ts";
 import { Country, DataArea } from "config/countries.ts";
-import { ExchangeRateResult, SpotApiRow } from "backend/db/index.ts";
+import { ExchangeRateResult } from "backend/db/index.ts";
 
 interface AreaViewProps extends CommonProps {
   cols: number;

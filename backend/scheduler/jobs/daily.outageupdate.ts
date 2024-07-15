@@ -1,4 +1,4 @@
-import { PupTelemetry } from "pup/telemetry.ts";
+import { PupTelemetry } from "@pup/telemetry";
 import { EntsoeOutages } from "backend/integrations/entsoe.ts";
 import { openDatabase } from "backend/db/minimal.ts";
 import { log } from "utils/log.ts";
@@ -97,9 +97,9 @@ const DailyOutageUpdate = async () => {
 
   log("info", `Scheduled data update done`);
 
-  tm.emit("spotweb-main-1", "clear_cache", { cache: "outage" });
-  tm.emit("spotweb-main-2", "clear_cache", { cache: "outage" });
-  tm.emit("spotweb-main-3", "clear_cache", { cache: "outage" });
+  tm.emit("spotweb-main", "clear_cache", { cache: "outage" });
+  //tm.emit("spotweb-main-2", "clear_cache", { cache: "outage" });
+  //tm.emit("spotweb-main-3", "clear_cache", { cache: "outage" });
 
   database.close();
 

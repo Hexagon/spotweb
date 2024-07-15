@@ -2,8 +2,6 @@ import { CommonProps } from "utils/common.ts";
 import { countries } from "config/countries.ts";
 import { DBResultSet, ExchangeRateResult } from "../backend/db/index.ts";
 import { applyExchangeRateSingle, processPrice } from "utils/price.ts";
-import DisplayAd from "components/ads/DisplayAd.tsx";
-import FixedAd from "components/ads/FixedAd.tsx";
 
 interface ProductionByCountryProps extends CommonProps {
   cols: number;

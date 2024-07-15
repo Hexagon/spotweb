@@ -2,7 +2,6 @@ import { Handlers, PageProps } from "$fresh/server.ts";
 import SwHead from "components/layout/SwHead.tsx";
 import CustomIsland from "islands/CustomIsland.tsx";
 import { GetExchangeRates } from "backend/db/index.ts";
-import { BasePageProps } from "utils/common.ts";
 
 /*interface CustomPageProps extends BasePageProps {
 

@@ -29,7 +29,7 @@ export default function Table(props: TableProps) {
     chart.render();
   };
   useEffect(() => {
-    const convertedResultSet = applyExchangeRate(props.resultSet,props.er,props.currency);
+    applyExchangeRate(props.resultSet,props.er,props.currency);
     renderChart(props.resultSet);
   });
   return (

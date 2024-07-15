@@ -23,7 +23,7 @@ export default function FilteredTable(props: FilterProps) {
   const [startDate, setStartDate] = useState(props.startDate || new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState(props.endDate || new Date().toISOString().split("T")[0]);
 
-  const [permalink, setPermalink] = useState("");
+  const [permalink, _setPermalink] = useState("");
   const [permalinkJson, setPermalinkJson] = useState("");
 
   const [loading, setLoading] = useState(false);

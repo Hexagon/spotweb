@@ -45,7 +45,7 @@ export const handler: Handlers = {
       return new Response(JSON.stringify(processData(data, yesterday, today, tomorrow, currency, extra, factor, multiplier, decimals)), {
         status: 200,
       });
-    } catch (e) {
+    } catch (_e) {
       return new Response(
         JSON.stringify({ status: "error", details: "Query failed" }),
         { status: 500 },

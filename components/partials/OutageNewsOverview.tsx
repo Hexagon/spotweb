@@ -10,11 +10,10 @@ interface NewsOutageProps extends CommonProps {
 }
 
 export default function NewsOutage(props: NewsOutageProps) {
-  const currentDate = new Date();
 
   /* Articles */
-  const currentOutages = [...(props.outages?.data || [])].sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime());
-  const futureOutages = [...(props.futureOutages?.data || [])].sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime());
+  const currentOutages = [...(props.outages?.data || [])].sort((a, b) => new Date(Number(b[0])).getTime() - new Date(Number(a[0])).getTime());
+  const futureOutages = [...(props.futureOutages?.data || [])].sort((a, b) => new Date(Number(b[0])).getTime() - new Date(Number(a[0])).getTime());
 
   /* Counts */
   const ongoingPlanned = (props.outages?.data || []).filter(o => o[3] === "Planned maintenance").length;
@@ -63,9 +62,9 @@ export default function NewsOutage(props: NewsOutageProps) {
                     <div class="card-content p-20 mb-20">
                     <div class="d-flex justify-content-between mb-10">
                         <strong class={`text-primary`}><span data-t-key={"common.outage."+(g[3] as string).toLowerCase().replace(" ","_")}></span> - {g[2]}</strong>
-                        <span class="text-muted">{new Date(g[0]).toLocaleDateString()}</span>
+                        <span class="text-muted">{new Date(Number(g[0])).toLocaleDateString()}</span>
                     </div>
-                    <p><strong>{(!g[6] || g[6] === "undefined") ? "" : g[6]}</strong> {(g[4] || "")} <span data-t-key={"common.outage.started_"+(g[3] as string).toLowerCase().replace(" ","_")}></span> {new Date(g[0]).toLocaleDateString()} <span data-t-key="common.outage.done" lang={props.lang}>done</span> {new Date(g[1]).toLocaleDateString()}. {g[11]}</p>
+                    <p><strong>{(!g[6] || g[6] === "undefined") ? "" : g[6]}</strong> {(g[4] || "")} <span data-t-key={"common.outage.started_"+(g[3] as string).toLowerCase().replace(" ","_")}></span> {new Date(Number(g[0])).toLocaleDateString()} <span data-t-key="common.outage.done" lang={props.lang}>done</span> {new Date(Number(g[1])).toLocaleDateString()}. {g[11]}</p>
                     {g[15] && <p><span data-t-key="common.outage.capacity_ongoing" lang={props.lang}>Planned capacity during outage: </span> <strong>{g[15]} {g[8]}</strong></p>}
                     {g[7] && <p><span data-t-key="common.outage.capacity_total" lang={props.lang}>Total capacity: </span> <strong>{g[7]} {g[8]}</strong></p>}
                     </div>
@@ -77,9 +76,9 @@ export default function NewsOutage(props: NewsOutageProps) {
                 <div class="card-content p-20 mb-20">
                     <div class="d-flex justify-content-between mb-10">
                         <strong class={`text-${g[3] === "Planned maintenance" ? "primary" : "danger"}`}><span data-t-key={"common.outage."+(g[3] as string).toLowerCase().replace(" ","_")}></span> - {g[2]}</strong>
-                        <span class="text-muted">{new Date(g[0]).toLocaleDateString()}</span>
+                        <span class="text-muted">{new Date(Number(g[0])).toLocaleDateString()}</span>
                     </div>
-                    <p><strong>{(!g[6] || g[6] === "undefined") ? "" : g[6]}</strong> {(g[4] || "")} <span data-t-key={"common.outage.started_"+(g[3] as string).toLowerCase().replace(" ","_")}></span> {new Date(g[0]).toLocaleDateString()} <span data-t-key="common.outage.done" lang={props.lang}>done</span> {new Date(g[1]).toLocaleDateString()}. {g[11]}</p>
+                    <p><strong>{(!g[6] || g[6] === "undefined") ? "" : g[6]}</strong> {(g[4] || "")} <span data-t-key={"common.outage.started_"+(g[3] as string).toLowerCase().replace(" ","_")}></span> {new Date(Number(g[0])).toLocaleDateString()} <span data-t-key="common.outage.done" lang={props.lang}>done</span> {new Date(Number(g[1])).toLocaleDateString()}. {g[11]}</p>
                     {g[15] && <p><span data-t-key="common.outage.capacity_ongoing" lang={props.lang}>Planned capacity during outage: </span> <strong>{g[15]} {g[8]}</strong></p>}
                     {g[7] && <p><span data-t-key="common.outage.capacity_total" lang={props.lang}>Total capacity: </span> <strong>{g[7]} {g[8]}</strong></p>}
                     <hr />

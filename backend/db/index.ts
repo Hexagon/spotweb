@@ -143,9 +143,9 @@ const GetSpotprice = async (
     }
     return data.map((r) => {
       if (r.length > 2) {
-        return { time: r.at(0) as number, price: r.at(1) as number, min: r.at(2) as number, max: r.at(3) as number };
+        return { time: Number(r.at(0)), price: Number(r.at(1)), min: Number(r.at(2)), max: Number(r.at(3)) };
       } else {
-        return { time: r.at(0) as number, price: r.at(1) as number };
+        return { time: Number(r.at(0)), price: Number(r.at(1)) };
       }
     });
   });

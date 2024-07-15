@@ -1,10 +1,15 @@
 {
+  "name": "spotweb",
+  "api": {
+    "port": 16414
+  },
   "processes": [
     // Main process
     {
       "id": "spotweb-main", // Required
-      "cmd": "deno run -A --unstable-ffi main.ts", // Required
+      "cmd": "deno run -A --unstable-ffi --unstable-net main.ts", // Required
       "terminate": "0 50 0 * * *",
+      "env": { "PORT": "6000" },
       "autostart": true,
       "cluster": {
         "instances": 3,
@@ -17,16 +22,14 @@
     // Scheduled jobs
     {
       "id": "daily-currency-update",
-      "cmd": "deno run -A --unstable-ffi dist/daily.currencyupdate.ts",
+      "cmd": "deno run -A --unstable-ffi --unstable-net backend/scheduler/jobs/daily.currencyupdate.ts",
       "cron": "0 5 9 * * *",
-      "restart": "error",
-      "restartLimit": 2,
-      "timeout": 900,
+      "timeout": 10,
       "restartDelayMs": 240000
     },
     {
       "id": "daily-outage-update",
-      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors dist/daily.outageupdate.ts",
+      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors backend/scheduler/jobs/daily.outageupdate.ts",
       "cron": "0 5 8 * * *",
       "restart": "error",
       "restartLimit": 2,
@@ -35,7 +38,7 @@
     },
     {
       "id": "daily-price-update-12",
-      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors dist/daily.priceupdate.ts",
+      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors backend/scheduler/jobs/daily.priceupdate.ts",
       "cron": "0 45 12 * * *",
       "restart": "error",
       "restartLimit": 2,
@@ -44,7 +47,7 @@
     },
     {
       "id": "daily-price-update-13",
-      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors dist/daily.priceupdate.ts",
+      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors backend/scheduler/jobs/daily.priceupdate.ts",
       "cron": "0 15,30,45 13 * * *",
       "restart": "error",
       "restartLimit": 2,
@@ -53,7 +56,7 @@
     },
     {
       "id": "daily-price-update-all",
-      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors dist/daily.priceupdate.ts",
+      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors backend/scheduler/jobs/daily.priceupdate.ts",
       "cron": "0 0 * * * *",
       "restart": "error",
       "restartLimit": 2,
@@ -62,7 +65,7 @@
     },
     {
       "id": "hourly-consumption-update",
-      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors dist/hourly.consumptionupdate.ts",
+      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors backend/scheduler/jobs/hourly.consumptionupdate.ts",
       "cron": "0 5 * * * *",
       "restart": "error",
       "restartLimit": 2,
@@ -71,18 +74,12 @@
     },
     {
       "id": "hourly-production-update",
-      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors dist/hourly.productionupdate.ts",
+      "cmd": "deno run -A --unstable-ffi --unsafely-ignore-certificate-errors backend/scheduler/jobs/hourly.productionupdate.ts",
       "cron": "0 50 * * * *",
       "restart": "error",
       "restartLimit": 2,
       "timeout": 900,
       "restartDelayMs": 120000
     }
-  ],
-  "plugins": [{
-    "url": "https://deno.land/x/pup/plugins/web-interface/mod.ts",
-    "options": {
-      "port": 5000
-    }
-  }]
+  ]
 }

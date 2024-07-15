@@ -1,5 +1,4 @@
 // deno-lint-ignore-file ban-types
-import { useCallback, useState } from "preact/hooks";
 
 interface CustomizeProps {
   extra: number;
