@@ -38,7 +38,9 @@ const DailyPriceUpdate = async () => {
           country.id,
           area.name,
         );
-        currentPeriod = new Date(maxPeriodResult[0][0] && typeof maxPeriodResult[0][0] === "number" ? new Date(maxPeriodResult[0][0]) : startDate);
+        currentPeriod = new Date(
+          Number(maxPeriodResult[0][0]) && typeof Number(maxPeriodResult[0][0]) === "number" ? new Date(Number(maxPeriodResult[0][0])) : startDate,
+        );
 
         // Loop until we are at endDate
         let errored = false;
