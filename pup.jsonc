@@ -8,7 +8,6 @@
     {
       "id": "spotweb-main", // Required
       "cmd": "deno run -A --unstable-ffi --unstable-net main.ts", // Required
-      "terminate": "0 50 0 * * *",
       "env": { "PORT": "6000" },
       "autostart": true,
       "cluster": {
