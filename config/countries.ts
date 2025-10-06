@@ -37,7 +37,7 @@ const countries = [
     id: "sv",
     cty: "Sweden (SE)",
     cta: "CTA|SE",
-    interval: "PT60M",
+    interval: "PT15M",
     areas: [
       { name: "SE1", "id": "BZN|SE1", "long": "Norra Sverige", color: 1 },
       { name: "SE2", "id": "BZN|SE2", "long": "Norra Mellansverige", color: 2 },
@@ -49,7 +49,7 @@ const countries = [
     name: "Norge",
     cty: "Norway (NO)",
     cta: "CTA|NO",
-    interval: "PT60M",
+    interval: "PT15M",
     id: "no",
     areas: [
       { name: "NO1", "id": "IBA|NO1", "long": "Oslo", color: 1 },
@@ -63,7 +63,7 @@ const countries = [
     name: "Finland",
     cty: "Finland (FI)",
     cta: "CTA|FI",
-    interval: "PT60M",
+    interval: "PT15M",
     id: "fi",
     areas: [
       { name: "FI", "id": "FI", "long": "Suomi", color: 1 },
@@ -73,7 +73,7 @@ const countries = [
     name: "Danmark",
     cty: "Denmark (DK)",
     cta: "CTA|DK",
-    interval: "PT60M",
+    interval: "PT15M",
     id: "dk",
     areas: [
       { name: "DK1", "id": "IBA|DK1", "long": "Jylland", color: 1 },
@@ -94,7 +94,7 @@ const countries = [
     name: "Österreich",
     cty: "Austria (AT)",
     cta: "CTA|AT",
-    interval: "PT15M",
+    interval: "PT60M",
     id: "at",
     areas: [
       { name: "AT", "id": "BZN|AT", "long": "Österreich", color: 1 },
@@ -105,7 +105,7 @@ const countries = [
     id: "be",
     cty: "Belgium (BE)",
     cta: "CTA|BE",
-    interval: "PT60M",
+    interval: "PT15M",
     areas: [
       { name: "BE", "id": "BZN|BE", "long": "Belgium", color: 1 },
     ],
@@ -124,7 +124,7 @@ const countries = [
     name: "Spain",
     cty: "Spain (ES)",
     cta: "CTA|ES",
-    interval: "PT60M",
+    interval: "PT15M",
     id: "es",
     areas: [
       { name: "ES", "id": "BZN|ES", "long": "Spain", color: 1 },
@@ -134,7 +134,7 @@ const countries = [
     name: "France",
     cty: "France (FR)",
     cta: "CTA|FR",
-    interval: "PT60M",
+    interval: "PT15M",
     id: "fr",
     areas: [
       { name: "FR", "id": "BZN|FR", "long": "France", color: 1 },
@@ -144,7 +144,7 @@ const countries = [
     name: "Poland",
     cty: "Poland (PL)",
     cta: "CTA|PL",
-    interval: "PT60M",
+    interval: "PT15M",
     id: "pl",
     areas: [
       { name: "PL", "id": "BZN|PL", "long": "Poland", color: 1 },
