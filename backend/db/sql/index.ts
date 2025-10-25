@@ -230,9 +230,9 @@ WITH er AS (
 )
 SELECT 
     [[groupby]],
-    MIN(spotprice)*er.value as avg,
-    MAX(spotprice)*er.value as min,
-    avg(spotprice)*er.value as max
+    AVG(spotprice)*er.value as avg,
+    MIN(spotprice)*er.value as min,
+    MAX(spotprice)*er.value as max
 FROM 
     spotprice 
     LEFT JOIN er 

@@ -9,16 +9,28 @@ export const handler: Handlers = {
     const url = new URL(req.url);
 
     // Get raw parameters
-    const area = url.searchParams.get("area")?.trim().toUpperCase(),
-      currency = url.searchParams.get("currency")?.trim().toUpperCase(),
-      multiplier = parseFloat(url.searchParams.get("multiplier")?.trim() || "1"),
-      factor = parseFloat(url.searchParams.get("factor")?.trim() || "1"),
-      extra = parseFloat(url.searchParams.get("extra")?.trim().toUpperCase() || "0"),
-  decimals = parseInt(url.searchParams.get("decimals")?.trim().toUpperCase() || "5", 10),
-  interval = url.searchParams.get("interval")?.trim().toUpperCase() || intervalForArea(area || "") || "PT60M";
+    const area = url.searchParams.get("area")?.trim()?.toUpperCase(),
+      currency = url.searchParams.get("currency")?.trim()?.toUpperCase(),
+      multiplierParam = url.searchParams.get("multiplier"),
+      multiplier = multiplierParam ? parseFloat(multiplierParam.trim()) : 1,
+      factorParam = url.searchParams.get("factor"),
+      factor = factorParam ? parseFloat(factorParam.trim()) : 1,
+      extraParam = url.searchParams.get("extra"),
+      extra = extraParam ? parseFloat(extraParam.trim()) : 0,
+      decimalsParam = url.searchParams.get("decimals"),
+      decimals = decimalsParam ? parseInt(decimalsParam.trim(), 10) : 5,
+      interval = url.searchParams.get("interval")?.trim()?.toUpperCase() || intervalForArea(area || "") || "PT60M";
 
     // Check parameters
-    if (!area || !currency || isNaN(factor) || isNaN(extra) || isNaN(decimals) || !interval) {
+    if (
+      !area ||
+      !currency ||
+      Number.isNaN(multiplier) ||
+      Number.isNaN(factor) ||
+      Number.isNaN(extra) ||
+      Number.isNaN(decimals) ||
+      !interval
+    ) {
       return new Response(
         JSON.stringify({ status: "error", details: "Missing/invalid parameters" }),
         { status: 500 },

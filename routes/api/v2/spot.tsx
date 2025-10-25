@@ -9,12 +9,15 @@ export const handler: Handlers = {
     const url = new URL(req.url);
 
     // Get raw query
-    const period = url.searchParams.get("period")?.trim().toLowerCase() || "",
-      area = url.searchParams.get("area")?.trim().toUpperCase() || "",
-      currency = url.searchParams.get("currency")?.trim().toUpperCase() || undefined,
-      startDate = new Date(Date.parse(url.searchParams.get("startDate") || "")),
-      endDate = new Date(Date.parse(url.searchParams.get("endDate") || "")),
-  interval = url.searchParams.get("interval") || intervalForArea(area) || "PT60M";
+    const period = url.searchParams.get("period")?.trim()?.toLowerCase() || "",
+      area = url.searchParams.get("area")?.trim()?.toUpperCase() || "",
+      currencyParam = url.searchParams.get("currency"),
+      currency = currencyParam ? currencyParam.trim()?.toUpperCase() : undefined,
+      startDateParam = url.searchParams.get("startDate"),
+      endDateParam = url.searchParams.get("endDate"),
+      startDate = startDateParam ? new Date(Date.parse(startDateParam)) : new Date(NaN),
+      endDate = endDateParam ? new Date(Date.parse(endDateParam)) : new Date(NaN),
+      interval = url.searchParams.get("interval")?.trim()?.toUpperCase() || intervalForArea(area) || "PT60M";
 
     // Validate period
     const validPeriods = Object.keys(sqlGroupBy);
@@ -28,6 +31,13 @@ export const handler: Handlers = {
     // Set end date time if not set
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(23, 59, 59, 999);
+
+    if (!Number.isFinite(startDate.getTime()) || !Number.isFinite(endDate.getTime())) {
+      return new Response(
+        JSON.stringify({ status: "error", details: "Missing/invalid parameters" }),
+        { status: 500 },
+      );
+    }
 
     // Parse date
     try {
