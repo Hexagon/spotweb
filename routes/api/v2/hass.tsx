@@ -42,7 +42,7 @@ export const handler: Handlers = {
         ...tomorrow,
       ];
 
-      return new Response(JSON.stringify(processData(data, yesterday, today, tomorrow, currency, extra, factor, multiplier, decimals)), {
+      return new Response(JSON.stringify(processData(data, yesterday, today, tomorrow, currency, extra, factor, multiplier, decimals, interval)), {
         status: 200,
       });
     } catch (_e) {
@@ -64,10 +64,11 @@ const processData = (
   factor: number,
   multiplier: number,
   decimals: number,
+  interval: string,
 ) => {
   return {
     updated: new Date(),
-    now: processPrice(nowPrice(today), { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),
+    now: processPrice(nowPrice(today, interval), { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),
     avg: processPrice(avgPrice(today), { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),
     min: processPrice(minPrice(today), { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),
     max: processPrice(maxPrice(today), { currency, extra, factor, multiplier, unit: "kWh", decimals, priceFactor: true }),

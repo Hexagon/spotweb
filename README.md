@@ -49,7 +49,3 @@ Spotweb is set up to run using [Pup](https://github.com/hexagon/pup) in producti
 system service `pup install --name spotweb`
 
 The database will be stored in `<project-directory>/db/`
-
-```
--v /path/on/host/spotweb/db:/spotweb/db
-```

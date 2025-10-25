@@ -24,7 +24,7 @@
     "components/": "./components/",
     "config/": "./config/",
     "croner": "https://deno.land/x/croner@8.1.0/dist/croner.js",
-    "entsoe_api_client": "https://deno.land/x/entsoe_api_client@1.0.1/mod.ts",
+    "entsoe_api_client": "https://deno.land/x/entsoe_api_client@1.0.2/mod.ts",
     "fresh_seo": "https://deno.land/x/fresh_seo@1.0.1/mod.ts",
     "islands/": "./islands/",
     "localekit_fresh": "https://deno.land/x/localekit_fresh@0.5.2/mod.ts",

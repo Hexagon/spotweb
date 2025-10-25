@@ -71,9 +71,35 @@ const avgPrice = (rs: SpotApiRow[] | undefined): number | null => {
   }
 };
 
-const nowPrice = (rs: SpotApiRow[] | undefined): number | null => {
+const parseInterval = (interval: string): number => {
+  // Parse ISO 8601 duration format (PT15M, PT60M, etc.)
+  const match = interval.match(/^PT(\d+)([MH])$/);
+  if (!match) {
+    // Default to 1 hour if parsing fails
+    return 3600 * 1000;
+  }
+  
+  const value = parseInt(match[1]);
+  const unit = match[2];
+  
+  if (unit === 'M') {
+    return value * 60 * 1000; // minutes to milliseconds
+  } else if (unit === 'H') {
+    return value * 3600 * 1000; // hours to milliseconds
+  }
+  
+  // Default to 1 hour if unit is unknown
+  return 3600 * 1000;
+};
+
+const nowPrice = (rs: SpotApiRow[] | undefined, interval: string = "PT60M"): number | null => {
   if (rs && rs.length > 0) {
-    const result = rs.find((e) => Number(e.time) <= new Date().getTime() && Number(e.time) + 3600 * 1000 >= new Date().getTime());
+    const intervalMs = parseInterval(interval);
+    const currentTime = new Date().getTime();
+    const result = rs.find((e) => {
+      const entryTime = Number(e.time);
+      return entryTime <= currentTime && entryTime + intervalMs > currentTime;
+    });
     return result ? result.price : null;
   } else {
     return null;
