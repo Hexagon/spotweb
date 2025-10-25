@@ -161,7 +161,7 @@ export default function HassIsland(props: PageProps<HassPageProps>) {
                   <li><strong>min/max/avg_tomorrow</strong> - Tomorrow's hourly price</li>
                   <li><strong>min/max/avg_yesterday</strong> - Yesterday's hourly price</li>
                   </ul>
-                  <p>If you customize your price settings on the page (using the hamburger menu), your changes will be immediately reflected in the configuration to the right.</p>
+                  <p>The API supports different time intervals (hourly or 15-minute data) and accurately determines the current price based on the specified interval. If you customize your price settings on the page (using the hamburger menu), your changes will be immediately reflected in the configuration to the right.</p>
                   <p>The service is free and open to everyone, no API key is required. However, it is used at your own risk, no guarantees are given! More information about data source and data quality can be found at the bottom of the page.</p>
                 </div>
                 <div class="content">
@@ -189,6 +189,9 @@ export default function HassIsland(props: PageProps<HassPageProps>) {
                     </li>
                     <li>
                       <strong>decimals</strong><span> - Precision for all price points, <code class="code">2</code> will result in 0.05kWh, <code class="code">4</code> -&gt; 0.00521, and so on.</span>
+                    </li>
+                    <li>
+                      <strong>interval</strong><span> - Time interval for data points. <code class="code">PT60M</code> for hourly data (default), <code class="code">PT15M</code> for 15-minute intervals. Affects the accuracy of the "now" value by matching the current time to the correct time slot.</span>
                     </li>
                   </ul>
                 </div>
