@@ -1,5 +1,6 @@
 import { Handlers } from "$fresh/server.ts";
 import { GetSpotprice } from "backend/db/index.ts";
+import { intervalForArea } from "utils/common.ts";
 import { sqlGroupBy } from "backend/db/sql/index.ts";
 
 export const handler: Handlers = {
@@ -13,7 +14,7 @@ export const handler: Handlers = {
       currency = url.searchParams.get("currency")?.trim().toUpperCase() || undefined,
       startDate = new Date(Date.parse(url.searchParams.get("startDate") || "")),
       endDate = new Date(Date.parse(url.searchParams.get("endDate") || "")),
-      interval = url.searchParams.get("interval") || "PT60M";
+  interval = url.searchParams.get("interval") || intervalForArea(area) || "PT60M";
 
     // Validate period
     const validPeriods = Object.keys(sqlGroupBy);

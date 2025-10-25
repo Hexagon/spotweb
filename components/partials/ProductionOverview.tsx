@@ -1,4 +1,5 @@
-import { CommonProps} from "utils/common.ts";
+import { CommonProps, formatMW } from "utils/common.ts";
+import { parseInterval } from "utils/price.ts";
 import { Country } from "config/countries.ts";
 
 import { DBResultSet, ExchangeRateResult } from "backend/db/index.ts";
@@ -58,8 +59,8 @@ export default function ProductionOverview(props: ProductionOverviewProps) {
   const 
     generationTotal = Object.values(lastGeneration).reduce((a, b) => {
       return a + b.value;
-    },0),
-    lastGenerationDateEnd = props.generation?.data.length ? new Date(lastGenerationDate + (props.country.interval == "PT60M" ? 3600 : 900 ) * 1000) : undefined;
+  },0),
+  lastGenerationDateEnd = props.generation?.data.length ? new Date(lastGenerationDate + parseInterval(props.country.interval)) : undefined;
 
   // Find load at matching point of time
   let loadTotal = 0;
@@ -88,14 +89,14 @@ export default function ProductionOverview(props: ProductionOverviewProps) {
             <div>
               <table class="table">
                 <tbody>
-                  <tr><th data-t-key="common.generation.production" lang={props.lang}>Produktion</th><th>{ generationTotal } MW</th></tr>
+                  <tr><th data-t-key="common.generation.production" lang={props.lang}>Produktion</th><th>{ formatMW(generationTotal, props.lang) } MW</th></tr>
                   { lastGenerationSorted.map(g => g[1].value !== 0 && (
                     <>
-                      <tr><td><span data-t-key={"common.generation.psr_"+g[0].toLowerCase().replace(/[^a-zA-Z0-9]/g,"_")} lang={props.lang}>{ g[0] }</span> - {(g[1].value/generationTotal*100).toFixed(1)} %</td><td>{ g[1].value } MW</td></tr>
+                      <tr><td><span data-t-key={"common.generation.psr_"+g[0].toLowerCase().replace(/[^a-zA-Z0-9]/g,"_")} lang={props.lang}>{ g[0] }</span> - {(g[1].value/generationTotal*100).toFixed(1)} %</td><td>{ formatMW(g[1].value, props.lang) } MW</td></tr>
                     </>
                   ))}
-                  <tr><th data-t-key="common.generation.consumption" lang={props.lang}>Förbrukning</th><th>{ loadTotal } MW</th></tr>
-                  <tr class={"table-"+ (netTotal < 0 ? "danger" : "success")}><th data-t-key={"common.generation."+(netTotal < 0 ? "deficit" : "excess")} lang={props.lang}>{ netTotal < 0 ? "Underskott" : "Överskott" }</th><th>{ netTotal } MW</th></tr>
+                  <tr><th data-t-key="common.generation.consumption" lang={props.lang}>Förbrukning</th><th>{ formatMW(loadTotal, props.lang) } MW</th></tr>
+                  <tr class={"table-"+ (netTotal < 0 ? "danger" : "success")}><th data-t-key={"common.generation."+(netTotal < 0 ? "deficit" : "excess")} lang={props.lang}>{ netTotal < 0 ? "Underskott" : "Överskott" }</th><th>{ formatMW(netTotal, props.lang) } MW</th></tr>
                 </tbody>
               </table>
               <p class="text-right mb-0 mr-15"><small><i><span data-t-key="common.generation.last_updated" lang={props.lang}>Senast uppdaterat</span>: { lastGenerationDateEnd?.toLocaleString() }</i></small></p>

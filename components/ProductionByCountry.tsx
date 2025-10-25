@@ -1,4 +1,4 @@
-import { CommonProps } from "utils/common.ts";
+import { CommonProps, formatMW } from "utils/common.ts";
 import { countries } from "config/countries.ts";
 import { DBResultSet, ExchangeRateResult } from "../backend/db/index.ts";
 import { applyExchangeRateSingle, processPrice } from "utils/price.ts";
@@ -47,9 +47,9 @@ export default function ProductionByCountry(props: ProductionByCountryProps) {
       <tr class="font-size-18 bg-dark">
         <td><a class="hyperlink text-white" href={"/"+country.id}><span  data-t-key={"common.countries."+country.id} lang={props.lang}>{country.name}</span></a></td>
         <td>{processPrice(applyExchangeRateSingle(resPrice as number,props.er,props.currency),props)}</td>
-        <td>{res?.generation_total}</td>
-        <td>{res?.load_total}</td>
-        <td><span class={"text-"+ ((res?.net_generation && (res.net_generation as number) < 0) ? "danger" : "success")}>{res?.net_generation}</span></td>
+  <td>{formatMW(res?.generation_total as number, props.lang)}</td>
+  <td>{formatMW(res?.load_total as number, props.lang)}</td>
+  <td><span class={"text-"+ ((res?.net_generation && (res.net_generation as number) < 0) ? "danger" : "success")}>{formatMW(res?.net_generation as number, props.lang)}</span></td>
         <td>
             { res?.primary_psr_group && (
               <>
@@ -68,9 +68,9 @@ export default function ProductionByCountry(props: ProductionByCountryProps) {
           <tr class="pl-20 font-size-14 bg-very-dark">
             <td><a class="hyperlink text-white" href={"/"+country.id+"/"+area.name}>{area.name} - {area.long}</a></td>
             <td>{processPrice(applyExchangeRateSingle(resArea as number,props.er,props.currency),props)}</td>
-            <td>{res?.generation_total}</td>
-            <td>{res?.load_total}</td>
-            <td><span class={"text-"+ ((res?.net_generation && (res.net_generation as number) < 0) ? "danger" : "success")}>{res?.net_generation}</span></td>
+            <td>{formatMW(res?.generation_total as number, props.lang)}</td>
+            <td>{formatMW(res?.load_total as number, props.lang)}</td>
+            <td><span class={"text-"+ ((res?.net_generation && (res.net_generation as number) < 0) ? "danger" : "success")}>{formatMW(res?.net_generation as number, props.lang)}</span></td>
             <td>
               { res?.primary_psr_group && (
                 <>

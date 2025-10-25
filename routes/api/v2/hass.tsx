@@ -1,6 +1,7 @@
 import { Handlers } from "$fresh/server.ts";
 import { GetDataDay, SpotApiRow } from "backend/db/index.ts";
 import { avgPrice, maxPrice, minPrice, nowPrice, processPrice } from "utils/price.ts";
+import { intervalForArea } from "utils/common.ts";
 
 export const handler: Handlers = {
   async GET(req, _ctx) {
@@ -13,8 +14,8 @@ export const handler: Handlers = {
       multiplier = parseFloat(url.searchParams.get("multiplier")?.trim() || "1"),
       factor = parseFloat(url.searchParams.get("factor")?.trim() || "1"),
       extra = parseFloat(url.searchParams.get("extra")?.trim().toUpperCase() || "0"),
-      decimals = parseInt(url.searchParams.get("decimals")?.trim().toUpperCase() || "5", 10),
-      interval = url.searchParams.get("interval")?.trim().toUpperCase() || "PT60M";
+  decimals = parseInt(url.searchParams.get("decimals")?.trim().toUpperCase() || "5", 10),
+  interval = url.searchParams.get("interval")?.trim().toUpperCase() || intervalForArea(area || "") || "PT60M";
 
     // Check parameters
     if (!area || !currency || isNaN(factor) || isNaN(extra) || isNaN(decimals) || !interval) {

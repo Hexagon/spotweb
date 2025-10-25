@@ -92,9 +92,21 @@ const parseInterval = (interval: string): number => {
   return 3600 * 1000;
 };
 
-const nowPrice = (rs: SpotApiRow[] | undefined, interval: string = "PT60M"): number | null => {
+const inferIntervalMs = (rs: SpotApiRow[]): number => {
+  if (!rs || rs.length < 2) return 3600 * 1000;
+  const times = rs.map((e) => Number(e.time)).sort((a, b) => a - b);
+  let minDiff = Infinity;
+  for (let i = 1; i < times.length; i++) {
+    const diff = times[i] - times[i - 1];
+    if (diff > 0 && diff < minDiff) minDiff = diff;
+  }
+  if (!isFinite(minDiff) || minDiff <= 0) return 3600 * 1000;
+  return minDiff;
+};
+
+const nowPrice = (rs: SpotApiRow[] | undefined, interval?: string): number | null => {
   if (rs && rs.length > 0) {
-    const intervalMs = parseInterval(interval);
+    const intervalMs = interval ? parseInterval(interval) : inferIntervalMs(rs);
     const currentTime = new Date().getTime();
     const result = rs.find((e) => {
       const entryTime = Number(e.time);
@@ -138,4 +150,4 @@ const applyExchangeRateSingle = (rs: number, ex: ExchangeRateResult, currency: s
   return converted;
 };
 
-export { applyExchangeRate, applyExchangeRateSingle, avgPrice, maxPrice, minPrice, nowPrice, processPrice };
+export { applyExchangeRate, applyExchangeRateSingle, avgPrice, maxPrice, minPrice, nowPrice, processPrice, parseInterval };

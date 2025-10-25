@@ -1,4 +1,5 @@
 import { SpotApiRow } from "backend/db/index.ts";
+import { countries } from "config/countries.ts";
 
 interface BasePageProps {
   page: string;
@@ -75,4 +76,85 @@ const langFromUrl = (url: URL) => {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export type { BasePageProps, ChartSeries, CommonProps };
-export { formatHhMm, generateUrl, langFromUrl, sleep };
+/**
+ * Generic number formatter using Intl.NumberFormat
+ * - Returns empty string for null/undefined/NaN
+ * - Defaults to 0 fraction digits
+ */
+const formatNumber = (
+  value: number | null | undefined,
+  options?: { decimals?: number; lang?: string },
+): string => {
+  if (value === null || value === undefined || Number.isNaN(value)) return "";
+  const decimals = options?.decimals ?? 0;
+  // Map our internal language to a locale tag; fallback to en-US
+  const lang = options?.lang ?? "en";
+  const locale =
+    lang === "sv" ? "sv-SE" :
+    lang === "nl" ? "nl-NL" :
+    lang === "no" ? "nb-NO" :
+    lang === "fi" ? "fi-FI" :
+    lang === "dk" ? "da-DK" :
+    lang === "es" ? "es-ES" :
+    lang === "fr" ? "fr-FR" :
+    lang === "de" ? "de-DE" :
+    "en-US";
+
+  try {
+    return new Intl.NumberFormat(locale, {
+      maximumFractionDigits: decimals,
+      minimumFractionDigits: decimals,
+    }).format(value);
+  } catch {
+    // Fallback without locale if ICU data is unavailable
+    return (decimals === 0 ? Math.round(value) : Number(value).toFixed(decimals)).toString();
+  }
+};
+
+/**
+ * Convenience formatter for MW values. Defaults to integer MW.
+ */
+const formatMW = (
+  value: number | null | undefined,
+  lang?: string,
+  decimals: number = 0,
+): string => formatNumber(value, { decimals, lang });
+
+export { formatHhMm, generateUrl, langFromUrl, sleep, formatNumber, formatMW };
+
+/**
+ * Guess interval by area/country identifier using config/countries mapping.
+ * Supports values like "SE1", "BZN|SE1", "CTA|SE", country ids (sv/de/...), and cty labels (e.g., "Sweden (SE)").
+ */
+const intervalForArea = (area: string | undefined): string | undefined => {
+  if (!area) return undefined;
+
+  const norm = area.toUpperCase();
+  // Handle codes with prefixes "BZN|", "IBA|", "CTA|"
+  const parts = norm.split("|");
+  const suffix = parts.length > 1 ? parts[1] : norm;
+
+  for (const country of countries) {
+    // Match against country-level identifiers
+    if (
+      norm === country.id.toUpperCase() ||
+      norm === (country.cty?.toUpperCase?.() || "") ||
+      norm === (country.cta?.toUpperCase?.() || "")
+    ) {
+      return country.interval;
+    }
+    // Match against area-level identifiers
+    for (const a of country.areas) {
+      if (
+        norm === a.name.toUpperCase() ||
+        norm === a.id.toUpperCase() ||
+        suffix === a.name.toUpperCase()
+      ) {
+        return country.interval;
+      }
+    }
+  }
+  return undefined;
+};
+
+export { intervalForArea };

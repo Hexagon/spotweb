@@ -9,7 +9,8 @@ const tm = new PupTelemetry();
 
 const database = await openDatabase({ int64: true });
 
-const UpdateLoadForArea = async (area: string) => {
+// queryArea = ENTSO-E domain used for API, dbArea = key stored in DB used by UI queries
+const UpdateLoadForArea = async (queryArea: string, dbArea: string) => {
   // Get current date
   const dateToday = new Date(),
     dateYesterday = new Date();
@@ -18,9 +19,9 @@ const UpdateLoadForArea = async (area: string) => {
   dateYesterday.setDate(dateYesterday.getDate() - 1);
 
   // Get data
-  log("info", `Getting load for ${area} ${dateToday.toLocaleString()}-${dateYesterday.toLocaleString()}`);
+  log("info", `Getting load for ${dbArea} via ${queryArea} ${dateToday.toLocaleString()}-${dateYesterday.toLocaleString()}`);
   try {
-    const result = await EntsoeLoad(area, dateYesterday, dateToday),
+    const result = await EntsoeLoad(queryArea, dateYesterday, dateToday),
       preparedQuery = database.prepare("INSERT INTO load (area, value, period, interval) VALUES (?,?,?,?)");
     // deno-lint-ignore no-explicit-any
     const runTransaction = database.transaction((data: any[]) => {
@@ -33,7 +34,7 @@ const UpdateLoadForArea = async (area: string) => {
       const transaction = [];
       for (const row of result) {
         transaction.push([
-          area,
+          dbArea,
           row.quantity,
           row.date.getTime(),
           row.interval,
@@ -41,7 +42,7 @@ const UpdateLoadForArea = async (area: string) => {
       }
       runTransaction(transaction);
     } else {
-      log("info", `No new data for ${area}`);
+      log("info", `No new data for ${dbArea}`);
     }
   } catch (e) {
     log("error", `Entsoe request failed ${e}`);
@@ -54,10 +55,12 @@ const HourlyConsumptionUpdate = async () => {
   try {
     // Get current month
     for (const country of countries) {
-      await UpdateLoadForArea(country.cty);
+      // Country-level: query with CTA code, store as country.cty so UI queries match
+      await UpdateLoadForArea(country.cta as string, country.cty);
       await sleep(2000);
       for (const area of country.areas) {
-        await UpdateLoadForArea(area.id);
+        // Area-level: use BZN/IBA id for both query and DB
+        await UpdateLoadForArea(area.id, area.id);
         await sleep(2000);
       }
     }

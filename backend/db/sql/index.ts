@@ -30,7 +30,7 @@ distinct_generation AS (
 generation_per_psr_group AS (
     SELECT 
         g.area,
-        MIN(g.period) as period,
+        MAX(g.period) as period,
         g.interval,
         psr.psr_group,
         g.consumption,
@@ -49,7 +49,7 @@ generation_per_psr_group AS (
 generation_total AS (
     SELECT 
         gen.area,
-        MIN(gen.period) as period,
+        MAX(gen.period) as period,
         gen.interval,
         SUM(gen.value) as sum_generation_value,
         MAX(gen.value) as max_generation_value,

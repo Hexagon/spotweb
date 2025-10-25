@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import Table from "components/Table.tsx";
-import { CommonProps, generateUrl } from "utils/common.ts";
+import { CommonProps, generateUrl, intervalForArea } from "utils/common.ts";
 import { applyExchangeRate } from "utils/price.ts";
 import { Area, countries } from "config/countries.ts";
 import { ExchangeRateResult } from "../backend/db/index.ts";
@@ -33,7 +33,8 @@ export default function FilteredTable(props: FilterProps) {
     setResultSet(undefined);
     // Fetch if input data is sane
     if (ensureLocalProps()) {
-      const url = generateUrl(area, new Date(Date.parse(startDate)), new Date(new Date(Date.parse(endDate))), "PT60M", period);
+  const interval = intervalForArea(area) || "PT60M";
+  const url = generateUrl(area, new Date(Date.parse(startDate)), new Date(new Date(Date.parse(endDate))), interval, period);
       if (url) {
         //setPermalink(generatePermalink("custom") as string);
         setPermalinkJson(url as string);
