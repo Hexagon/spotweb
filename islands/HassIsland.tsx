@@ -7,7 +7,7 @@ import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
 import InformationPane from "components/partials/InformationPane.tsx";
 import { preferences } from "config/preferences.js";
-import { CommonProps } from "utils/common.ts";
+import { CommonProps, intervalForArea } from "utils/common.ts";
 import { HassPageProps } from "routes/homeassistant.tsx";
 
 import MultiPlexAd from "components/ads/MultiPlexAd.tsx";
@@ -37,6 +37,9 @@ export default function HassIsland(props: PageProps<HassPageProps>) {
     priceFactor,
     ...props.data,
   };
+
+  const hassArea = "SE2";
+  const hassInterval = intervalForArea(hassArea) ?? "PT60M";
 
   useEffect(() => {
     const apexConf = 
@@ -96,7 +99,7 @@ export default function HassIsland(props: PageProps<HassPageProps>) {
               return [[new Date(),entity.attributes.avg_tomorrow]]`;
     const hassConf = `rest:
     - scan_interval: 180
-      resource: https://spot.56k.guru/api/v2/hass?currency=${currency}&area=SE2&multiplier=${multiplier}&extra=${extra}&factor=${factor}&decimals=${decimals}
+      resource: https://spot.56k.guru/api/v2/hass?currency=${currency}&area=${hassArea}&multiplier=${multiplier}&extra=${extra}&factor=${factor}&decimals=${decimals}&interval=${hassInterval}
       sensor:
         - name: "Spotprice Now"
           unique_id: "56k_spotprice_now"
@@ -120,7 +123,7 @@ export default function HassIsland(props: PageProps<HassPageProps>) {
     if (apexElm) apexElm.innerHTML = apexConf;
     if (hassElm) hassElm.innerHTML = hassConf;
     hljs.highlightAll();
-  },[currency,extra,factor,decimals])
+  }, [currency, extra, factor, decimals, hassInterval])
 
   return (
     <div>

@@ -17,9 +17,13 @@ import {
   sqlGroupBy,
   sqlLatestPricePerArea,
   sqlLatestPricePerCountry,
+  sqlLatestLoadInterval,
+  sqlLatestGenerationInterval,
   sqlLoad,
+  sqlLoadAnyInterval,
   sqlLoadAndGeneration,
   sqlRaw,
+  sqlGenerationAnyInterval,
 } from "backend/db/sql/index.ts";
 import { DataCache } from "utils/datacache.ts";
 import { log } from "utils/log.ts";
@@ -181,7 +185,16 @@ const GetLoadDay = async (area: string, fromDateIn: Date, toDateIn: Date, interv
     cacheLength = 1800;
 
   return await DataCache("load", parameterString, cacheLength, () => {
-    const data = database.prepare(sqlLoad).values(area, fromDate.getTime(), toDate.getTime(), interval);
+    let data = database.prepare(sqlLoad).values(area, fromDate.getTime(), toDate.getTime(), interval);
+    if (!data.length) {
+      const latestInterval = database.prepare(sqlLatestLoadInterval).value(area) as string | undefined;
+      if (latestInterval && latestInterval !== interval) {
+        data = database.prepare(sqlLoad).values(area, fromDate.getTime(), toDate.getTime(), latestInterval);
+      }
+    }
+    if (!data.length) {
+      data = database.prepare(sqlLoadAnyInterval).values(area, fromDate.getTime(), toDate.getTime());
+    }
     return { data };
   });
 };
@@ -254,7 +267,16 @@ const GetGenerationDay = async (area: string, fromDateIn: Date, toDateIn: Date, 
     cacheLength = 1800;
 
   return await DataCache("generation", parameterString, cacheLength, () => {
-    const data = database.prepare(sqlGeneration).values(area, fromDate.getTime(), toDate.getTime(), interval);
+    let data = database.prepare(sqlGeneration).values(area, fromDate.getTime(), toDate.getTime(), interval);
+    if (!data.length) {
+      const latestInterval = database.prepare(sqlLatestGenerationInterval).value(area) as string | undefined;
+      if (latestInterval && latestInterval !== interval) {
+        data = database.prepare(sqlGeneration).values(area, fromDate.getTime(), toDate.getTime(), latestInterval);
+      }
+    }
+    if (!data.length) {
+      data = database.prepare(sqlGenerationAnyInterval).values(area, fromDate.getTime(), toDate.getTime());
+    }
     return { data };
   });
 };

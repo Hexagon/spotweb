@@ -65,6 +65,25 @@ generation_total AS (
     GROUP BY
         gen.area,
         gen.interval
+),
+load_latest AS (
+    SELECT
+        area,
+        value,
+        period,
+        interval
+    FROM (
+        SELECT
+            [load].area,
+            [load].value,
+            [load].period,
+            [load].interval,
+            ROW_NUMBER() OVER (PARTITION BY [load].area ORDER BY [load].period DESC) as row_number
+        FROM
+            [load]
+    )
+    WHERE
+        row_number = 1
 )
 SELECT 
     generation_total.area,
@@ -73,15 +92,12 @@ SELECT
     generation_total.primary_psr_group,
     generation_total.max_generation_value as primary_psr_group_generation,
     generation_total.sum_generation_value as generation_total,
-    [load].value as load_total,
-    generation_total.sum_generation_value-[load].value as net_generation
+    load_latest.value as load_total,
+    generation_total.sum_generation_value-COALESCE(load_latest.value, 0) as net_generation
 FROM
     generation_total
-    LEFT JOIN [load]
-        ON 
-            generation_total.area = [load].area 
-            AND generation_total.period = [load].period 
-            AND generation_total.interval = [load].interval`;
+    LEFT JOIN load_latest
+        ON generation_total.area = load_latest.area`;
 const sqlLoadAndGeneration = `
     WITH 
     distinct_generation AS (
@@ -243,6 +259,28 @@ const sqlLoad = `
         AND period >= (?) 
         AND period < (?)
         AND interval = (?);`;
+const sqlLoadAnyInterval = `
+    SELECT 
+        DISTINCT
+        period,
+        value,
+        interval
+    FROM
+        load
+    WHERE 
+        area=(?) 
+        AND period >= (?) 
+        AND period < (?);`;
+const sqlLatestLoadInterval = `
+    SELECT
+        interval
+    FROM
+        load
+    WHERE
+        area=(?)
+    ORDER BY
+        period DESC
+    LIMIT 1;`;
 
 // ---- SQL related to generation --------------------------------------------------------------
 const sqlGeneration = `
@@ -278,6 +316,48 @@ distinct_generation AS (
             psr_group,
             interval,
             consumption;`;
+const sqlGenerationAnyInterval = `
+WITH 
+distinct_generation AS (
+    SELECT 
+        DISTINCT
+        generation.area,
+        generation.period,
+        generation.interval,
+        generation.consumption,
+        generation.value,
+        generation.psr
+    FROM
+        generation
+)
+        SELECT 
+            period,
+            psr_group,
+            SUM(CASE WHEN consumption THEN 0-value ELSE value END) as value,
+            consumption,
+            COUNT(distinct_generation.psr) as count_psr
+        FROM
+            distinct_generation
+            LEFT JOIN psr ON psr.psr = distinct_generation.psr
+        WHERE 
+            area=(?) 
+            AND period >= (?) 
+            AND period < (?)
+        GROUP BY
+            period,
+            psr_group,
+            interval,
+            consumption;`;
+const sqlLatestGenerationInterval = `
+    SELECT
+        interval
+    FROM
+        generation
+    WHERE
+        area=(?)
+    ORDER BY
+        period DESC
+    LIMIT 1;`;
 
 // ---- SQL related to exchange rates ---------------------------------------------------------
 const sqlExchangeRates = `
@@ -361,7 +441,11 @@ export {
   sqlGroupBy,
   sqlLatestPricePerArea,
   sqlLatestPricePerCountry,
+    sqlLatestLoadInterval,
+    sqlLatestGenerationInterval,
   sqlLoad,
+    sqlLoadAnyInterval,
   sqlLoadAndGeneration,
   sqlRaw,
+    sqlGenerationAnyInterval,
 };

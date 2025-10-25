@@ -9,6 +9,41 @@ const tm = new PupTelemetry();
 
 const database = await openDatabase({ int64: true });
 
+const AGGREGATION_LOOKBACK_HOURS = 48;
+
+const AggregateCountryGeneration = (country: typeof countries[number]) => {
+  if (!country?.areas?.length) return;
+
+  const cutoff = new Date();
+  cutoff.setHours(cutoff.getHours() - AGGREGATION_LOOKBACK_HOURS, 0, 0, 0);
+  const cutoffMs = cutoff.getTime();
+
+  const areaIds = country.areas.map((a) => a.id);
+  if (!areaIds.length) return;
+
+  const placeholders = areaIds.map(() => "?").join(", ");
+
+  log("info", `Aggregating production for ${country.name}`);
+
+  try {
+    const deleteStmt = database.prepare("DELETE FROM generation WHERE area = ? AND period >= ?");
+    deleteStmt.run(country.cty, cutoffMs);
+
+    const aggregateSql = `
+      INSERT INTO generation (area, value, period, psr, interval, consumption)
+      SELECT ?, SUM(value) as value, period, psr, interval, consumption
+      FROM generation
+      WHERE area IN (${placeholders}) AND period >= ?
+      GROUP BY period, psr, interval, consumption
+    `;
+
+    const insertStmt = database.prepare(aggregateSql);
+    insertStmt.run(country.cty, ...areaIds, cutoffMs);
+  } catch (e) {
+    log("error", `Failed aggregating production for ${country.name}: ${e}`);
+  }
+};
+
 // queryArea = ENTSO-E domain used for API, dbArea = key stored in DB used by UI queries
 const UpdateProductionForArea = async (queryArea: string, dbArea: string) => {
   // Get current date
@@ -67,6 +102,8 @@ const HourlyProductionUpdate = async () => {
         await UpdateProductionForArea(area.id, area.id);
         await sleep(2000);
       }
+
+      AggregateCountryGeneration(country);
     }
 
     // Delete duplicated
