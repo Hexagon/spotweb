@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { productionTodayChartOptions } from "config/charts/productiontoday.js";
-import { CommonProps } from "utils/common.ts";
+import { CommonProps, formatMW } from "utils/common.ts";
 import { DBResultSet } from "backend/db/index.ts";
 import { Area, Country } from "config/countries.ts";
 
@@ -32,8 +32,22 @@ export default function ProductionTodayChart(props: ProductionTodayProps) {
     );
 
     // deno-lint-ignore no-explicit-any
-    const chartOptions: any = { ...productionTodayChartOptions };
+    const chartOptions: any = {
+      ...productionTodayChartOptions,
+      yaxis: { ...productionTodayChartOptions.yaxis },
+      tooltip: { ...productionTodayChartOptions.tooltip },
+    };
     chartOptions.series = series;
+
+    chartOptions.yaxis.labels = {
+      formatter: (value: number) => formatMW(Number(value), props.lang),
+    };
+    chartOptions.tooltip.y = {
+      formatter: (value: number) => {
+        const formatted = formatMW(Number(value), props.lang);
+        return formatted ? `${formatted} MW` : "";
+      },
+    };
 
     // Inject annotations for now
     const hourNow = new Date();

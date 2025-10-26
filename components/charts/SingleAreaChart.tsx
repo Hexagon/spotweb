@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { areaViewChartOptions } from "config/charts/areaview.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
-import { ChartSeries, CommonProps, formatHhMm } from "utils/common.ts";
+import { ChartSeries, CommonProps } from "utils/common.ts";
 import { DataArea } from "config/countries.ts";
 import { ExchangeRateResult } from "backend/db/index.ts";
 import { locale_kit } from "localekit_fresh";
@@ -21,11 +21,16 @@ export default function SingleAreaChart(props: SingleAreaChartProps) {
   const renderChart = (seriesInput: ChartSeries[], props: SingleAreaChartProps) => {
     // Inject series into chart configuration
     const series = [];
+    const baseStart = Number(seriesInput[0]?.data?.[0]?.time ?? Date.now());
     for (const s of seriesInput) {
+      const seriesStart = Number(s.data[0]?.time ?? baseStart);
       series.push(
         {
           data: s.data.map((e) => {
-            return { x: formatHhMm(e.time), y: processPrice(e.price, props) };
+            const processed = processPrice(e.price, props);
+            const value = processed === "-" ? null : Number(processed);
+            const normalizedTime = baseStart + (Number(e.time) - seriesStart);
+            return { x: normalizedTime, y: value };
           }),
           name: s.name,
         },
@@ -38,12 +43,12 @@ export default function SingleAreaChart(props: SingleAreaChartProps) {
 
     // Inject annotations for now
     const hourNow = new Date();
-    hourNow.setMinutes(0);
+    hourNow.setMinutes(0, 0, 0);
 
     chartOptions.annotations = {
       xaxis: [
         {
-          x: formatHhMm(hourNow),
+          x: hourNow.getTime(),
           seriesIndex: 0,
           borderColor: "#ff7Da0",
           label: {

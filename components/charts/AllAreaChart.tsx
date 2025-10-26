@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { liveViewChartOptions } from "config/charts/liveview.js";
 import { applyExchangeRate, processPrice } from "utils/price.ts";
-import { ChartSeries, CommonProps, formatHhMm } from "utils/common.ts";
+import { ChartSeries, CommonProps } from "utils/common.ts";
 import { DataArea } from "config/countries.ts";
 import { ExchangeRateResult } from "backend/db/index.ts";
 
@@ -26,7 +26,9 @@ export default function AllAreaChart(props: AllAreaChartProps) {
       series.push(
         {
           data: s.data.map((e) => {
-            return { x: formatHhMm(e.time), y: processPrice(e.price, props) };
+            const processed = processPrice(e.price, props);
+            const value = processed === "-" ? null : Number(processed);
+            return { x: Number(e.time), y: value };
           }),
           name: s.name,
         },
@@ -40,12 +42,12 @@ export default function AllAreaChart(props: AllAreaChartProps) {
     // Inject annotations for now
     if (props.title === "today") {
       const hourNow = new Date();
-      hourNow.setMinutes(0);
+      hourNow.setMinutes(0, 0, 0);
 
       chartOptions.annotations = {
         xaxis: [
           {
-            x: formatHhMm(hourNow),
+            x: hourNow.getTime(),
             seriesIndex: 0,
             borderColor: "#ff7Da0",
             label: {
@@ -90,7 +92,7 @@ export default function AllAreaChart(props: AllAreaChartProps) {
     <div class={`col-lg-${props.cols} m-0 p-0`}>
       <div class="mw-full m-0 p-0 mr-20 mt-20">
         <div class="card p-0 m-0">
-          <div class={"px-card py-10 m-0 rounded-top"}>
+          <div class="px-card py-10 m-0 rounded-top">
             <h2 class="card-title font-size-18 m-0 text-center">
               <span data-t-key={"common.overview.all_areas_" + props.title} lang={props.lang}>All areas</span>
             </h2>

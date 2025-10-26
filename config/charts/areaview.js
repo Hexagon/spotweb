@@ -15,8 +15,12 @@ const areaViewChartOptions = Object.assign(structuredClone(baseChart), {
     },
   },
   xaxis: {
-    type: "category",
+    type: "datetime",
     tickAmount: 6,
+    labels: {
+      datetimeUTC: false,
+      format: "HH:mm",
+    },
   },
 });
 

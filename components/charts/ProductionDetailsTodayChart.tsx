@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { productionDetailsTodayChartOptions } from "config/charts/productiondetailstoday.js";
-import { CommonProps } from "utils/common.ts";
+import { CommonProps, formatMW } from "utils/common.ts";
 import { DBResultSet } from "backend/db/index.ts";
 import { Area, Country } from "config/countries.ts";
 import { locale_kit } from "localekit_fresh";
@@ -36,8 +36,22 @@ export default function ProductionDetailsTodayChart(props: ProductionDetailsToda
     }
 
     // deno-lint-ignore no-explicit-any
-    const chartOptions: any = { ...productionDetailsTodayChartOptions };
+    const chartOptions: any = {
+      ...productionDetailsTodayChartOptions,
+      yaxis: { ...productionDetailsTodayChartOptions.yaxis },
+      tooltip: { ...productionDetailsTodayChartOptions.tooltip },
+    };
     chartOptions.series = series;
+
+    chartOptions.yaxis.labels = {
+      formatter: (value: number) => formatMW(Number(value), props.lang),
+    };
+    chartOptions.tooltip.y = {
+      formatter: (value: number) => {
+        const formatted = formatMW(Number(value), props.lang);
+        return formatted ? `${formatted} MW` : "";
+      },
+    };
 
     // Inject annotations for now
     const hourNow = new Date();
@@ -92,13 +106,13 @@ export default function ProductionDetailsTodayChart(props: ProductionDetailsToda
     <div class={`col-lg-${props.cols} m-0 p-0`}>
       <div class="mw-full m-0 p-0 mr-20 mt-20">
         <div class="card p-0 m-0">
-          <div class={"px-card py-10 m-0 rounded-top"}>
+          <div class="px-card py-10 m-0 rounded-top">
             <h2 class="card-title font-size-18 m-0 text-center">
               <span data-t-key="common.generation.production" lang={props.lang}>Aktuell produktion och last</span>
               &nbsp;-&nbsp;
               {props.area ? props.area.name : props.country?.name}
               &nbsp;-&nbsp;
-              <span data-t-key={"common.chart.yesterday_and_today"} lang={props.lang}>Yesterday and today</span>
+              <span data-t-key="common.chart.yesterday_and_today" lang={props.lang}>Yesterday and today</span>
             </h2>
           </div>
           <div class="content px-card m-0 p-0 bg-very-dark">
