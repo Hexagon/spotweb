@@ -1,5 +1,5 @@
 // routes/_middleware.ts
-import { MiddlewareHandlerContext } from "$fresh/server.ts";
+import { MiddlewareHandlerContext } from "fresh/server";
 import { langFromUrl } from "utils/common.ts";
 
 export const handler = [

@@ -1,4 +1,4 @@
-import { PageProps } from "$fresh/server.ts";
+import { PageProps } from "fresh/server";
 import { useCallback, useState, useEffect } from "preact/hooks";
 
 import { preferences } from "config/preferences.js";

@@ -1,4 +1,4 @@
-import { Handlers } from "$fresh/server.ts";
+import { Handlers } from "fresh/server";
 import { GetDataDay, SpotApiRow } from "backend/db/index.ts";
 import { avgPrice, maxPrice, minPrice, nowPrice, processPrice } from "utils/price.ts";
 import { intervalForArea } from "utils/common.ts";

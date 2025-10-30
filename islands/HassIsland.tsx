@@ -1,6 +1,6 @@
 // @deno-types="../types/hljs.d.ts"
 
-import { PageProps } from "$fresh/server.ts";
+import { PageProps } from "fresh/server";
 import { useEffect, useState } from "preact/hooks";
 
 import Navbar from "components/layout/NavBar.tsx";

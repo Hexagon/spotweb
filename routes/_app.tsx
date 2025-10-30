@@ -1,4 +1,4 @@
-import { AppProps } from "$fresh/server.ts";
+import { AppProps } from "fresh/server";
 
 export default function App({ Component }: AppProps) {
   return (

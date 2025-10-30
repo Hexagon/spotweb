@@ -1,4 +1,4 @@
-import { Handlers } from "$fresh/server.ts";
+import { Handlers } from "fresh/server";
 import { GetSpotprice } from "backend/db/index.ts";
 import { intervalForArea } from "utils/common.ts";
 import { sqlGroupBy } from "backend/db/sql/index.ts";

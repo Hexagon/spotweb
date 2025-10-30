@@ -2,7 +2,7 @@ import { PupTelemetry } from "@pup/telemetry";
 import languagePlugin from "localekit_fresh";
 import languageConfig from "config/translate.config.ts";
 
-import { start } from "$fresh/server.ts";
+import { start } from "fresh/server";
 import manifest from "./fresh.gen.ts";
 import { langFromUrl } from "utils/common.ts";
 import { log, setLevel } from "./utils/log.ts";

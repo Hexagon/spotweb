@@ -1,4 +1,4 @@
-import { Handlers } from "$fresh/server.ts";
+import { Handlers } from "fresh/server";
 import { SitemapContext } from "fresh_seo";
 import { countries } from "config/countries.ts";
 import manifest from "../fresh.gen.ts";

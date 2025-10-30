@@ -1,4 +1,4 @@
-import { Handlers, PageProps } from "$fresh/server.ts";
+import { Handlers, PageProps } from "fresh/server";
 import SwHead from "components/layout/SwHead.tsx";
 import CountryIsland from "islands/CountryIsland.tsx";
 import {

@@ -1,6 +1,6 @@
 import FilteredTable from "components/FilteredTable.tsx";
 import { useCallback, useState } from "preact/hooks";
-import { PageProps } from "$fresh/server.ts";
+import { PageProps } from "fresh/server";
 import Navbar from "components/layout/NavBar.tsx";
 import Sidebar from "components/layout/Sidebar.tsx";
 import { preferences } from "config/preferences.js";

@@ -21,7 +21,7 @@ import * as $CustomIsland from "./islands/CustomIsland.tsx";
 import * as $HassIsland from "./islands/HassIsland.tsx";
 import * as $HelpIsland from "./islands/HelpIsland.tsx";
 import * as $IndexIsland from "./islands/IndexIsland.tsx";
-import { type Manifest } from "$fresh/server.ts";
+import { type Manifest } from "fresh/server";
 
 const manifest = {
   routes: {

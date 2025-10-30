@@ -1,4 +1,4 @@
-import { PageProps } from "$fresh/server.ts";
+import { PageProps } from "fresh/server";
 import { useCallback, useEffect, useState } from "preact/hooks";
 
 import { Cron } from "croner";

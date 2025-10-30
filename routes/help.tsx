@@ -1,5 +1,5 @@
 import SwHead from "components/layout/SwHead.tsx";
-import { Handlers, PageProps } from "$fresh/server.ts";
+import { Handlers, PageProps } from "fresh/server";
 import HelpIsland from "islands/HelpIsland.tsx";
 import { BasePageProps } from "utils/common.ts";
 import { ExchangeRateResult, GetExchangeRates } from "../backend/db/index.ts";
