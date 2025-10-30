@@ -1,7 +1,7 @@
 import { PageProps } from "$fresh/server.ts";
 import { useCallback, useEffect, useState } from "preact/hooks";
 
-import Cron from "croner";
+import { Cron } from "croner";
 
 import { CommonProps } from "utils/common.ts";
 import { CountryPageProps } from "routes/[country]/index.tsx";
