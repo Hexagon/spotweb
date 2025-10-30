@@ -1,4 +1,5 @@
 {
+  "nodeModulesDir": "auto",
   "tasks": {
     "build": "deno bundle backend/scheduler/jobs/daily.currencyupdate.ts dist/daily.currencyupdate.ts && deno bundle backend/scheduler/jobs/daily.outageupdate.ts dist/daily.outageupdate.ts && deno bundle backend/scheduler/jobs/daily.priceupdate.ts dist/daily.priceupdate.ts && deno bundle backend/scheduler/jobs/hourly.consumptionupdate.ts dist/hourly.consumptionupdate.ts && deno bundle backend/scheduler/jobs/hourly.productionupdate.ts dist/hourly.productionupdate.ts",
     "dev": "deno run -A --unstable-ffi --watch=static/,routes/ dev.ts --no-schedules",
@@ -6,7 +7,7 @@
     "precommit": "deno fmt --check && deno lint && deno check main.ts && deno test",
     "prod": "deno run -A --unstable-ffi main.ts",
     "update-deps": "deno run --allow-read=. --allow-write=. --allow-net https://deno.land/x/udd/main.ts --dry-run deno.json",
-    "update-fresh": "deno run -A -r https://fresh.deno.dev/update .",
+    "update-fresh": "deno run -A -r jsr:@fresh/update .",
     "preview": "deno run -A main.ts"
   },
   "fmt": { "exclude": ["components/", "islands/"], "lineWidth": 150 },
