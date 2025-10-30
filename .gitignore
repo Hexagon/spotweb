@@ -12,3 +12,6 @@ pup.jsonc.ipc
 
 # Fresh build directory
 _fresh/
+
+# Node modules (npm packages)
+node_modules/
