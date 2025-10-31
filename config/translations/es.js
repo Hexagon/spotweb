@@ -40,7 +40,7 @@ const es = {
     "warning": {
       "actual_price": "Precio actual de la electricidad",
       "actual_price_text":
-        "Actualmente tiene activado el precio de la electricidad, pero no ha realizado ninguna configuración para impuestos y tarifas. Haga clic en el engranaje y complete el Factor (por ejemplo, 1,25 para el 25 % de IVA) y su tarifa (por ejemplo, 0,095 para 9,5 öre/kWh antes del IVA )",
+        "Actualmente tiene activado el precio de la electricidad, pero no ha realizado ninguna configuración para impuestos y tarifas. Haga clic en el engranaje y complete el Factor (por ejemplo, 1,25 para el 25 % de IVA) y su tarifa (por ejemplo, 0,095 para 9,5 céntimos/kWh antes del IVA)",
     },
     "information": {
       "title": "Información y Condiciones de Uso",
