@@ -40,7 +40,7 @@ const de = {
     "warning": {
       "actual_price": "Aktueller Strompreis",
       "actual_price_text":
-        "Sie haben den 'eigentlichen' Preis aktiviert, aber noch keine Anpassungen bei Steuern und Gebühren vorgenommen. Klicken Sie auf das Zahnrad und geben Sie dort den Faktor für den Steuerprozentsatz ein (z.B. 1,25 für 25% VAT) und Ihre Gebühren (z.B. 0,095 für 9,50€/kWh, ohne VAT)",
+        "Sie haben den 'eigentlichen' Preis aktiviert, aber noch keine Anpassungen bei Steuern und Gebühren vorgenommen. Klicken Sie auf das Zahnrad und geben Sie dort den Faktor für den Steuerprozentsatz ein (z.B. 1,25 für 25% VAT) und Ihre Gebühren (z.B. 0,095 für 9,5 Cent/kWh, ohne VAT)",
     },
     "information": {
       "title": "Informationen und Nutzungsbedingungen",

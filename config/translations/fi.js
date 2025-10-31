@@ -40,7 +40,7 @@ const fi = {
     "warning": {
       "actual_price": "Sähkön todellinen hinta",
       "actual_price_text":
-        "Olet aktivoinut ´Sähkön todellinen hinta´, mutta et ole määrittänyt vielä `verot´ ja `maksut´. Napsauta oikea kohta valikosta ja täytä kerroin verolle (esim. 1,25 => 25 % ALV:lle) ja muut maksut (esim. 0,012 => 0,012 EUR/kWh ennen ALV).",
+        "Olet aktivoinut ´Sähkön todellinen hinta´, mutta et ole määrittänyt vielä `verot´ ja `maksut´. Napsauta oikea kohta valikosta ja täytä kerroin verolle (esim. 1,25 tarkoittaa 25 % ALV:lle) ja muut maksut (esim. 0,012 tarkoittaa 1,2 senttiä/kWh ennen ALV).",
     },
     "information": {
       "title": "Tiedot ja palvelun käyttöehdot.",

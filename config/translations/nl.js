@@ -40,7 +40,7 @@ const nl = {
     "warning": {
       "actual_price": "Actuele prijs",
       "actual_price_text":
-        "Je heb 'actuele prijs' geactiveerd, maar je hebt nog geen wijzigingen aangebracht aan de BTW en kosten. Klik op het instellingen-icoon en geef een Factor in (vb. 1.06 voor 6% BTW) en jouw kosten (vb. 0.004 voor 4 EUR/MWh, voor BTW).",
+        "Je heb 'actuele prijs' geactiveerd, maar je hebt nog geen wijzigingen aangebracht aan de BTW en kosten. Klik op het instellingen-icoon en geef een Factor in (vb. 1.06 voor 6% BTW) en jouw kosten (vb. 0.004 voor 0.4 cent/kWh, voor BTW).",
     },
     "information": {
       "title": "Informatien en gebruiksvoorwaarden",
@@ -82,17 +82,17 @@ const nl = {
       "multiplier": "Vermenigvuldiger",
     },
     "countries": {
-      "sv": "Sweden",
-      "no": "Norway",
+      "sv": "Zweden",
+      "no": "Noorwegen",
       "fi": "Finland",
-      "dk": "Denmark",
-      "de": "Germany",
-      "at": "Austria",
-      "be": "Belgium",
-      "ch": "Schweiz",
-      "es": "Spain",
-      "fr": "France",
-      "pl": "Poland",
+      "dk": "Denemarken",
+      "de": "Duitsland",
+      "at": "Oostenrijk",
+      "be": "België",
+      "ch": "Zwitserland",
+      "es": "Spanje",
+      "fr": "Frankrijk",
+      "pl": "Polen",
     },
     "chart": {
       "today_and_tomorrow": "Vandaag en morgen",

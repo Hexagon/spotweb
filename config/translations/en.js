@@ -40,7 +40,7 @@ const en = {
     "warning": {
       "actual_price": "Actual price",
       "actual_price_text":
-        "You have activated 'actual price', but have not made any customizations to taxes and fees. Click the settings-icon and enter Factor (e.g. 1.25 for 25% VAT) and your fees (e.g. 0.095 för 9.5 EUR/kWh, before VAT).",
+        "You have activated 'actual price', but have not made any customizations to taxes and fees. Click the settings-icon and enter Factor (e.g. 1.25 for 25% VAT) and your fees (e.g. 0.095 for 9.5 cents/kWh, before VAT).",
     },
     "information": {
       "title": "Information and Terms of Use",
