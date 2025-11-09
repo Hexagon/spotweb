@@ -14,16 +14,16 @@ import {
   sqlExchangeRates,
   sqlFutureOutagesPerArea,
   sqlGeneration,
+  sqlGenerationAnyInterval,
   sqlGroupBy,
+  sqlLatestGenerationInterval,
+  sqlLatestLoadInterval,
   sqlLatestPricePerArea,
   sqlLatestPricePerCountry,
-  sqlLatestLoadInterval,
-  sqlLatestGenerationInterval,
   sqlLoad,
-  sqlLoadAnyInterval,
   sqlLoadAndGeneration,
+  sqlLoadAnyInterval,
   sqlRaw,
-  sqlGenerationAnyInterval,
 } from "backend/db/sql/index.ts";
 import { DataCache } from "utils/datacache.ts";
 import { log } from "utils/log.ts";

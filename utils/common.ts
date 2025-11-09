@@ -89,16 +89,23 @@ const formatNumber = (
   const decimals = options?.decimals ?? 0;
   // Map our internal language to a locale tag; fallback to en-US
   const lang = options?.lang ?? "en";
-  const locale =
-    lang === "sv" ? "sv-SE" :
-    lang === "nl" ? "nl-NL" :
-    lang === "no" ? "nb-NO" :
-    lang === "fi" ? "fi-FI" :
-    lang === "dk" ? "da-DK" :
-    lang === "es" ? "es-ES" :
-    lang === "fr" ? "fr-FR" :
-    lang === "de" ? "de-DE" :
-    "en-US";
+  const locale = lang === "sv"
+    ? "sv-SE"
+    : lang === "nl"
+    ? "nl-NL"
+    : lang === "no"
+    ? "nb-NO"
+    : lang === "fi"
+    ? "fi-FI"
+    : lang === "dk"
+    ? "da-DK"
+    : lang === "es"
+    ? "es-ES"
+    : lang === "fr"
+    ? "fr-FR"
+    : lang === "de"
+    ? "de-DE"
+    : "en-US";
 
   try {
     return new Intl.NumberFormat(locale, {
@@ -120,7 +127,7 @@ const formatMW = (
   decimals: number = 0,
 ): string => formatNumber(value, { decimals, lang });
 
-export { formatHhMm, generateUrl, langFromUrl, sleep, formatNumber, formatMW };
+export { formatHhMm, formatMW, formatNumber, generateUrl, langFromUrl, sleep };
 
 /**
  * Guess interval by area/country identifier using config/countries mapping.
