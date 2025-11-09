@@ -1,86 +1,86 @@
 .bg-color-1 {
-    background-color: rgba(224, 255, 24, 0.3) !important;
+  background-color: rgba(224, 255, 24, 0.3) !important;
 }
 .bg-color-2 {
-    background-color: rgba(24, 255, 124, 0.3) !important;
+  background-color: rgba(24, 255, 124, 0.3) !important;
 }
 .bg-color-3 {
-    background-color: rgb(24 144 255 / 30%) !important;
+  background-color: rgb(24 144 255 / 30%) !important;
 }
 .bg-color-4 {
-    background-color: rgba(232, 24, 255, 0.3) !important;
+  background-color: rgba(232, 24, 255, 0.3) !important;
 }
 .bg-color-5 {
-    background-color: rgba(224, 24, 71, 0.3) !important;
+  background-color: rgba(224, 24, 71, 0.3) !important;
 }
 .link-color-1 {
-    color: rgba(224, 255, 24, 1) !important;
+  color: rgba(224, 255, 24, 1) !important;
 }
 .link-color-2 {
-    color: rgba(24, 255, 124, 1) !important;
+  color: rgba(24, 255, 124, 1) !important;
 }
 .link-color-3 {
-    color: rgb(24, 144, 255, 1) !important;
+  color: rgb(24, 144, 255, 1) !important;
 }
 .link-color-4 {
-    color: rgba(232, 24, 255, 1) !important;
+  color: rgba(232, 24, 255, 1) !important;
 }
 .link-color-5 {
-    color: rgba(224, 24, 71, 1) !important;
+  color: rgba(224, 24, 71, 1) !important;
 }
 .extra-pad {
-    padding: 5px !important;
+  padding: 5px !important;
 }
 .hidden {
-    display: none !important;
+  display: none !important;
 }
 .price-display {
-    font-size: 6.4rem !important;
-    color:antiquewhite;
-    line-height: 6.4rem;
-    font-family: 'Seven Segment', sans-serif;
+  font-size: 6.4rem !important;
+  color: antiquewhite;
+  line-height: 6.4rem;
+  font-family: "Seven Segment", sans-serif;
 }
 .price-display-48 {
-    font-size: 4.8rem !important;
-    color:antiquewhite;
-    line-height: 4.8rem;
-    font-family: 'Seven Segment', sans-serif;
+  font-size: 4.8rem !important;
+  color: antiquewhite;
+  line-height: 4.8rem;
+  font-family: "Seven Segment", sans-serif;
 }
 .price-display-24 {
-    font-size: 2.4rem !important;
-    color:antiquewhite;
-    line-height: 2.4rem;
+  font-size: 2.4rem !important;
+  color: antiquewhite;
+  line-height: 2.4rem;
 }
 /* Halfmoon customizations */
 .on-this-page-nav {
-    position: fixed;
-    margin-right: 2rem;
-    z-index: 20;
-    background-color: #ffffff;
-    padding: 0.5rem;
-    border-radius: 0.4rem;
+  position: fixed;
+  margin-right: 2rem;
+  z-index: 20;
+  background-color: #ffffff;
+  padding: 0.5rem;
+  border-radius: 0.4rem;
 }
 
 /* highlight.js customization */
 .hljs {
-    background-color: #111213 !important;
-    font-size: 1.1rem;
+  background-color: #111213 !important;
+  font-size: 1.1rem;
 }
 
 .hljs::-webkit-scrollbar {
-    width: 14px;
+  width: 14px;
 }
 .hljs::-webkit-scrollbar-track {
-    box-shadow: inset 0 0 5px #212223;
-    border-radius: 2px;
+  box-shadow: inset 0 0 5px #212223;
+  border-radius: 2px;
 }
 .hljs::-webkit-scrollbar-thumb {
-    background: #333435;
-    border-radius: 4px;
-    padding:3px;
+  background: #333435;
+  border-radius: 4px;
+  padding: 3px;
 }
 
 /* Ads */
 .display-height {
-    max-height: 70px;
+  max-height: 70px;
 }

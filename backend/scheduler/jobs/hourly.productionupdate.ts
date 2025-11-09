@@ -120,10 +120,6 @@ const HourlyProductionUpdate = async () => {
 
   tm.emit("spotweb-main", "clear_cache", { cache: "load" });
   tm.emit("spotweb-main", "clear_cache", { cache: "generation" });
-  //tm.emit("spotweb-main-2", "clear_cache", { cache: "load" });
-  //tm.emit("spotweb-main-2", "clear_cache", { cache: "generation" });
-  //tm.emit("spotweb-main-3", "clear_cache", { cache: "load" });
-  //tm.emit("spotweb-main-3", "clear_cache", { cache: "generation" });
 
   database.close();
 
