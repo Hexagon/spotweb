@@ -75,17 +75,10 @@ const HourlyConsumptionUpdate = async () => {
     log("error", `Error occured while updating data, skipping. Error: ${e}`);
   }
 
-  // Clear memory cache
-  log("info", `Database changed, clearing cache, realm load.`);
-
   log("info", `Scheduled data update done`);
 
   tm.emit("spotweb-main", "clear_cache", { cache: "load" });
   tm.emit("spotweb-main", "clear_cache", { cache: "generation" });
-  //tm.emit("spotweb-main-2", "clear_cache", { cache: "load" });
-  //tm.emit("spotweb-main-2", "clear_cache", { cache: "generation" });
-  //tm.emit("spotweb-main-3", "clear_cache", { cache: "load" });
-  //tm.emit("spotweb-main-3", "clear_cache", { cache: "generation" });
 
   database.close();
 
