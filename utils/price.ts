@@ -78,16 +78,16 @@ const parseInterval = (interval: string): number => {
     // Default to 1 hour if parsing fails
     return 3600 * 1000;
   }
-  
+
   const value = parseInt(match[1]);
   const unit = match[2];
-  
-  if (unit === 'M') {
+
+  if (unit === "M") {
     return value * 60 * 1000; // minutes to milliseconds
-  } else if (unit === 'H') {
+  } else if (unit === "H") {
     return value * 3600 * 1000; // hours to milliseconds
   }
-  
+
   // Default to 1 hour if unit is unknown
   return 3600 * 1000;
 };
@@ -150,4 +150,4 @@ const applyExchangeRateSingle = (rs: number, ex: ExchangeRateResult, currency: s
   return converted;
 };
 
-export { applyExchangeRate, applyExchangeRateSingle, avgPrice, maxPrice, minPrice, nowPrice, processPrice, parseInterval };
+export { applyExchangeRate, applyExchangeRateSingle, avgPrice, maxPrice, minPrice, nowPrice, parseInterval, processPrice };

@@ -26,7 +26,7 @@
     "croner": "jsr:@hexagon/croner@^9.1.0",
     "entsoe_api_client": "https://deno.land/x/entsoe_api_client@1.0.4/mod.ts",
     "fresh_seo": "https://deno.land/x/fresh_seo@1.0.1/mod.ts",
-  "https://deno.land/x/glob_filter@1.0.0/mod.ts": "https://deno.land/x/glob_filter@1.0.1/mod.ts",
+    "https://deno.land/x/glob_filter@1.0.0/mod.ts": "https://deno.land/x/glob_filter@1.0.1/mod.ts",
     "islands/": "./islands/",
     "localekit_fresh": "https://deno.land/x/localekit_fresh@0.5.2/mod.ts",
     "preact": "https://esm.sh/preact@10.19.6",
