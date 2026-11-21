@@ -156,6 +156,7 @@ pub struct AppInner {
     pub cfg: Config,
     pub job_locks: jobs::JobLocks,
     pub i18n: i18n::I18n,
+    pub http_stats: web::metrics::HttpStats,
 }
 
 impl std::ops::Deref for App {
@@ -177,6 +178,7 @@ impl App {
             cfg,
             job_locks: jobs::JobLocks::new(),
             i18n: i18n::I18n::load()?,
+            http_stats: web::metrics::HttpStats::from_env(),
         })))
     }
 }
@@ -244,6 +246,7 @@ async fn serve(app: App, args: ServeArgs) -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .with_context(|| format!("binding {addr}"))?;
+    web::metrics::spawn_summary(app.clone());
     tracing::info!(%addr, db = %app.db.path().display(), version = env!("CARGO_PKG_VERSION"), "spotweb listening");
     axum::serve(listener, web::router(app))
         .with_graceful_shutdown(shutdown_signal())

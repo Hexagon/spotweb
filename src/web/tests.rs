@@ -578,3 +578,37 @@ async fn grouped_split_at_current_group_matches_unsplit() {
         assert_eq!(*got, expected, "{g:?}");
     }
 }
+
+#[tokio::test]
+async fn http_stats_per_route() {
+    let app = test_app();
+    let d = today(&chrono_tz::Europe::Stockholm)
+        .format("%Y-%m-%d")
+        .to_string();
+    let (s, _, _) = get(
+        &app,
+        &format!("/api/v2/spot?period=hourly&area=SE1&startDate={d}&endDate={d}"),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    // 1.x compatible: bad parameters are answered with 500
+    get(&app, "/api/v2/spot?period=bogus&area=SE1").await;
+    get(&app, "/healthz").await;
+    get(&app, "/no/such/page/here").await;
+    get(&app, "/robots.txt").await;
+    let (s, body, _) = get(&app, "/api/v2/status").await;
+    assert_eq!(s, StatusCode::OK);
+    let v: Value = serde_json::from_str(&body).unwrap();
+    let routes = &v["http"]["routes"];
+    assert_eq!(routes["/api/v2/spot"]["requests"], 2, "{routes}");
+    assert_eq!(routes["/api/v2/spot"]["5xx"], 1, "{routes}");
+    assert_eq!(routes["/healthz"]["requests"], 1, "{routes}");
+    assert_eq!(routes["not found"]["4xx"], 1, "{routes}");
+    assert!(routes["/api/v2/spot"]["p95_ms"].is_u64(), "{routes}");
+    // The status request itself is counted once its response is done
+    assert!(routes.get("/api/v2/status").is_none());
+    assert_eq!(v["http"]["total"]["requests"], 5);
+    assert_eq!(routes["/robots.txt"]["requests"], 1, "{routes}");
+    get(&app, "/manifest.json").await;
+    assert_eq!(app.http_stats.to_json()["routes"]["static"]["requests"], 1);
+}

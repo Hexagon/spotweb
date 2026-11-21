@@ -2,6 +2,7 @@
 
 mod api;
 pub mod data;
+pub mod metrics;
 mod pages;
 
 use std::sync::Arc;
@@ -194,6 +195,11 @@ pub fn static_file(path: &str, headers: &HeaderMap) -> Option<Response> {
     )
 }
 
+/// Whether `path` is one of the embedded static files
+pub fn is_static(path: &str) -> bool {
+    Static::get(path.trim_start_matches('/')).is_some()
+}
+
 async fn static_handler(req: Request) -> Response {
     static_file(req.uri().path(), req.headers())
         .unwrap_or_else(|| StatusCode::NOT_FOUND.into_response())
@@ -293,6 +299,10 @@ pub fn router(app: App) -> Router {
         .layer(TimeoutLayer::with_status_code(
             StatusCode::REQUEST_TIMEOUT,
             Duration::from_secs(30),
+        ))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            metrics::track,
         ))
         .layer(TraceLayer::new_for_http())
         .with_state(state)

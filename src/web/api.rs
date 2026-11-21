@@ -409,6 +409,7 @@ pub async fn status(State(st): State<WebState>) -> Response {
                 "problems": health.problems,
                 "data": fresh,
                 "jobs": jobs,
+                "http": st.app.http_stats.to_json(),
             }),
             0,
         ),

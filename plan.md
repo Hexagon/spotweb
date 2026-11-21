@@ -47,8 +47,8 @@ Varje punkt är tänkt att bli en egen PR.
 
 ## P2 – Drift och kvalitet
 
-13. **Statistik för HTTP-anrop.** Åtkomstlogg (avstängningsbar) eller sammanfattning per minut: antal anrop, svarstider
-    (p50/p95) och 4xx/5xx per route. Kan också visas i `/api/v2/status`.
+13. ✅ ~~**Statistik för HTTP-anrop.** Åtkomstlogg (avstängningsbar) eller sammanfattning per minut: antal anrop, svarstider
+    (p50/p95) och 4xx/5xx per route. Kan också visas i `/api/v2/status`.~~
 14. ✅ ~~**Backup till en annan maskin.** Dokumentera ett exempel med restic eller rclone i `docs/deployment.md`, och lägg
     gärna till ett `ExecStartPost` i backuptjänsten.~~
 15. Delvis klart: ~~**Beroenden och leveranskedja.** Dependabot (cargo och actions), `cargo audit`/`cargo deny` i CI~~.
@@ -119,6 +119,11 @@ Varje punkt är tänkt att bli en egen PR.
 - Punkt 19: svag `ETag` på alla lyckade GET under `/api/` och `304` vid `If-None-Match`. För `/api/v2/hass` räknas
   taggen utan `updated`, som annars ändras vid varje anrop. Home Assistants inbyggda REST-sensor skickar inte
   `If-None-Match`, så vinsten gäller främst egna integrationer och proxyer/CDN framför sajten.
+- Punkt 13: statistik per route i minnet (antal, p50/p95 ur fasta tidsintervall, 4xx/5xx), sedan start och för
+  senaste minuten, under `http` i `/api/v2/status`. En sammanfattning loggas varje minut
+  (`SPOTWEB_HTTP_SUMMARY_SECS`, `0` stänger av) och `SPOTWEB_ACCESS_LOG=1` loggar varje anrop utan IP och query.
+  Filer grupperas som `static` och okända sökvägar som `not found`, så att antalet routes inte växer. Felaktiga
+  parametrar till API:t räknas som 5xx eftersom de svarar 500 som i 1.x.
 
 - En binär med inbyggd schemaläggare, SQLite med nycklar, import från 1.x
 - Signerade releaser för Linux, macOS och Windows, CI på alla tre plattformarna
