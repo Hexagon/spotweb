@@ -67,6 +67,15 @@ enum Command {
         #[arg(value_enum, required = true)]
         jobs: Vec<jobs::Job>,
     },
+    /// Fetch prices again for stored days that are incomplete (e.g. history imported from 1.x,
+    /// which did not store intervals with a price of exactly zero) and exit
+    RepairPrices {
+        /// First day to check (default SPOTWEB_HISTORY_START)
+        #[arg(long)]
+        from: Option<NaiveDate>,
+        /// Areas to check, e.g. SE3 FR (default all)
+        areas: Vec<String>,
+    },
     /// Write a consistent copy of the database (safe while the server is running)
     Backup {
         /// Destination file. A name ending in `.zst` is written zstd-compressed.
@@ -283,6 +292,15 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
             }
+            if failed {
+                std::process::exit(1);
+            }
+            Ok(())
+        }
+        Command::RepairPrices { from, areas } => {
+            let app = App::new(database, cfg)?;
+            let (report, failed) = jobs::repair_prices(&app, from, &areas).await?;
+            println!("{report}");
             if failed {
                 std::process::exit(1);
             }

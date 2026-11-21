@@ -104,6 +104,39 @@ pub fn select_rows(rows: &[SpotRow], mode: &IntervalMode, tz: &Tz) -> Vec<(i64, 
     out
 }
 
+/// Local days from `from` up to `end` (ms, exclusive) whose stored prices do not cover the whole
+/// day. A day that `end` cuts short only has to be covered up to `end`. `rows` are
+/// `(start, interval length)` in ms, sorted by start. A day counts as complete when a single
+/// resolution covers all of it, so a day stored at both 60 and 15 minutes is not double counted.
+pub fn incomplete_days(tz: &Tz, rows: &[(i64, i64)], from: NaiveDate, end: i64) -> Vec<NaiveDate> {
+    let mut out = Vec::new();
+    let mut i = rows.partition_point(|r| r.0 < local_midnight(tz, from).timestamp_millis());
+    let mut day = from;
+    loop {
+        let start = local_midnight(tz, day).timestamp_millis();
+        let Some(next) = day.succ_opt() else { break };
+        if start >= end {
+            break;
+        }
+        let stop = local_midnight(tz, next).timestamp_millis().min(end);
+        // Covered ms per resolution
+        let mut covered: Vec<(i64, i64)> = Vec::new();
+        while i < rows.len() && rows[i].0 < stop {
+            let (_, len) = rows[i];
+            match covered.iter_mut().find(|c| c.0 == len) {
+                Some(c) => c.1 += len,
+                None => covered.push((len, len)),
+            }
+            i += 1;
+        }
+        if !covered.iter().any(|c| c.1 >= stop - start) {
+            out.push(day);
+        }
+        day = next;
+    }
+    out
+}
+
 /// Start of the group that contains `t` (`None` for [`Grouping::Total`])
 pub fn bucket(g: Grouping, tz: &Tz, t: i64) -> Option<i64> {
     match g {
@@ -303,6 +336,46 @@ mod tests {
         assert_eq!(daily[0].time, Some(d1));
         let exact = select_rows(&rows, &IntervalMode::Exact("PT15M".into()), &tz);
         assert_eq!(exact.len(), 96);
+    }
+
+    #[test]
+    fn incomplete_days_finds_gaps() {
+        let tz = tz();
+        let d = |day: u32| NaiveDate::from_ymd_opt(2026, 10, day).unwrap();
+        let q = 15 * 60_000;
+        let h = 60 * 60_000;
+        let quarters = |day: u32| {
+            let s = local_midnight(&tz, d(day)).timestamp_millis();
+            let e = local_midnight(&tz, d(day + 1)).timestamp_millis();
+            (s..e)
+                .step_by(q as usize)
+                .map(|t| (t, q))
+                .collect::<Vec<_>>()
+        };
+        let end = local_midnight(&tz, d(27)).timestamp_millis();
+        // 24: complete; 25 (25 hours): one quarter missing; 26: nothing stored
+        let mut rows = quarters(24);
+        let mut dst = quarters(25);
+        assert_eq!(dst.len(), 100);
+        dst.remove(40);
+        rows.extend(dst);
+        assert_eq!(incomplete_days(&tz, &rows, d(24), end), vec![d(25), d(26)]);
+        // A 25 hour day at 60 minutes is complete; mixed resolutions are not added up
+        let s = local_midnight(&tz, d(25)).timestamp_millis();
+        let mut hourly: Vec<(i64, i64)> = (0..25).map(|n| (s + n * h, h)).collect();
+        assert!(incomplete_days(&tz, &hourly, d(25), s + 25 * h).is_empty());
+        hourly.remove(3);
+        hourly.push((s + 3 * h, q));
+        hourly.sort();
+        assert_eq!(
+            incomplete_days(&tz, &hourly, d(25), s + 25 * h),
+            vec![d(25)]
+        );
+        // A day cut short by `end` only has to be covered up to `end`
+        let cut = local_midnight(&tz, d(24)).timestamp_millis() + 23 * h;
+        let part: Vec<_> = quarters(24).into_iter().filter(|r| r.0 < cut).collect();
+        assert!(incomplete_days(&tz, &part, d(24), cut).is_empty());
+        assert_eq!(incomplete_days(&tz, &part[1..], d(24), cut), vec![d(24)]);
     }
 
     #[test]

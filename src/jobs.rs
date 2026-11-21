@@ -6,7 +6,7 @@ use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
 use anyhow::Context;
-use chrono::{DateTime, Months, NaiveDate, Offset, TimeZone, Utc};
+use chrono::{DateTime, Datelike, Months, NaiveDate, Offset, TimeZone, Utc};
 use chrono_tz::Tz;
 use tokio::sync::{Mutex, Semaphore};
 use tokio::task::JoinSet;
@@ -14,7 +14,9 @@ use tokio_cron_scheduler::{Job as CronJob, JobScheduler};
 
 use crate::countries::{Area, Country, COUNTRIES};
 use crate::db::queries::{self, AreaFailure, RunStatus};
-use crate::timeutil::{day_ahead_end, local_date, local_midnight, now_ms, today, HOUR_MS};
+use crate::timeutil::{
+    day_ahead_end, interval_ms, local_date, local_midnight, now_ms, today, HOUR_MS,
+};
 use crate::App;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, clap::ValueEnum)]
@@ -462,6 +464,26 @@ impl std::fmt::Display for PriceResult {
     }
 }
 
+/// Local days from `from` up to `end` (ms) that are not completely stored for `area`
+async fn stored_incomplete_days(
+    app: &App,
+    area: &'static str,
+    tz: &Tz,
+    from: NaiveDate,
+    end: i64,
+) -> anyhow::Result<Vec<NaiveDate>> {
+    let start = local_midnight(tz, from).timestamp_millis();
+    let rows = app
+        .db
+        .run(move |c| Ok(queries::spot_rows(c, area, start, end - 1)?))
+        .await?;
+    let rows: Vec<(i64, i64)> = rows
+        .iter()
+        .map(|r| (r.time, interval_ms(&r.interval)))
+        .collect();
+    Ok(crate::price::incomplete_days(tz, &rows, from, end))
+}
+
 async fn area_prices(
     app: App,
     country: &'static Country,
@@ -480,7 +502,20 @@ async fn area_prices(
         requests: 0,
         waiting: false,
     };
-    let Some(mut start_date) = price_fetch_start(&tz, max, app.cfg.history_start, end) else {
+    // Days before the latest stored interval can have holes too (a day that failed while the next
+    // one was stored, intervals dropped by 1.x); yesterday and today are fetched again. Tomorrow
+    // is left to `price_fetch_start`, which knows whether it can have been auctioned yet.
+    let recent = today(&tz)
+        .pred_opt()
+        .unwrap_or_default()
+        .max(app.cfg.history_start);
+    let today_end = day_ahead_end(&tz, now_ms(), 1).timestamp_millis();
+    let gap = stored_incomplete_days(&app, name, &tz, recent, today_end)
+        .await?
+        .first()
+        .copied();
+    let after_latest = price_fetch_start(&tz, max, app.cfg.history_start, end);
+    let Some(mut start_date) = [after_latest, gap].into_iter().flatten().min() else {
         return Ok(res);
     };
     if !day_ahead_published(start_date, Utc::now()) {
@@ -533,6 +568,156 @@ async fn update_prices(app: &App) -> anyhow::Result<Outcome> {
             .push_str(&format!(", {skipped} areas already complete"));
     }
     Ok(o)
+}
+
+/// Result of [`repair_prices`] for one area
+#[derive(Default)]
+struct Repair {
+    skipped: bool,
+    incomplete: usize,
+    months: usize,
+    rows: usize,
+    remaining: Vec<NaiveDate>,
+}
+
+impl std::fmt::Display for Repair {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.incomplete == 0 {
+            return write!(f, "complete");
+        }
+        write!(
+            f,
+            "{} incomplete days, fetched {} months, stored {} price rows, {} still incomplete",
+            self.incomplete,
+            self.months,
+            self.rows,
+            self.remaining.len()
+        )?;
+        if !self.remaining.is_empty() {
+            let shown: Vec<String> = self
+                .remaining
+                .iter()
+                .take(5)
+                .map(|d| d.to_string())
+                .collect();
+            let more = if self.remaining.len() > 5 {
+                ", …"
+            } else {
+                ""
+            };
+            write!(f, " ({}{more})", shown.join(", "))?;
+        }
+        Ok(())
+    }
+}
+
+/// Fetch again every month that has an incomplete day between the first stored day (or `from`)
+/// and the end of today. The price job only looks at the last two days; this repairs older
+/// holes, such as intervals with a price of exactly zero that 1.x did not store.
+async fn area_repair(
+    app: App,
+    country: &'static Country,
+    area: &'static Area,
+    from: NaiveDate,
+) -> anyhow::Result<Repair> {
+    let tz = country.timezone();
+    let end = day_ahead_end(&tz, now_ms(), 1);
+    let name = area.name;
+    let start = local_midnight(&tz, from).timestamp_millis();
+    let first = app
+        .db
+        .run(move |c| Ok(queries::min_spot_period(c, name, start)?))
+        .await?;
+    let Some(first) = first else {
+        return Ok(Repair::default());
+    };
+    let first_day = local_date(&tz, first).max(from);
+    let end_ms = end.timestamp_millis();
+    let days = stored_incomplete_days(&app, name, &tz, first_day, end_ms).await?;
+    let months: std::collections::BTreeSet<NaiveDate> =
+        days.iter().filter_map(|d| d.with_day(1)).collect();
+    let mut res = Repair {
+        incomplete: days.len(),
+        months: months.len(),
+        ..Default::default()
+    };
+    for month in months {
+        let chunk_start = local_midnight(&tz, month.max(first_day));
+        let next = month.checked_add_months(Months::new(1)).unwrap_or(month);
+        let chunk_end = local_midnight(&tz, next).min(end);
+        let points = request(name, "price", || {
+            app.entsoe
+                .day_ahead_prices(area.eic, utc(chunk_start), utc(chunk_end))
+        })
+        .await?;
+        let rows: Vec<(i64, String, f64)> = points
+            .into_iter()
+            .map(|p| (p.start, p.interval, p.value))
+            .collect();
+        let cid = country.id;
+        res.rows += app
+            .db
+            .run(move |c| Ok(queries::upsert_spot(c, cid, name, &rows)?))
+            .await?;
+    }
+    if res.incomplete > 0 {
+        res.remaining = stored_incomplete_days(&app, name, &tz, first_day, end_ms).await?;
+    }
+    Ok(res)
+}
+
+/// `spotweb repair-prices`: fetch stored price history again where days are incomplete.
+/// `areas` limits it to some areas (all when empty). Returns a report and whether an area failed.
+pub async fn repair_prices(
+    app: &App,
+    from: Option<NaiveDate>,
+    areas: &[String],
+) -> anyhow::Result<(String, bool)> {
+    if !app.entsoe.has_token() {
+        anyhow::bail!("no ENTSO-e API token (API_TOKEN)");
+    }
+    let from = from.unwrap_or(app.cfg.history_start);
+    let wanted: Vec<String> = areas.iter().map(|a| a.to_uppercase()).collect();
+    if let Some(a) = wanted
+        .iter()
+        .find(|a| !COUNTRIES.iter().any(|c| c.area(a).is_some()))
+    {
+        anyhow::bail!("unknown area {a}");
+    }
+    let results = for_each_area(Job::Prices, |country, area| {
+        let skip = !wanted.is_empty() && !wanted.iter().any(|a| a == area.name);
+        let app = app.clone();
+        async move {
+            if skip {
+                return Ok(Repair {
+                    skipped: true,
+                    ..Default::default()
+                });
+            }
+            area_repair(app, country, area, from).await
+        }
+    })
+    .await;
+    let mut lines = Vec::new();
+    let mut failed = false;
+    let mut changed = false;
+    for (_, area, r) in &results {
+        match r {
+            Ok(r) if r.skipped => {}
+            Ok(r) => {
+                changed |= r.rows > 0;
+                lines.push(format!("{}: {r}", area.name));
+            }
+            Err(e) => {
+                failed = true;
+                lines.push(format!("{}: FAILED {e:#}", area.name));
+            }
+        }
+    }
+    if changed {
+        app.cache.invalidate("spotprice");
+    }
+    Ok((lines.join("\n"), failed))
 }
 
 /// Yesterday and today (local time): the most that load, production and flows fetch.
@@ -1209,5 +1394,93 @@ mod tests {
         run(&app, Job::Prices, false).await.unwrap();
         assert_eq!(calls("SE1"), 2);
         assert_eq!(calls("FI"), 2);
+    }
+
+    #[tokio::test]
+    async fn repair_prices_fetches_incomplete_months() {
+        let mock = Mock::default();
+        let app = test_app(mock.clone()).await;
+        let calls = |a: &str| mock.calls.lock().get(eic(a)).copied().unwrap_or(0);
+        let tz = stockholm();
+        let today_end =
+            local_midnight(&tz, today(&tz) + chrono::Duration::days(1)).timestamp_millis();
+        // Today stored except one hour, tomorrow not at all
+        let mut rows: Vec<(i64, String, f64)> = crate::entsoe::parse_prices(&price_doc())
+            .unwrap()
+            .into_iter()
+            .filter(|p| p.start < today_end)
+            .map(|p| (p.start, p.interval, p.value))
+            .collect();
+        rows.remove(3);
+        app.db
+            .run(move |c| Ok(queries::upsert_spot(c, "sv", "SE1", &rows)?))
+            .await
+            .unwrap();
+
+        let err = repair_prices(&app, None, &["XX1".into()])
+            .await
+            .err()
+            .unwrap();
+        assert_eq!(err.to_string(), "unknown area XX1");
+
+        // Only SE1 is checked and fetched (after one retry); areas without data are left alone
+        let (report, failed) = repair_prices(&app, None, &["se1".into(), "fi".into()])
+            .await
+            .unwrap();
+        assert!(!failed);
+        assert_eq!(calls("SE1"), 2);
+        assert_eq!(mock.total.load(Ordering::Relaxed), 2);
+        let lines: Vec<&str> = report.lines().collect();
+        assert_eq!(lines.len(), 2, "{report}");
+        assert!(
+            lines[0].starts_with("SE1: 1 incomplete days, fetched 1 months, stored ")
+                && lines[0].ends_with(", 0 still incomplete"),
+            "{report}"
+        );
+        assert_eq!(lines[1], "FI: complete");
+
+        // Nothing left to repair
+        let (report, _) = repair_prices(&app, None, &["SE1".into()]).await.unwrap();
+        assert_eq!(report, "SE1: complete");
+        assert_eq!(calls("SE1"), 2);
+    }
+
+    #[tokio::test]
+    async fn prices_refetch_hole_before_latest() {
+        let mock = Mock::default();
+        let app = test_app(mock.clone()).await;
+        let calls = |a: &str| mock.calls.lock().get(eic(a)).copied().unwrap_or(0);
+        // Today and tomorrow stored, except one hour of today
+        let mut rows: Vec<(i64, String, f64)> = crate::entsoe::parse_prices(&price_doc())
+            .unwrap()
+            .into_iter()
+            .map(|p| (p.start, p.interval, p.value))
+            .collect();
+        let all = rows.len();
+        let hole = rows.remove(5).0;
+        let count = || {
+            app.db
+                .run(|c| Ok(queries::spot_rows(c, "SE1", 0, i64::MAX)?.len()))
+        };
+        app.db
+            .run(move |c| Ok(queries::upsert_spot(c, "sv", "SE1", &rows)?))
+            .await
+            .unwrap();
+        assert_eq!(count().await.unwrap(), all - 1);
+
+        // The latest interval is stored, but the hole is fetched again (after one retry)
+        run(&app, Job::Prices, false).await.unwrap();
+        assert_eq!(calls("SE1"), 2);
+        assert_eq!(count().await.unwrap(), all);
+        let stored = app
+            .db
+            .run(move |c| Ok(queries::spot_rows(c, "SE1", hole, hole)?))
+            .await
+            .unwrap();
+        assert_eq!(stored.len(), 1);
+
+        // Complete now: not fetched again
+        run(&app, Job::Prices, false).await.unwrap();
+        assert_eq!(calls("SE1"), 2);
     }
 }
