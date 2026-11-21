@@ -351,3 +351,40 @@ async fn api_etag_and_not_modified() {
     assert_eq!(s, StatusCode::INTERNAL_SERVER_ERROR);
     assert!(!h.contains_key("etag"));
 }
+
+#[tokio::test]
+async fn permalinks_and_share_buttons() {
+    let app = test_app();
+    let (s, body, _) = get(&app, "/sv/SE1?lang=de").await;
+    let body = body.replace("&#x2f;", "/");
+    assert_eq!(s, StatusCode::OK);
+    // Canonical and preview tags point at the page without the language parameter
+    assert!(body.contains(r#"<link rel="canonical" href="https://example.test/sv/SE1">"#));
+    assert!(body.contains(r#"<meta property="og:url" content="https://example.test/sv/SE1">"#));
+    assert!(body.contains(r#"content="https://example.test/icon-512x512.png""#));
+    assert!(body.contains(r#"data-share data-share-url="/sv/SE1""#));
+
+    let (_, body, _) = get(&app, "/sv").await;
+    let body = body.replace("&#x2f;", "/");
+    for a in ["SE1", "SE2", "SE3", "SE4"] {
+        assert!(
+            body.contains(&format!(r#"data-share-url="/sv/{a}""#)),
+            "{a}"
+        );
+    }
+
+    let (_, body, _) = get(&app, "/").await;
+    assert!(body.contains("data-share-zone"));
+
+    // Custom keeps only its own parameters, in a fixed order
+    let (_, body, _) = get(
+        &app,
+        "/custom?endDate=2024-01-31&area=SE3&utm_source=x&startDate=2024-01-01&period=daily",
+    )
+    .await;
+    let body = body.replace("&#x2f;", "/");
+    assert!(body.contains(
+        r#"<link rel="canonical" href="https://example.test/custom?period=daily&amp;area=SE3&amp;startDate=2024-01-01&amp;endDate=2024-01-31">"#
+    ));
+    assert!(body.contains(r##"data-share-from="#custom-permalink""##));
+}

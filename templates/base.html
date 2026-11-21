@@ -6,6 +6,14 @@
   <title>{{ t("page.title") }} - {{ title }}</title>
   <meta name="description" content="{{ t('header.title') }} - {{ title }}">
   <meta name="theme-color" content="#14171f">
+  <link rel="canonical" href="{{ canonical }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ t('page.title') }}">
+  <meta property="og:title" content="{{ title }} - {{ t('page.title') }}">
+  <meta property="og:description" content="{{ t('header.title') }} - {{ title }}">
+  <meta property="og:url" content="{{ canonical }}">
+  <meta property="og:image" content="{{ site_url }}/icon-512x512.png">
+  <meta name="twitter:card" content="summary">
   <link rel="icon" type="image/png" href="/icon-192x192.png">
   <link rel="apple-touch-icon" href="/icon-192x192.png">
   <link rel="manifest" href="/manifest.json">

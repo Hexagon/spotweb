@@ -183,6 +183,13 @@
       "note": "Die Grenzen der Gebotszonen sind ungefähr. Pfeile zeigen den physikalischen Nettofluss (MW) zwischen den Zonen.",
       "all_areas": "Alle Gebotszonen",
       "zoom": "Zoomstufe"
+    },
+    "share": {
+      "share": "Teilen",
+      "copy": "Link kopieren",
+      "copied": "Link kopiert",
+      "more": "Weitere Optionen…",
+      "email": "E-Mail"
     }
   }
 }

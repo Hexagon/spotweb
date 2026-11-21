@@ -68,6 +68,8 @@ async fn base(
     lang: &str,
     page: &str,
     title: String,
+    uri: &Uri,
+    headers: &HeaderMap,
 ) -> Result<(Map<String, Value>, Map<String, Value>), Response> {
     let er = data::exchange_rates(&st.app).await.map_err(internal)?;
     let currency = default_currency(lang);
@@ -85,6 +87,15 @@ async fn base(
     ctx.insert("sub_unit".into(), json!(currency == "öre"));
     ctx.insert("er".into(), json!(&*er));
     ctx.insert("languages".into(), json!(crate::countries::LANGUAGES));
+    // Absolute links for sharing and link previews. The language is left out on purpose:
+    // the recipient gets the page in their own language.
+    let site = public_base(st, headers);
+    let canonical = match (page, uri.query()) {
+        ("custom", Some(q)) => format!("{site}{}?{}", uri.path(), custom_query(q)),
+        _ => format!("{site}{}", uri.path()),
+    };
+    ctx.insert("site_url".into(), json!(site));
+    ctx.insert("canonical".into(), json!(canonical));
 
     let page_ld = json!({
         "@context": "http://schema.org",
@@ -102,6 +113,35 @@ async fn base(
     boot.insert("er".into(), json!(&*er));
     boot.insert("countries".into(), json!(COUNTRIES));
     Ok((ctx, boot))
+}
+
+/// The parameters of `/custom` that make up its permalink, in a fixed order
+fn custom_query(q: &str) -> String {
+    let pairs: BTreeMap<String, String> = url_pairs(q);
+    ["period", "area", "startDate", "endDate"]
+        .iter()
+        .filter_map(|k| pairs.get(*k).map(|v| format!("{k}={}", url_encode(v))))
+        .collect::<Vec<_>>()
+        .join("&")
+}
+
+fn url_pairs(q: &str) -> BTreeMap<String, String> {
+    axum::extract::Query::<BTreeMap<String, String>>::try_from_uri(
+        &format!("/?{q}").parse::<Uri>().unwrap_or_default(),
+    )
+    .map(|q| q.0)
+    .unwrap_or_default()
+}
+
+fn url_encode(s: &str) -> String {
+    s.bytes()
+        .map(|b| match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                (b as char).to_string()
+            }
+            _ => format!("%{b:02X}"),
+        })
+        .collect()
 }
 
 fn finish(mut ctx: Map<String, Value>, boot: Map<String, Value>) -> Value {
@@ -331,7 +371,7 @@ fn default_map_area(lang: &str) -> &'static str {
 pub async fn index(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> PageResult {
     let lang = detect_lang(&uri, &headers);
     let title = st.app.i18n.t(&lang, "header.title");
-    let (mut ctx, mut boot) = base(&st, &lang, "index", title).await?;
+    let (mut ctx, mut boot) = base(&st, &lang, "index", title, &uri, &headers).await?;
     let now = data::now_prices(&st.app).await.map_err(internal)?;
     let genload = data::current_generation_and_load(&st.app)
         .await
@@ -415,7 +455,7 @@ pub async fn country(
             .collect::<Vec<_>>()
             .join(", ")
     );
-    let (mut ctx, mut boot) = base(&st, &lang, c.id, title).await?;
+    let (mut ctx, mut boot) = base(&st, &lang, c.id, title, &uri, &headers).await?;
     let mut areas = vec![];
     for a in c.areas {
         areas.push(area_overview(&st, c, a, false).await?);
@@ -449,7 +489,7 @@ pub async fn area(
     };
     let lang = detect_lang(&uri, &headers);
     let title = format!("{} - {}", a.name, a.long);
-    let (mut ctx, mut boot) = base(&st, &lang, a.id, title).await?;
+    let (mut ctx, mut boot) = base(&st, &lang, a.id, title, &uri, &headers).await?;
     let ov = area_overview(&st, c, a, true).await?;
     let (overview, series, net) = production_ctx(&st, c, a.id).await?;
     let single = c.areas.len() == 1;
@@ -509,7 +549,8 @@ pub async fn custom(
     Query(q): Query<BTreeMap<String, String>>,
 ) -> PageResult {
     let lang = detect_lang(&uri, &headers);
-    let (mut ctx, mut boot) = base(&st, &lang, "custom", "Custom period".into()).await?;
+    let (mut ctx, mut boot) =
+        base(&st, &lang, "custom", "Custom period".into(), &uri, &headers).await?;
     let d = today(&chrono_tz::Europe::Stockholm)
         .format("%Y-%m-%d")
         .to_string();
@@ -532,6 +573,8 @@ pub async fn help(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> P
         &lang,
         "help",
         "Help - Install app, more information".into(),
+        &uri,
+        &headers,
     )
     .await?;
     render(&st, "help.html", finish(ctx, boot))
@@ -544,6 +587,8 @@ pub async fn homeassistant(State(st): State<WebState>, uri: Uri, headers: Header
         &lang,
         "homeassistant",
         "Home Assistant REST integration".into(),
+        &uri,
+        &headers,
     )
     .await?;
     ctx.insert("base_url".into(), json!(public_base(&st, &headers)));
@@ -603,7 +648,7 @@ pub async fn sitemap(State(st): State<WebState>, headers: HeaderMap) -> Response
 
 async fn not_found_page(st: &WebState, uri: &Uri, headers: &HeaderMap) -> Response {
     let lang = detect_lang(uri, headers);
-    let res = match base(st, &lang, "404", "404".into()).await {
+    let res = match base(st, &lang, "404", "404".into(), uri, headers).await {
         Ok((ctx, boot)) => render(st, "404.html", finish(ctx, boot)).unwrap_or_else(|r| r),
         Err(r) => r,
     };

@@ -183,6 +183,13 @@
       "note": "Tarjousalueiden rajat ovat likimääräisiä. Nuolet näyttävät fyysisen nettosiirron (MW) alueiden välillä.",
       "all_areas": "Kaikki tarjousalueet",
       "zoom": "Zoomaus"
+    },
+    "share": {
+      "share": "Jaa",
+      "copy": "Kopioi linkki",
+      "copied": "Linkki kopioitu",
+      "more": "Lisää vaihtoehtoja…",
+      "email": "Sähköposti"
     }
   }
 }

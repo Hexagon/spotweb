@@ -100,6 +100,11 @@ Varje punkt är tänkt att bli en egen PR.
 - Punkt 12: `healthy` och `problems` i `/api/v2/status`, och `/healthz/data` som svarar 503 när data saknas (för
   övervakare som bara ser statuskoden). Kraven: dagens priser för alla områden, efter 14:00 CET även morgondagens,
   och load/generation högst 3 h gamla.
+- Delning: delningsknapp på kartpanelen (`/#SE3`), på varje elområdeskort på lands- och områdessidorna
+  (`/sv/SE3`) och på resultatet i Custom (`/custom?period=…&area=…&startDate=…&endDate=…`). På mobil öppnas
+  telefonens delningsmeny; på dator en meny med kopiera länk, e-post, WhatsApp, Facebook, X och LinkedIn (vanliga
+  länkar, inga tredjepartsskript). Texten tar med aktuellt pris. Alla sidor har `rel=canonical` och Open Graph-taggar,
+  utan språkparameter, så att mottagaren får sidan på sitt eget språk.
 - Punkt 19: svag `ETag` på alla lyckade GET under `/api/` och `304` vid `If-None-Match`. För `/api/v2/hass` räknas
   taggen utan `updated`, som annars ändras vid varje anrop. Home Assistants inbyggda REST-sensor skickar inte
   `If-None-Match`, så vinsten gäller främst egna integrationer och proxyer/CDN framför sajten.

@@ -34,6 +34,7 @@
         <h2 data-zone-title>&nbsp;</h2>
         <div class="muted small" data-zone-sub>&nbsp;</div>
       </div>
+      <div class="zone-tools">
       <select class="compact-select" id="zone-select" aria-label="{{ t('nav.area') }}">
         {%- for c in countries %}
         <optgroup label="{{ t('countries.' ~ c.id) }}">
@@ -43,6 +44,8 @@
         </optgroup>
         {%- endfor %}
       </select>
+      {{ m.share(attrs="data-share-zone") }}
+      </div>
     </header>
     <div class="now-box">
       <div class="price-big" data-zone-now>-</div>

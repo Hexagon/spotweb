@@ -183,6 +183,13 @@
       "note": "Les frontières des zones sont approximatives. Les flèches indiquent le flux physique net (MW) entre les zones.",
       "all_areas": "Toutes les zones",
       "zoom": "Niveau de zoom"
+    },
+    "share": {
+      "share": "Partager",
+      "copy": "Copier le lien",
+      "copied": "Lien copié",
+      "more": "Plus d’options…",
+      "email": "E-mail"
     }
   }
 }

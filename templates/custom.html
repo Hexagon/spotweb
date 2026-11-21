@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros.html" as m %}
 {% block content %}
 <section class="card pad">
   <h1 class="h2">Custom period</h1>
@@ -29,7 +30,7 @@
 </section>
 
 <section class="card hidden" id="custom-result">
-  <header class="card-head"><h2>Result</h2></header>
+  <header class="card-head"><h2>Result</h2>{{ m.share(attrs='data-share-from="#custom-permalink"') }}</header>
   <div class="custom-grid">
     <div class="chart" data-chart="custom"></div>
     <table class="table stats-table">

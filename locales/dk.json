@@ -183,6 +183,13 @@
       "note": "Grænserne mellem prisområderne er omtrentlige. Pilene viser fysisk nettoflow (MW) mellem områderne.",
       "all_areas": "Alle prisområder",
       "zoom": "Zoomniveau"
+    },
+    "share": {
+      "share": "Del",
+      "copy": "Kopiér link",
+      "copied": "Linket er kopieret",
+      "more": "Flere muligheder…",
+      "email": "E-mail"
     }
   }
 }

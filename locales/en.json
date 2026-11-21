@@ -183,6 +183,13 @@
       "note": "Bidding zone borders are approximate. Arrows show the net physical flow (MW) between zones.",
       "all_areas": "All bidding zones",
       "zoom": "Zoom level"
+    },
+    "share": {
+      "share": "Share",
+      "copy": "Copy link",
+      "copied": "Link copied",
+      "more": "More options…",
+      "email": "Email"
     }
   }
 }
