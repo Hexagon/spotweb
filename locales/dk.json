@@ -47,6 +47,7 @@
       "currency_fetched_from": "Den aktuelle valutakurs er taget fra",
       "all_values_from": "Alle værdier, inklusive historiske værdier, er omregnet fra EUR til den aktuelle valutakurs",
       "disclaimer_and_private_use": "De præsenterede tal afspejler virkeligheden, så vidt det er muligt, men leveres uden nogen form for garanti. Siden og dens tjenester tilbydes til privat brug, og anvendelsen sker på eget ansvar.",
+      "not_affiliated": "spotweb er et uafhængigt projekt uden tilknytning til ENTSO-E og er ikke godkendt af ENTSO-E. Data fra ENTSO-E genbruges i henhold til Transparency Platforms brugsvilkår.",
       "open_source_software": "Kildekoden for siden er åben og er frit tilgængelig på ",
       "bugs_and_issues": "Bugs og problemer rapporteres via 'Issues' på GitHub. Kontakt via e-mail til hexagon{a}56k.guru."
     },

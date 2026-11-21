@@ -47,6 +47,7 @@
       "currency_fetched_from": "Current exchange rate fetched from",
       "all_values_from": "All values, including historical ones, are converted from EUR at the current rate",
       "disclaimer_and_private_use": "The figures shown should be correct, but are supplied without guarantees. The site and related services are provided for private use, at your own risk.",
+      "not_affiliated": "spotweb is an independent project, not affiliated with or endorsed by ENTSO-E. Data from ENTSO-E is re-used in accordance with the Transparency Platform terms of use.",
       "open_source_software": "The source code of the page is completely open and is available at ",
       "bugs_and_issues": "Bugs and issues are reported through 'Issues' on GitHub. Contact can also be made via email to hexagon{a}56k.guru."
     },
