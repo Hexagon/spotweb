@@ -120,11 +120,11 @@ struct Inner {
     /// The minute being collected
     current: Routes,
     /// The last whole minute, as `(end, routes)`
-    last_minute: Option<(chrono::DateTime<chrono::Utc>, Routes)>,
+    last_minute: Option<(jiff::Timestamp, Routes)>,
 }
 
 pub struct HttpStats {
-    started: chrono::DateTime<chrono::Utc>,
+    started: jiff::Timestamp,
     pub access_log: bool,
     pub summary_every: Option<Duration>,
     inner: Mutex<Inner>,
@@ -133,7 +133,7 @@ pub struct HttpStats {
 impl HttpStats {
     pub fn new(access_log: bool, summary_every: Option<Duration>) -> Self {
         Self {
-            started: chrono::Utc::now(),
+            started: jiff::Timestamp::now(),
             access_log,
             summary_every,
             inner: Mutex::new(Inner {
@@ -172,7 +172,7 @@ impl HttpStats {
     pub fn rotate(&self) -> Routes {
         let mut g = self.inner.lock();
         let done = std::mem::take(&mut g.current);
-        g.last_minute = Some((chrono::Utc::now(), done.clone()));
+        g.last_minute = Some((jiff::Timestamp::now(), done.clone()));
         done
     }
 
@@ -180,13 +180,13 @@ impl HttpStats {
     pub fn to_json(&self) -> Value {
         let g = self.inner.lock();
         let mut out = json!({
-            "since": self.started.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+            "since": crate::timeutil::iso_secs(self.started),
             "total": total(&g.since_start).to_json(),
             "routes": routes_json(&g.since_start),
         });
         if let (Some((end, routes)), Some(every)) = (&g.last_minute, self.summary_every) {
             out["last_period"] = json!({
-                "end": end.to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
+                "end": crate::timeutil::iso_secs(*end),
                 "secs": every.as_secs(),
                 "total": total(routes).to_json(),
                 "routes": routes_json(routes),

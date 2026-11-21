@@ -6,8 +6,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use axum::extract::{Path, Query, State};
 use axum::http::{header, HeaderMap, StatusCode, Uri};
 use axum::response::{Html, IntoResponse, Redirect, Response};
-use chrono::{Datelike, Months, TimeZone};
-use chrono_tz::Tz;
+use jiff::tz::TimeZone;
+use jiff::{Timestamp, ToSpan};
 use serde_json::{json, Map, Value};
 
 use super::{data, detect_lang, WebState};
@@ -16,7 +16,7 @@ use crate::countries::{
 };
 use crate::db::queries::{GenerationRow, LoadRow, OutageRow};
 use crate::price::{process_price, PriceProps};
-use crate::timeutil::{day_range, interval_ms, now_ms, today, HOUR_MS};
+use crate::timeutil::{add_days, day_range, interval_ms, now_ms, today, HOUR_MS};
 
 type PageResult = Result<Response, Response>;
 
@@ -58,16 +58,19 @@ fn render(st: &WebState, name: &str, mut ctx: Value) -> PageResult {
     Ok(res)
 }
 
-fn fmt_date(tz: &Tz, ms: Option<i64>) -> String {
-    ms.and_then(|ms| tz.timestamp_millis_opt(ms).single())
-        .map(|d| d.format("%Y-%m-%d").to_string())
+fn fmt_date(tz: &TimeZone, ms: Option<i64>) -> String {
+    ms.and_then(|ms| Timestamp::from_millisecond(ms).ok())
+        .map(|t| t.to_zoned(tz.clone()).date().to_string())
         .unwrap_or_default()
 }
 
-fn fmt_datetime(tz: &Tz, ms: i64) -> String {
-    tz.timestamp_millis_opt(ms)
-        .single()
-        .map(|d| d.format("%Y-%m-%d %H:%M").to_string())
+fn fmt_datetime(tz: &TimeZone, ms: i64) -> String {
+    Timestamp::from_millisecond(ms)
+        .map(|t| {
+            t.to_zoned(tz.clone())
+                .strftime("%Y-%m-%d %H:%M")
+                .to_string()
+        })
         .unwrap_or_default()
 }
 
@@ -116,7 +119,7 @@ async fn base(
         "@type": "WebPage",
         "name": st.app.i18n.t(lang, "page.title"),
         "description": format!("{} - {}.", st.app.i18n.t(lang, "header.title"), title),
-        "dateModified": chrono::Utc::now().format("%Y-%m-%d").to_string(),
+        "dateModified": today(&TimeZone::UTC).to_string(),
     });
     ctx.insert("jsonld_page".into(), json!(script_json(&page_ld)));
 
@@ -171,7 +174,12 @@ fn psr_key(group: &Option<String>, consumption: i64) -> String {
     format!("{}_{}", group.as_deref().unwrap_or("other"), consumption)
 }
 
-fn production_overview(gen: &[GenerationRow], load: &[LoadRow], interval: &str, tz: &Tz) -> Value {
+fn production_overview(
+    gen: &[GenerationRow],
+    load: &[LoadRow],
+    interval: &str,
+    tz: &TimeZone,
+) -> Value {
     struct Last {
         date: i64,
         value: f64,
@@ -250,7 +258,7 @@ fn production_series(gen: &[GenerationRow]) -> Value {
     })
 }
 
-fn outage_json(o: &OutageRow, tz: &Tz) -> Value {
+fn outage_json(o: &OutageRow, tz: &TimeZone) -> Value {
     let planned = o.business_type.as_deref() == Some("Planned maintenance");
     json!({
         "planned": planned,
@@ -298,7 +306,7 @@ async fn area_overview(
     let today_s = data::day_series(&st.app, c, a.name, t)
         .await
         .map_err(internal)?;
-    let tomorrow_s = data::day_series(&st.app, c, a.name, t + chrono::Duration::days(1))
+    let tomorrow_s = data::day_series(&st.app, c, a.name, add_days(t, 1))
         .await
         .map_err(internal)?;
     let st_t = today_s.stats();
@@ -315,10 +323,7 @@ async fn area_overview(
         "tomorrow": tomorrow_s,
     });
     if detailed {
-        let prev = t
-            .with_day(1)
-            .and_then(|d| d.checked_sub_months(Months::new(1)))
-            .unwrap_or(t);
+        let prev = t.first_of_month().checked_sub(1.month()).unwrap_or(t);
         let m = data::month_stats(&st.app, c, a.name, t)
             .await
             .map_err(internal)?;
@@ -326,8 +331,8 @@ async fn area_overview(
             .await
             .map_err(internal)?;
         let o = v.as_object_mut().expect("object");
-        o.insert("month".into(), json!(t.month0()));
-        o.insert("prev_month".into(), json!(prev.month0()));
+        o.insert("month".into(), json!(t.month() - 1));
+        o.insert("prev_month".into(), json!(prev.month() - 1));
         o.insert("avg_month".into(), json!(m.map(|s| s.0)));
         o.insert("min_month".into(), json!(m.map(|s| s.1)));
         o.insert("max_month".into(), json!(m.map(|s| s.2)));
@@ -346,7 +351,7 @@ async fn production_ctx(
 ) -> Result<(Value, Value, Value), Response> {
     let tz = c.timezone();
     let t = today(&tz);
-    let (from, _) = day_range(&tz, t - chrono::Duration::days(1));
+    let (from, _) = day_range(&tz, add_days(t, -1));
     let (_, to) = day_range(&tz, t);
     let gen = data::generation(&st.app, key, from, to, c.interval)
         .await
@@ -523,7 +528,7 @@ pub async fn area(
         sub_unit: currency == "öre",
     };
     let p = |k: &str| process_price(ov.get(k).and_then(|v| v.as_f64()).map(|v| v * rate), &props);
-    let day = today(&c.timezone()).format("%Y-%m-%d").to_string();
+    let day = today(&c.timezone()).to_string();
     let price_ld = json!({
         "@context": "https://schema.org",
         "@type": "UnitPriceSpecification",
@@ -572,9 +577,7 @@ pub async fn custom(
         &headers,
     )
     .await?;
-    let d = today(&chrono_tz::Europe::Stockholm)
-        .format("%Y-%m-%d")
-        .to_string();
+    let d = today(&crate::timeutil::stockholm()).to_string();
     let form = json!({
         "area": q.get("area").cloned().unwrap_or_else(|| "SE1".into()),
         "period": q.get("period").cloned().unwrap_or_else(|| "daily".into()),
@@ -642,7 +645,7 @@ pub async fn robots(State(st): State<WebState>, headers: HeaderMap) -> Response 
 
 pub async fn sitemap(State(st): State<WebState>, headers: HeaderMap) -> Response {
     let base = public_base(&st, &headers);
-    let day = chrono::Utc::now().format("%Y-%m-%d");
+    let day = today(&TimeZone::UTC);
     let mut paths = vec!["/".to_string(), "/help".into(), "/homeassistant".into()];
     for c in COUNTRIES {
         if c.areas.len() > 1 {

@@ -19,9 +19,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::Context;
-use chrono::NaiveDate;
-use chrono_tz::Tz;
 use clap::{Args, Parser, Subcommand};
+use jiff::civil::Date;
+use jiff::tz::TimeZone;
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
@@ -112,9 +112,9 @@ pub struct Config {
     /// Google Analytics measurement id (`SPOTWEB_GA_ID`)
     pub ga_id: Option<String>,
     /// Time zone for cron expressions (`SPOTWEB_SCHEDULE_TZ`)
-    pub schedule_tz: Tz,
+    pub schedule_tz: TimeZone,
     /// First day to back-fill prices from on an empty database (`SPOTWEB_HISTORY_START`)
-    pub history_start: NaiveDate,
+    pub history_start: Date,
     /// Content-Security-Policy for pages (`SPOTWEB_CSP`: `on`, `report-only` or `off`)
     pub csp: web::Csp,
 }
@@ -128,14 +128,14 @@ fn env_opt(name: &str) -> Option<String> {
 
 impl Config {
     pub fn from_env() -> anyhow::Result<Self> {
-        let schedule_tz = env_opt("SPOTWEB_SCHEDULE_TZ")
-            .unwrap_or_else(|| "Europe/Stockholm".into())
-            .parse::<Tz>()
-            .map_err(|e| anyhow::anyhow!("SPOTWEB_SCHEDULE_TZ: {e}"))?;
+        let tz_name = env_opt("SPOTWEB_SCHEDULE_TZ").unwrap_or_else(|| "Europe/Stockholm".into());
+        let schedule_tz =
+            TimeZone::get(&tz_name).map_err(|e| anyhow::anyhow!("SPOTWEB_SCHEDULE_TZ: {e}"))?;
         let history_start = match env_opt("SPOTWEB_HISTORY_START") {
-            Some(s) => NaiveDate::parse_from_str(&s, "%Y-%m-%d")
+            Some(s) => s
+                .parse::<Date>()
                 .context("SPOTWEB_HISTORY_START must be YYYY-MM-DD")?,
-            None => NaiveDate::from_ymd_opt(2021, 1, 1).expect("date"),
+            None => jiff::civil::date(2021, 1, 1),
         };
         let csp = match env_opt("SPOTWEB_CSP").as_deref() {
             None | Some("on") | Some("1") | Some("true") => web::Csp::Enforce,
@@ -262,7 +262,7 @@ async fn serve(app: App, args: ServeArgs) -> anyhow::Result<()> {
     axum::serve(listener, web::router(app))
         .with_graceful_shutdown(shutdown_signal())
         .await?;
-    if let Some(mut s) = scheduler {
+    if let Some(s) = scheduler {
         let _ = s.shutdown().await;
     }
     Ok(())

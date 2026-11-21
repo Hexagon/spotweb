@@ -10,8 +10,7 @@ readme = "README.md"
 [dependencies]
 anyhow = "1"
 axum = { version = "0.8", default-features = false, features = ["http1", "http2", "tokio", "query", "json", "matched-path"] }
-chrono = { version = "0.4", default-features = false, features = ["std", "clock", "serde"] }
-chrono-tz = "0.10"
+jiff = { version = "0.2", features = ["tzdb-bundle-always"] }
 clap = { version = "4", features = ["derive", "env"] }
 minijinja = { version = "2", features = ["loader", "json"] }
 parking_lot = "0.13"
@@ -24,7 +23,6 @@ rust-embed = { version = "8", features = ["mime-guess"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "time", "sync", "net"] }
-tokio-cron-scheduler = { version = "0.15", features = ["signal"] }
 tower-http = { version = "0.7", features = ["compression-gzip", "compression-br", "trace", "timeout"] }
 tracing = "0.1"
 uuid = { version = "1", features = ["v4"] }

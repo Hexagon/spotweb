@@ -4,8 +4,8 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use chrono::NaiveDate;
-use chrono_tz::Tz;
+use jiff::civil::Date;
+use jiff::tz::TimeZone;
 use serde::Serialize;
 
 use crate::countries::{Country, COUNTRIES};
@@ -29,15 +29,20 @@ pub async fn exchange_rates(app: &App) -> anyhow::Result<Arc<ExchangeRates>> {
 }
 
 /// Selected (interval-resolved) rows for an area: `(time, price EUR/MWh, duration ms)`
+/// Time zone part of a cache key
+fn tz_key(tz: &TimeZone) -> &str {
+    tz.iana_name().unwrap_or("UTC")
+}
+
 pub async fn spot_selected(
     app: &App,
     area: &str,
     from: i64,
     to: i64,
     mode: &IntervalMode,
-    tz: Tz,
+    tz: TimeZone,
 ) -> anyhow::Result<Arc<Vec<(i64, f64, i64)>>> {
-    let key = format!("sel:{area}:{from}:{to}:{mode:?}:{tz}");
+    let key = format!("sel:{area}:{from}:{to}:{mode:?}:{}", tz_key(&tz));
     let ttl = if to < now_ms() { 3600 } else { 6 * MIN };
     let db = app.db.clone();
     let area = area.to_string();
@@ -66,7 +71,7 @@ pub async fn spot_grouped(
     to: i64,
     grouping: Grouping,
     mode: &IntervalMode,
-    tz: Tz,
+    tz: TimeZone,
 ) -> anyhow::Result<Arc<Vec<SpotApiRow>>> {
     let calendar = matches!(
         grouping,
@@ -83,7 +88,7 @@ pub async fn spot_grouped(
                     split - 1,
                     grouping,
                     mode,
-                    tz,
+                    tz.clone(),
                 )
                 .await?;
                 let open =
@@ -111,9 +116,12 @@ async fn grouped_range(
     to: i64,
     grouping: Grouping,
     mode: &IntervalMode,
-    tz: Tz,
+    tz: TimeZone,
 ) -> anyhow::Result<Arc<Vec<SpotApiRow>>> {
-    let key = format!("grp:{area}:{from}:{to}:{grouping:?}:{mode:?}:{tz}");
+    let key = format!(
+        "grp:{area}:{from}:{to}:{grouping:?}:{mode:?}:{}",
+        tz_key(&tz)
+    );
     let ttl = if realm == HISTORY_REALM {
         6 * 3600
     } else if to < now_ms() {
@@ -127,7 +135,7 @@ async fn grouped_range(
         .get_or_load(realm, key, Duration::from_secs(ttl), || async move {
             if matches!(grouping, Grouping::Hourly | Grouping::Minimum) {
                 // Short ranges (max 31 days), share the selected rows with the pages
-                let sel = spot_selected(&app2, &area, from, to, &mode, tz).await?;
+                let sel = spot_selected(&app2, &area, from, to, &mode, tz.clone()).await?;
                 return Ok(group(&sel, grouping, &tz));
             }
             // Long ranges: do not keep the (large) selected rows in the cache
@@ -160,7 +168,7 @@ pub async fn day_series(
     app: &App,
     country: &Country,
     area: &str,
-    date: NaiveDate,
+    date: Date,
 ) -> anyhow::Result<DaySeries> {
     let tz = country.timezone();
     let (from, to) = day_range(&tz, date);
@@ -188,7 +196,7 @@ pub async fn month_stats(
     app: &App,
     country: &Country,
     area: &str,
-    date: NaiveDate,
+    date: Date,
 ) -> anyhow::Result<Option<(f64, f64, f64)>> {
     let tz = country.timezone();
     let (from, to) = month_range(&tz, date);

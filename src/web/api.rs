@@ -12,7 +12,7 @@ use serde_json::json;
 use super::{data, WebState};
 use crate::countries::{find_area, interval_for_identifier};
 use crate::price::{convert, process_price, Grouping, IntervalMode, PriceProps};
-use crate::timeutil::{day_range, js_iso, now_ms, parse_api_date, today};
+use crate::timeutil::{add_days, day_range, js_iso, now_ms, parse_api_date, today};
 
 /// Attribution required by the ENTSO-E Transparency Platform terms of use (clause 3.1)
 pub const SOURCE: &str = "ENTSO-E Transparency Platform (https://transparency.entsoe.eu/)";
@@ -131,7 +131,7 @@ pub async fn spot(
     let area = param(&q, "area").unwrap_or("").to_uppercase();
     let (tz, area_name) = match find_area(&area) {
         Some((c, a)) => (c.timezone(), a.name.to_string()),
-        None => (chrono_tz::Europe::Stockholm, area.clone()),
+        None => (crate::timeutil::stockholm(), area.clone()),
     };
     let (Some(start), Some(end)) = (
         param(&q, "startDate").and_then(|s| parse_api_date(s, &tz)),
@@ -140,7 +140,7 @@ pub async fn spot(
         return api_error("Missing/invalid parameters");
     };
     if let Some(max) = max_span_days(grouping) {
-        if (end - start).num_days() + 1 > max {
+        if i64::from((end - start).get_days()) + 1 > max {
             return api_error(&format!(
                 "Date range too long, max {max} days for this period"
             ));
@@ -260,13 +260,9 @@ pub async fn hass(
 
     let t = today(&tz);
     let mut days = vec![];
-    for d in [
-        t - chrono::Duration::days(1),
-        t,
-        t + chrono::Duration::days(1),
-    ] {
+    for d in [add_days(t, -1), t, add_days(t, 1)] {
         let (from, to) = day_range(&tz, d);
-        match data::spot_selected(&st.app, area_def.name, from, to, &mode, tz).await {
+        match data::spot_selected(&st.app, area_def.name, from, to, &mode, tz.clone()).await {
             Ok(rows) => days.push(
                 rows.iter()
                     .map(|r| (r.0, r.1 * rate, r.2))

@@ -2,11 +2,11 @@
 
 use std::collections::BTreeMap;
 
-use chrono::{Datelike, NaiveDate, TimeZone};
-use chrono_tz::Tz;
+use jiff::civil::Date;
+use jiff::tz::TimeZone;
 use serde::Serialize;
 
-use crate::timeutil::{interval_ms, local_date, local_midnight};
+use crate::timeutil::{add_days, interval_ms, local_date, local_midnight};
 
 /// Raw row from the database
 #[derive(Debug, Clone)]
@@ -64,7 +64,7 @@ pub enum IntervalMode {
 }
 
 /// Pick which rows to use according to `mode`. Returns `(time, price, duration_ms)`, sorted by time.
-pub fn select_rows(rows: &[SpotRow], mode: &IntervalMode, tz: &Tz) -> Vec<(i64, f64, i64)> {
+pub fn select_rows(rows: &[SpotRow], mode: &IntervalMode, tz: &TimeZone) -> Vec<(i64, f64, i64)> {
     let mut out: Vec<(i64, f64, i64)> = match mode {
         IntervalMode::Exact(iv) => rows
             .iter()
@@ -73,7 +73,7 @@ pub fn select_rows(rows: &[SpotRow], mode: &IntervalMode, tz: &Tz) -> Vec<(i64, 
             .collect(),
         IntervalMode::Prefer(iv) => {
             // Group per local day
-            let mut days: BTreeMap<NaiveDate, Vec<&SpotRow>> = BTreeMap::new();
+            let mut days: BTreeMap<Date, Vec<&SpotRow>> = BTreeMap::new();
             for r in rows {
                 days.entry(local_date(tz, r.time)).or_default().push(r);
             }
@@ -105,28 +105,26 @@ pub fn select_rows(rows: &[SpotRow], mode: &IntervalMode, tz: &Tz) -> Vec<(i64, 
 }
 
 /// Start of the group that contains `t` (`None` for [`Grouping::Total`])
-pub fn bucket(g: Grouping, tz: &Tz, t: i64) -> Option<i64> {
+pub fn bucket(g: Grouping, tz: &TimeZone, t: i64) -> Option<i64> {
     match g {
         Grouping::Total => None,
         Grouping::Hourly | Grouping::Minimum => Some(t),
         _ => {
             let d = local_date(tz, t);
             let start = match g {
-                Grouping::Yearly => NaiveDate::from_ymd_opt(d.year(), 1, 1).unwrap_or(d),
-                Grouping::Monthly => d.with_day(1).unwrap_or(d),
-                Grouping::Weekly => {
-                    d - chrono::Duration::days(d.weekday().num_days_from_monday() as i64)
-                }
+                Grouping::Yearly => d.first_of_year(),
+                Grouping::Monthly => d.first_of_month(),
+                Grouping::Weekly => add_days(d, -(d.weekday().to_monday_zero_offset() as i64)),
                 _ => d,
             };
-            Some(local_midnight(tz, start).timestamp_millis())
+            Some(local_midnight(tz, start).timestamp().as_millisecond())
         }
     }
 }
 
 /// Group selected rows. Averages are time weighted, which equals a plain average
 /// when all rows share the same resolution.
-pub fn group(rows: &[(i64, f64, i64)], g: Grouping, tz: &Tz) -> Vec<SpotApiRow> {
+pub fn group(rows: &[(i64, f64, i64)], g: Grouping, tz: &TimeZone) -> Vec<SpotApiRow> {
     // key: Option<i64> -> (weighted sum, weight, min, max)
     let mut groups: BTreeMap<Option<i64>, (f64, f64, f64, f64)> = BTreeMap::new();
     for &(t, p, dur) in rows {
@@ -218,26 +216,13 @@ pub fn infer_interval(rows: &[(i64, f64)]) -> i64 {
         .unwrap_or(crate::timeutil::HOUR_MS)
 }
 
-#[allow(dead_code)]
-pub fn tz_offset_ms(tz: &Tz, t: i64) -> i64 {
-    use chrono::Offset;
-    tz.offset_from_utc_datetime(
-        &chrono::DateTime::from_timestamp_millis(t)
-            .unwrap_or_default()
-            .naive_utc(),
-    )
-    .fix()
-    .local_minus_utc() as i64
-        * 1000
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::timeutil::day_range;
 
-    fn tz() -> Tz {
-        "Europe/Stockholm".parse().unwrap()
+    fn tz() -> TimeZone {
+        crate::timeutil::stockholm()
     }
 
     #[test]
@@ -267,8 +252,8 @@ mod tests {
     #[test]
     fn prefer_mode_spans_resolution_change() {
         let tz = tz();
-        let (d1, _) = day_range(&tz, NaiveDate::from_ymd_opt(2025, 9, 30).unwrap());
-        let (d2, _) = day_range(&tz, NaiveDate::from_ymd_opt(2025, 10, 1).unwrap());
+        let (d1, _) = day_range(&tz, jiff::civil::date(2025, 9, 30));
+        let (d2, _) = day_range(&tz, jiff::civil::date(2025, 10, 1));
         let mut rows = vec![];
         for h in 0..24 {
             rows.push(SpotRow {

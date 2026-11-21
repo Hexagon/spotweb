@@ -10,7 +10,7 @@ Available in Swedish, Finnish, Danish, Norwegian, Spanish, French, German, Dutch
 ## What's new in 2.0
 
 - **One self-contained binary** (Rust, axum). Templates, translations, scripts, styles and icons are embedded – no Deno, no Pup, no CDN.
-- **Built-in scheduler** (tokio-cron-scheduler) replaces the separate Pup cron processes. Jobs never overlap, have timeouts and retries,
+- **Built-in scheduler** (fixed times in `SPOTWEB_SCHEDULE_TZ`, time zone database built into the binary) replaces the separate Pup cron processes. Jobs never overlap, have timeouts and retries,
   invalidate the in-memory cache directly when done, and are logged to the database (`/api/v2/status`).
 - **SQLite with proper keys.** Every table has a primary key on its natural key and writes are upserts, so the periodic "delete
   duplicates" clean-ups are gone. Schema changes are versioned migrations.

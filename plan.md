@@ -59,8 +59,8 @@ Varje punkt är tänkt att bli en egen PR.
     diagrammen textalternativ.~~
 19. ✅ ~~**ETag/304 i API:t.** Det minskar trafiken från Home Assistant-installationer som frågar var tredje minut.~~
 
-24. **Byt chrono/chrono-tz mot jiff.** RustSec markerar båda som ounderhållna (RUSTSEC-2026-0543/0555, inga kända
-    sårbarheter). Undantagna i `deny.toml` tills bytet är gjort.
+24. ✅ ~~**Byt chrono/chrono-tz mot jiff.** RustSec markerar båda som ounderhållna (RUSTSEC-2026-0543/0555, inga kända
+    sårbarheter). Undantagna i `deny.toml` tills bytet är gjort.~~
 
 ## P3 – Nya funktioner
 
@@ -133,6 +133,11 @@ Varje punkt är tänkt att bli en egen PR.
   (`on`, `report-only`, `off`). Diagrammen har `role="img"` och en `aria-label` med rubrik, lägsta–högsta värde och
   medel per serie, och knapparna Stäng/Tillbaka och huvudmenyn har översatta etiketter. Kontrollerat i Chromium utan
   CSP-fel; tredjepartsskripten kunde inte laddas härifrån, så titta i konsolen efter driftsättning.
+- Punkt 24: all datum- och tidshantering använder jiff, med tidszonsdatabasen inbyggd i binären. tokio-cron-scheduler
+  drog också in chrono och chrono-tz, så den är ersatt av en egen liten schemaläggare (fasta minuter/timmar per jobb i
+  `SPOTWEB_SCHEDULE_TZ`). Den går minut för minut i verklig tid, så sommartid behöver inte längre hanteras genom att
+  registrera om jobben. chrono finns inte kvar i beroendeträdet och undantagen i `deny.toml` är borttagna. Kontrollerat
+  att gamla och nya binären ger identiska svar för 28 adresser (alla grupperingar, Portugal/Finland, sidor).
 
 - En binär med inbyggd schemaläggare, SQLite med nycklar, import från 1.x
 - Signerade releaser för Linux, macOS och Windows, CI på alla tre plattformarna

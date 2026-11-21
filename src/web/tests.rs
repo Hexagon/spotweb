@@ -16,19 +16,19 @@ fn test_app() -> App {
         public_url: Some("https://example.test".into()),
         adsense: None,
         ga_id: None,
-        schedule_tz: chrono_tz::Europe::Stockholm,
-        history_start: chrono::NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(),
+        schedule_tz: crate::timeutil::stockholm(),
+        history_start: jiff::civil::date(2021, 1, 1),
         csp: crate::web::Csp::Enforce,
     };
     let app = App::new(db, cfg).unwrap();
     // Seed: SE1 today + tomorrow at 15 minutes, exchange rates
-    let tz = chrono_tz::Europe::Stockholm;
+    let tz = crate::timeutil::stockholm();
     let mut c = app.db.conn().unwrap();
     let mut rows = vec![];
     for d in [
-        today(&tz) - chrono::Duration::days(1),
+        crate::timeutil::add_days(today(&tz), -1),
         today(&tz),
-        today(&tz) + chrono::Duration::days(1),
+        crate::timeutil::add_days(today(&tz), 1),
     ] {
         let (s, e) = day_range(&tz, d);
         let mut t = s;
@@ -60,9 +60,7 @@ async fn get(app: &App, uri: &str) -> (StatusCode, String, axum::http::HeaderMap
 #[tokio::test]
 async fn spot_api_shape() {
     let app = test_app();
-    let d = today(&chrono_tz::Europe::Stockholm)
-        .format("%Y-%m-%d")
-        .to_string();
+    let d = today(&crate::timeutil::stockholm()).to_string();
     let (s, body, _) = get(
         &app,
         &format!("/api/v2/spot?period=hourly&area=se1&startDate={d}&endDate={d}"),
@@ -324,9 +322,7 @@ async fn get_if_none_match(
 #[tokio::test]
 async fn api_etag_and_not_modified() {
     let app = test_app();
-    let d = today(&chrono_tz::Europe::Stockholm)
-        .format("%Y-%m-%d")
-        .to_string();
+    let d = today(&crate::timeutil::stockholm()).to_string();
     for uri in [
         format!("/api/v2/spot?period=hourly&area=SE1&startDate={d}&endDate={d}"),
         "/api/v2/hass?area=SE1&currency=SEK".to_string(),
@@ -398,9 +394,7 @@ async fn permalinks_and_share_buttons() {
 #[tokio::test]
 async fn api_v1_compat_edge_cases() {
     let app = test_app();
-    let d = today(&chrono_tz::Europe::Stockholm)
-        .format("%Y-%m-%d")
-        .to_string();
+    let d = today(&crate::timeutil::stockholm()).to_string();
     let json = |b: &str| serde_json::from_str::<Value>(b).unwrap();
 
     // Repeated parameter: first value wins (URLSearchParams.get)
@@ -485,8 +479,8 @@ async fn api_v1_compat_edge_cases() {
 #[tokio::test]
 async fn api_attribution_and_range_limits() {
     let app = test_app();
-    let d = today(&chrono_tz::Europe::Stockholm);
-    let iso = |d: chrono::NaiveDate| d.format("%Y-%m-%d").to_string();
+    let d = today(&crate::timeutil::stockholm());
+    let iso = |d: jiff::civil::Date| d.to_string();
 
     // Source is always given, the conversion note only when converted
     let (_, body, _) = get(
@@ -520,7 +514,7 @@ async fn api_attribution_and_range_limits() {
     // Raw intervals: 31 days ok, 32 days refused
     let ok = format!(
         "/api/v2/spot?period=hourly&area=SE1&startDate={}&endDate={}",
-        iso(d - chrono::Duration::days(30)),
+        iso(crate::timeutil::add_days(d, -30)),
         iso(d)
     );
     assert_eq!(get(&app, &ok).await.0, StatusCode::OK);
@@ -528,7 +522,7 @@ async fn api_attribution_and_range_limits() {
         &app,
         &format!(
             "/api/v2/spot?period=hourly&area=SE1&startDate={}&endDate={}",
-            iso(d - chrono::Duration::days(31)),
+            iso(crate::timeutil::add_days(d, -31)),
             iso(d)
         ),
     )
@@ -539,7 +533,7 @@ async fn api_attribution_and_range_limits() {
     let span = |p: &str, days: i64| {
         format!(
             "/api/v2/spot?period={p}&area=SE1&startDate={}&endDate={}",
-            iso(d - chrono::Duration::days(days)),
+            iso(crate::timeutil::add_days(d, -days)),
             iso(d)
         )
     };
@@ -555,15 +549,15 @@ async fn api_attribution_and_range_limits() {
 async fn grouped_split_at_current_group_matches_unsplit() {
     use crate::price::{group, select_rows, Grouping, IntervalMode};
     let app = test_app();
-    let tz = chrono_tz::Europe::Stockholm;
+    let tz = crate::timeutil::stockholm();
     // Hourly history for the last ~400 days, so every calendar grouping crosses "now"
-    let (now_start, _) = day_range(&tz, today(&tz) - chrono::Duration::days(1));
+    let (now_start, _) = day_range(&tz, crate::timeutil::add_days(today(&tz), -1));
     let from = now_start - 400 * 86_400_000;
     let rows: Vec<_> = (0..400 * 24)
         .map(|i| (from + i * 3_600_000, "PT60M".to_string(), (i % 97) as f64))
         .collect();
     queries::upsert_spot(&mut app.db.conn().unwrap(), "sv", "SE1", &rows).unwrap();
-    let to = day_range(&tz, today(&tz) + chrono::Duration::days(1)).1;
+    let to = day_range(&tz, crate::timeutil::add_days(today(&tz), 1)).1;
     let mode = IntervalMode::Prefer("PT60M".into());
     let all = queries::spot_rows(&app.db.conn().unwrap(), "SE1", from, to).unwrap();
     for g in [
@@ -573,7 +567,7 @@ async fn grouped_split_at_current_group_matches_unsplit() {
         Grouping::Yearly,
     ] {
         let expected = group(&select_rows(&all, &mode, &tz), g, &tz);
-        let got = super::data::spot_grouped(&app, "SE1", from, to, g, &mode, tz)
+        let got = super::data::spot_grouped(&app, "SE1", from, to, g, &mode, tz.clone())
             .await
             .unwrap();
         assert_eq!(*got, expected, "{g:?}");
@@ -583,9 +577,7 @@ async fn grouped_split_at_current_group_matches_unsplit() {
 #[tokio::test]
 async fn http_stats_per_route() {
     let app = test_app();
-    let d = today(&chrono_tz::Europe::Stockholm)
-        .format("%Y-%m-%d")
-        .to_string();
+    let d = today(&crate::timeutil::stockholm()).to_string();
     let (s, _, _) = get(
         &app,
         &format!("/api/v2/spot?period=hourly&area=SE1&startDate={d}&endDate={d}"),

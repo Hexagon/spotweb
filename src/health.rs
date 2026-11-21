@@ -1,17 +1,14 @@
 //! Data health for monitoring: are tomorrow's prices and recent load/generation stored?
 
-use chrono::{NaiveTime, TimeZone};
+use jiff::civil::Time;
 use serde::Serialize;
 
 use crate::countries::COUNTRIES;
-use crate::timeutil::{day_ahead_end, js_iso, HOUR_MS};
+use crate::timeutil::{day_ahead_end, js_iso, stockholm, ts, HOUR_MS};
 
 /// Day-ahead prices are published around 12:45-13:45 CET; after this local time
 /// (Europe/Stockholm, CET/CEST) tomorrow's prices are expected for every area.
-pub const TOMORROW_DEADLINE: NaiveTime = match NaiveTime::from_hms_opt(14, 0, 0) {
-    Some(t) => t,
-    None => unreachable!(),
-};
+pub const TOMORROW_DEADLINE: Time = Time::constant(14, 0, 0, 0);
 /// Load and generation older than this are considered missing
 pub const MAX_AGE_MS: i64 = 3 * HOUR_MS;
 
@@ -31,12 +28,7 @@ pub fn check(
 ) -> Health {
     let mut problems = Vec::new();
 
-    let cet = chrono_tz::Europe::Stockholm;
-    let after_deadline = cet
-        .timestamp_millis_opt(now)
-        .single()
-        .map(|t| t.time() >= TOMORROW_DEADLINE)
-        .unwrap_or(false);
+    let after_deadline = ts(now).to_zoned(stockholm()).time() >= TOMORROW_DEADLINE;
     let (days, label) = if after_deadline {
         (2, "tomorrow")
     } else {
@@ -47,7 +39,7 @@ pub fn check(
         let tz = country.timezone();
         let end = day_ahead_end(&tz, now, days);
         // The last interval of the day starts at most an hour before its end
-        let wanted = end.timestamp_millis() - HOUR_MS;
+        let wanted = end.timestamp().as_millisecond() - HOUR_MS;
         for area in country.areas {
             if latest_price(area.name).is_none_or(|p| p < wanted) {
                 missing.push(area.name);
@@ -82,29 +74,30 @@ pub fn check(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::timeutil::{local_midnight, MARKET_TZ};
-    use chrono::NaiveDate;
+    use crate::timeutil::{local_midnight, market_tz};
+    use jiff::civil::date;
 
-    fn at(d: u32, h: u32, m: u32) -> i64 {
-        chrono_tz::Europe::Stockholm
-            .from_local_datetime(
-                &NaiveDate::from_ymd_opt(2026, 11, d)
-                    .unwrap()
-                    .and_hms_opt(h, m, 0)
-                    .unwrap(),
-            )
+    fn at(d: i8, h: i8, m: i8) -> i64 {
+        date(2026, 11, d)
+            .at(h, m, 0, 0)
+            .to_zoned(stockholm())
             .unwrap()
-            .timestamp_millis()
+            .timestamp()
+            .as_millisecond()
     }
 
     /// Every area has prices up to and including the last quarter of market day `day`, or of the
     /// local day where that ends first (Finland)
-    fn prices_through(day: u32) -> impl Fn(&str) -> Option<i64> {
+    fn prices_through(day: i8) -> impl Fn(&str) -> Option<i64> {
         move |area| {
             let country = COUNTRIES.iter().find(|c| c.area(area).is_some()).unwrap();
-            let next = NaiveDate::from_ymd_opt(2026, 11, day + 1).unwrap();
-            let local = local_midnight(&country.timezone(), next).timestamp_millis();
-            let market = local_midnight(&MARKET_TZ, next).timestamp_millis();
+            let next = date(2026, 11, day + 1);
+            let local = local_midnight(&country.timezone(), next)
+                .timestamp()
+                .as_millisecond();
+            let market = local_midnight(&market_tz(), next)
+                .timestamp()
+                .as_millisecond();
             Some(local.min(market) - 15 * 60_000)
         }
     }
