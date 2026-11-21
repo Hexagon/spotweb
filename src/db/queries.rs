@@ -343,18 +343,24 @@ pub fn current_generation_and_load(c: &Connection, from: i64) -> rusqlite::Resul
             FROM generation_per_psr_group gen
             GROUP BY gen.area, gen.interval
         ),
-        load_latest AS (
-            SELECT area, value, period, interval FROM (
-                SELECT area, value, period, interval,
-                       ROW_NUMBER() OVER (PARTITION BY area ORDER BY period DESC) AS row_number
-                FROM load WHERE period >= ?1
-            ) WHERE row_number = 1
+        -- Load for the same period as the generation, not simply the newest load row:
+        -- load is often published a few intervals ahead of generation, and those
+        -- preliminary values do not match it (the newest Swedish load is about equal
+        -- to production, as the exchange is not in yet). Falls back to the latest load
+        -- before that period, preferring the generation's resolution.
+        load_at AS (
+            SELECT gt.area,
+                   (SELECT l.value FROM load l
+                    WHERE l.area = gt.area AND l.period >= ?1 AND l.period <= gt.period
+                    ORDER BY l.period DESC, l.interval = gt.interval DESC
+                    LIMIT 1) AS value
+            FROM generation_total gt
         )
         SELECT gt.area, gt.period, gt.interval, gt.primary_psr_group,
-               gt.max_generation_value, gt.sum_generation_value, ll.value,
-               gt.sum_generation_value - COALESCE(ll.value, 0)
+               gt.max_generation_value, gt.sum_generation_value, la.value,
+               gt.sum_generation_value - COALESCE(la.value, 0)
         FROM generation_total gt
-        LEFT JOIN load_latest ll ON gt.area = ll.area",
+        LEFT JOIN load_at la ON gt.area = la.area",
     )?;
     let rows = st.query_map(params![from], |r| {
         Ok(GenLoadRow {
@@ -929,6 +935,12 @@ mod tests {
         let se = cur.iter().find(|r| r.area == "Sweden (SE)").unwrap();
         assert_eq!(se.generation_total, Some(450.0));
         assert_eq!(se.primary_psr_group.as_deref(), Some("water"));
+        assert_eq!(se.load_total, Some(300.0));
+        // SE2 has load for period 2000 but generation only up to 1000: the load must
+        // match the generation period, not be the newest load row
+        let se2 = cur.iter().find(|r| r.area == "BZN|SE2").unwrap();
+        assert_eq!(se2.load_total, Some(200.0));
+        assert_eq!(se2.net_generation, Some(100.0));
     }
 
     #[test]
