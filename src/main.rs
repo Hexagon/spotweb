@@ -188,9 +188,14 @@ fn init_logging(debug: bool) {
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(default));
     // journald adds its own timestamps
     let under_systemd = std::env::var_os("JOURNAL_STREAM").is_some();
+    // No colour codes in the journal or in redirected output (NO_COLOR is respected too)
+    let ansi = !under_systemd
+        && std::env::var_os("NO_COLOR").is_none()
+        && std::io::IsTerminal::is_terminal(&std::io::stdout());
     let builder = tracing_subscriber::fmt()
         .with_env_filter(filter)
-        .with_target(false);
+        .with_target(false)
+        .with_ansi(ansi);
     if under_systemd {
         builder.without_time().init();
     } else {
