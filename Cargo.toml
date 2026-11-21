@@ -25,7 +25,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "time", "sync", "net"] }
 tokio-cron-scheduler = { version = "0.15", features = ["signal"] }
-tower-http = { version = "0.6", features = ["compression-gzip", "compression-br", "trace", "timeout"] }
+tower-http = { version = "0.7", features = ["compression-gzip", "compression-br", "trace", "timeout"] }
 tracing = "0.1"
 uuid = "1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
