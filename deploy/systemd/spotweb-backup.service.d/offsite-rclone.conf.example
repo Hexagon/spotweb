@@ -1,0 +1,10 @@
+# /etc/systemd/system/spotweb-backup.service.d/offsite.conf
+# Alternative to restic: mirror the seven rotating backup files to any rclone remote
+# (S3, B2, SFTP, Google Drive…). Configure the remote as the spotweb user first:
+#   sudo -u spotweb rclone config --config /etc/spotweb/rclone.conf
+# and make /etc/spotweb/rclone.conf root:spotweb, mode 0640.
+[Service]
+Environment=RCLONE_CONFIG=/etc/spotweb/rclone.conf
+CacheDirectory=spotweb-rclone
+Environment=RCLONE_CACHE_DIR=/var/cache/spotweb-rclone
+ExecStartPost=/usr/bin/rclone copy --checksum /var/lib/spotweb/backup offsite:spotweb-backup

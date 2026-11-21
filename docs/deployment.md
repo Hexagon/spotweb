@@ -107,6 +107,29 @@ Database migrations run automatically at start. Take a backup first (`sudo syste
 `spotweb-backup.timer` writes a consistent copy every night to `/var/lib/spotweb/backup/spotweb-<weekday>.db` (seven rotating
 files) using SQLite's online backup API. Copy that directory off the machine (restic, borg, rsync…).
 
+### Off-site copy
+
+`deploy/systemd/spotweb-backup.service.d/` has two drop-ins that run right after a successful backup:
+
+- `offsite-restic.conf.example` – encrypted, deduplicated snapshots with restic (7 daily, 4 weekly, 6 monthly; pruned
+  on Sundays).
+- `offsite-rclone.conf.example` – a plain mirror of the seven files to any rclone remote.
+
+```sh
+sudo apt install restic                      # or rclone
+sudo install -m 640 -g spotweb /dev/null /etc/spotweb/restic.env
+sudoedit /etc/spotweb/restic.env             # RESTIC_REPOSITORY=…, RESTIC_PASSWORD_FILE=… (see the file)
+sudo -u spotweb sh -c 'set -a; . /etc/spotweb/restic.env; restic init'
+sudo install -D -m 644 deploy/systemd/spotweb-backup.service.d/offsite-restic.conf.example \
+  /etc/systemd/system/spotweb-backup.service.d/offsite.conf
+sudo systemctl daemon-reload
+sudo systemctl start spotweb-backup && journalctl -u spotweb-backup -n 30
+```
+
+If the copy fails, the unit fails and `systemctl --failed` shows it; the local backup is still written. Restore from
+restic with `restic restore latest --tag spotweb --target /tmp/restore`, then follow the steps below. Test a restore
+once, the repository password is the only way back.
+
 Restore: stop the service, copy a backup to `/var/lib/spotweb/spotweb.db`, remove any `spotweb.db-wal`/`-shm` files,
 `chown spotweb:spotweb`, start.
 
