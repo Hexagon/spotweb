@@ -98,7 +98,8 @@ pub fn eic(name: &str) -> Option<&'static str> {
         .or_else(|| NEIGHBOURS.iter().find(|n| n.name == name).map(|n| n.eic))
 }
 
-/// Every direction that is fetched: `(from, to)`
+/// Every direction of every border: `(from, to)`
+#[cfg(test)]
 pub fn directions() -> impl Iterator<Item = (&'static str, &'static str)> {
     BORDERS.iter().flat_map(|&(a, b)| [(a, b), (b, a)])
 }
