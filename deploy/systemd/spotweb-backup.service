@@ -8,9 +8,11 @@ Type=oneshot
 User=spotweb
 Group=spotweb
 EnvironmentFile=/etc/spotweb/spotweb.env
-StateDirectory=spotweb
+# systemd creates both directories owned by spotweb:spotweb; no mkdir binary is needed, so this
+# works whether or not /usr is merged into / (on unmerged systems mkdir is only at /bin/mkdir).
+StateDirectory=spotweb spotweb/backup
+StateDirectoryMode=0750
 WorkingDirectory=/var/lib/spotweb
-ExecStartPre=/usr/bin/mkdir -p /var/lib/spotweb/backup
 ExecStart=/bin/sh -c 'exec /usr/local/bin/spotweb backup /var/lib/spotweb/backup/spotweb-$(date +%%u).db'
 NoNewPrivileges=yes
 ProtectSystem=strict
