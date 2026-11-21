@@ -283,11 +283,12 @@ pub fn default_decimals(currency: &str) -> usize {
 
 pub const LANGUAGES: &[&str] = &["sv", "fi", "no", "dk", "de", "en", "nl", "fr", "es"];
 
-/// Guess language from the first path segment, mirrors `langFromUrl` in 1.x
-pub fn lang_from_path(path: &str) -> &'static str {
+/// Language a url stands for through its first path segment (`/sv/SE3` is Swedish).
+/// `None` for paths that carry no language, like `/`, `/help` or `/pl/PL`.
+pub fn lang_from_path(path: &str) -> Option<&'static str> {
     let p = path.trim_start_matches('/');
     let first = p.split('/').next().unwrap_or("");
-    match first {
+    Some(match first {
         "sv" => "sv",
         "be" | "nl" => "nl",
         "no" => "no",
@@ -296,7 +297,25 @@ pub fn lang_from_path(path: &str) -> &'static str {
         "es" => "es",
         "fr" => "fr",
         "de" | "at" | "ch" => "de",
-        _ => "en",
+        _ => return None,
+    })
+}
+
+/// BCP 47 tag for one of our language codes, for `<html lang>` and `hreflang`
+pub fn lang_tag(lang: &str) -> &str {
+    match lang {
+        "dk" => "da",
+        l => l,
+    }
+}
+
+/// Our language code for the primary subtag of a browser language (`da`, `nb`, `sv`, ...)
+pub fn lang_from_tag(tag: &str) -> Option<&'static str> {
+    let primary = tag.trim().split(['-', '_']).next()?.to_ascii_lowercase();
+    match primary.as_str() {
+        "da" | "dk" => Some("dk"),
+        "nb" | "nn" | "no" => Some("no"),
+        p => LANGUAGES.iter().find(|l| **l == p).copied(),
     }
 }
 
@@ -324,10 +343,16 @@ mod tests {
 
     #[test]
     fn lang_guess() {
-        assert_eq!(lang_from_path("/sv/SE1"), "sv");
-        assert_eq!(lang_from_path("/at"), "de");
-        assert_eq!(lang_from_path("/be"), "nl");
-        assert_eq!(lang_from_path("/nl/NL"), "nl");
-        assert_eq!(lang_from_path("/"), "en");
+        assert_eq!(lang_from_path("/sv/SE1"), Some("sv"));
+        assert_eq!(lang_from_path("/at"), Some("de"));
+        assert_eq!(lang_from_path("/be"), Some("nl"));
+        assert_eq!(lang_from_path("/nl/NL"), Some("nl"));
+        assert_eq!(lang_from_path("/"), None);
+        assert_eq!(lang_from_path("/pl/PL"), None);
+        assert_eq!(lang_from_tag("da-DK"), Some("dk"));
+        assert_eq!(lang_from_tag("nb"), Some("no"));
+        assert_eq!(lang_from_tag("sv-SE"), Some("sv"));
+        assert_eq!(lang_from_tag("pl"), None);
+        assert_eq!(lang_tag("dk"), "da");
     }
 }

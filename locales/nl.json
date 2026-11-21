@@ -197,6 +197,18 @@
       "copied": "Link gekopieerd",
       "more": "Meer opties…",
       "email": "E-mail"
+    },
+    "seo": {
+      "index_title": "Stroomprijs vandaag en morgen in Scandinavië en Europa",
+      "index_description": "Actuele spotprijzen voor stroom, vandaag en morgen, voor {zones} biedzones in Scandinavië en Europa, met stroomstromen, productie en verbruik. Gegevens van ENTSO-E.",
+      "area_title": "Stroomprijs {area} ({long}) vandaag en morgen",
+      "area_description": "Spotprijs {area} {long} vandaag: gemiddeld {avg} {unit}, laagste {min}, hoogste {max}.",
+      "area_description_tomorrow": "Morgen: gemiddeld {avg} {unit}, {min}–{max}.",
+      "area_description_more": "Prijzen per uur en kwartier, historie, productie en verbruik.",
+      "area_description_nodata": "Spotprijs voor stroom in {area} {long} vandaag, morgen en historisch, met productie en verbruik.",
+      "country_title": "Stroomprijs {country} vandaag en morgen",
+      "country_description": "Spotprijs {country} vandaag, gemiddeld per biedzone: {prices} {unit}. Productie, verbruik en storingen.",
+      "dataset_name": "Spotprijzen stroom {area} ({long})"
     }
   }
 }

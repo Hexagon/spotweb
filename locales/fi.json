@@ -197,6 +197,18 @@
       "copied": "Linkki kopioitu",
       "more": "Lisää vaihtoehtoja…",
       "email": "Sähköposti"
+    },
+    "seo": {
+      "index_title": "Sähkön hinta tänään ja huomenna Pohjoismaissa ja Euroopassa",
+      "index_description": "Sähkön spot-hinnat juuri nyt, tänään ja huomenna, {zones} tarjousalueelle Pohjoismaissa ja Euroopassa, sekä siirrot, tuotanto ja kulutus. Tiedot: ENTSO-E.",
+      "area_title": "Sähkön hinta {area} ({long}) tänään ja huomenna",
+      "area_description": "Spot-hinta {area} {long} tänään: keskiarvo {avg} {unit}, alin {min}, ylin {max}.",
+      "area_description_tomorrow": "Huomenna: keskiarvo {avg} {unit}, {min}–{max}.",
+      "area_description_more": "Hinnat tunneittain ja varteittain, historia, tuotanto ja kulutus.",
+      "area_description_nodata": "Sähkön spot-hinta {area} {long} tänään, huomenna ja historiassa, sekä tuotanto ja kulutus.",
+      "country_title": "Sähkön hinta: {country} tänään ja huomenna",
+      "country_description": "Spot-hinta tänään, {country}, keskiarvo tarjousalueittain: {prices} {unit}. Tuotanto, kulutus ja häiriöt.",
+      "dataset_name": "Sähkön spot-hinnat {area} ({long})"
     }
   }
 }

@@ -33,6 +33,7 @@ a:hover { text-decoration: underline; }
 h1, h2, h3 { line-height: 1.25; margin: 0 0 .5em; }
 h1 { font-size: 1.8rem; }
 h2, .h2 { font-size: 1.35rem; }
+.page-title { margin: 0 0 var(--gap); }
 h3 { font-size: 1rem; }
 code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; }
 code { background: var(--card-2); padding: .1em .35em; border-radius: 4px; }
@@ -129,7 +130,7 @@ input:focus, select:focus, button:focus-visible { outline: 2px solid var(--prima
 .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: var(--gap); }
 .grid > .card { margin-bottom: 0; }
 .card-head { padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--border); }
-.card-head h2 { margin: 0; font-size: 1.02rem; font-weight: 600; }
+.card-head h1, .card-head h2 { margin: 0; font-size: 1.02rem; font-weight: 600; }
 .card-foot { display: block; padding: 8px 16px; text-align: right; background: var(--card-2); border-top: 1px solid var(--border); }
 .bg-color-1 { background: rgba(var(--c1), .22); }
 .bg-color-2 { background: rgba(var(--c2), .22); }
@@ -141,7 +142,7 @@ input:focus, select:focus, button:focus-visible { outline: 2px solid var(--prima
 .link-color-3 { color: rgb(var(--c3)); }
 .link-color-4 { color: rgb(var(--c4)); }
 .link-color-5 { color: rgb(var(--c5)); }
-.area-card .card-head h2 { text-align: center; width: 100%; }
+.area-card .card-head h1, .area-card .card-head h2 { text-align: center; width: 100%; }
 .now-box { text-align: center; padding: 14px 10px 10px; background: var(--card-2); }
 .price-big { font-size: 4.2rem; line-height: 1.05; font-weight: 300; color: #f5ead6; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 10px; padding: 14px 16px; }
@@ -302,7 +303,7 @@ body.currency-eur .hide-eur { display: none; }
 @media (hover: hover) { .share-btn:hover { opacity: 1; background: rgba(255,255,255,.08); } }
 .area-card .card-head { position: relative; }
 .area-card .card-head .share-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
-.area-card .card-head h2 { padding: 0 30px; }
+.area-card .card-head h1, .area-card .card-head h2 { padding: 0 30px; }
 .zone-tools { display: flex; gap: 6px; align-items: center; }
 .zone-tools select { flex: 1; min-width: 0; }
 .share-menu { position: absolute; z-index: 60; min-width: 220px; max-width: calc(100vw - 16px); background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.45); display: flex; flex-direction: column; }

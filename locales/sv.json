@@ -197,6 +197,18 @@
       "copied": "Länken är kopierad",
       "more": "Fler alternativ…",
       "email": "E-post"
+    },
+    "seo": {
+      "index_title": "Elpriset idag och imorgon i Norden och Europa",
+      "index_description": "Aktuella spotpriser på el just nu, idag och imorgon, för {zones} elområden i Norden och Europa, med överföring, produktion och förbrukning. Data från ENTSO-E.",
+      "area_title": "Elpris {area} ({long}) idag och imorgon",
+      "area_description": "Spotpris {area} {long} idag: medel {avg} {unit}, lägst {min}, högst {max}.",
+      "area_description_tomorrow": "Imorgon: medel {avg} {unit}, {min}–{max}.",
+      "area_description_more": "Pris per timme och kvart, historik, produktion och förbrukning.",
+      "area_description_nodata": "Spotpris på el för {area} {long} idag, imorgon och historiskt, med produktion och förbrukning.",
+      "country_title": "Elpris i {country} idag och imorgon",
+      "country_description": "Spotpris i {country} idag, medel per elområde: {prices} {unit}. Produktion, förbrukning och driftstörningar.",
+      "dataset_name": "Spotpriser på el {area} ({long})"
     }
   }
 }
