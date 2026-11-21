@@ -171,18 +171,18 @@ fn utc(t: DateTime<Tz>) -> DateTime<Utc> {
 async fn update_currency(app: &App) -> anyhow::Result<String> {
     let rates = crate::ecb::fetch().await.context("fetching ECB rates")?;
     let date = rates.date.clone();
-    let d = date.clone();
-    if app
-        .db
-        .run(move |c| Ok(queries::has_exchange_rates_for(c, &d)?))
-        .await?
-    {
-        return Ok(format!("rates for {date} already stored"));
-    }
+    // Stored at midnight UTC of the ECB date
     let period = NaiveDate::parse_from_str(&date, "%Y-%m-%d")?
         .and_hms_opt(0, 0, 0)
         .map(|n| Utc.from_utc_datetime(&n).timestamp_millis())
         .context("bad date")?;
+    if app
+        .db
+        .run(move |c| Ok(queries::has_exchange_rates_for(c, period)?))
+        .await?
+    {
+        return Ok(format!("rates for {date} already stored"));
+    }
     let n = rates.entries.len();
     app.db
         .run(move |c| {

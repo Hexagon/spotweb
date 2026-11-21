@@ -119,10 +119,14 @@ pub fn exchange_rates(c: &Connection) -> rusqlite::Result<ExchangeRates> {
     Ok(out)
 }
 
-pub fn has_exchange_rates_for(c: &Connection, date: &str) -> rusqlite::Result<bool> {
+/// Whether rates are stored for `period` (midnight UTC of the ECB date).
+///
+/// Checks `period`, not `date`: rows imported from 1.x have the *fetch* date in `date` (and local midnight of
+/// that day in `period`), so the ECB rate published on the same day would wrongly look like it was already stored.
+pub fn has_exchange_rates_for(c: &Connection, period: i64) -> rusqlite::Result<bool> {
     let n: i64 = c.query_row(
-        "SELECT COUNT(*) FROM exchangerate WHERE date = ?1",
-        params![date],
+        "SELECT COUNT(*) FROM exchangerate WHERE period = ?1",
+        params![period],
         |r| r.get(0),
     )?;
     Ok(n > 0)
@@ -740,5 +744,27 @@ mod tests {
         assert_eq!(r.rate("öre"), Some(11.5));
         assert_eq!(r.rate("EUR"), Some(1.0));
         assert_eq!(r.date, "2024-01-02");
+    }
+
+    #[test]
+    fn exchange_rate_after_v1_import() {
+        // 1.x stored the rate fetched on 21 Nov (ECB's rate for 20 Nov) with the fetch date and local midnight
+        let db = Db::open_memory();
+        let mut c = db.conn().unwrap();
+        let mut e = BTreeMap::new();
+        e.insert("SEK".to_string(), 11.0);
+        let v1_period = 1_763_679_600_000; // 2025-11-20T23:00:00Z = 2025-11-21 00:00 CET
+        insert_exchange_rates(&mut c, "2025-11-21", v1_period, &e).unwrap();
+        // ECB's rate for 21 Nov is stored at midnight UTC and must not be treated as a duplicate
+        let ecb_period = 1_763_683_200_000; // 2025-11-21T00:00:00Z
+        assert!(!has_exchange_rates_for(&c, ecb_period).unwrap());
+        e.insert("SEK".to_string(), 11.2);
+        insert_exchange_rates(&mut c, "2025-11-21", ecb_period, &e).unwrap();
+        assert!(has_exchange_rates_for(&c, ecb_period).unwrap());
+        assert_eq!(exchange_rates(&c).unwrap().rate("SEK"), Some(11.2));
+        assert_eq!(
+            data_freshness(&c).unwrap().exchange_rate_date.as_deref(),
+            Some("2025-11-21")
+        );
     }
 }
