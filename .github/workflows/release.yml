@@ -33,7 +33,7 @@ jobs:
           - { target: x86_64-apple-darwin, os: macos-latest }  # cross-compiled on Apple silicon
           - { target: x86_64-pc-windows-msvc, os: windows-latest }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.TAG }}
       - uses: dtolnay/rust-toolchain@stable
@@ -73,7 +73,7 @@ jobs:
             tar czf "$name.tar.gz" "$name"
           fi
           rm -rf "$name"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.target }}
           path: dist/*
@@ -87,7 +87,7 @@ jobs:
       id-token: write      # Sigstore keyless signing + attestations
       attestations: write  # build provenance
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
@@ -102,7 +102,7 @@ jobs:
             cosign sign-blob --yes --bundle "$f.sigstore.json" "$f"
           done
       - name: Build provenance attestation
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: "dist/spotweb-*"
       - name: Publish release
