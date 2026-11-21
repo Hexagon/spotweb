@@ -612,3 +612,23 @@ async fn http_stats_per_route() {
     get(&app, "/manifest.json").await;
     assert_eq!(app.http_stats.to_json()["routes"]["static"]["requests"], 1);
 }
+
+#[tokio::test]
+async fn translated_pages_have_no_missing_keys() {
+    let app = test_app();
+    for lang in crate::countries::LANGUAGES {
+        for page in ["help", "homeassistant", "custom"] {
+            let (s, body, _) = get(&app, &format!("/{page}?lang={lang}")).await;
+            assert_eq!(s, StatusCode::OK);
+            assert!(!body.contains("pages."), "{page} {lang} shows a raw key");
+            assert!(
+                !body.contains("&lt;i&gt;"),
+                "{page} {lang} has escaped markup"
+            );
+        }
+    }
+    let (_, body, _) = get(&app, "/help?lang=sv").await;
+    assert!(body.contains("<i>Faktiskt timpris"), "{body}");
+    let (_, body, _) = get(&app, "/custom?lang=de").await;
+    assert!(body.contains("<title>") && body.contains("Eigener Zeitraum"));
+}

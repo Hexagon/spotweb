@@ -549,8 +549,15 @@ pub async fn custom(
     Query(q): Query<BTreeMap<String, String>>,
 ) -> PageResult {
     let lang = detect_lang(&uri, &headers);
-    let (mut ctx, mut boot) =
-        base(&st, &lang, "custom", "Custom period".into(), &uri, &headers).await?;
+    let (mut ctx, mut boot) = base(
+        &st,
+        &lang,
+        "custom",
+        st.app.i18n.t(&lang, "pages.custom.title"),
+        &uri,
+        &headers,
+    )
+    .await?;
     let d = today(&chrono_tz::Europe::Stockholm)
         .format("%Y-%m-%d")
         .to_string();
@@ -572,7 +579,7 @@ pub async fn help(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> P
         &st,
         &lang,
         "help",
-        "Help - Install app, more information".into(),
+        st.app.i18n.t(&lang, "pages.help.page_title"),
         &uri,
         &headers,
     )
@@ -586,7 +593,7 @@ pub async fn homeassistant(State(st): State<WebState>, uri: Uri, headers: Header
         &st,
         &lang,
         "homeassistant",
-        "Home Assistant REST integration".into(),
+        st.app.i18n.t(&lang, "pages.hass.page_title"),
         &uri,
         &headers,
     )

@@ -348,7 +348,7 @@
       const res = await fetch(`/api/v2/spot?${params}`).then((r) => r.json());
       const data = res.status === "ok" ? res.data : [];
       const err = $("#custom-error");
-      if (err) { err.textContent = res.status === "ok" ? "" : res.details || "Error"; err.classList.toggle("hidden", res.status === "ok"); }
+      if (err) { err.textContent = res.status === "ok" ? "" : res.details || t("custom.error"); err.classList.toggle("hidden", res.status === "ok"); }
       $("#custom-result").classList.remove("hidden");
       $("#custom-permalink").href = `/custom?${params}`;
       $("#custom-json").href = `/api/v2/spot?${params}`;
@@ -356,8 +356,8 @@
       $("#custom-avg").textContent = `${price(avg)} ${unit()}`;
       $("#custom-min").textContent = `${price(data.length ? Math.min(...data.map((r) => r.min)) : null)} ${unit()}`;
       $("#custom-max").textContent = `${price(data.length ? Math.max(...data.map((r) => r.max)) : null)} ${unit()}`;
-      const fmt = (ms) => (ms === null ? "Total" : new Date(ms).toLocaleString(locale));
-      let html = `<thead><tr><th>Date/Time</th><th class="num">Price</th><th class="num">Min</th><th class="num">Max</th><th>Unit</th></tr></thead><tbody>`;
+      const fmt = (ms) => (ms === null ? t("custom.total") : new Date(ms).toLocaleString(locale));
+      let html = `<thead><tr><th>${t("custom.datetime")}</th><th class="num">${t("chart.price")}</th><th class="num">${t("custom.min")}</th><th class="num">${t("custom.max")}</th><th>${t("customize.unit")}</th></tr></thead><tbody>`;
       const shown = data.slice(0, 5000);
       for (const r of shown) html += `<tr><td>${fmt(r.time)}</td><td class="num">${price(r.price)}</td><td class="num">${price(r.min)}</td><td class="num">${price(r.max)}</td><td>${unit()}</td></tr>`;
       $("#custom-table").innerHTML = html + "</tbody>";
@@ -930,7 +930,7 @@ series:
     if ($("#compare-select")) $("#compare-select").addEventListener("change", chartThirtyDays);
     $$("[data-copy]").forEach((b) => b.addEventListener("click", () => {
       const txt = $("#" + b.dataset.copy).textContent;
-      if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => { b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1500); });
+      if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => { const was = b.textContent; b.textContent = t("custom.copied"); setTimeout(() => { b.textContent = was; }, 1500); });
     }));
   };
 

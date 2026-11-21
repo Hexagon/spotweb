@@ -54,7 +54,7 @@ Varje punkt är tänkt att bli en egen PR.
 15. Delvis klart: ~~**Beroenden och leveranskedja.** Dependabot (cargo och actions), `cargo audit`/`cargo deny` i CI~~.
     Kvar: actions låsta till SHA i `release.yml` (SHA:erna behöver slås upp i respektive actions-repo).
 16. **Städa releaser och taggar.** Ta bort den tomma releasen v2.0.0 och flytta `v1-final` till `45f9513`.
-17. **Översätt Custom, Hjälp och Home Assistant**, som i dag är på engelska.
+17. ✅ ~~**Översätt Custom, Hjälp och Home Assistant**, som i dag är på engelska.~~
 18. **Content-Security-Policy och tillgänglighet.** Ta bort de inline-skript som återstår, sätt en CSP-header och ge
     diagrammen textalternativ.
 19. ✅ ~~**ETag/304 i API:t.** Det minskar trafiken från Home Assistant-installationer som frågar var tredje minut.~~
@@ -124,6 +124,9 @@ Varje punkt är tänkt att bli en egen PR.
   (`SPOTWEB_HTTP_SUMMARY_SECS`, `0` stänger av) och `SPOTWEB_ACCESS_LOG=1` loggar varje anrop utan IP och query.
   Filer grupperas som `static` och okända sökvägar som `not found`, så att antalet routes inte växer. Felaktiga
   parametrar till API:t räknas som 5xx eftersom de svarar 500 som i 1.x.
+- Punkt 17: Custom, Hjälp och Home Assistant (även sidtitlar, tabellrubriker och kopieringsknappar) på alla nio språk.
+  Sidtexterna ligger under `pages` i `locales/*.json` och skickas inte med i sidornas boot-JSON, så sidorna blir inte
+  tyngre. Texter med HTML (länkar, `<code>`) renderas som betrodda, eftersom de bara kommer från våra egna filer.
 
 - En binär med inbyggd schemaläggare, SQLite med nycklar, import från 1.x
 - Signerade releaser för Linux, macOS och Windows, CI på alla tre plattformarna

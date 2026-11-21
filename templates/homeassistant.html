@@ -4,27 +4,27 @@
 <div class="grid grid-ha">
   <section class="pad prose">
     <h1 class="h2">Home Assistant</h1>
-    <p>You can get current and historical electricity prices in Home Assistant by using the REST endpoint together with Home Assistant's <a href="https://www.home-assistant.io/integrations/rest/">RESTful integration</a>.</p>
-    <p>The example configuration gives you an entity called <code>sensor.spotprice_now</code>, which displays the price right now. The entity also receives a number of attributes:</p>
+    <p>{{ t("pages.hass.intro")|safe }}</p>
+    <p>{{ t("pages.hass.entity")|safe }}</p>
     <ul>
-      <li><strong>data</strong> &ndash; every price point, yesterday to tomorrow.</li>
-      <li><strong>min/max/avg</strong> &ndash; today's prices</li>
-      <li><strong>min/max/avg_tomorrow</strong> &ndash; tomorrow's prices</li>
-      <li><strong>min/max/avg_yesterday</strong> &ndash; yesterday's prices</li>
+      <li><strong>data</strong> &ndash; {{ t("pages.hass.attr_data") }}</li>
+      <li><strong>min/max/avg</strong> &ndash; {{ t("pages.hass.attr_today") }}</li>
+      <li><strong>min/max/avg_tomorrow</strong> &ndash; {{ t("pages.hass.attr_tomorrow") }}</li>
+      <li><strong>min/max/avg_yesterday</strong> &ndash; {{ t("pages.hass.attr_yesterday") }}</li>
     </ul>
-    <p>The API supports hourly and 15-minute data and determines the current price based on the interval. If you customize your price settings (cogwheel in the top right), the configuration is updated immediately.</p>
-    <p>The service is free and open to everyone, no API key is required. It is used at your own risk, no guarantees are given.</p>
+    <p>{{ t("pages.hass.interval_p") }}</p>
+    <p>{{ t("pages.hass.free_p") }}</p>
 
-    <h2>Parameters</h2>
-    <p>The endpoint is <code>{{ base_url }}/api/v2/hass</code> and accepts:</p>
+    <h2>{{ t("pages.hass.params") }}</h2>
+    <p>{{ t("pages.hass.endpoint_pre") }} <code>{{ base_url }}/api/v2/hass</code> {{ t("pages.hass.endpoint_post") }}</p>
     <ul>
-      <li><strong>area</strong> &ndash; the last part of the url when browsing an area, e.g. <code>SE3</code>, <code>FI</code> or <code>DE-LU</code>.</li>
-      <li><strong>currency</strong> &ndash; <code>SEK</code> <code>NOK</code> <code>DKK</code> <code>EUR</code> <code>PLN</code> <code>…</code> (any ECB currency), or <code>ORE</code> for öre.</li>
-      <li><strong>extra</strong> &ndash; fees per kWh in chosen currency, before VAT, e.g. <code>0.05</code>.</li>
-      <li><strong>multiplier</strong> &ndash; multiplier for spot price before adding fees and VAT, <code>1.02</code> is 2% surcharge.</li>
-      <li><strong>factor</strong> &ndash; VAT factor, <code>1.25</code> is 25% VAT.</li>
-      <li><strong>decimals</strong> &ndash; precision of all prices.</li>
-      <li><strong>interval</strong> &ndash; <code>PT15M</code> or <code>PT60M</code>. Defaults to the current market resolution of the area.</li>
+      <li><strong>area</strong> &ndash; {{ t("pages.hass.p_area") }} <code>SE3</code>, <code>FI</code>, <code>DE-LU</code>.</li>
+      <li><strong>currency</strong> &ndash; {{ t("pages.hass.p_currency")|safe }}</li>
+      <li><strong>extra</strong> &ndash; {{ t("pages.hass.p_extra") }} <code>0.05</code>.</li>
+      <li><strong>multiplier</strong> &ndash; {{ t("pages.hass.p_multiplier") }}</li>
+      <li><strong>factor</strong> &ndash; {{ t("pages.hass.p_factor") }}</li>
+      <li><strong>decimals</strong> &ndash; {{ t("pages.hass.p_decimals") }}</li>
+      <li><strong>interval</strong> &ndash; {{ t("pages.hass.p_interval") }}</li>
     </ul>
     <label class="inline-label">{{ t("nav.area") }}
       <select id="ha-area">
@@ -37,7 +37,7 @@
   <section class="card code-card">
     <header class="card-head"><h2>configuration.yaml</h2></header>
     <pre><code id="hass-conf" data-base="{{ base_url }}"></code></pre>
-    <p class="pad small"><button class="btn btn-small" type="button" data-copy="hass-conf">Copy</button></p>
+    <p class="pad small"><button class="btn btn-small" type="button" data-copy="hass-conf">{{ t("custom.copy") }}</button></p>
   </section>
 </div>
 
@@ -45,14 +45,14 @@
 
 <div class="grid grid-ha">
   <section class="pad prose">
-    <h2>Apexcharts-card in Lovelace</h2>
-    <p>An example showing how to use the configuration above with <a href="https://github.com/RomRider/apexcharts-card">apexcharts-card</a> to render a graph of prices today and tomorrow.</p>
-    <img src="/img/homeassistant-spot-price-apexcharts-card-example.png" alt="Home Assistant spot price example" loading="lazy">
+    <h2>{{ t("pages.hass.apex_title") }}</h2>
+    <p>{{ t("pages.hass.apex_p")|safe }}</p>
+    <img src="/img/homeassistant-spot-price-apexcharts-card-example.png" alt="{{ t('pages.hass.img_alt') }}" loading="lazy">
   </section>
   <section class="card code-card">
     <header class="card-head"><h2>Apexcharts-card</h2></header>
     <pre><code id="apex-conf"></code></pre>
-    <p class="pad small"><button class="btn btn-small" type="button" data-copy="apex-conf">Copy</button></p>
+    <p class="pad small"><button class="btn btn-small" type="button" data-copy="apex-conf">{{ t("custom.copy") }}</button></p>
   </section>
 </div>
 {% endblock %}
