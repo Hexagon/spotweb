@@ -184,6 +184,13 @@
       "note": "Gränserna mellan elområdena är ungefärliga. Pilarna visar fysiskt nettoflöde (MW) mellan elområdena.",
       "all_areas": "Alla elområden",
       "zoom": "Zoomnivå"
+    },
+    "share": {
+      "share": "Dela",
+      "copy": "Kopiera länk",
+      "copied": "Länken är kopierad",
+      "more": "Fler alternativ…",
+      "email": "E-post"
     }
   }
 }

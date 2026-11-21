@@ -37,27 +37,30 @@ Varje punkt är tänkt att bli en egen PR.
 
 9. ✅ ~~**Förlopp i loggen för load och production.**~~ Logga per område på info-nivå (antal rader och tid), som prisjobbet gör,
    och en sammanfattning per körning.
-10. **Kallstart varje timme för översiktssidan.** Frågan `generation cur` tar cirka 1,6 s när cachenyckeln byts varje
+10. ✅ ~~**Kallstart varje timme för översiktssidan.** Frågan `generation cur` tar cirka 1,6 s när cachenyckeln byts varje
     timme. Åtgärd: värm cachen direkt efter jobben för generation och load, och se över index för `generation (period)` i
-    fönsterfrågan.
+    fönsterfrågan.~~
 11. **Testa ENTSO-e-parsningen mot riktiga svar.** Spara XML-svar från produktionen (A44 med 15-min-upplösning, A75, A65
     och en zip med A77/A80) under `tests/fixtures/`.
-12. **Larm när data saknas.** Lägg till `healthy: true/false` i `/api/v2/status`: imorgons priser ska finnas efter
-    14:00 CET och load/generation ska vara högst 3 h gamla. Koppla en extern övervakare till det.
+12. ✅ ~~**Larm när data saknas.** Lägg till `healthy: true/false` i `/api/v2/status`: imorgons priser ska finnas efter
+    14:00 CET och load/generation ska vara högst 3 h gamla. Koppla en extern övervakare till det.~~
 
 ## P2 – Drift och kvalitet
 
 13. **Statistik för HTTP-anrop.** Åtkomstlogg (avstängningsbar) eller sammanfattning per minut: antal anrop, svarstider
     (p50/p95) och 4xx/5xx per route. Kan också visas i `/api/v2/status`.
-14. **Backup till en annan maskin.** Dokumentera ett exempel med restic eller rclone i `docs/deployment.md`, och lägg
-    gärna till ett `ExecStartPost` i backuptjänsten.
-15. **Beroenden och leveranskedja.** Dependabot (cargo och actions), `cargo audit`/`cargo deny` i CI, och actions låsta
-    till SHA i `release.yml`.
+14. ✅ ~~**Backup till en annan maskin.** Dokumentera ett exempel med restic eller rclone i `docs/deployment.md`, och lägg
+    gärna till ett `ExecStartPost` i backuptjänsten.~~
+15. Delvis klart: ~~**Beroenden och leveranskedja.** Dependabot (cargo och actions), `cargo audit`/`cargo deny` i CI~~.
+    Kvar: actions låsta till SHA i `release.yml` (SHA:erna behöver slås upp i respektive actions-repo).
 16. **Städa releaser och taggar.** Ta bort den tomma releasen v2.0.0 och flytta `v1-final` till `45f9513`.
 17. **Översätt Custom, Hjälp och Home Assistant**, som i dag är på engelska.
 18. **Content-Security-Policy och tillgänglighet.** Ta bort de inline-skript som återstår, sätt en CSP-header och ge
     diagrammen textalternativ.
-19. **ETag/304 i API:t.** Det minskar trafiken från Home Assistant-installationer som frågar var tredje minut.
+19. ✅ ~~**ETag/304 i API:t.** Det minskar trafiken från Home Assistant-installationer som frågar var tredje minut.~~
+
+24. **Byt chrono/chrono-tz mot jiff.** RustSec markerar båda som ounderhållna (RUSTSEC-2026-0543/0555, inga kända
+    sårbarheter). Undantagna i `deny.toml` tills bytet är gjort.
 
 ## P3 – Nya funktioner
 
@@ -91,6 +94,31 @@ Varje punkt är tänkt att bli en egen PR.
   område (15 s, 60 s vid 429/503), status `partial` med `failures` i `job_run` och `/api/v2/status`, 3 samtidiga områden
   (`SPOTWEB_ENTSOE_CONCURRENCY`) och 60 s timeout per anrop (`SPOTWEB_ENTSOE_TIMEOUT_SECS`), 599 loggas som
   "upstream timeout", och alla ENTSO-e-jobb loggar per område och en sammanfattning med tid.
+
+- Punkt 10: orsaken var att databasen saknade planerarstatistik (`sqlite_stat1`). Utan den skannar frågan hela
+  `generation` och `load` (220 ms på 5 miljoner testrader, mot 7 ms med statistik). Nu körs `PRAGMA optimize` (med
+  `analysis_limit`) när databasen öppnas och efter varje datajobb. Cachenyckeln för översikten byts inte längre varje
+  timme, och jobben värmer cachen för översikt, priser och flöden direkt efter att de skrivit data. Migration 4 lägger
+  till index på `load (period)`.
+- Punkt 12: `healthy` och `problems` i `/api/v2/status`, och `/healthz/data` som svarar 503 när data saknas (för
+  övervakare som bara ser statuskoden). Kraven: dagens priser för alla områden, efter 14:00 CET även morgondagens,
+  och load/generation högst 3 h gamla.
+- Delning: delningsknapp på kartpanelen (`/#SE3`), på varje elområdeskort på lands- och områdessidorna
+  (`/sv/SE3`) och på resultatet i Custom (`/custom?period=…&area=…&startDate=…&endDate=…`). På mobil öppnas
+  telefonens delningsmeny; på dator en meny med kopiera länk, e-post, WhatsApp, Facebook, X och LinkedIn (vanliga
+  länkar, inga tredjepartsskript). Texten tar med aktuellt pris. Alla sidor har `rel=canonical` och Open Graph-taggar,
+  utan språkparameter, så att mottagaren får sidan på sitt eget språk.
+- Punkt 15: `cargo deny` (sårbarheter, licenser, källor) i CI vid push, PR och varje måndag, och Dependabot för cargo
+  och actions. Första körningen hittade 9 sårbarheter: quick-xml 0.37 (två DoS, rättat i 0.41), zip 2.6 (sex, rättat i
+  9.0.5) och den inbyggda SQLite-versionen (rättat i libsqlite3-sys 0.39). Uppgraderat till quick-xml 0.42, zip 9,
+  rusqlite 0.42 och r2d2_sqlite 0.37. XML-parsern hanterar nu entiteter som egna händelser (ändrat i quick-xml 0.38),
+  och zip-uppackningen har fått ett test. spotweb var i praktiken lite utsatt: zip används bara för att läsa svar i
+  minnet och databasen skrivs bara av spotweb, men XML-felen gäller svar från ENTSO-e.
+- Punkt 14: drop-ins för backuptjänsten som kopierar nattens backup med restic (7 dagliga, 4 veckovisa, 6 månatliga)
+  eller speglar katalogen med rclone, plus instruktioner i `docs/deployment.md`.
+- Punkt 19: svag `ETag` på alla lyckade GET under `/api/` och `304` vid `If-None-Match`. För `/api/v2/hass` räknas
+  taggen utan `updated`, som annars ändras vid varje anrop. Home Assistants inbyggda REST-sensor skickar inte
+  `If-None-Match`, så vinsten gäller främst egna integrationer och proxyer/CDN framför sajten.
 
 - En binär med inbyggd schemaläggare, SQLite med nycklar, import från 1.x
 - Signerade releaser för Linux, macOS och Windows, CI på alla tre plattformarna

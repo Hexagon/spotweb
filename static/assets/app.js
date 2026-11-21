@@ -754,6 +754,133 @@ series:
     draw("zone", o);
   };
 
+  // ------------------------------------------------------------------- share
+  // Buttons with [data-share]. Touch devices get the system share sheet, others a small menu.
+  // Links are resolved against the address the visitor uses and carry no language, so the
+  // recipient sees the page in their own language.
+  const shareUi = () => {
+    const abs = (u) => new URL(u, location.origin).href;
+    const nowText = (v) => (v && v !== "-" ? `${v} ${unit()} ${t("overview.right_now")}` : "");
+    const info = (btn) => {
+      if (btn.hasAttribute("data-share-zone")) {
+        const z = boot.zones && boot.zones[map.selected];
+        if (!z) return null;
+        const v = zoneNow(map.selected);
+        return { url: abs(`/#${encodeURIComponent(z.name)}`), title: `${z.name} – ${z.long}`, text: nowText(v === null || v === undefined ? "" : price(v)) };
+      }
+      if (btn.dataset.shareFrom) {
+        const a = $(btn.dataset.shareFrom);
+        return { url: abs(a ? a.getAttribute("href") : location.pathname + location.search), title: document.title, text: "" };
+      }
+      const card = btn.closest(".card");
+      const now = card && $("[data-now-area]", card);
+      return {
+        url: abs(btn.dataset.shareUrl || location.pathname),
+        title: btn.dataset.shareTitle || document.title,
+        text: nowText(now ? now.textContent.trim() : ""),
+      };
+    };
+    const message = (s) => (s.text ? `${s.title}: ${s.text}` : s.title);
+
+    let toastEl = null;
+    let toastTimer = 0;
+    const toast = (msg) => {
+      if (!toastEl) {
+        toastEl = document.createElement("div");
+        toastEl.className = "toast";
+        toastEl.setAttribute("role", "status");
+        document.body.append(toastEl);
+      }
+      toastEl.textContent = msg;
+      toastEl.hidden = false;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { toastEl.hidden = true; }, 2200);
+    };
+    const copy = async (url) => {
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch (_e) {
+        const ta = document.createElement("textarea");
+        ta.value = url;
+        document.body.append(ta);
+        ta.select();
+        try { document.execCommand("copy"); } catch (_e2) { /* nothing more to try */ }
+        ta.parentNode.removeChild(ta);
+      }
+      toast(t("share.copied"));
+    };
+
+    let menu = null;
+    let current = null;
+    const close = (refocus) => {
+      if (!menu || menu.hidden) return;
+      menu.hidden = true;
+      if (current) {
+        current.setAttribute("aria-expanded", "false");
+        if (refocus) current.focus();
+      }
+      current = null;
+    };
+    const open = (btn, s) => {
+      if (!menu) {
+        menu = document.createElement("div");
+        menu.className = "share-menu";
+        menu.setAttribute("role", "menu");
+        menu.hidden = true;
+        document.body.append(menu);
+      }
+      const e = encodeURIComponent;
+      const msg = message(s);
+      const links = [
+        [t("share.email"), `mailto:?subject=${e(s.title)}&body=${e(`${msg}\n${s.url}`)}`],
+        ["WhatsApp", `https://wa.me/?text=${e(`${msg} ${s.url}`)}`],
+        ["Facebook", `https://www.facebook.com/sharer/sharer.php?u=${e(s.url)}`],
+        ["X", `https://x.com/intent/post?text=${e(msg)}&url=${e(s.url)}`],
+        ["LinkedIn", `https://www.linkedin.com/sharing/share-offsite/?url=${e(s.url)}`],
+      ];
+      menu.innerHTML =
+        `<input class="share-url" readonly value="${esc(s.url)}" aria-label="${esc(t("share.copy"))}">` +
+        `<button type="button" role="menuitem" data-act="copy">${esc(t("share.copy"))}</button>` +
+        (navigator.share ? `<button type="button" role="menuitem" data-act="native">${esc(t("share.more"))}</button>` : "") +
+        links.map(([n, h]) => `<a role="menuitem" href="${esc(h)}" target="_blank" rel="noopener noreferrer">${esc(n)}</a>`).join("");
+      $("[data-act=copy]", menu).addEventListener("click", () => { copy(s.url); close(true); });
+      const nat = $("[data-act=native]", menu);
+      if (nat) nat.addEventListener("click", () => { close(true); navigator.share({ title: s.title, text: msg, url: s.url }).catch(() => {}); });
+      $$("a", menu).forEach((a) => a.addEventListener("click", () => close(false)));
+      $(".share-url", menu).addEventListener("focus", (ev) => ev.target.select());
+
+      menu.hidden = false;
+      const r = btn.getBoundingClientRect();
+      const w = menu.offsetWidth;
+      const left = Math.min(Math.max(8, r.right - w), document.documentElement.clientWidth - w - 8);
+      menu.style.left = `${left + window.scrollX}px`;
+      menu.style.top = `${r.bottom + window.scrollY + 6}px`;
+      current = btn;
+      btn.setAttribute("aria-expanded", "true");
+      $("[data-act=copy]", menu).focus();
+    };
+
+    document.addEventListener("click", (ev) => {
+      const btn = ev.target.closest("[data-share]");
+      if (btn) {
+        ev.preventDefault();
+        if (current === btn) { close(false); return; }
+        close(false);
+        const s = info(btn);
+        if (!s) return;
+        if (navigator.share && window.matchMedia("(pointer: coarse)").matches) {
+          navigator.share({ title: s.title, text: message(s), url: s.url }).catch(() => {});
+          return;
+        }
+        open(btn, s);
+        return;
+      }
+      if (menu && !menu.hidden && !menu.contains(ev.target)) close(false);
+    });
+    document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && menu && !menu.hidden) close(true); });
+    window.addEventListener("resize", () => close(false));
+  };
+
   // ------------------------------------------------------------ settings UI
   const settingsUi = () => {
     const drawer = $("#settings");
@@ -814,6 +941,7 @@ series:
   };
 
   settingsUi();
+  safe(shareUi);
   safe(custom);
   rerender();
 

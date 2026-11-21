@@ -1,0 +1,15 @@
+# /etc/systemd/system/spotweb-backup.service.d/offsite.conf
+# Copies each night's backup off the machine with restic, after `spotweb backup` has succeeded.
+# Repository and password go in /etc/spotweb/restic.env (root:spotweb, mode 0640), for example:
+#   RESTIC_REPOSITORY=sftp:backup@backup.example.org:/srv/restic/spotweb
+#   RESTIC_PASSWORD_FILE=/etc/spotweb/restic.pass
+# (or s3:/b2:/rest: repositories with their keys). Create the repository once with `restic init`.
+# For sftp, put the spotweb user's SSH key and known_hosts somewhere it can read and point
+# RESTIC_SFTP_COMMAND / an ssh config at it: ProtectHome=yes hides /home and /root.
+[Service]
+EnvironmentFile=/etc/spotweb/restic.env
+CacheDirectory=spotweb-restic
+Environment=RESTIC_CACHE_DIR=/var/cache/spotweb-restic
+ExecStartPost=/bin/sh -c 'exec restic backup --tag spotweb --host spotweb /var/lib/spotweb/backup/spotweb-$(date +%%u).db'
+# Keep 7 daily, 4 weekly and 6 monthly snapshots; prune once a week (Sunday)
+ExecStartPost=/bin/sh -c 'restic forget --tag spotweb --host spotweb --keep-daily 7 --keep-weekly 4 --keep-monthly 6 $( [ "$(date +%%u)" = 7 ] && echo --prune )'

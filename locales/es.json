@@ -184,6 +184,13 @@
       "note": "Los límites de las zonas son aproximados. Las flechas muestran el flujo físico neto (MW) entre zonas.",
       "all_areas": "Todas las zonas",
       "zoom": "Nivel de zoom"
+    },
+    "share": {
+      "share": "Compartir",
+      "copy": "Copiar enlace",
+      "copied": "Enlace copiado",
+      "more": "Más opciones…",
+      "email": "Correo"
     }
   }
 }

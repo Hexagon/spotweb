@@ -75,6 +75,8 @@ Same timing as 1.x, in `SPOTWEB_SCHEDULE_TZ` (DST changes are handled):
 ## API
 
 Free and without key. Errors are returned as HTTP 500 with `{"status":"error","details":"…"}`, as in 1.x.
+Successful responses carry an `ETag`; send it back in `If-None-Match` to get an empty `304 Not Modified` while the
+data is unchanged (for `/api/v2/hass` the `updated` field is not part of the tag).
 
 `GET /api/v2/spot?period=daily&area=SE3&startDate=2024-01-01&endDate=2024-01-31[&currency=SEK][&interval=PT15M]`
 
@@ -101,7 +103,8 @@ sensor format, unchanged. `currency=ORE` (öre) is new. See `/homeassistant` for
 
 `from` is the exporting side. Borders to neighbouring zones without prices on spotweb (EE, LT, NL, GB, CZ, IT, PT) are included.
 
-`GET /api/v2/status` – latest data and last job runs. `GET /healthz` – liveness probe.
+`GET /api/v2/status` – latest data, last job runs and `healthy`/`problems`. `GET /healthz` – liveness probe.
+`GET /healthz/data` – `200` when prices (tomorrow's after 14:00 CET), load and generation are current, else `503`.
 
 Data source: [ENTSO-E Transparency Platform](https://transparency.entsoe.eu/). Re-use is subject to its
 [terms of use](https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions); mention the

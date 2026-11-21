@@ -176,6 +176,13 @@ pub async fn run(app: &App, job: Job, retry: bool) -> anyhow::Result<String> {
         for realm in job.cache_realms() {
             app.cache.invalidate(realm);
         }
+        if job != Job::Currency && job != Job::Outages {
+            // New rows can change the best query plans; cheap when nothing changed
+            if let Err(e) = app.db.run(|c| crate::db::optimize(c, false)).await {
+                tracing::warn!(error = %format!("{e:#}"), "database optimize failed");
+            }
+        }
+        crate::web::data::warm(app, job.cache_realms()).await;
         let (status, msg, failures) = match &result {
             Ok(o) => (o.status(), o.message.clone(), o.failures.clone()),
             Err(e) => (RunStatus::Failed, format!("{e:#}"), vec![]),

@@ -184,6 +184,13 @@
       "note": "De grenzen van de biedzones zijn bij benadering. Pijlen tonen de fysieke nettostroom (MW) tussen zones.",
       "all_areas": "Alle biedzones",
       "zoom": "Zoomniveau"
+    },
+    "share": {
+      "share": "Delen",
+      "copy": "Link kopiëren",
+      "copied": "Link gekopieerd",
+      "more": "Meer opties…",
+      "email": "E-mail"
     }
   }
 }

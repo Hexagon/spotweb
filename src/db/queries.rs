@@ -757,6 +757,31 @@ pub struct DataFreshness {
     pub exchange_rate_date: Option<String>,
 }
 
+/// Raw values for [`crate::health::check`]
+pub struct HealthInputs {
+    /// Start of the latest stored price interval per area
+    pub prices: std::collections::HashMap<String, i64>,
+    pub generation: Option<i64>,
+    pub load: Option<i64>,
+}
+
+pub fn health_inputs(c: &Connection) -> rusqlite::Result<HealthInputs> {
+    let mut prices = std::collections::HashMap::new();
+    for country in crate::countries::COUNTRIES {
+        for area in country.areas {
+            if let Some(p) = max_spot_period(c, area.name)? {
+                prices.insert(area.name.to_string(), p);
+            }
+        }
+    }
+    let max = |sql: &str| c.query_row(sql, [], |r| r.get::<_, Option<i64>>(0));
+    Ok(HealthInputs {
+        prices,
+        generation: max("SELECT MAX(period) FROM generation")?,
+        load: max("SELECT MAX(period) FROM load")?,
+    })
+}
+
 pub fn data_freshness(c: &Connection) -> rusqlite::Result<DataFreshness> {
     let max = |sql: &str| -> rusqlite::Result<Option<String>> {
         Ok(c.query_row(sql, [], |r| r.get::<_, Option<i64>>(0))?

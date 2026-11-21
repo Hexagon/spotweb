@@ -135,7 +135,26 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
     CREATE INDEX flow_period ON flow (period);
     "#,
     ),
+    (
+        4,
+        "load period index",
+        r#"
+    CREATE INDEX load_period ON load (period);
+    "#,
+    ),
 ];
+
+/// See [`Db::optimize`]
+pub fn optimize(c: &Connection, initial: bool) -> anyhow::Result<()> {
+    let t0 = std::time::Instant::now();
+    c.execute_batch(if initial {
+        "PRAGMA analysis_limit = 1000; PRAGMA optimize = 0x10002;"
+    } else {
+        "PRAGMA analysis_limit = 1000; PRAGMA optimize;"
+    })?;
+    tracing::debug!(ms = t0.elapsed().as_millis() as u64, "database optimized");
+    Ok(())
+}
 
 fn init_connection(c: &mut Connection) -> rusqlite::Result<()> {
     c.busy_timeout(Duration::from_secs(30))?;
@@ -172,7 +191,16 @@ impl Db {
             path: path.to_path_buf(),
         };
         db.migrate()?;
+        // Collect planner statistics if they are missing or stale. Without sqlite_stat1 the
+        // "latest generation/load" window queries scan whole tables (seconds on a big database).
+        db.optimize(true)?;
         Ok(db)
+    }
+
+    /// `PRAGMA optimize` with a bounded analysis. `initial` also analyzes tables that have
+    /// never been analyzed (recommended once when a long-lived database is opened).
+    pub fn optimize(&self, initial: bool) -> anyhow::Result<()> {
+        optimize(&*self.conn()?, initial)
     }
 
     #[cfg(test)]

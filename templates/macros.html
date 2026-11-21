@@ -1,9 +1,17 @@
 {% macro unit() %}<span data-unit>{{ currency }}/kWh</span>{% endmacro %}
 
+{# Share button. `url` is the permalink path; without it the script works it out (shareUi in app.js). #}
+{% macro share(url="", title="", attrs="") %}
+<button type="button" class="icon-btn share-btn" data-share{% if url %} data-share-url="{{ url }}"{% endif %}{% if title %} data-share-title="{{ title }}"{% endif %} {{ attrs|safe }} aria-label="{{ t('share.share') }}" title="{{ t('share.share') }}" aria-haspopup="menu" aria-expanded="false">
+  <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11A2.99 2.99 0 0 0 21 5a3 3 0 1 0-5.91.7L8.04 9.81A3 3 0 1 0 6 15c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65A2.92 2.92 0 1 0 18 16.08z"/></svg>
+</button>
+{% endmacro %}
+
 {% macro area_card(a, country, detailed) %}
 <section class="card area-card">
   <header class="card-head bg-color-{{ a.color }}">
     <h2>{{ a.name }} - {{ a.long }}</h2>
+    {{ share("/" ~ country.id ~ "/" ~ a.name, a.name ~ " - " ~ a.long) }}
   </header>
   <div class="now-box">
     <div class="price-big" data-now-area="{{ a.name }}">{{ price(a.now) }}</div>

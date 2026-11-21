@@ -197,6 +197,18 @@ async fn redirects_static_and_404() {
     let (s, body, _) = get(&app, "/api/v2/status").await;
     assert_eq!(s, StatusCode::OK);
     assert!(body.contains("latest_price"));
+    // Test data does not reach tomorrow and has no generation, so data is not healthy
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["healthy"], false);
+    assert!(v["problems"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|p| p == "no generation data"));
+    let (s, body, h) = get(&app, "/healthz/data").await;
+    assert_eq!(s, StatusCode::SERVICE_UNAVAILABLE);
+    assert!(body.contains("no generation data"));
+    assert_eq!(h["cache-control"], "no-store");
 }
 
 #[test]
@@ -280,6 +292,101 @@ async fn start_page_map_and_flows_api() {
 
     let (_, body, _) = get(&app, "/?lang=de").await;
     assert!(body.contains(r#"<option value="DE-LU" selected>"#));
+}
+
+async fn get_if_none_match(
+    app: &App,
+    uri: &str,
+    tag: &str,
+) -> (StatusCode, String, axum::http::HeaderMap) {
+    let res = super::router(app.clone())
+        .oneshot(
+            Request::builder()
+                .uri(uri)
+                .header("if-none-match", tag)
+                .header("accept-encoding", "gzip")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let status = res.status();
+    let headers = res.headers().clone();
+    let body = res.into_body().collect().await.unwrap().to_bytes();
+    (status, String::from_utf8_lossy(&body).to_string(), headers)
+}
+
+#[tokio::test]
+async fn api_etag_and_not_modified() {
+    let app = test_app();
+    let d = today(&chrono_tz::Europe::Stockholm)
+        .format("%Y-%m-%d")
+        .to_string();
+    for uri in [
+        format!("/api/v2/spot?period=hourly&area=SE1&startDate={d}&endDate={d}"),
+        "/api/v2/hass?area=SE1&currency=SEK".to_string(),
+        "/api/v2/flows".to_string(),
+    ] {
+        let (s, _, h) = get(&app, &uri).await;
+        assert_eq!(s, StatusCode::OK, "{uri}");
+        let tag = h["etag"].to_str().unwrap().to_string();
+        assert!(tag.starts_with("W/\""), "{tag}");
+        // hass has a fresh `updated` per request, but the same data gives the same tag
+        let (s, body, h) = get_if_none_match(&app, &uri, &tag).await;
+        assert_eq!(s, StatusCode::NOT_MODIFIED, "{uri}");
+        assert!(body.is_empty());
+        assert_eq!(h["etag"].to_str().unwrap(), tag);
+        assert!(h.contains_key("cache-control"));
+        assert_eq!(h["access-control-allow-origin"], "*");
+        // Strong form and lists match too, other tags do not
+        let strong = tag.trim_start_matches("W/");
+        let (s, _, _) = get_if_none_match(&app, &uri, &format!("\"x\", {strong}")).await;
+        assert_eq!(s, StatusCode::NOT_MODIFIED);
+        let (s, body, _) = get_if_none_match(&app, &uri, "W/\"0000\"").await;
+        assert_eq!(s, StatusCode::OK);
+        assert!(!body.is_empty());
+    }
+    // Errors and pages get no ETag
+    let (s, _, h) = get(&app, "/api/v2/spot?period=nope").await;
+    assert_eq!(s, StatusCode::INTERNAL_SERVER_ERROR);
+    assert!(!h.contains_key("etag"));
+}
+
+#[tokio::test]
+async fn permalinks_and_share_buttons() {
+    let app = test_app();
+    let (s, body, _) = get(&app, "/sv/SE1?lang=de").await;
+    let body = body.replace("&#x2f;", "/");
+    assert_eq!(s, StatusCode::OK);
+    // Canonical and preview tags point at the page without the language parameter
+    assert!(body.contains(r#"<link rel="canonical" href="https://example.test/sv/SE1">"#));
+    assert!(body.contains(r#"<meta property="og:url" content="https://example.test/sv/SE1">"#));
+    assert!(body.contains(r#"content="https://example.test/icon-512x512.png""#));
+    assert!(body.contains(r#"data-share data-share-url="/sv/SE1""#));
+
+    let (_, body, _) = get(&app, "/sv").await;
+    let body = body.replace("&#x2f;", "/");
+    for a in ["SE1", "SE2", "SE3", "SE4"] {
+        assert!(
+            body.contains(&format!(r#"data-share-url="/sv/{a}""#)),
+            "{a}"
+        );
+    }
+
+    let (_, body, _) = get(&app, "/").await;
+    assert!(body.contains("data-share-zone"));
+
+    // Custom keeps only its own parameters, in a fixed order
+    let (_, body, _) = get(
+        &app,
+        "/custom?endDate=2024-01-31&area=SE3&utm_source=x&startDate=2024-01-01&period=daily",
+    )
+    .await;
+    let body = body.replace("&#x2f;", "/");
+    assert!(body.contains(
+        r#"<link rel="canonical" href="https://example.test/custom?period=daily&amp;area=SE3&amp;startDate=2024-01-01&amp;endDate=2024-01-31">"#
+    ));
+    assert!(body.contains(r##"data-share-from="#custom-permalink""##));
 }
 
 /// Edge cases where 2.x must answer like 1.x did

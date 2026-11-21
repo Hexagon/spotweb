@@ -107,6 +107,29 @@ Database migrations run automatically at start. Take a backup first (`sudo syste
 `spotweb-backup.timer` writes a consistent copy every night to `/var/lib/spotweb/backup/spotweb-<weekday>.db` (seven rotating
 files) using SQLite's online backup API. Copy that directory off the machine (restic, borg, rsync…).
 
+### Off-site copy
+
+`deploy/systemd/spotweb-backup.service.d/` has two drop-ins that run right after a successful backup:
+
+- `offsite-restic.conf.example` – encrypted, deduplicated snapshots with restic (7 daily, 4 weekly, 6 monthly; pruned
+  on Sundays).
+- `offsite-rclone.conf.example` – a plain mirror of the seven files to any rclone remote.
+
+```sh
+sudo apt install restic                      # or rclone
+sudo install -m 640 -g spotweb /dev/null /etc/spotweb/restic.env
+sudoedit /etc/spotweb/restic.env             # RESTIC_REPOSITORY=…, RESTIC_PASSWORD_FILE=… (see the file)
+sudo -u spotweb sh -c 'set -a; . /etc/spotweb/restic.env; restic init'
+sudo install -D -m 644 deploy/systemd/spotweb-backup.service.d/offsite-restic.conf.example \
+  /etc/systemd/system/spotweb-backup.service.d/offsite.conf
+sudo systemctl daemon-reload
+sudo systemctl start spotweb-backup && journalctl -u spotweb-backup -n 30
+```
+
+If the copy fails, the unit fails and `systemctl --failed` shows it; the local backup is still written. Restore from
+restic with `restic restore latest --tag spotweb --target /tmp/restore`, then follow the steps below. Test a restore
+once, the repository password is the only way back.
+
 Restore: stop the service, copy a backup to `/var/lib/spotweb/spotweb.db`, remove any `spotweb.db-wal`/`-shm` files,
 `chown spotweb:spotweb`, start.
 
@@ -116,8 +139,12 @@ Everything except the database can be re-created, and even the database can be r
 ## Monitoring
 
 - `GET /healthz` returns `200 ok` when the process and database are fine.
-- `GET /api/v2/status` lists the newest price/generation/load timestamps and the last run of each job. Alert if
-  `latest_price` is less than ~12 hours ahead of now after 14:00 CET, or if a job keeps reporting `"status": "failed"`.
+- `GET /healthz/data` returns `200 ok` when the data is current and `503` with one problem per line otherwise. Point an
+  external monitor (Uptime Kuma, UptimeRobot, Healthchecks…) at it, every 5–15 minutes. Current means: every area has
+  prices for today, and after 14:00 CET for tomorrow too; the newest generation and load are at most 3 hours old.
+  Expect an alert if ENTSO-e publishes late, and keep in mind that generation for some areas lags by a few hours.
+- `GET /api/v2/status` has the same verdict as `healthy` and `problems`, the newest price/generation/load timestamps and
+  the last run of each job. Also alert if a job keeps reporting `"status": "failed"`.
   Each job run has a `status`: `ok`, `partial` (finished, but some areas failed; they are listed in `failures` with the
   reason), `failed` or `running`. `ok` stays `true` for `partial` runs, for compatibility with 2.0.0.
 - Each ENTSO-e request is retried twice after 15 s on timeouts, connection errors and 5xx (60 s on 429/503). HTTP 599
