@@ -1676,7 +1676,7 @@ dependencies = [
  "clap",
  "http-body-util",
  "minijinja",
- "parking_lot 0.12.5",
+ "parking_lot 0.13.0",
  "quick-xml",
  "r2d2",
  "r2d2_sqlite",

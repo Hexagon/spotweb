@@ -14,7 +14,7 @@ chrono = { version = "0.4", default-features = false, features = ["std", "clock"
 chrono-tz = "0.10"
 clap = { version = "4", features = ["derive", "env"] }
 minijinja = { version = "2", features = ["loader", "json"] }
-parking_lot = "0.12"
+parking_lot = "0.13"
 quick-xml = "0.42"
 r2d2 = "0.8"
 r2d2_sqlite = "0.37"
