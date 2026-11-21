@@ -5,7 +5,7 @@ name: Release
 
 on:
   push:
-    tags: ["v*"]
+    tags: ["v[0-9]*"]   # v2.0.0, not v1-final
   workflow_dispatch:
     inputs:
       tag:
@@ -29,8 +29,8 @@ jobs:
         include:
           - { target: x86_64-unknown-linux-musl, os: ubuntu-24.04, musl: true }
           - { target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm, musl: true }
-          - { target: aarch64-apple-darwin, os: macos-14 }
-          - { target: x86_64-apple-darwin, os: macos-14 }  # cross-compiled on Apple silicon
+          - { target: aarch64-apple-darwin, os: macos-latest }
+          - { target: x86_64-apple-darwin, os: macos-latest }  # cross-compiled on Apple silicon
           - { target: x86_64-pc-windows-msvc, os: windows-latest }
     steps:
       - uses: actions/checkout@v4
@@ -109,8 +109,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$TAG" dist/* \
-            --repo "${{ github.repository }}" \
-            --title "spotweb $TAG" \
-            --generate-notes \
-            --verify-tag
+          # The release may already exist (created in the GitHub UI); then just attach the files
+          if gh release view "$TAG" --repo "${{ github.repository }}" > /dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --repo "${{ github.repository }}" --clobber
+          else
+            gh release create "$TAG" dist/* \
+              --repo "${{ github.repository }}" \
+              --title "spotweb $TAG" \
+              --generate-notes \
+              --verify-tag
+          fi
