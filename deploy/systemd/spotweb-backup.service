@@ -1,0 +1,18 @@
+# /etc/systemd/system/spotweb-backup.service
+# Consistent online copy of the database, safe while spotweb is running.
+[Unit]
+Description=spotweb database backup
+
+[Service]
+Type=oneshot
+User=spotweb
+Group=spotweb
+EnvironmentFile=/etc/spotweb/spotweb.env
+StateDirectory=spotweb
+WorkingDirectory=/var/lib/spotweb
+ExecStartPre=/usr/bin/mkdir -p /var/lib/spotweb/backup
+ExecStart=/bin/sh -c 'exec /usr/local/bin/spotweb backup /var/lib/spotweb/backup/spotweb-$(date +%%u).db'
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% import "macros.html" as m %}
+{% block content %}
+<div class="grid grid-area-top">
+  {{ m.area_card(area, country, true) }}
+  <section class="card">
+    <header class="card-head"><h2>{{ t("chart.today_and_tomorrow") }}</h2></header>
+    <div class="chart" data-chart="area-today"><div class="chart-empty muted">&hellip;</div></div>
+    <div class="cheapest pad small" id="cheapest"></div>
+  </section>
+  {{ m.production_card(production) }}
+</div>
+
+{{ m.ad(adsense) }}
+
+<div class="grid grid-2">
+  {{ m.chart_card(t("generation.production") ~ " - " ~ area.name ~ " - " ~ t("chart.yesterday_and_today"), "production") }}
+  {{ m.chart_card(t("chart.net_production") ~ " - " ~ area.name ~ " - " ~ t("chart.yesterday_and_today"), "net") }}
+</div>
+
+<div class="grid {% if single %}grid-2{% endif %}">
+  <section class="card">
+    <header class="card-head"><h2>{{ t("longtermchart.title") }}{{ area.name }}, {{ t("countries." ~ country.id) }}</h2></header>
+    <div class="chart" data-chart="longterm-area"><div class="chart-empty muted">&hellip;</div></div>
+    <div class="pad">
+      <p>{{ t("longtermchart.areaDescriptionPart1") }}{{ area.name }}{{ t("longtermchart.areaDescriptionIn") }}{{ t("countries." ~ country.id) }}{{ t("longtermchart.areaDescriptionPart2") }}</p>
+      {% include "partials/pricefactor_note.html" %}
+    </div>
+    <div class="table-scroll"><table class="table compact" id="longterm-table"></table></div>
+  </section>
+  {%- if single %}
+  {{ m.outages_card(outages, country) }}
+  {%- endif %}
+</div>
+
+<div class="grid grid-2">
+  <section class="card">
+    <header class="card-head">
+      <h2>{{ t("overview.thirty_day_chart") }}</h2>
+      <select id="compare-select" class="compact-select" aria-label="{{ t('chart.compare_to') }}">
+        <option value="" selected>{{ t("chart.compare_to") }}</option>
+        {%- for c in compare %}
+        <option value="{{ c.name }}">{{ c.name }} - {{ c.long }}</option>
+        {%- endfor %}
+      </select>
+    </header>
+    <div class="chart" data-chart="thirty-days"><div class="chart-empty muted">&hellip;</div></div>
+  </section>
+  <section class="card">
+    <header class="card-head"><h2>{{ t("chart.today") }} &amp; {{ t("chart.tomorrow")|lower }}</h2></header>
+    <div class="table-scroll tall"><table class="table compact" id="price-table"></table></div>
+  </section>
+</div>
+{% endblock %}

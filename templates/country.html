@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% import "macros.html" as m %}
+{% block content %}
+<div class="grid grid-areas">
+  {%- for a in areas %}
+  {{ m.area_card(a, country, false) }}
+  {%- endfor %}
+</div>
+
+<div class="grid grid-2">
+  {{ m.production_card(production) }}
+  {{ m.ad(adsense) }}
+</div>
+
+<div class="grid grid-2">
+  {{ m.chart_card(t("overview.all_areas_today"), "all-today") }}
+  {{ m.chart_card(t("overview.all_areas_tomorrow"), "all-tomorrow") }}
+</div>
+
+<div class="grid grid-2">
+  {{ m.chart_card(t("generation.production") ~ " - " ~ t("countries." ~ country.id) ~ " - " ~ t("chart.yesterday_and_today"), "production") }}
+  {{ m.chart_card(t("chart.net_production") ~ " - " ~ t("countries." ~ country.id) ~ " - " ~ t("chart.yesterday_and_today"), "net") }}
+</div>
+
+<div class="grid grid-2">
+  <section class="card">
+    <header class="card-head"><h2>{{ t("longtermchart.title") }}{{ t("countries." ~ country.id) }}</h2></header>
+    <div class="chart" data-chart="longterm-country"><div class="chart-empty muted">&hellip;</div></div>
+    <div class="pad">
+      <p>{{ t("longtermchart.countryDescriptionPart1") }} {{ t("countries." ~ country.id) }}{{ t("longtermchart.countryDescriptionPart2") }}</p>
+      {% include "partials/pricefactor_note.html" %}
+    </div>
+    <div class="table-scroll"><table class="table compact" id="longterm-table"></table></div>
+  </section>
+  {{ m.outages_card(outages, country) }}
+</div>
+{% endblock %}

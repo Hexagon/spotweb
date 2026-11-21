@@ -1,0 +1,13 @@
+services:
+  spotweb:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6000:6000"
+    environment:
+      API_TOKEN: ${API_TOKEN}
+      # SPOTWEB_PUBLIC_URL: https://spot.example.com
+    volumes:
+      - spotweb-data:/data
+volumes:
+  spotweb-data:

@@ -1,0 +1,10 @@
+<section class="card info">
+  <h2>{{ t("information.title") }}</h2>
+  <p>{{ t("information.all_history") }} <a href="https://transparency.entsoe.eu/" rel="noopener">ENTSO-e Transparency Platform</a>.
+    {{ t("information.currency_fetched_from") }} <a href="https://www.ecb.europa.eu/" rel="noopener">ECB</a>{% if er.date %} ({{ er.date }}){% endif %}.</p>
+  <p class="hide-eur">{{ t("information.all_values_from") }} <span data-er-rate></span> <span data-unit-currency></span>.</p>
+  <p>{{ t("information.disclaimer_and_private_use") }}</p>
+  <p>{{ t("information.open_source_software") }} <a href="https://github.com/hexagon/spotweb" rel="noopener">github.com/hexagon/spotweb</a>.</p>
+  <p>{{ t("information.bugs_and_issues") }}</p>
+  <p class="muted small">spotweb {{ version }} &middot; <a href="/api/v2/status">status</a></p>
+</section>

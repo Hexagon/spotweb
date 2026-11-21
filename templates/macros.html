@@ -1,0 +1,114 @@
+{% macro unit() %}<span data-unit>{{ currency }}/kWh</span>{% endmacro %}
+
+{% macro area_card(a, country, detailed) %}
+<section class="card area-card">
+  <header class="card-head bg-color-{{ a.color }}">
+    <h2>{{ a.name }} - {{ a.long }}</h2>
+  </header>
+  <div class="now-box">
+    <div class="price-big" data-now-area="{{ a.name }}">{{ price(a.now) }}</div>
+    <div class="muted">{{ unit() }} {{ t("overview.right_now") }}</div>
+  </div>
+  <div class="stats">
+    <div>
+      <h3>{{ t("overview.average_today") }}</h3>
+      <div class="big">{{ price(a.avg_today) }} <small>{{ unit() }}</small></div>
+      <div class="muted">{{ t("overview.span") }} {{ price(a.min_today) }} &ndash; {{ price(a.max_today) }}</div>
+    </div>
+    <div class="right">
+      <h3>{{ t("overview.average_tomorrow")|capitalize }}</h3>
+      <div class="big">{{ price(a.avg_tomorrow) }}</div>
+      <div class="muted">{{ price(a.min_tomorrow) }} &ndash; {{ price(a.max_tomorrow) }}</div>
+    </div>
+    {%- if detailed %}
+    <div>
+      <h3>{{ t("overview.so_far") }} {{ t("months_short." ~ a.month) }}</h3>
+      <div class="big">{{ price(a.avg_month) }} <small>{{ unit() }}</small></div>
+      <div class="muted">{{ t("overview.span") }} {{ price(a.min_month) }} &ndash; {{ price(a.max_month) }}</div>
+    </div>
+    <div class="right">
+      <h3>{{ t("months_short." ~ a.prev_month)|capitalize }}</h3>
+      <div class="big">{{ price(a.avg_prev_month) }}</div>
+      <div class="muted">{{ price(a.min_prev_month) }} &ndash; {{ price(a.max_prev_month) }}</div>
+    </div>
+    {%- endif %}
+  </div>
+  {%- if not detailed %}
+  <a class="card-foot link-color-{{ a.color }}" href="/{{ country.id }}/{{ a.name }}">{{ t("overview.more_about") }} {{ a.name }} &rsaquo;</a>
+  {%- endif %}
+</section>
+{% endmacro %}
+
+{% macro production_card(p) %}
+<section class="card">
+  <header class="card-head"><h2>{{ t("generation.current_production") }}</h2></header>
+  {%- if p.has_data %}
+  <table class="table">
+    <tbody>
+      <tr><th>{{ t("generation.production") }}</th><th class="num">{{ mw(p.total) }} MW</th></tr>
+      {%- for r in p.rows %}
+      <tr><td>{{ t(r.key) }} <span class="muted">&middot; {{ r.share }} %</span></td><td class="num">{{ mw(r.value) }} MW</td></tr>
+      {%- endfor %}
+      <tr><th>{{ t("generation.consumption") }}</th><th class="num">{{ mw(p.load) }} MW</th></tr>
+      <tr class="{% if p.net < 0 %}row-danger{% else %}row-success{% endif %}">
+        <th>{% if p.net < 0 %}{{ t("generation.deficit") }}{% else %}{{ t("generation.excess") }}{% endif %}</th>
+        <th class="num">{{ mw(p.net) }} MW</th>
+      </tr>
+    </tbody>
+  </table>
+  <p class="muted small right pad">{{ t("generation.last_updated") }}: {{ p.updated }}</p>
+  {%- else %}
+  <p class="muted pad">-</p>
+  {%- endif %}
+</section>
+{% endmacro %}
+
+{% macro outage_item(o) %}
+<article class="outage {% if o.planned %}planned{% else %}unplanned{% endif %}">
+  <div class="outage-head">
+    <strong>{{ t(o.type_key) }} &ndash; {{ o.resource_name or "" }}</strong>
+    <span class="muted">{{ o.start }}</span>
+  </div>
+  <p><strong>{{ o.psr_name or "" }}</strong> {{ o.location or "" }} {{ t(o.started_key) }} {{ o.start }}{{ t("outage.done") }} {{ o.end }}.{% if o.reason %} {{ o.reason }}{% endif %}</p>
+  {%- if o.available is not none %}<p>{{ t("outage.capacity_ongoing") }}: <strong>{{ o.available }} {{ o.unit or "" }}</strong></p>{% endif %}
+  {%- if o.nominal %}<p>{{ t("outage.capacity_total") }}: <strong>{{ o.nominal }} {{ o.unit or "" }}</strong>{% if o.psr_type %} &middot; {{ o.psr_type }}{% endif %}</p>{% endif %}
+</article>
+{% endmacro %}
+
+{% macro outages_card(o, country) %}
+<section class="card">
+  <header class="card-head"><h2>{{ t("outage.title") }}{{ t("countries." ~ country.id) }}</h2></header>
+  <div class="counters">
+    <div><span class="counter text-primary">{{ o.ongoing_planned }}</span>{{ t("outage.ongoing_planned") }}</div>
+    <div><span class="counter text-danger">{{ o.ongoing_unplanned }}</span>{{ t("outage.ongoing_unplanned") }}</div>
+    <div><span class="counter text-muted">{{ o.upcoming }}</span>{{ t("outage.upcoming") }}</div>
+  </div>
+  <div class="pad">
+    <p class="muted">{{ t("outage.description") }}{{ t("countries." ~ country.id) }}.</p>
+    {%- if o.future %}
+    <details>
+      <summary>{{ t("outage.details") }}</summary>
+      {%- for f in o.future %}{{ outage_item(f) }}{% endfor %}
+    </details>
+    {%- endif %}
+    <div class="outage-list">
+      {%- for c in o.current %}{{ outage_item(c) }}{% endfor %}
+    </div>
+  </div>
+</section>
+{% endmacro %}
+
+{% macro ad(adsense, slot="9853677086", format="autorelaxed") %}
+{%- if adsense %}
+<section class="card ad">
+  <ins class="adsbygoogle" style="display:block" data-ad-format="{{ format }}" data-ad-client="{{ adsense }}" data-ad-slot="{{ slot }}"></ins>
+</section>
+{%- endif %}
+{% endmacro %}
+
+{% macro chart_card(title, id, extra="") %}
+<section class="card">
+  <header class="card-head"><h2>{{ title }}</h2>{{ extra|safe }}</header>
+  <div class="chart" data-chart="{{ id }}"><div class="chart-empty muted">&hellip;</div></div>
+</section>
+{% endmacro %}

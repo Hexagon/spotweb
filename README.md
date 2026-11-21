@@ -1,51 +1,161 @@
-# spotweb
+# spotweb 2
 
-Source code of [https://spot.56k.guru](https://spot.56k.guru) - dockerized open source Deno application that gets and caches electricity prices (spot
-price) from ENTSO-e.
+Source code of [https://spot.56k.guru](https://spot.56k.guru) – electricity spot prices, production and consumption for the Nordics and parts
+of Europe, fetched from [ENTSO-e](https://transparency.entsoe.eu/) and converted with [ECB](https://www.ecb.europa.eu/) exchange rates.
 
-Currently available in Swedish, Finnish, Danish, Norwegian, Spanish, French, German and Dutch.
+Available in Swedish, Finnish, Danish, Norwegian, Spanish, French, German, Dutch and English. Each language has its own file in `locales/`.
 
-Any feedback on translations are greatly appreciated. Contribute by opening an issue, or by creating a pull request. Each language has it's own file
-in `config/translations`.
+[![CI](https://github.com/Hexagon/spotweb/actions/workflows/ci.yml/badge.svg)](https://github.com/Hexagon/spotweb/actions/workflows/ci.yml)
 
-[![Deno CI](https://github.com/Hexagon/spotweb/actions/workflows/deno.yaml/badge.svg)](https://github.com/Hexagon/spotweb/actions/workflows/deno.yaml)
+## What's new in 2.0
 
-### Development
+- **One self-contained binary** (Rust, axum). Templates, translations, scripts, styles and icons are embedded – no Deno, no Pup, no CDN.
+- **Built-in scheduler** (tokio-cron-scheduler) replaces the separate Pup cron processes. Jobs never overlap, have timeouts and retries,
+  invalidate the in-memory cache directly when done, and are logged to the database (`/api/v2/status`).
+- **SQLite with proper keys.** Every table has a primary key on its natural key and writes are upserts, so the periodic "delete
+  duplicates" clean-ups are gone. Schema changes are versioned migrations.
+- **Imports all history from 1.x** with one command (see [Upgrading from 1.x](#upgrading-from-1x)).
+- **Same urls and API.** `/`, `/{country}`, `/{country}/{area}`, `/custom`, `/help`, `/homeassistant`, `/sitemap.xml`, `/api/v2/spot` and
+  `/api/v2/hass` keep their parameters and response format. Visitor settings stored in the browser by 1.x are picked up as-is.
+- **Improved interface:** faster server-rendered pages without hydration, live "right now" price that follows 15-minute intervals,
+  today/tomorrow price table, cheapest 1 h / 3 h period ahead, negative prices shown in charts, CSV export, area picker for the Home
+  Assistant generator, mobile friendly layout.
+- **Correctness fixes:** "today" and month boundaries use each country's own time zone (Finland was on Swedish time), long-term
+  statistics span the switch from hourly to 15-minute prices, zero prices are no longer dropped, outage end times are correct, country
+  totals are the sum of their bidding zones.
+- Signed release binaries for Linux (static, x86_64/aarch64), macOS and Windows.
 
-Start the project, pass your Entso-e api key in environment variable `API_TOKEN` (in windows powershell):
+## Running
 
-```
-$env:API_TOKEN="your-entsoe-api-token"; deno task dev
-```
-
-#### Contributing
-
-Pull requests are very welcome! Please run `deno task precommit` before submitting a pr. This will make sure format, linting, types are up to
-standards, and tests pass.
-
-#### Dependency updates
-
-To update fresh framework using recommended method:
-
-```
-deno task update-fresh
-```
-
-To check for general dependency updates:
-
-```
-deno task update-deps
+```sh
+API_TOKEN=your-entsoe-token ./spotweb            # same as `spotweb serve`
 ```
 
-Apply the updates manually
+Open http://localhost:6000 (Chrome blocks port 6000 – use `--port 8080` when browsing locally). On first start with an empty database
+spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried politely, one request every two seconds).
 
-Also check `SwHead.tsx` for dependencies included by script tags.
+| Command                          | Description                                                              |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| `spotweb serve`                  | Web server + scheduler (default). `--no-scheduler` for a read-only node. |
+| `spotweb import-v1 [db/main.db]` | Import history from a 1.x database. Safe to run repeatedly.              |
+| `spotweb run-job prices …`       | Run `prices`, `currency`, `load`, `production`, `outages` once.          |
+| `spotweb backup <file>`          | Consistent online copy of the database, safe while running.              |
 
-Note that the types declarations in deno.json have to be updated if updating dependencies in `import_map.json` or script-tags in `SwHead.tsx`.
+### Configuration (environment)
 
-### Running in production
+| Variable                   | Default                  | Description                                                     |
+| -------------------------- | ------------------------ | --------------------------------------------------------------- |
+| `API_TOKEN`                | –                        | ENTSO-e API token (same as 1.x). Without it only ECB rates update. |
+| `SPOTWEB_PORT`             | `6000`                   | Listen port (same as 1.x)                                       |
+| `SPOTWEB_BIND`             | `0.0.0.0`                | Listen address. Use `127.0.0.1` behind a reverse proxy.        |
+| `SPOTWEB_DB`               | `db/spotweb.db`          | Database file                                                   |
+| `SPOTWEB_PUBLIC_URL`       | from `Host` header       | Public base url for sitemap, robots.txt and examples            |
+| `SPOTWEB_ADSENSE`          | –                        | AdSense client id (same as 1.x)                                 |
+| `SPOTWEB_GA_ID`            | –                        | Google Analytics measurement id                                 |
+| `SPOTWEB_SCHEDULE_TZ`      | `Europe/Stockholm`       | Time zone of the job schedule                                   |
+| `SPOTWEB_HISTORY_START`    | `2021-01-01`             | First day to back-fill on an empty database                     |
+| `SPOTWEB_REQUEST_DELAY_MS` | `2000`                   | Pause between ENTSO-e requests                                  |
+| `RUST_LOG`                 | `spotweb=info,warn`      | Log filter, `--debug` for verbose logs                          |
 
-Spotweb is set up to run using [Pup](https://github.com/hexagon/pup) in production. Follow tre quick guide there to run `pup run` or install as a
-system service `pup install --name spotweb`
+### Schedule
 
-The database will be stored in `<project-directory>/db/`
+Same timing as 1.x, in `SPOTWEB_SCHEDULE_TZ` (DST changes are handled):
+
+| Job          | When                                                              |
+| ------------ | ----------------------------------------------------------------- |
+| `prices`     | every hour, 12:45 and 13:15/13:30/13:45 (day-ahead auction), and at startup |
+| `currency`   | 09:05 and 16:20 (after ECB publishes), and at startup             |
+| `load`       | every hour at :05                                                 |
+| `production` | every hour at :50                                                 |
+| `outages`    | 08:05                                                             |
+
+## API
+
+Free and without key. Errors are returned as HTTP 500 with `{"status":"error","details":"…"}`, as in 1.x.
+
+`GET /api/v2/spot?period=daily&area=SE3&startDate=2024-01-01&endDate=2024-01-31[&currency=SEK][&interval=PT15M]`
+
+```json
+{ "status": "ok", "data": [{ "time": 1704063600000, "price": 102.1, "min": 55.3, "max": 160.2 }] }
+```
+
+Prices are per MWh in EUR, or in `currency` (any ECB currency). `period` is `hourly` (raw intervals, as in 1.x), `daily`,
+`weekly` (new), `monthly`, `yearly`, `total` (time is `null`) or `minimum`. With `interval` only that resolution is used, exactly like
+1.x. Without it (new behaviour) the area's current resolution is preferred and older days fall back to what is available, so
+long ranges cover both hourly and 15-minute history. Averages are time weighted.
+
+`GET /api/v2/hass?area=SE3&currency=SEK[&multiplier=1][&extra=0][&factor=1][&decimals=5][&interval=PT15M]` – Home Assistant
+sensor format, unchanged. `currency=ORE` (öre) is new. See `/homeassistant` for a configuration generator.
+
+`GET /api/v2/status` – latest data and last job runs. `GET /healthz` – liveness probe.
+
+## Upgrading from 1.x
+
+1. Stop the 1.x Pup processes (`pup stop` / `pup uninstall --name spotweb`).
+2. Install the 2.0 binary (see [Installation](#installation)).
+3. Import history (1.x database is opened read-only and left untouched):
+
+   ```sh
+   spotweb --db /var/lib/spotweb/spotweb.db import-v1 /path/to/spotweb-1/db/main.db
+   ```
+
+4. Start spotweb 2. Anything newer than the imported data is fetched by the jobs on start.
+
+Rolling back is just starting 1.x again on its own database.
+
+## Installation
+
+Download the archive for your platform from [Releases](https://github.com/Hexagon/spotweb/releases). Each release contains
+`SHA256SUMS`, a Sigstore bundle (`*.sigstore.json`) per file and GitHub build provenance. Verify before installing:
+
+```sh
+# Checksums
+sha256sum --ignore-missing -c SHA256SUMS
+
+# Signature: proves the archive was built by this repository's release workflow
+cosign verify-blob \
+  --bundle spotweb-v2.0.0-x86_64-unknown-linux-musl.tar.gz.sigstore.json \
+  --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  spotweb-v2.0.0-x86_64-unknown-linux-musl.tar.gz
+
+# Or with the GitHub CLI (build provenance attestation)
+gh attestation verify spotweb-v2.0.0-x86_64-unknown-linux-musl.tar.gz --repo Hexagon/spotweb
+```
+
+### Recommended setup (Linux, systemd)
+
+The Linux builds are static (musl), so they run on any distribution. See [docs/deployment.md](docs/deployment.md) for the full guide;
+in short:
+
+```sh
+sudo install -m 755 spotweb /usr/local/bin/spotweb
+sudo useradd --system --home /var/lib/spotweb --shell /usr/sbin/nologin spotweb
+sudo install -d -m 750 -o root -g spotweb /etc/spotweb
+sudo install -m 640 -o root -g spotweb deploy/spotweb.env.example /etc/spotweb/spotweb.env   # set API_TOKEN
+sudo cp deploy/systemd/spotweb*.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now spotweb spotweb-backup.timer
+```
+
+Put Caddy (`deploy/caddy/Caddyfile`) or nginx (`deploy/nginx/spotweb.conf`) in front for TLS. A `Dockerfile` and
+`docker-compose.yml` are included as an alternative.
+
+## Development
+
+```sh
+cargo run -- serve --port 8080 --no-scheduler   # debug builds read templates/static/locales from disk
+cargo test
+cargo fmt && cargo clippy --all-targets
+```
+
+The front end is plain HTML templates (`templates/`, [minijinja](https://github.com/mitsuhiko/minijinja)) and one script
+(`static/assets/app.js`) using [ApexCharts](https://apexcharts.com/) (vendored, MIT).
+
+To release: bump `version` in `Cargo.toml`, commit, tag `vX.Y.Z` and push the tag. The release workflow builds, signs and publishes.
+
+Pull requests are very welcome, especially for translations.
+
+## License
+
+MIT

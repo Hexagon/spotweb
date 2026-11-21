@@ -1,0 +1,38 @@
+<header class="topbar">
+  <nav class="nav container" aria-label="Main">
+    {%- if area is defined and area %}
+    <a class="nav-back" href="{% if country.areas|length > 1 %}/{{ country.id }}{% else %}/{% endif %}" aria-label="Back">&#8249;</a>
+    {%- elif country is defined and country %}
+    <a class="nav-back" href="/" aria-label="Back">&#8249;</a>
+    {%- endif %}
+    <a class="brand" href="/"><span class="bolt" aria-hidden="true">&#9889;</span><span class="brand-text">{{ t("nav.index") }}</span></a>
+
+    <details class="dropdown">
+      <summary>{% if country is defined and country %}{{ t("countries." ~ country.id) }}{% else %}{{ t("nav.country") }}{% endif %} <span class="caret">&#9662;</span></summary>
+      <div class="dropdown-menu">
+        {%- for c in countries %}
+        <a href="/{{ c.id }}"{% if country is defined and country and country.id == c.id %} class="active"{% endif %}>{{ t("countries." ~ c.id) }}</a>
+        {%- endfor %}
+      </div>
+    </details>
+
+    {%- if country is defined and country and country.areas|length > 1 %}
+    <div class="nav-areas">
+      {%- for a in country.areas %}
+      <a href="/{{ country.id }}/{{ a.name }}" class="area-link color-{{ a.color }}{% if page == a.id %} active{% endif %}">{{ a.name }}</a>
+      {%- endfor %}
+    </div>
+    {%- endif %}
+
+    <div class="nav-right">
+      {%- if not (country is defined and country) %}
+      <a href="/homeassistant" class="nav-link{% if page == 'homeassistant' %} active{% endif %}">Home Assistant</a>
+      {%- endif %}
+      <a href="/custom" class="nav-link hide-sm{% if page == 'custom' %} active{% endif %}">{{ t("nav.table") }}</a>
+      <a href="/help" class="nav-link{% if page == 'help' %} active{% endif %}">{{ t("nav.help") }}</a>
+      <button class="icon-btn" type="button" data-open-settings aria-label="{{ t('customize.title') }}" aria-controls="settings">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94a7.07 7.07 0 0 0 .06-.94c0-.32-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.74 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.07.62-.07.94s.03.63.07.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.3.6.22l2.39-.96c.49.38 1.03.7 1.62.94l.36 2.54c.05.24.26.42.5.42h3.84c.24 0 .45-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+      </button>
+    </div>
+  </nav>
+</header>

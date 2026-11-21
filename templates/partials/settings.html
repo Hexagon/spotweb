@@ -1,0 +1,39 @@
+<div class="drawer-backdrop" data-close-settings hidden></div>
+<aside id="settings" class="drawer" aria-label="{{ t('customize.title') }}" hidden>
+  <div class="drawer-head">
+    <h2>{{ t("customize.title") }}</h2>
+    <button class="icon-btn" type="button" data-close-settings aria-label="Close">&times;</button>
+  </div>
+  <label class="switch">
+    <input type="checkbox" id="pref-pricefactor">
+    <span class="slider" aria-hidden="true"></span>
+    <span>{{ t("nav.actual_price_instead") }}</span>
+  </label>
+  <fieldset id="pref-fields">
+    <label>{{ t("customize.currency") }}
+      <select id="pref-currency">
+        {%- for c in ["öre", "SEK", "NOK", "DKK", "EUR", "PLN"] %}
+        <option value="{{ c }}">{{ c }}</option>
+        {%- endfor %}
+      </select>
+    </label>
+    <label>{{ t("customize.fees") }} <small>(/kWh)</small>
+      <input type="text" inputmode="decimal" id="pref-extra" placeholder="0.05">
+    </label>
+    <label>{{ t("customize.multiplier") }}
+      <input type="text" inputmode="decimal" id="pref-multiplier" placeholder="1.02">
+    </label>
+    <label>{{ t("customize.factor") }}
+      <input type="text" inputmode="decimal" id="pref-factor" placeholder="1.25">
+    </label>
+    <label>{{ t("customize.decimals") }}
+      <input type="number" min="0" max="10" id="pref-decimals">
+    </label>
+  </fieldset>
+  <p class="muted small formula">((spot &times; {{ t("customize.multiplier")|lower }}) + {{ t("customize.fees")|lower }}) &times; {{ t("customize.factor")|lower }}</p>
+  <div class="lang-switch">
+    {%- for l in languages %}
+    <a href="?lang={{ l }}"{% if l == lang %} class="active"{% endif %}>{{ l }}</a>
+    {%- endfor %}
+  </div>
+</aside>

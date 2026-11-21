@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card pad">
+  <h1 class="h2">Custom period</h1>
+  <form class="form-row" id="custom-form" method="get" action="/custom">
+    <label>Period
+      <select name="period">
+        {%- for p, label in [("hourly", "Interval (raw)"), ("daily", "Day"), ("weekly", "Week"), ("monthly", "Month"), ("yearly", "Year"), ("total", "Total")] %}
+        <option value="{{ p }}"{% if form.period == p %} selected{% endif %}>{{ label }}</option>
+        {%- endfor %}
+      </select>
+    </label>
+    <label>{{ t("nav.area") }}
+      <select name="area">
+        {%- for c in countries %}
+        <optgroup label="{{ t('countries.' ~ c.id) }}">
+          {%- for a in c.areas %}
+          <option value="{{ a.name }}"{% if form.area == a.name %} selected{% endif %}>{{ a.name }} - {{ a.long }}</option>
+          {%- endfor %}
+        </optgroup>
+        {%- endfor %}
+      </select>
+    </label>
+    <label>Start date <input type="date" name="startDate" value="{{ form.startDate }}" required></label>
+    <label>End date <input type="date" name="endDate" value="{{ form.endDate }}" required></label>
+    <button class="btn" type="submit">Fetch</button>
+  </form>
+  <p class="muted small">Week, month and year groups are in the local time of the selected area. The end date is inclusive.</p>
+</section>
+
+<section class="card hidden" id="custom-result">
+  <header class="card-head"><h2>Result</h2></header>
+  <div class="custom-grid">
+    <div class="chart" data-chart="custom"></div>
+    <table class="table stats-table">
+      <tr><td>Average</td><td class="num big" id="custom-avg">-</td></tr>
+      <tr><td>Minimum</td><td class="num big" id="custom-min">-</td></tr>
+      <tr><td>Maximum</td><td class="num big" id="custom-max">-</td></tr>
+    </table>
+  </div>
+  <p class="pad right small"><a id="custom-permalink" href="#">Permalink</a> &middot; <a id="custom-json" href="#">JSON</a> &middot; <a id="custom-csv" href="#" download="spotprice.csv">CSV</a></p>
+  <div class="table-scroll tall"><table class="table compact" id="custom-table"></table></div>
+</section>
+{% endblock %}
