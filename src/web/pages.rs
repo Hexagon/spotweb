@@ -348,7 +348,13 @@ fn production_overview(
         .map(|l| l.1)
         .unwrap_or(0.0);
     if load_total == 0.0 {
-        load_total = load.last().map(|l| l.1).unwrap_or(0.0);
+        // Latest load not after the generation, never a newer preliminary value
+        load_total = load
+            .iter()
+            .rev()
+            .find(|l| l.0 <= last_date)
+            .map(|l| l.1)
+            .unwrap_or(0.0);
     }
     let net = total - load_total;
     json!({
