@@ -30,6 +30,7 @@ tracing = "0.1"
 uuid = "1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 zip = { version = "9", default-features = false, features = ["deflate"] }
+zstd = { version = "0.14", features = ["zstdmt", "experimental"] }
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

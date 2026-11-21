@@ -69,7 +69,7 @@ enum Command {
     },
     /// Write a consistent copy of the database (safe while the server is running)
     Backup {
-        /// Destination file
+        /// Destination file. A name ending in `.zst` is written zstd-compressed.
         dest: PathBuf,
     },
 }

@@ -39,7 +39,7 @@ spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried po
 | `spotweb serve`                  | Web server + scheduler (default). `--no-scheduler` for a read-only node. |
 | `spotweb import-v1 [db/main.db]` | Import history from a 1.x database. Safe to run repeatedly.              |
 | `spotweb run-job prices …`       | Run `prices`, `currency`, `load`, `production`, `flows`, `outages` once. |
-| `spotweb backup <file>`          | Consistent online copy of the database, safe while running.              |
+| `spotweb backup <file>`          | Consistent online copy, safe while running. `*.zst` is zstd-compressed.  |
 
 ### Configuration (environment)
 
