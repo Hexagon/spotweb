@@ -373,17 +373,15 @@ fn empty_hass() -> HassResponse {
 }
 
 async fn data_health(st: &WebState) -> anyhow::Result<crate::health::Health> {
+    let now = now_ms();
+    // From the start of every area's local today
+    let since = now - 26 * crate::timeutil::HOUR_MS;
     let i = st
         .app
         .db
-        .run(|c| Ok(crate::db::queries::health_inputs(c)?))
+        .run(move |c| Ok(crate::db::queries::health_inputs(c, since)?))
         .await?;
-    Ok(crate::health::check(
-        now_ms(),
-        |a| i.prices.get(a).copied(),
-        i.generation,
-        i.load,
-    ))
+    Ok(crate::health::check(now, &i.prices, i.generation, i.load))
 }
 
 /// `GET /api/v2/status` - data freshness and last job runs, for monitoring
