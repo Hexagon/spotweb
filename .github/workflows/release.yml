@@ -1,0 +1,116 @@
+# Builds static release binaries for all platforms, signs them with Sigstore
+# (keyless, GitHub OIDC) and publishes a GitHub release with SLSA build
+# provenance attestations. Triggered by pushing a tag like `v2.0.0`.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)build, e.g. v2.0.0"
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
+jobs:
+  build:
+    name: build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: x86_64-unknown-linux-musl, os: ubuntu-24.04, musl: true }
+          - { target: aarch64-unknown-linux-musl, os: ubuntu-24.04-arm, musl: true }
+          - { target: aarch64-apple-darwin, os: macos-14 }
+          - { target: x86_64-apple-darwin, os: macos-14 }  # cross-compiled on Apple silicon
+          - { target: x86_64-pc-windows-msvc, os: windows-latest }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Install musl tools
+        if: matrix.musl
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: Build
+        shell: bash
+        run: |
+          if [ "${{ matrix.musl }}" = "true" ]; then
+            export CC="musl-gcc"
+          fi
+          cargo build --release --locked --target ${{ matrix.target }}
+      - name: Test (native targets)
+        if: "!contains(matrix.target, 'x86_64-apple')"
+        shell: bash
+        run: |
+          if [ "${{ matrix.musl }}" = "true" ]; then
+            export CC="musl-gcc"
+          fi
+          cargo test --release --locked --target ${{ matrix.target }}
+      - name: Package
+        shell: bash
+        run: |
+          name="spotweb-${TAG}-${{ matrix.target }}"
+          mkdir -p "dist/$name"
+          bin=target/${{ matrix.target }}/release/spotweb
+          [ -f "$bin.exe" ] && bin="$bin.exe"
+          cp "$bin" README.md LICENSE "dist/$name/"
+          cp -r deploy "dist/$name/"
+          cd dist
+          if [[ "${{ matrix.target }}" == *windows* ]]; then
+            7z a "$name.zip" "$name" > /dev/null
+          else
+            tar czf "$name.tar.gz" "$name"
+          fi
+          rm -rf "$name"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # create the release
+      id-token: write      # Sigstore keyless signing + attestations
+      attestations: write  # build provenance
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum spotweb-* > SHA256SUMS && cat SHA256SUMS
+      - uses: sigstore/cosign-installer@v3
+      - name: Sign (Sigstore keyless)
+        working-directory: dist
+        run: |
+          for f in spotweb-* SHA256SUMS; do
+            cosign sign-blob --yes --bundle "$f.sigstore.json" "$f"
+          done
+      - name: Build provenance attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: "dist/spotweb-*"
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" dist/* \
+            --repo "${{ github.repository }}" \
+            --title "spotweb $TAG" \
+            --generate-notes \
+            --verify-tag

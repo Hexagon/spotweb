@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% import "macros.html" as m %}
+{% block content %}
+{{ m.ad(adsense) }}
+<section class="card">
+  <div class="table-scroll">
+  <table class="table overview-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th class="num">{{ t("overview.right_now")|capitalize }}<br><small>{{ m.unit() }}</small></th>
+        <th class="num">{{ t("generation.production") }}<br><small>MW</small></th>
+        <th class="num">{{ t("generation.consumption") }}<br><small>MW</small></th>
+        <th class="num">{{ t("generation.excess") }}<br><small>MW</small></th>
+        <th class="hide-sm">{{ t("generation.primary_source") }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {%- for c in rows %}
+      <tr class="country-row">
+        <td><a href="/{{ c.id }}">{{ t("countries." ~ c.id) }}</a></td>
+        <td class="num price-cell" data-now-country="{{ c.id }}">{{ price(c.now) }}</td>
+        <td class="num">{{ mw(c.gl.generation if c.gl else none) }}</td>
+        <td class="num">{{ mw(c.gl.load if c.gl else none) }}</td>
+        <td class="num {% if c.gl and c.gl.net is not none and c.gl.net < 0 %}text-danger{% else %}text-success{% endif %}">{{ mw(c.gl.net if c.gl else none) }}</td>
+        <td class="hide-sm">{% if c.gl and c.gl.primary %}{{ t("generation.psr_" ~ c.gl.primary ~ "_0") }} <span class="muted">({{ c.gl.primary_share|int }}%)</span>{% endif %}</td>
+      </tr>
+      {%- for a in c.areas %}
+      <tr class="area-row">
+        <td><a href="/{{ c.id }}/{{ a.name }}">{{ a.name }} <span class="muted hide-sm">&ndash; {{ a.long }}</span></a></td>
+        <td class="num price-cell" data-now-area="{{ a.name }}">{{ price(a.now) }}</td>
+        <td class="num">{{ mw(a.gl.generation if a.gl else none) }}</td>
+        <td class="num">{{ mw(a.gl.load if a.gl else none) }}</td>
+        <td class="num {% if a.gl and a.gl.net is not none and a.gl.net < 0 %}text-danger{% else %}text-success{% endif %}">{{ mw(a.gl.net if a.gl else none) }}</td>
+        <td class="hide-sm">{% if a.gl and a.gl.primary %}{{ t("generation.psr_" ~ a.gl.primary ~ "_0") }} <span class="muted">({{ a.gl.primary_share|int }}%)</span>{% endif %}</td>
+      </tr>
+      {%- endfor %}
+      {%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

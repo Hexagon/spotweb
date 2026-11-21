@@ -1,14 +1,7 @@
-cache
-db
-!backend/db
-main.release.ts
-deno.lock
-pup.jsonc.status
-.pup.jsonc*
-pup.jsonc.ipc
-.pup
-.pup.jsoc-data
-.pup.jsoc-tmp
-
-# Fresh build directory
-_fresh/
+/target
+/db
+/data
+*.db
+*.db-wal
+*.db-shm
+.env

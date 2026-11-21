@@ -1,0 +1,314 @@
+//! Spot price selection, grouping and presentation helpers.
+
+use std::collections::BTreeMap;
+
+use chrono::{Datelike, NaiveDate, TimeZone};
+use chrono_tz::Tz;
+use serde::Serialize;
+
+use crate::timeutil::{interval_ms, local_date, local_midnight};
+
+/// Raw row from the database
+#[derive(Debug, Clone)]
+pub struct SpotRow {
+    pub time: i64,
+    pub interval: String,
+    pub price: f64,
+}
+
+/// Row returned by `/api/v2/spot`, identical in shape to 1.x
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct SpotApiRow {
+    /// Start of group in ms. `null` for `period=total` (1.x returned `null` too).
+    pub time: Option<i64>,
+    pub price: f64,
+    pub min: f64,
+    pub max: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Grouping {
+    Total,
+    Yearly,
+    Monthly,
+    Weekly,
+    Daily,
+    Hourly,
+    Minimum,
+}
+
+impl Grouping {
+    pub fn parse(s: &str) -> Option<Self> {
+        Some(match s.trim().to_ascii_lowercase().as_str() {
+            "total" => Self::Total,
+            "yearly" => Self::Yearly,
+            "monthly" => Self::Monthly,
+            "weekly" => Self::Weekly,
+            "daily" => Self::Daily,
+            "hourly" => Self::Hourly,
+            "minimum" => Self::Minimum,
+            _ => return None,
+        })
+    }
+}
+
+/// How to treat the `interval` (resolution) of stored prices.
+#[derive(Debug, Clone)]
+pub enum IntervalMode {
+    /// Only rows with exactly this resolution (1.x behaviour when `interval=` is given)
+    Exact(String),
+    /// Prefer this resolution, but for local days where it is missing use the
+    /// finest resolution available that day. Lets long term statistics span the
+    /// switch from hourly to 15 minute prices.
+    Prefer(String),
+}
+
+/// Pick which rows to use according to `mode`. Returns `(time, price, duration_ms)`, sorted by time.
+pub fn select_rows(rows: &[SpotRow], mode: &IntervalMode, tz: &Tz) -> Vec<(i64, f64, i64)> {
+    let mut out: Vec<(i64, f64, i64)> = match mode {
+        IntervalMode::Exact(iv) => rows
+            .iter()
+            .filter(|r| r.interval.eq_ignore_ascii_case(iv))
+            .map(|r| (r.time, r.price, interval_ms(&r.interval)))
+            .collect(),
+        IntervalMode::Prefer(iv) => {
+            // Group per local day
+            let mut days: BTreeMap<NaiveDate, Vec<&SpotRow>> = BTreeMap::new();
+            for r in rows {
+                days.entry(local_date(tz, r.time)).or_default().push(r);
+            }
+            let mut out = Vec::with_capacity(rows.len());
+            for (_, day_rows) in days {
+                let chosen: String = if day_rows.iter().any(|r| r.interval.eq_ignore_ascii_case(iv))
+                {
+                    iv.clone()
+                } else {
+                    day_rows
+                        .iter()
+                        .min_by_key(|r| interval_ms(&r.interval))
+                        .map(|r| r.interval.clone())
+                        .unwrap_or_default()
+                };
+                out.extend(
+                    day_rows
+                        .into_iter()
+                        .filter(|r| r.interval.eq_ignore_ascii_case(&chosen))
+                        .map(|r| (r.time, r.price, interval_ms(&r.interval))),
+                );
+            }
+            out
+        }
+    };
+    out.sort_by_key(|r| r.0);
+    out.dedup_by_key(|r| r.0);
+    out
+}
+
+fn bucket(g: Grouping, tz: &Tz, t: i64) -> Option<i64> {
+    match g {
+        Grouping::Total => None,
+        Grouping::Hourly | Grouping::Minimum => Some(t),
+        _ => {
+            let d = local_date(tz, t);
+            let start = match g {
+                Grouping::Yearly => NaiveDate::from_ymd_opt(d.year(), 1, 1).unwrap_or(d),
+                Grouping::Monthly => d.with_day(1).unwrap_or(d),
+                Grouping::Weekly => {
+                    d - chrono::Duration::days(d.weekday().num_days_from_monday() as i64)
+                }
+                _ => d,
+            };
+            Some(local_midnight(tz, start).timestamp_millis())
+        }
+    }
+}
+
+/// Group selected rows. Averages are time weighted, which equals a plain average
+/// when all rows share the same resolution.
+pub fn group(rows: &[(i64, f64, i64)], g: Grouping, tz: &Tz) -> Vec<SpotApiRow> {
+    // key: Option<i64> -> (weighted sum, weight, min, max)
+    let mut groups: BTreeMap<Option<i64>, (f64, f64, f64, f64)> = BTreeMap::new();
+    for &(t, p, dur) in rows {
+        let w = dur.max(1) as f64;
+        let e =
+            groups
+                .entry(bucket(g, tz, t))
+                .or_insert((0.0, 0.0, f64::INFINITY, f64::NEG_INFINITY));
+        e.0 += p * w;
+        e.1 += w;
+        e.2 = e.2.min(p);
+        e.3 = e.3.max(p);
+    }
+    groups
+        .into_iter()
+        .map(|(time, (s, w, min, max))| SpotApiRow {
+            time,
+            price: s / w,
+            min,
+            max,
+        })
+        .collect()
+}
+
+pub fn convert(rows: &mut [SpotApiRow], rate: f64) {
+    for r in rows {
+        r.price *= rate;
+        r.min *= rate;
+        r.max *= rate;
+    }
+}
+
+/// Price presentation settings, same semantics as 1.x `processPrice`
+#[derive(Debug, Clone)]
+pub struct PriceProps {
+    pub extra: f64,
+    pub multiplier: f64,
+    pub factor: f64,
+    pub decimals: usize,
+    pub price_factor: bool,
+    /// Multiply by 100 (öre / cent)
+    pub sub_unit: bool,
+}
+
+/// Convert EUR/MWh (already currency converted) to a formatted per-kWh string. `-` for missing.
+pub fn process_price(price: Option<f64>, p: &PriceProps) -> String {
+    let Some(mut price) = price else {
+        return "-".into();
+    };
+    price /= 1000.0;
+    if p.price_factor {
+        price *= p.multiplier;
+        price += p.extra;
+        price *= p.factor;
+    }
+    if p.sub_unit {
+        price *= 100.0;
+    }
+    format!("{:.*}", p.decimals.min(20), price)
+}
+
+pub fn stats(values: &[f64]) -> Option<(f64, f64, f64)> {
+    if values.is_empty() {
+        return None;
+    }
+    let avg = values.iter().sum::<f64>() / values.len() as f64;
+    let min = values.iter().cloned().fold(f64::INFINITY, f64::min);
+    let max = values.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    Some((avg, min, max))
+}
+
+/// Price valid at `now`, given rows of `(start, price)` and the resolution
+pub fn price_at(rows: &[(i64, f64)], interval: i64, now: i64) -> Option<f64> {
+    rows.iter()
+        .find(|(t, _)| *t <= now && t + interval > now)
+        .map(|r| r.1)
+}
+
+#[allow(dead_code)]
+/// Infer resolution from the smallest gap between rows (1.x `inferIntervalMs`)
+pub fn infer_interval(rows: &[(i64, f64)]) -> i64 {
+    let mut times: Vec<i64> = rows.iter().map(|r| r.0).collect();
+    times.sort_unstable();
+    times
+        .windows(2)
+        .map(|w| w[1] - w[0])
+        .filter(|d| *d > 0)
+        .min()
+        .unwrap_or(crate::timeutil::HOUR_MS)
+}
+
+#[allow(dead_code)]
+pub fn tz_offset_ms(tz: &Tz, t: i64) -> i64 {
+    use chrono::Offset;
+    tz.offset_from_utc_datetime(
+        &chrono::DateTime::from_timestamp_millis(t)
+            .unwrap_or_default()
+            .naive_utc(),
+    )
+    .fix()
+    .local_minus_utc() as i64
+        * 1000
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::timeutil::day_range;
+
+    fn tz() -> Tz {
+        "Europe/Stockholm".parse().unwrap()
+    }
+
+    #[test]
+    fn process_like_v1() {
+        let p = PriceProps {
+            extra: 0.0,
+            multiplier: 1.0,
+            factor: 1.0,
+            decimals: 5,
+            price_factor: true,
+            sub_unit: false,
+        };
+        assert_eq!(process_price(Some(123.456), &p), "0.12346");
+        assert_eq!(process_price(None, &p), "-");
+        let p = PriceProps {
+            extra: 0.5,
+            multiplier: 1.02,
+            factor: 1.25,
+            decimals: 2,
+            price_factor: true,
+            sub_unit: true,
+        };
+        // ((0.1 * 1.02) + 0.5) * 1.25 * 100 = 75.25
+        assert_eq!(process_price(Some(100.0), &p), "75.25");
+    }
+
+    #[test]
+    fn prefer_mode_spans_resolution_change() {
+        let tz = tz();
+        let (d1, _) = day_range(&tz, NaiveDate::from_ymd_opt(2025, 9, 30).unwrap());
+        let (d2, _) = day_range(&tz, NaiveDate::from_ymd_opt(2025, 10, 1).unwrap());
+        let mut rows = vec![];
+        for h in 0..24 {
+            rows.push(SpotRow {
+                time: d1 + h * 3_600_000,
+                interval: "PT60M".into(),
+                price: 10.0,
+            });
+        }
+        for q in 0..96 {
+            rows.push(SpotRow {
+                time: d2 + q * 900_000,
+                interval: "PT15M".into(),
+                price: 20.0,
+            });
+            if q % 4 == 0 {
+                // duplicate hourly data the same day must be ignored
+                rows.push(SpotRow {
+                    time: d2 + q * 900_000 + 1,
+                    interval: "PT60M".into(),
+                    price: 1000.0,
+                });
+            }
+        }
+        let sel = select_rows(&rows, &IntervalMode::Prefer("PT15M".into()), &tz);
+        assert_eq!(sel.len(), 24 + 96);
+        let g = group(&sel, Grouping::Total, &tz);
+        assert_eq!(g.len(), 1);
+        assert!((g[0].price - 15.0).abs() < 1e-9);
+        assert_eq!(g[0].time, None);
+        let daily = group(&sel, Grouping::Daily, &tz);
+        assert_eq!(daily.len(), 2);
+        assert_eq!(daily[0].time, Some(d1));
+        let exact = select_rows(&rows, &IntervalMode::Exact("PT15M".into()), &tz);
+        assert_eq!(exact.len(), 96);
+    }
+
+    #[test]
+    fn now_price() {
+        let rows = vec![(0, 1.0), (900_000, 2.0)];
+        assert_eq!(infer_interval(&rows), 900_000);
+        assert_eq!(price_at(&rows, 900_000, 1_000_000), Some(2.0));
+        assert_eq!(price_at(&rows, 900_000, 2_000_000), None);
+    }
+}

@@ -1,0 +1,12 @@
+# /etc/systemd/system/spotweb-backup.timer
+# Daily backup, one file per weekday (7 days retention). Copy them off-host!
+[Unit]
+Description=Daily spotweb database backup
+
+[Timer]
+OnCalendar=*-*-* 03:17
+RandomizedDelaySec=15m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

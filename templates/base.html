@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ t("page.title") }} - {{ title }}</title>
+  <meta name="description" content="{{ t('header.title') }} - {{ title }}">
+  <meta name="theme-color" content="#14171f">
+  <link rel="icon" type="image/png" href="/icon-192x192.png">
+  <link rel="apple-touch-icon" href="/icon-192x192.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/assets/spotweb.css?v={{ version }}">
+  {%- if ga_id %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_id }}"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ ga_id }}');</script>
+  {%- endif %}
+  {%- if adsense %}
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense }}" crossorigin="anonymous"></script>
+  {%- endif %}
+  <script type="application/ld+json">{{ jsonld_page|safe }}</script>
+  {%- if jsonld_price %}
+  <script type="application/ld+json">{{ jsonld_price|safe }}</script>
+  {%- endif %}
+</head>
+<body data-page="{{ page }}">
+  {% include "partials/nav.html" %}
+  {% include "partials/settings.html" %}
+
+  <main class="container">
+    <div class="alert hidden" id="pricefactor-warning" role="alert">
+      <button class="alert-close" type="button" aria-label="Close" data-dismiss-warning>&times;</button>
+      <strong>{{ t("warning.actual_price") }}</strong>
+      <p>{{ t("warning.actual_price_text") }}</p>
+    </div>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="container">
+    {% include "partials/info.html" %}
+  </footer>
+
+  <script id="sw-boot" type="application/json">{{ boot|safe }}</script>
+  <script src="/assets/vendor/apexcharts.min.js?v={{ version }}" defer></script>
+  <script src="/assets/app.js?v={{ version }}" defer></script>
+  <script type="module" src="/initworker.js"></script>
+</body>
+</html>

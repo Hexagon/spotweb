@@ -1,0 +1,218 @@
+use std::collections::BTreeMap;
+
+use axum::body::Body;
+use axum::http::{Request, StatusCode};
+use http_body_util::BodyExt;
+use serde_json::Value;
+use tower::ServiceExt;
+
+use crate::db::{queries, Db};
+use crate::timeutil::{day_range, today};
+use crate::{App, Config};
+
+fn test_app() -> App {
+    let db = Db::open_memory();
+    let cfg = Config {
+        public_url: Some("https://example.test".into()),
+        adsense: None,
+        ga_id: None,
+        schedule_tz: chrono_tz::Europe::Stockholm,
+        history_start: chrono::NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(),
+    };
+    let app = App::new(db, cfg).unwrap();
+    // Seed: SE1 today + tomorrow at 15 minutes, exchange rates
+    let tz = chrono_tz::Europe::Stockholm;
+    let mut c = app.db.conn().unwrap();
+    let mut rows = vec![];
+    for d in [
+        today(&tz) - chrono::Duration::days(1),
+        today(&tz),
+        today(&tz) + chrono::Duration::days(1),
+    ] {
+        let (s, e) = day_range(&tz, d);
+        let mut t = s;
+        let mut i = 0.0;
+        while t <= e {
+            rows.push((t, "PT15M".to_string(), 50.0 + i));
+            t += 900_000;
+            i += 1.0;
+        }
+    }
+    queries::upsert_spot(&mut c, "sv", "SE1", &rows).unwrap();
+    let mut er = BTreeMap::new();
+    er.insert("SEK".to_string(), 10.0);
+    queries::insert_exchange_rates(&mut c, "2024-01-01", 1, &er).unwrap();
+    app
+}
+
+async fn get(app: &App, uri: &str) -> (StatusCode, String, axum::http::HeaderMap) {
+    let res = super::router(app.clone())
+        .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    let status = res.status();
+    let headers = res.headers().clone();
+    let body = res.into_body().collect().await.unwrap().to_bytes();
+    (status, String::from_utf8_lossy(&body).to_string(), headers)
+}
+
+#[tokio::test]
+async fn spot_api_shape() {
+    let app = test_app();
+    let d = today(&chrono_tz::Europe::Stockholm)
+        .format("%Y-%m-%d")
+        .to_string();
+    let (s, body, _) = get(
+        &app,
+        &format!("/api/v2/spot?period=hourly&area=se1&startDate={d}&endDate={d}"),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["status"], "ok");
+    let data = v["data"].as_array().unwrap();
+    assert!(data.len() >= 92, "{}", data.len());
+    assert!(data[0]["time"].is_i64());
+    assert_eq!(data[0]["price"], 50.0);
+    assert!(data[0]["min"].is_number() && data[0]["max"].is_number());
+
+    let (_, body, _) = get(
+        &app,
+        &format!("/api/v2/spot?period=total&area=SE1&startDate={d}&endDate={d}&currency=SEK"),
+    )
+    .await;
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert!(v["data"][0]["time"].is_null());
+    assert!(v["data"][0]["price"].as_f64().unwrap() > 500.0);
+
+    let (s, body, _) = get(&app, "/api/v2/spot?period=nope&area=SE1").await;
+    assert_eq!(s, StatusCode::INTERNAL_SERVER_ERROR);
+    assert!(body.contains("Period not valid"));
+    let (s, body, _) = get(&app, "/api/v2/spot?period=daily&area=SE1").await;
+    assert_eq!(s, StatusCode::INTERNAL_SERVER_ERROR);
+    assert!(body.contains("Missing/invalid parameters"));
+    // Exact interval that does not exist returns empty data
+    let (_, body, _) = get(
+        &app,
+        &format!("/api/v2/spot?period=hourly&area=SE1&startDate={d}&endDate={d}&interval=PT60M"),
+    )
+    .await;
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["data"].as_array().unwrap().len(), 0);
+}
+
+#[tokio::test]
+async fn hass_api_shape() {
+    let app = test_app();
+    let (s, body, _) = get(
+        &app,
+        "/api/v2/hass?area=SE1&currency=SEK&decimals=3&factor=1.25&extra=0.1",
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{body}");
+    let v: Value = serde_json::from_str(&body).unwrap();
+    for k in [
+        "updated",
+        "now",
+        "avg",
+        "min",
+        "max",
+        "avg_tomorrow",
+        "min_tomorrow",
+        "max_tomorrow",
+        "avg_yesterday",
+        "min_yesterday",
+        "max_yesterday",
+    ] {
+        assert!(v[k].is_string(), "{k}");
+    }
+    assert_ne!(v["now"], "-");
+    // min today: 50 EUR/MWh * 10 SEK = 0.5 SEK/kWh, +0.1, *1.25 = 0.75
+    assert_eq!(v["min"], "0.750");
+    let data = v["data"].as_array().unwrap();
+    assert!(data.len() > 280);
+    assert!(data[0]["st"].as_str().unwrap().ends_with(".000Z"));
+    // Key order matches 1.x
+    let keys: Vec<&str> = body.match_indices('"').map(|_| "").collect();
+    assert!(!keys.is_empty());
+    assert!(body.find("\"updated\"").unwrap() < body.find("\"data\"").unwrap());
+
+    let (_, body, _) = get(&app, "/api/v2/hass?area=SE1&currency=ORE&decimals=1").await;
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["min"], "50.0");
+
+    let (s, _, _) = get(&app, "/api/v2/hass?area=SE1").await;
+    assert_eq!(s, StatusCode::INTERNAL_SERVER_ERROR);
+}
+
+#[tokio::test]
+async fn pages_render() {
+    let app = test_app();
+    for (uri, expect) in [
+        ("/", "SE1"),
+        ("/sv", "SE1"),
+        ("/sv/SE1", "Norra Sverige"),
+        ("/fi/FI", "Suomi"),
+        ("/custom", "Custom period"),
+        ("/help", "Table of Contents"),
+        ("/homeassistant", "configuration.yaml"),
+    ] {
+        let (s, body, _) = get(&app, uri).await;
+        assert_eq!(s, StatusCode::OK, "{uri}: {body}");
+        assert!(body.contains(expect), "{uri} missing {expect}");
+        assert!(body.contains("sw-boot"), "{uri}");
+    }
+    let (_, body, _) = get(&app, "/sv/SE1").await;
+    // Swedish page shows öre server side: 50 EUR/MWh * 10 = 0.5 SEK = 50.0 öre
+    assert!(body.contains("data-eur=\"50\">50.0</span>"), "price span");
+    assert!(body.contains("Elpriset just nu"));
+}
+
+#[tokio::test]
+async fn redirects_static_and_404() {
+    let app = test_app();
+    let (s, _, h) = get(&app, "/fi").await;
+    assert_eq!(s, StatusCode::TEMPORARY_REDIRECT);
+    assert_eq!(h["location"], "/fi/FI");
+    let (s, _, h) = get(&app, "/elomrade/SE3").await;
+    assert_eq!(s, StatusCode::TEMPORARY_REDIRECT);
+    assert_eq!(h["location"], "/sv/SE3");
+    let (s, body, _) = get(&app, "/robots.txt").await;
+    assert_eq!(s, StatusCode::OK);
+    assert!(body.contains("Sitemap"));
+    let (s, _, h) = get(&app, "/assets/app.js").await;
+    assert_eq!(s, StatusCode::OK);
+    assert!(h["content-type"].to_str().unwrap().contains("javascript"));
+    let (s, _, _) = get(&app, "/manifest.json").await;
+    assert_eq!(s, StatusCode::OK);
+    let (s, _, _) = get(&app, "/xx").await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    let (s, _, _) = get(&app, "/sv/SE9").await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    let (s, body, _) = get(&app, "/sitemap.xml").await;
+    assert_eq!(s, StatusCode::OK);
+    assert!(body.contains("<loc>https://example.test/sv/SE1</loc>"));
+    assert!(body.contains("<loc>https://example.test/sv</loc>"));
+    assert!(!body.contains("<loc>https://example.test/fi</loc>"));
+    let (s, body, _) = get(&app, "/api/v2/status").await;
+    assert_eq!(s, StatusCode::OK);
+    assert!(body.contains("latest_price"));
+}
+
+#[test]
+fn lang_detection() {
+    use axum::http::{HeaderMap, HeaderValue, Uri};
+    let mut h = HeaderMap::new();
+    assert_eq!(super::detect_lang(&Uri::from_static("/sv/SE1"), &h), "sv");
+    h.insert(
+        "accept-language",
+        HeaderValue::from_static("de-DE,de;q=0.9"),
+    );
+    assert_eq!(super::detect_lang(&Uri::from_static("/sv/SE1"), &h), "de");
+    assert_eq!(
+        super::detect_lang(&Uri::from_static("/sv/SE1?lang=fi"), &h),
+        "fi"
+    );
+    assert_eq!(super::format_int(1234567.4, "en"), "1,234,567");
+    assert_eq!(super::format_int(-1234.0, "de"), "-1.234");
+}

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% import "macros.html" as m %}
+{% block content %}
+<section class="card pad prose">
+  <h1 class="h2">Table of Contents</h1>
+  <ul>
+    <li><a href="#electricity-prices-info">Information on Electricity Prices</a></li>
+    <li><a href="#electricity-price-calculation">Electricity Price Calculation</a></li>
+    <li><a href="#installing-as-app">Installing as an app</a></li>
+    <li><a href="#api">Open API</a></li>
+  </ul>
+</section>
+
+<section id="electricity-prices-info" class="pad prose">
+  <h2>Information on Electricity Prices</h2>
+  <p>Learn about hourly prices, variable prices, taxes, and fees under each respective category below.</p>
+  <div class="grid grid-3">
+    <div class="card pad">
+      <h3>Spot Price</h3>
+      <p>The spot price is the price your electricity trading company has to pay for the electricity. This number is often the one shown in various comparisons, newspaper articles, etc.</p>
+      <p>Spot price does <strong>not</strong> include any surcharges and VAT.</p>
+    </div>
+    <div class="card pad">
+      <h3>Hourly / Quarter-hourly Price</h3>
+      <p>With an hourly (or, since October 2025, quarter-hourly) price you pay for your consumption interval by interval. This allows you to use less electricity during expensive periods and more electricity during cheap periods. It's a good choice for those who can move large consumers to times when electricity is cheap.</p>
+    </div>
+    <div class="card pad">
+      <h3>Variable Monthly Price</h3>
+      <p>The variable monthly price works much like the hourly price, but your consumption is summed up to a monthly total, which is multiplied by the electricity company's variable price determined at the end of the month. It is not a straight average of all prices, but weighted against the consumption of all customers.</p>
+    </div>
+  </div>
+  <h3>Taxes and Fees</h3>
+  <p>On top of the spot price you normally pay a surcharge to your electricity trading company, energy tax, grid fees and VAT. On this page, you can choose between <i>actual price</i> and <i>spot price</i> using the cogwheel in the top right corner.</p>
+</section>
+
+{{ m.ad(adsense, "7417217449", "auto") }}
+
+<section id="electricity-price-calculation" class="pad prose">
+  <h2>Electricity Price Calculation</h2>
+  <p>The default setting displays the spot prices of electricity. You can customize how prices are shown:</p>
+  <ol>
+    <li>Click the <strong>cogwheel icon</strong> in the top right corner.</li>
+    <li>Enable <i>{{ t("nav.actual_price_instead") }}</i>.</li>
+    <li>Adjust the parameters:
+      <ul>
+        <li><strong>{{ t("customize.multiplier") }}</strong>: Used when the electricity company has an added fee in percentage per kilowatt hour. For example, use 1.02 if there's an added fee of 2% per kWh.</li>
+        <li><strong>{{ t("customize.fees") }}</strong>: Any fixed addition per kWh, in the chosen currency, before VAT.</li>
+        <li><strong>{{ t("customize.factor") }}</strong>: Typically VAT. For instance, use 1.25 for a 25% VAT.</li>
+      </ul>
+    </li>
+  </ol>
+  <p>Once you've set your parameters, prices are calculated as:</p>
+  <p class="formula-box">Price = ((Spot Price &times; Multiplier) + Fees) &times; Factor (VAT)</p>
+  <p>Example: a spot price of 1.00 SEK/kWh, multiplier 1.02, fees 0.10 SEK and factor 1.25 gives ((1.00 &times; 1.02) + 0.10) &times; 1.25 = 1.40 SEK/kWh.</p>
+  <p>All settings are stored in your browser only.</p>
+</section>
+
+<section id="installing-as-app" class="pad prose">
+  <h2>Installing as an app</h2>
+  <p>This site is available as an app (<a href="https://web.dev/what-are-pwas/">PWA</a>) for Windows, Android and Apple devices.</p>
+  <div class="grid grid-3">
+    <div class="card pad">
+      <h3>Windows (Chrome / Edge)</h3>
+      <ol><li>At the right of the address bar, click Install.</li><li>Follow the onscreen instructions.</li></ol>
+    </div>
+    <div class="card pad">
+      <h3>Android (Chrome)</h3>
+      <ol><li>Tap Install, or use the three-dot menu and choose "Install app".</li><li>Follow the onscreen instructions.</li></ol>
+    </div>
+    <div class="card pad">
+      <h3>Apple / iOS (Safari)</h3>
+      <ol><li>Press the "Share" button.</li><li>Select "Add to Home Screen".</li><li>Tap "Add".</li></ol>
+    </div>
+  </div>
+</section>
+
+<section id="api" class="pad prose">
+  <h2>Open API</h2>
+  <p>All data is available as JSON, free of charge and without API key:</p>
+  <ul>
+    <li><code>/api/v2/spot?period=daily&amp;area=SE3&amp;startDate=2024-01-01&amp;endDate=2024-01-31&amp;currency=SEK</code> &ndash; prices in currency/MWh grouped by <code>hourly</code> (raw intervals), <code>daily</code>, <code>weekly</code>, <code>monthly</code>, <code>yearly</code> or <code>total</code>. Optional <code>interval=PT15M|PT60M</code> selects an exact resolution.</li>
+    <li><code>/api/v2/hass?area=SE3&amp;currency=SEK</code> &ndash; yesterday, today and tomorrow, see <a href="/homeassistant">Home Assistant</a>.</li>
+    <li><code>/api/v2/status</code> &ndash; data freshness.</li>
+  </ul>
+</section>
+{% endblock %}
