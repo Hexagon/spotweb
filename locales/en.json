@@ -89,7 +89,7 @@
       "de": "Germany",
       "at": "Austria",
       "be": "Belgium",
-      "ch": "Schweiz",
+      "ch": "Switzerland",
       "es": "Spain",
       "fr": "France",
       "pl": "Poland"
@@ -120,14 +120,20 @@
       "psr_oil_0": "Oil",
       "psr_gas_0": "Gas",
       "psr_peat_0": "Peat",
-      "psr_water_0": "Water",
-      "psr_water_1": "Water - Cons.",
-      "psr_nuclear_0": "Nuclear Power",
+      "psr_water_0": "Hydro",
+      "psr_water_1": "Hydro - Cons.",
+      "psr_nuclear_0": "Nuclear",
       "psr_solar_0": "Solar",
       "psr_wind_0": "Wind",
       "psr_wind_1": "Wind - Cons.",
       "psr_other_0": "Other",
-      "psr_other_1": "Other - Cons."
+      "psr_other_1": "Other - Cons.",
+      "psr_coal_1": "Coal - Cons.",
+      "psr_oil_1": "Oil - Cons.",
+      "psr_gas_1": "Gas - Cons.",
+      "psr_peat_1": "Peat - Cons.",
+      "psr_nuclear_1": "Nuclear - Cons.",
+      "psr_solar_1": "Solar - Cons."
     },
     "outage": {
       "title": "Operational Disruptions in ",

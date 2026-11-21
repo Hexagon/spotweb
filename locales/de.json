@@ -38,13 +38,13 @@
       "avg_today_short": "Durchschnittlicher Spotpreis"
     },
     "warning": {
-      "actual_price": "Aktueller Strompreis",
-      "actual_price_text": "Sie haben den 'eigentlichen' Preis aktiviert, aber noch keine Anpassungen bei Steuern und Gebühren vorgenommen. Klicken Sie auf das Zahnrad und geben Sie dort den Faktor für den Steuerprozentsatz ein (z.B. 1,25 für 25% VAT) und Ihre Gebühren (z.B. 0,095 für 9,5 Cent/kWh, ohne VAT)"
+      "actual_price": "Tatsächlicher Preis",
+      "actual_price_text": "Sie haben den 'tatsächlichen Preis' aktiviert, aber noch keine Anpassungen bei Steuern und Gebühren vorgenommen. Klicken Sie auf das Zahnrad und geben Sie dort den Faktor ein (z. B. 1,25 für 25 % MwSt.) und Ihre Gebühren (z. B. 0,095 für 9,5 Cent/kWh, ohne MwSt.)."
     },
     "information": {
       "title": "Informationen und Nutzungsbedingungen",
       "all_history": "Alle Statistiken stammen aus der",
-      "currency_fetched_from": "Der aktuelle Wechselkurs wird übernommen",
+      "currency_fetched_from": "Der aktuelle Wechselkurs stammt von der",
       "all_values_from": "Alle Werte, auch historische, werden zum aktuellen Wechselkurs aus EUR umgerechnet",
       "disclaimer_and_private_use": "Die gezeigten Zahlen sollen der Realität entsprechen, werden aber ohne Gewähr geliefert. Die Website und die damit verbundenen Dienste werden für den privaten Gebrauch auf eigenes Risiko bereitgestellt.",
       "open_source_software": "Der Quellcode der Seite ist vollständig offen und verfügbar unter ",
@@ -52,8 +52,8 @@
     },
     "overview": {
       "thirty_day_chart": "30 Tage Verlauf",
-      "all_areas_today": "Alle Elektrobereiche - Heute",
-      "all_areas_tomorrow": "Alle Elektrobereiche - Morgen",
+      "all_areas_today": "Alle Gebotszonen - Heute",
+      "all_areas_tomorrow": "Alle Gebotszonen - Morgen",
       "average_today": "Durchs. heute",
       "average_tomorrow": "morgen",
       "right_now": "jetzt",
@@ -69,11 +69,11 @@
       "index": "Übersicht",
       "table": "Tabelle",
       "country": "Land",
-      "area": "Bereich",
+      "area": "Gebotszone",
       "help": "Hilfe"
     },
     "customize": {
-      "title": "Passen Sie den tatsächlichen Preis an",
+      "title": "Tatsächlichen Preis anpassen",
       "unit": "Einheit",
       "currency": "Währung",
       "fees": "Gebühren",
@@ -109,7 +109,7 @@
     "generation": {
       "current_production": "Produktion und Verbrauch",
       "production_method": "Methode",
-      "production_share": "Beteiligung",
+      "production_share": "Anteil",
       "production": "Produktion",
       "consumption": "Verbrauch",
       "last_updated": "Zuletzt aktualisiert",
@@ -119,36 +119,42 @@
       "psr_oil_0": "Öl",
       "psr_gas_0": "Gas",
       "psr_peat_0": "Torf",
-      "psr_water_0": "Wasser",
-      "psr_water_1": "Wasser - Verbr.",
+      "psr_water_0": "Wasserkraft",
+      "psr_water_1": "Wasserkraft - Verbr.",
       "psr_nuclear_0": "Atomkraft",
       "psr_solar_0": "Solar",
       "psr_wind_0": "Wind",
       "psr_wind_1": "Wind - Verbr.",
       "psr_other_0": "Andere",
       "primary_source": "Primäre Stromquelle",
-      "psr_other_1": "Andere - Verbr."
+      "psr_other_1": "Andere - Verbr.",
+      "psr_coal_1": "Kohle - Verbr.",
+      "psr_oil_1": "Öl - Verbr.",
+      "psr_gas_1": "Gas - Verbr.",
+      "psr_peat_1": "Torf - Verbr.",
+      "psr_nuclear_1": "Atomkraft - Verbr.",
+      "psr_solar_1": "Solar - Verbr."
     },
     "outage": {
       "title": "Betriebsstörungen in ",
       "ongoing_planned": "Laufende Geplante",
       "ongoing_unplanned": "Laufende Ungeplante",
       "upcoming": "Bevorstehende",
-      "description": "Unten sehen Sie aktuelle Betriebsstörungen, Ausfälle und Stillstände, die die Stromproduktion in",
+      "description": "Unten sehen Sie aktuelle Betriebsstörungen, Ausfälle und Stillstände mit Auswirkung auf die Stromproduktion in ",
       "details": "Wenn Sie bevorstehende geplante Störungen einbeziehen möchten, klicken Sie hier.",
       "capacity_ongoing": "Kapazität während des Ausfalls",
       "capacity_total": "Gesamtkapazität",
       "planned_maintenance": "Geplante Wartung",
       "unplanned_outage": "Ungeplante Störung",
-      "started_unplanned_outage": "wird von einer ungeplanten Störung beeinflusst, die begonnen hat ",
-      "started_planned_maintenance": "wird von einer geplanten Wartung beeinflusst, die beginnt ",
-      "done": " und voraussichtlich abgeschlossen wird "
+      "started_unplanned_outage": "ist von einer ungeplanten Störung betroffen, Beginn ",
+      "started_planned_maintenance": "ist von einer geplanten Wartung betroffen, Beginn ",
+      "done": ", voraussichtliches Ende "
     },
     "longtermchart": {
       "title": "Strompreis pro Monat - ",
-      "countryDescriptionPart1": "Die Tabelle unten zeigt den Durchschnittspreis für jedes Stromgebiet in",
+      "countryDescriptionPart1": "Die Tabelle unten zeigt den Durchschnittspreis für jede Gebotszone in",
       "countryDescriptionPart2": ", monatlich seit 2021. Beachten Sie, dass der letzte Monat unvollständig sein könnte.",
-      "areaDescriptionPart1": "Die Tabelle unten zeigt den Durchschnittspreis für das Stromgebiet ",
+      "areaDescriptionPart1": "Die Tabelle unten zeigt den Durchschnittspreis für die Gebotszone ",
       "areaDescriptionIn": " in ",
       "areaDescriptionPart2": ", monatlich seit 2021. Beachten Sie, dass der letzte Monat unvollständig sein könnte.",
       "priceFactorDescriptionPart1": "Der in der Tabelle angezeigte Strompreis basiert auf der folgenden Formel: ([Spotpreis] +",

@@ -39,7 +39,7 @@
     },
     "warning": {
       "actual_price": "Faktiskt elpris",
-      "actual_price_text": "Du har för närvarande faktiskt elpris aktiverat, men har inte gjort några inställningar för skatter och avgifter. Klicka på kugghjulet och fyll i Faktor (t.ex. 1.25 för 25% moms) och din avgift (t.ex. 0.095 för 9.5 öre/kWh innan moms)."
+      "actual_price_text": "Du har för närvarande faktiskt elpris aktiverat, men har inte gjort några inställningar för skatter och avgifter. Klicka på kugghjulet och fyll i Faktor (t.ex. 1,25 för 25 % moms) och din avgift (t.ex. 0,095 för 9,5 öre/kWh före moms)."
     },
     "information": {
       "title": "Information och användningsvillkor",
@@ -119,15 +119,21 @@
       "psr_oil_0": "Olja",
       "psr_gas_0": "Gas",
       "psr_peat_0": "Torv",
-      "psr_water_0": "Vatten",
-      "psr_water_1": "Vatten - Förb.",
+      "psr_water_0": "Vattenkraft",
+      "psr_water_1": "Vattenkraft - Förbr.",
       "psr_nuclear_0": "Kärnkraft",
       "psr_solar_0": "Sol",
       "psr_wind_0": "Vind",
-      "psr_wind_1": "Vind - Förb.",
+      "psr_wind_1": "Vind - Förbr.",
       "psr_other_0": "Övrigt",
       "primary_source": "Huvudsaklig kraftkälla",
-      "psr_other_1": "Övrigt - Förbr."
+      "psr_other_1": "Övrigt - Förbr.",
+      "psr_coal_1": "Kol - Förbr.",
+      "psr_oil_1": "Olja - Förbr.",
+      "psr_gas_1": "Gas - Förbr.",
+      "psr_peat_1": "Torv - Förbr.",
+      "psr_nuclear_1": "Kärnkraft - Förbr.",
+      "psr_solar_1": "Sol - Förbr."
     },
     "outage": {
       "title": "Driftstörningar i ",
