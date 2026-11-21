@@ -93,7 +93,13 @@
       "ch": "Sveitsi",
       "es": "Espanja",
       "fr": "Ranska",
-      "pl": "Puola"
+      "pl": "Puola",
+      "ee": "Viro",
+      "lv": "Latvia",
+      "lt": "Liettua",
+      "nl": "Alankomaat",
+      "cz": "Tšekki",
+      "pt": "Portugali"
     },
     "chart": {
       "today_and_tomorrow": "Tänään ja huomenna",

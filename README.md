@@ -69,8 +69,19 @@ Same timing as 1.x, in `SPOTWEB_SCHEDULE_TZ` (DST changes are handled):
 | `currency`   | 09:05 and 16:20 (after ECB publishes), and at startup             |
 | `load`       | every hour at :05                                                 |
 | `production` | every hour at :50                                                 |
-| `flows`      | every hour at :25 (physical flows, two requests per border)      |
+| `flows`      | every hour at :25, half of the borders per run, so each border every second hour (two requests per border) |
 | `outages`    | 08:05                                                             |
+
+Runs only fetch what can have changed:
+
+- `prices` skips areas whose prices are stored up to the end of tomorrow, and does not ask for tomorrow before the
+  earliest day-ahead auction (11:00 CET), so the hourly runs before noon make no requests once today is complete.
+- `load`, `production` and `flows` fetch from six hours before the latest stored interval instead of all of yesterday
+  and today. Once a day, at 06 local time, the whole two days are fetched again to pick up late values and revisions.
+  For `flows` that is the 06 and 07 runs, one for each half of the borders. `spotweb run-job flows` fetches every
+  border.
+- Rows that are unchanged are not rewritten, and outages whose revision is already stored are skipped.
+- When a run changed nothing, the cache is kept and the database is not re-analyzed.
 
 ## API
 

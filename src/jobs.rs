@@ -14,7 +14,7 @@ use tokio_cron_scheduler::{Job as CronJob, JobScheduler};
 
 use crate::countries::{Area, Country, COUNTRIES};
 use crate::db::queries::{self, AreaFailure, RunStatus};
-use crate::timeutil::{local_date, local_midnight, now_ms, today, HOUR_MS};
+use crate::timeutil::{day_ahead_end, local_date, local_midnight, now_ms, today, HOUR_MS};
 use crate::App;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, clap::ValueEnum)]
@@ -141,6 +141,8 @@ impl JobLocks {
 pub struct Outcome {
     pub message: String,
     pub failures: Vec<AreaFailure>,
+    /// Whether any stored data changed. When nothing did, the cache is kept as it is.
+    pub changed: bool,
 }
 
 impl Outcome {
@@ -154,13 +156,16 @@ impl Outcome {
 }
 
 /// Run a job with overlap protection, timeout, retries and bookkeeping.
-pub async fn run(app: &App, job: Job, retry: bool) -> anyhow::Result<String> {
+///
+/// `scheduled` runs (from the scheduler) are retried when they fail completely and may do part
+/// of the work per run (flows: half of the borders); manual runs do everything once.
+pub async fn run(app: &App, job: Job, scheduled: bool) -> anyhow::Result<String> {
     let lock = app.job_locks.0.get(&job).expect("lock").clone();
     let Ok(_guard) = lock.try_lock() else {
         tracing::info!(job = job.name(), "already running, skipping");
         return Ok("skipped, already running".into());
     };
-    let attempts = if retry { RETRIES + 1 } else { 1 };
+    let attempts = if scheduled { RETRIES + 1 } else { 1 };
     let mut last_err = None;
     for attempt in 1..=attempts {
         let id = app
@@ -169,20 +174,25 @@ pub async fn run(app: &App, job: Job, retry: bool) -> anyhow::Result<String> {
             .await?;
         tracing::info!(job = job.name(), attempt, "job started");
         let t0 = Instant::now();
-        let result = match tokio::time::timeout(job.timeout(), run_inner(app, job)).await {
+        let result = match tokio::time::timeout(job.timeout(), run_inner(app, job, scheduled)).await
+        {
             Ok(r) => r,
             Err(_) => Err(anyhow::anyhow!("timed out after {:?}", job.timeout())),
         };
-        for realm in job.cache_realms() {
-            app.cache.invalidate(realm);
-        }
-        if job != Job::Currency && job != Job::Outages {
-            // New rows can change the best query plans; cheap when nothing changed
-            if let Err(e) = app.db.run(|c| crate::db::optimize(c, false)).await {
-                tracing::warn!(error = %format!("{e:#}"), "database optimize failed");
+        // A failed run may have written part of its data before failing
+        let changed = result.as_ref().map(|o| o.changed).unwrap_or(true);
+        if changed {
+            for realm in job.cache_realms() {
+                app.cache.invalidate(realm);
             }
+            if job != Job::Currency && job != Job::Outages {
+                // New rows can change the best query plans
+                if let Err(e) = app.db.run(|c| crate::db::optimize(c, false)).await {
+                    tracing::warn!(error = %format!("{e:#}"), "database optimize failed");
+                }
+            }
+            crate::web::data::warm(app, job.cache_realms()).await;
         }
-        crate::web::data::warm(app, job.cache_realms()).await;
         let (status, msg, failures) = match &result {
             Ok(o) => (o.status(), o.message.clone(), o.failures.clone()),
             Err(e) => (RunStatus::Failed, format!("{e:#}"), vec![]),
@@ -223,7 +233,7 @@ pub async fn run(app: &App, job: Job, retry: bool) -> anyhow::Result<String> {
     Err(last_err.unwrap_or_else(|| anyhow::anyhow!("job failed")))
 }
 
-async fn run_inner(app: &App, job: Job) -> anyhow::Result<Outcome> {
+async fn run_inner(app: &App, job: Job, scheduled: bool) -> anyhow::Result<Outcome> {
     if job != Job::Currency && !app.entsoe.has_token() {
         return Ok(Outcome {
             message: "skipped, no ENTSO-e API token (API_TOKEN)".into(),
@@ -236,7 +246,7 @@ async fn run_inner(app: &App, job: Job) -> anyhow::Result<Outcome> {
         Job::Outages => update_outages(app).await,
         Job::Load => update_load(app).await,
         Job::Production => update_production(app).await,
-        Job::Flows => update_flows(app).await,
+        Job::Flows => update_flows(app, scheduled).await,
     }
 }
 
@@ -252,11 +262,11 @@ async fn update_currency(app: &App) -> anyhow::Result<Outcome> {
         .and_hms_opt(0, 0, 0)
         .map(|n| Utc.from_utc_datetime(&n).timestamp_millis())
         .context("bad date")?;
-    let message = if app
+    let stored = app
         .db
         .run(move |c| Ok(queries::has_exchange_rates_for(c, period)?))
-        .await?
-    {
+        .await?;
+    let message = if stored {
         format!("rates for {date} already stored")
     } else {
         let n = rates.entries.len();
@@ -274,6 +284,7 @@ async fn update_currency(app: &App) -> anyhow::Result<Outcome> {
     };
     Ok(Outcome {
         message,
+        changed: !stored,
         ..Default::default()
     })
 }
@@ -380,7 +391,11 @@ fn summarize<T>(
     if !failures.is_empty() {
         message.push_str(&format!(", {} areas failed", failures.len()));
     }
-    Ok(Outcome { message, failures })
+    Ok(Outcome {
+        message,
+        failures,
+        changed: total > 0,
+    })
 }
 
 /// Where to start fetching prices for an area so that everything up to `end` is stored.
@@ -408,14 +423,34 @@ fn price_fetch_start(
     }
 }
 
+/// Time zone and hour of the earliest day-ahead auction (Switzerland's at 11:00 CET, the
+/// European SDAC auction follows at 12:00 with results from about 12:45).
+const AUCTION_TZ: Tz = crate::timeutil::MARKET_TZ;
+const AUCTION_EARLIEST_HOUR: i64 = 11;
+
+/// Whether day-ahead prices for the local calendar day `day` can have been published at `now`.
+/// They come from an auction the day before; asking ENTSO-e earlier only returns "no data".
+fn day_ahead_published(day: NaiveDate, now: DateTime<Utc>) -> bool {
+    let Some(auction_day) = day.pred_opt() else {
+        return true;
+    };
+    let earliest =
+        local_midnight(&AUCTION_TZ, auction_day) + chrono::Duration::hours(AUCTION_EARLIEST_HOUR);
+    now >= earliest
+}
+
 struct PriceResult {
     rows: usize,
     requests: usize,
+    /// Everything published so far is stored, the next day is not auctioned yet
+    waiting: bool,
 }
 
 impl std::fmt::Display for PriceResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.requests == 0 {
+        if self.waiting {
+            write!(f, "prices up to date, next day not auctioned yet")
+        } else if self.requests == 0 {
             write!(f, "prices up to date")
         } else {
             write!(
@@ -434,7 +469,7 @@ async fn area_prices(
 ) -> anyhow::Result<PriceResult> {
     let tz = country.timezone();
     // Up to and including tomorrow
-    let end = local_midnight(&tz, today(&tz) + chrono::Duration::days(2));
+    let end = day_ahead_end(&tz, now_ms(), 2);
     let name = area.name;
     let max = app
         .db
@@ -443,10 +478,15 @@ async fn area_prices(
     let mut res = PriceResult {
         rows: 0,
         requests: 0,
+        waiting: false,
     };
     let Some(mut start_date) = price_fetch_start(&tz, max, app.cfg.history_start, end) else {
         return Ok(res);
     };
+    if !day_ahead_published(start_date, Utc::now()) {
+        res.waiting = true;
+        return Ok(res);
+    }
     while local_midnight(&tz, start_date) < end {
         let chunk_start = local_midnight(&tz, start_date);
         let next = start_date
@@ -495,12 +535,55 @@ async fn update_prices(app: &App) -> anyhow::Result<Outcome> {
     Ok(o)
 }
 
+/// Yesterday and today (local time): the most that load, production and flows fetch.
 fn recent_window(tz: &Tz) -> (DateTime<Utc>, DateTime<Utc>) {
     let t = today(tz);
     (
         utc(local_midnight(tz, t - chrono::Duration::days(1))),
         utc(local_midnight(tz, t + chrono::Duration::days(1))),
     )
+}
+
+/// Hours fetched again before the latest stored interval, for values that arrive late or
+/// are revised shortly after.
+const LOOKBACK_MS: i64 = 6 * HOUR_MS;
+/// Local hour of the one run a day that fetches all of yesterday and today again, so values
+/// that arrive or change later than [`LOOKBACK_MS`] are picked up as well.
+const FULL_REFRESH_HOUR: u32 = 6;
+
+fn local_hour(tz: &Tz, now: DateTime<Utc>) -> u32 {
+    use chrono::Timelike;
+    now.with_timezone(tz).hour()
+}
+
+/// Whether an hourly run at `now` is the daily full refresh
+fn is_full_refresh(tz: &Tz, now: DateTime<Utc>) -> bool {
+    local_hour(tz, now) == FULL_REFRESH_HOUR
+}
+
+/// What to fetch of the recent window, given the start of the latest stored interval.
+/// Only the last few hours are fetched again, except when nothing is stored yet and on the
+/// daily `full` refresh.
+fn fetch_window(
+    window: (DateTime<Utc>, DateTime<Utc>),
+    latest: Option<i64>,
+    now: DateTime<Utc>,
+    full: bool,
+) -> (DateTime<Utc>, DateTime<Utc>) {
+    let (full_start, end) = window;
+    let Some(latest) = latest else {
+        return window;
+    };
+    if full {
+        return window;
+    }
+    let floor_hour = |ms: i64| ms.div_euclid(HOUR_MS) * HOUR_MS;
+    let start = floor_hour(latest.min(now.timestamp_millis()) - LOOKBACK_MS)
+        .max(full_start.timestamp_millis());
+    match Utc.timestamp_millis_opt(start).single() {
+        Some(start) => (start, end),
+        None => window,
+    }
 }
 
 /// Recompute the country totals for every country where at least one area succeeded
@@ -537,7 +620,15 @@ async fn update_production(app: &App) -> anyhow::Result<Outcome> {
     let results = for_each_area(Job::Production, |country, area| {
         let app = app.clone();
         async move {
-            let (start, end) = recent_window(&country.timezone());
+            let tz = country.timezone();
+            let id = area.id;
+            let latest = app
+                .db
+                .run(move |c| Ok(queries::max_generation_period(c, id)?))
+                .await?;
+            let now = Utc::now();
+            let (start, end) =
+                fetch_window(recent_window(&tz), latest, now, is_full_refresh(&tz, now));
             let points = request(area.name, "generation", || {
                 app.entsoe.generation(area.eic, start, end)
             })
@@ -546,7 +637,6 @@ async fn update_production(app: &App) -> anyhow::Result<Outcome> {
                 .into_iter()
                 .map(|p| (p.start, p.interval, p.psr, p.consumption as i64, p.value))
                 .collect();
-            let id = area.id;
             let n = app
                 .db
                 .run(move |c| Ok(queries::upsert_generation(c, id, &rows)?))
@@ -563,14 +653,21 @@ async fn update_load(app: &App) -> anyhow::Result<Outcome> {
     let results = for_each_area(Job::Load, |country, area| {
         let app = app.clone();
         async move {
-            let (start, end) = recent_window(&country.timezone());
+            let tz = country.timezone();
+            let id = area.id;
+            let latest = app
+                .db
+                .run(move |c| Ok(queries::max_load_period(c, id)?))
+                .await?;
+            let now = Utc::now();
+            let (start, end) =
+                fetch_window(recent_window(&tz), latest, now, is_full_refresh(&tz, now));
             let points =
                 request(area.name, "load", || app.entsoe.load(area.eic, start, end)).await?;
             let rows: Vec<(i64, String, f64)> = points
                 .into_iter()
                 .map(|p| (p.start, p.interval, p.value))
                 .collect();
-            let id = area.id;
             let n = app
                 .db
                 .run(move |c| Ok(queries::upsert_load(c, id, &rows)?))
@@ -605,13 +702,34 @@ async fn update_outages(app: &App) -> anyhow::Result<Outcome> {
     summarize(&results, |r| r.0, "outage")
 }
 
-/// Physical flows for every border direction, yesterday and today (Stockholm time),
-/// at most [`concurrency`] requests at a time.
-async fn update_flows(app: &App) -> anyhow::Result<Outcome> {
-    let (start, end) = recent_window(&chrono_tz::Europe::Stockholm);
+/// Scheduled flow runs fetch every other border, alternating by hour, so each border is fetched
+/// every second hour and the requests are spread evenly over the hourly runs.
+const FLOW_GROUPS: usize = 2;
+
+/// The borders a run fetches: all of them, or (scheduled) the group whose turn it is this hour.
+/// Both directions of a border are always fetched together, so their net flow is consistent.
+fn flow_borders(group: Option<usize>) -> impl Iterator<Item = (&'static str, &'static str)> {
+    crate::flows::BORDERS
+        .iter()
+        .enumerate()
+        .filter(move |(i, _)| group.is_none_or(|g| i % FLOW_GROUPS == g))
+        .flat_map(|(_, &(a, b))| [(a, b), (b, a)])
+}
+
+/// Physical flows per border direction, at most yesterday and today (Stockholm time,
+/// see [`fetch_window`]), at most [`concurrency`] requests at a time. Scheduled runs fetch
+/// one [`FLOW_GROUPS`] group of borders per hour.
+async fn update_flows(app: &App, scheduled: bool) -> anyhow::Result<Outcome> {
+    let tz = chrono_tz::Europe::Stockholm;
+    let window = recent_window(&tz);
+    let now = Utc::now();
+    let hour = local_hour(&tz, now) as usize;
+    let group = scheduled.then_some(hour % FLOW_GROUPS);
+    // Every group gets its daily full refresh in the hours starting at FULL_REFRESH_HOUR
+    let full = hour / FLOW_GROUPS == FULL_REFRESH_HOUR as usize / FLOW_GROUPS;
     let sem = Arc::new(Semaphore::new(concurrency()));
     let mut set = JoinSet::new();
-    for (from, to) in crate::flows::directions() {
+    for (from, to) in flow_borders(group) {
         let (Some(out_eic), Some(in_eic)) = (crate::flows::eic(from), crate::flows::eic(to)) else {
             continue;
         };
@@ -622,6 +740,11 @@ async fn update_flows(app: &App) -> anyhow::Result<Outcome> {
             let name = format!("{from}>{to}");
             let t0 = Instant::now();
             let r: anyhow::Result<usize> = async {
+                let latest = app
+                    .db
+                    .run(move |c| Ok(queries::max_flow_period(c, from, to)?))
+                    .await?;
+                let (start, end) = fetch_window(window, latest, now, full);
                 let points = request(&name, "flow", || {
                     app.entsoe.physical_flows(out_eic, in_eic, start, end)
                 })
@@ -672,7 +795,11 @@ async fn update_flows(app: &App) -> anyhow::Result<Outcome> {
     if !failures.is_empty() {
         message.push_str(&format!(", {} directions failed", failures.len()));
     }
-    Ok(Outcome { message, failures })
+    Ok(Outcome {
+        message,
+        failures,
+        changed: total > 0,
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -803,6 +930,99 @@ mod tests {
             price_fetch_start(&tz, Some(ms(date(2026, 10, 25), 23, 0)), hist, end),
             Some(date(2026, 10, 25))
         );
+    }
+
+    #[test]
+    fn day_ahead_waits_for_auction() {
+        let brussels = |d: NaiveDate, h: i64, m: i64| {
+            utc(local_midnight(&AUCTION_TZ, d)
+                + chrono::Duration::hours(h)
+                + chrono::Duration::minutes(m))
+        };
+        let tomorrow = date(2026, 11, 22);
+        // Not auctioned yet in the morning
+        assert!(!day_ahead_published(
+            tomorrow,
+            brussels(date(2026, 11, 21), 0, 0)
+        ));
+        assert!(!day_ahead_published(
+            tomorrow,
+            brussels(date(2026, 11, 21), 10, 59)
+        ));
+        // From the earliest auction on
+        assert!(day_ahead_published(
+            tomorrow,
+            brussels(date(2026, 11, 21), 11, 0)
+        ));
+        assert!(day_ahead_published(
+            tomorrow,
+            brussels(date(2026, 11, 21), 13, 15)
+        ));
+        // Today and history are always published
+        assert!(day_ahead_published(
+            date(2026, 11, 21),
+            brussels(date(2026, 11, 21), 0, 0)
+        ));
+        assert!(day_ahead_published(
+            date(2021, 1, 1),
+            brussels(date(2026, 11, 21), 0, 0)
+        ));
+        // Finland: 00:30 local is still the day before in Brussels, the day after tomorrow
+        // (Finnish time) is not auctioned until 11:00 CET
+        let helsinki = chrono_tz::Europe::Helsinki;
+        let now =
+            utc(local_midnight(&helsinki, date(2026, 11, 22)) + chrono::Duration::minutes(30));
+        assert!(!day_ahead_published(date(2026, 11, 23), now));
+        assert!(day_ahead_published(date(2026, 11, 22), now));
+    }
+
+    #[test]
+    fn fetch_window_refetches_only_recent_hours() {
+        let tz = stockholm();
+        let at = |d: NaiveDate, h: i64, m: i64| {
+            utc(local_midnight(&tz, d) + chrono::Duration::hours(h) + chrono::Duration::minutes(m))
+        };
+        let window = (at(date(2026, 11, 20), 0, 0), at(date(2026, 11, 22), 0, 0));
+        let now = at(date(2026, 11, 21), 14, 5);
+        // Nothing stored: the whole window
+        assert_eq!(fetch_window(window, None, now, false), window);
+        // Latest at 12:45: from six hours before, rounded down to the hour
+        let latest = at(date(2026, 11, 21), 12, 45).timestamp_millis();
+        assert_eq!(
+            fetch_window(window, Some(latest), now, false),
+            (at(date(2026, 11, 21), 6, 0), window.1)
+        );
+        // Latest long ago: never before the start of the window
+        let old = at(date(2026, 11, 1), 0, 0).timestamp_millis();
+        assert_eq!(fetch_window(window, Some(old), now, false), window);
+        // Latest in the future (bad data): based on now instead
+        let future = at(date(2026, 11, 21), 23, 0).timestamp_millis();
+        assert_eq!(
+            fetch_window(window, Some(future), now, false),
+            (at(date(2026, 11, 21), 8, 0), window.1)
+        );
+        // The daily full refresh fetches the whole window again
+        let six = at(date(2026, 11, 21), 6, 5);
+        assert!(is_full_refresh(&tz, six));
+        assert!(!is_full_refresh(&tz, now));
+        assert_eq!(fetch_window(window, Some(latest), six, true), window);
+    }
+
+    #[test]
+    fn flow_borders_alternate_between_two_groups() {
+        use std::collections::HashSet;
+        let all: Vec<_> = flow_borders(None).collect();
+        assert_eq!(all.len(), crate::flows::directions().count());
+        let a: HashSet<_> = flow_borders(Some(0)).collect();
+        let b: HashSet<_> = flow_borders(Some(1)).collect();
+        // Every direction in exactly one group, groups about the same size
+        assert!(a.is_disjoint(&b));
+        assert_eq!(a.len() + b.len(), all.len());
+        assert!(a.len().abs_diff(b.len()) <= 2);
+        // Both directions of a border in the same group
+        for &(x, y) in &a {
+            assert!(a.contains(&(y, x)));
+        }
     }
 
     #[test]

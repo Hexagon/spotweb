@@ -1,10 +1,10 @@
 //! Data health for monitoring: are tomorrow's prices and recent load/generation stored?
 
-use chrono::{Duration, NaiveTime, TimeZone};
+use chrono::{NaiveTime, TimeZone};
 use serde::Serialize;
 
 use crate::countries::COUNTRIES;
-use crate::timeutil::{js_iso, local_date, local_midnight, HOUR_MS};
+use crate::timeutil::{day_ahead_end, js_iso, HOUR_MS};
 
 /// Day-ahead prices are published around 12:45-13:45 CET; after this local time
 /// (Europe/Stockholm, CET/CEST) tomorrow's prices are expected for every area.
@@ -45,7 +45,7 @@ pub fn check(
     let mut missing = Vec::new();
     for country in COUNTRIES {
         let tz = country.timezone();
-        let end = local_midnight(&tz, local_date(&tz, now) + Duration::days(days));
+        let end = day_ahead_end(&tz, now, days);
         // The last interval of the day starts at most an hour before its end
         let wanted = end.timestamp_millis() - HOUR_MS;
         for area in country.areas {
@@ -82,6 +82,7 @@ pub fn check(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::timeutil::{local_midnight, MARKET_TZ};
     use chrono::NaiveDate;
 
     fn at(d: u32, h: u32, m: u32) -> i64 {
@@ -96,13 +97,15 @@ mod tests {
             .timestamp_millis()
     }
 
-    /// Every area has prices up to and including the last quarter of `day` (local time)
+    /// Every area has prices up to and including the last quarter of market day `day`, or of the
+    /// local day where that ends first (Finland)
     fn prices_through(day: u32) -> impl Fn(&str) -> Option<i64> {
         move |area| {
             let country = COUNTRIES.iter().find(|c| c.area(area).is_some()).unwrap();
-            let tz = country.timezone();
-            let end = local_midnight(&tz, NaiveDate::from_ymd_opt(2026, 11, day + 1).unwrap());
-            Some(end.timestamp_millis() - 15 * 60_000)
+            let next = NaiveDate::from_ymd_opt(2026, 11, day + 1).unwrap();
+            let local = local_midnight(&country.timezone(), next).timestamp_millis();
+            let market = local_midnight(&MARKET_TZ, next).timestamp_millis();
+            Some(local.min(market) - 15 * 60_000)
         }
     }
 

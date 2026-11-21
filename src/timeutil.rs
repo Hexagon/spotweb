@@ -72,6 +72,25 @@ pub fn today(tz: &Tz) -> NaiveDate {
     Utc::now().with_timezone(tz).date_naive()
 }
 
+/// Time zone of the European day-ahead market day (SDAC delivery days run midnight to midnight CET)
+pub const MARKET_TZ: Tz = chrono_tz::Europe::Brussels;
+
+/// End of the day-ahead prices `days` days ahead for an area in `tz`, at `now` (ms): local midnight
+/// after `days` days, but no later than the end of that market day in CET. Areas west of CET
+/// (Portugal) get their last local hour of a day with the next day's auction.
+pub fn day_ahead_end(tz: &Tz, now: i64, days: i64) -> DateTime<Tz> {
+    let local = local_midnight(tz, local_date(tz, now) + Duration::days(days));
+    let market = local_midnight(
+        &MARKET_TZ,
+        local_date(&MARKET_TZ, now) + Duration::days(days),
+    );
+    if market < local {
+        market.with_timezone(tz)
+    } else {
+        local
+    }
+}
+
 pub fn local_date(tz: &Tz, ms: i64) -> NaiveDate {
     tz.timestamp_millis_opt(ms)
         .single()
@@ -106,6 +125,33 @@ pub fn parse_api_date(s: &str, tz: &Tz) -> Option<NaiveDate> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn day_ahead_end_follows_market_day() {
+        // 21 Nov 2026 15:00 CET
+        let now = MARKET_TZ
+            .with_ymd_and_hms(2026, 11, 21, 15, 0, 0)
+            .unwrap()
+            .timestamp_millis();
+        let midnight = |tz: &Tz, d: u32| {
+            local_midnight(tz, NaiveDate::from_ymd_opt(2026, 11, d).unwrap()).timestamp_millis()
+        };
+        let (stockholm, helsinki, lisbon) = (
+            chrono_tz::Europe::Stockholm,
+            chrono_tz::Europe::Helsinki,
+            chrono_tz::Europe::Lisbon,
+        );
+        // CET: local midnight
+        let end = day_ahead_end(&stockholm, now, 2).timestamp_millis();
+        assert_eq!(end, midnight(&stockholm, 23));
+        // East of CET: the local day ends first
+        let end = day_ahead_end(&helsinki, now, 2).timestamp_millis();
+        assert_eq!(end, midnight(&helsinki, 23));
+        // West of CET: the market day ends first, at 23:00 local
+        let end = day_ahead_end(&lisbon, now, 2).timestamp_millis();
+        assert_eq!(end, midnight(&MARKET_TZ, 23));
+        assert_eq!(end, midnight(&lisbon, 23) - HOUR_MS);
+    }
 
     #[test]
     fn intervals() {

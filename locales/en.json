@@ -93,7 +93,13 @@
       "ch": "Switzerland",
       "es": "Spain",
       "fr": "France",
-      "pl": "Poland"
+      "pl": "Poland",
+      "ee": "Estonia",
+      "lv": "Latvia",
+      "lt": "Lithuania",
+      "nl": "Netherlands",
+      "cz": "Czechia",
+      "pt": "Portugal"
     },
     "chart": {
       "today_and_tomorrow": "Today and tomorrow",

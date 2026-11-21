@@ -93,7 +93,13 @@
       "ch": "Sveits",
       "es": "Spania",
       "fr": "Frankrike",
-      "pl": "Polen"
+      "pl": "Polen",
+      "ee": "Estland",
+      "lv": "Latvia",
+      "lt": "Litauen",
+      "nl": "Nederland",
+      "cz": "Tsjekkia",
+      "pt": "Portugal"
     },
     "chart": {
       "today_and_tomorrow": "I dag og i morgen",
