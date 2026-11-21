@@ -545,3 +545,32 @@ async fn api_attribution_and_range_limits() {
     );
     assert_eq!(get(&app, &span("monthly", 2000)).await.0, StatusCode::OK);
 }
+
+#[tokio::test]
+async fn grouped_split_at_current_group_matches_unsplit() {
+    use crate::price::{group, select_rows, Grouping, IntervalMode};
+    let app = test_app();
+    let tz = chrono_tz::Europe::Stockholm;
+    // Hourly history for the last ~400 days, so every calendar grouping crosses "now"
+    let (now_start, _) = day_range(&tz, today(&tz) - chrono::Duration::days(1));
+    let from = now_start - 400 * 86_400_000;
+    let rows: Vec<_> = (0..400 * 24)
+        .map(|i| (from + i * 3_600_000, "PT60M".to_string(), (i % 97) as f64))
+        .collect();
+    queries::upsert_spot(&mut app.db.conn().unwrap(), "sv", "SE1", &rows).unwrap();
+    let to = day_range(&tz, today(&tz) + chrono::Duration::days(1)).1;
+    let mode = IntervalMode::Prefer("PT60M".into());
+    let all = queries::spot_rows(&app.db.conn().unwrap(), "SE1", from, to).unwrap();
+    for g in [
+        Grouping::Daily,
+        Grouping::Weekly,
+        Grouping::Monthly,
+        Grouping::Yearly,
+    ] {
+        let expected = group(&select_rows(&all, &mode, &tz), g, &tz);
+        let got = super::data::spot_grouped(&app, "SE1", from, to, g, &mode, tz)
+            .await
+            .unwrap();
+        assert_eq!(*got, expected, "{g:?}");
+    }
+}

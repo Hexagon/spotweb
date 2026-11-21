@@ -104,7 +104,8 @@ pub fn select_rows(rows: &[SpotRow], mode: &IntervalMode, tz: &Tz) -> Vec<(i64, 
     out
 }
 
-fn bucket(g: Grouping, tz: &Tz, t: i64) -> Option<i64> {
+/// Start of the group that contains `t` (`None` for [`Grouping::Total`])
+pub fn bucket(g: Grouping, tz: &Tz, t: i64) -> Option<i64> {
     match g {
         Grouping::Total => None,
         Grouping::Hourly | Grouping::Minimum => Some(t),
