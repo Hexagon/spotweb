@@ -289,6 +289,7 @@
       "api_intro": "Alle data er tilgængelige som JSON, gratis og uden API-nøgle:",
       "api_spot": "priser i valuta/MWh grupperet pr. <code>hourly</code> (rådata), <code>daily</code>, <code>weekly</code>, <code>monthly</code>, <code>yearly</code> eller <code>total</code>. Med <code>interval=PT15M|PT60M</code> vælger du en præcis opløsning. En forespørgsel dækker højst 31 dage for <code>hourly</code> og 366 dage for <code>daily</code>; længere grupperinger er ikke begrænset.",
       "api_hass": "i går, i dag og i morgen, se",
+      "api_cheapest": "den billigste sammenhængende periode på <code>hours</code> timer fra nu til slutningen af i morgen, til automatiseringer. Med <code>consecutive=false</code> vælges de billigste enkelte intervaller i stedet, og <code>from</code>/<code>to</code> afgrænser søgningen. <code>active</code> er <code>true</code>, mens et af de valgte intervaller er i gang.",
       "api_flows": "fysisk nettoflow pr. grænse lige nu (MW).",
       "api_status": "hvor opdaterede data er.",
       "api_source": "Datakilde: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, priser omregnet med ECB's referencekurser. Angiv kilden, når du genbruger data. Genbrug sker i henhold til ENTSO-E Transparency Platforms <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">brugsvilkår</a>. spotweb er et uafhængigt projekt uden tilknytning til ENTSO-E.",

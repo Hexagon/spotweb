@@ -289,6 +289,7 @@
       "api_intro": "Kaikki tiedot ovat saatavilla JSON-muodossa, maksutta ja ilman API-avainta:",
       "api_spot": "hinnat valuutta/MWh ryhmiteltyinä <code>hourly</code> (raakadata), <code>daily</code>, <code>weekly</code>, <code>monthly</code>, <code>yearly</code> tai <code>total</code>. Valinnainen <code>interval=PT15M|PT60M</code> valitsee tarkan resoluution. Yksi haku kattaa enintään 31 päivää <code>hourly</code>-ryhmittelyllä ja 366 päivää <code>daily</code>-ryhmittelyllä; pidempiä ryhmittelyjä ei rajoiteta.",
       "api_hass": "eilen, tänään ja huomenna, katso",
+      "api_cheapest": "halvin yhtenäinen <code>hours</code> tunnin jakso nyt–huomisen loppu, automaatioita varten. <code>consecutive=false</code> valitsee sen sijaan halvimmat yksittäiset jaksot, ja <code>from</code>/<code>to</code> rajaavat hakua. <code>active</code> on <code>true</code>, kun jokin valituista jaksoista on käynnissä.",
       "api_flows": "fyysinen nettosiirto rajoittain juuri nyt (MW).",
       "api_status": "tietojen ajantasaisuus.",
       "api_source": "Tietojen lähde: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, hinnat muunnettu EKP:n viitekursseilla. Mainitse lähde, kun käytät tietoja uudelleen. Uudelleenkäyttöön sovelletaan ENTSO-E Transparency Platformin <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">käyttöehtoja</a>. spotweb on itsenäinen projekti, joka ei ole sidoksissa ENTSO-E:hen.",

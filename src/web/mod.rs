@@ -370,6 +370,7 @@ pub fn router(app: App) -> Router {
         .route("/llms.txt", get(pages::llms))
         .route("/api/v2/spot", get(api::spot))
         .route("/api/v2/hass", get(api::hass))
+        .route("/api/v2/cheapest", get(api::cheapest))
         .route("/api/v2/status", get(api::status))
         .route("/api/v2/flows", get(api::flows))
         .route("/healthz", get(api::healthz))

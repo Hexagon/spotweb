@@ -111,6 +111,25 @@ Responses carry a `source` field, and a `note` when prices were converted from E
 `GET /api/v2/hass?area=SE3&currency=SEK[&multiplier=1][&extra=0][&factor=1][&decimals=5][&interval=PT15M]` – Home Assistant
 sensor format, unchanged. `currency=ORE` (öre) is new. See `/homeassistant` for a configuration generator.
 
+`GET /api/v2/cheapest?area=SE3&hours=3[&consecutive=false][&from=…][&to=…][&currency=SEK][&interval=PT15M]` – the
+cheapest hours, for automations (new):
+
+```json
+{ "status": "ok", "source": "…", "area": "SE3", "currency": "EUR", "hours": 3.0, "consecutive": true,
+  "from": "2026-11-21T14:03:12.000Z", "to": "2026-11-22T23:00:00.000Z", "found": true, "active": false,
+  "start": "2026-11-22T01:00:00.000Z", "end": "2026-11-22T04:00:00.000Z", "price": 12.4,
+  "windows": [{ "start": "2026-11-22T01:00:00.000Z", "end": "2026-11-22T04:00:00.000Z", "price": 12.4 }],
+  "data": [{ "time": "2026-11-22T01:00:00.000Z", "price": 11.9 }] }
+```
+
+By default the cheapest unbroken run of intervals covering at least `hours` (rounded up to whole intervals) is chosen;
+`consecutive=false` picks the cheapest separate intervals instead, and `windows` then lists each unbroken part. The
+search runs from `from` (default now, the interval in progress included) to `to` (default the end of tomorrow in the
+zone's time zone); chosen intervals end by `to`. Both take an RFC 3339 timestamp, a local time like `2026-11-22T07:00`,
+or a date (`from` is the start of that day, `to` the end). At most 7 days. `price` is the time weighted average per MWh.
+`active` is `true` while one of the chosen intervals is in progress, so an automation can poll it and switch on that.
+When the prices do not cover `hours` yet, `found` is `false` and `start`, `end` and `price` are `null`.
+
 `GET /api/v2/flows` – net physical flow per border right now, in MW (new):
 
 ```json
