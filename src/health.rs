@@ -2,19 +2,16 @@
 
 use std::collections::HashMap;
 
-use chrono::{NaiveTime, TimeZone};
+use jiff::civil::Time;
 use serde::Serialize;
 
 use crate::countries::COUNTRIES;
 use crate::price::incomplete_days;
-use crate::timeutil::{day_ahead_end, js_iso, local_date, HOUR_MS};
+use crate::timeutil::{day_ahead_end, js_iso, local_date, stockholm, ts, HOUR_MS};
 
 /// Day-ahead prices are published around 12:45-13:45 CET; after this local time
 /// (Europe/Stockholm, CET/CEST) tomorrow's prices are expected for every area.
-pub const TOMORROW_DEADLINE: NaiveTime = match NaiveTime::from_hms_opt(14, 0, 0) {
-    Some(t) => t,
-    None => unreachable!(),
-};
+pub const TOMORROW_DEADLINE: Time = Time::constant(14, 0, 0, 0);
 /// Load and generation older than this are considered missing
 pub const MAX_AGE_MS: i64 = 3 * HOUR_MS;
 
@@ -35,12 +32,7 @@ pub fn check(
 ) -> Health {
     let mut problems = Vec::new();
 
-    let cet = chrono_tz::Europe::Stockholm;
-    let after_deadline = cet
-        .timestamp_millis_opt(now)
-        .single()
-        .map(|t| t.time() >= TOMORROW_DEADLINE)
-        .unwrap_or(false);
+    let after_deadline = ts(now).to_zoned(stockholm()).time() >= TOMORROW_DEADLINE;
     let (days, label) = if after_deadline {
         (2, "tomorrow")
     } else {
@@ -50,7 +42,7 @@ pub fn check(
     let mut holes = Vec::new();
     for country in COUNTRIES {
         let tz = country.timezone();
-        let end = day_ahead_end(&tz, now, days).timestamp_millis();
+        let end = day_ahead_end(&tz, now, days).timestamp().as_millisecond();
         let last_day = local_date(&tz, end - 1);
         for area in country.areas {
             let rows = prices.get(area.name).map(Vec::as_slice).unwrap_or_default();
@@ -99,36 +91,36 @@ pub fn check(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::timeutil::{local_midnight, MARKET_TZ};
-    use chrono::NaiveDate;
+    use crate::timeutil::{local_midnight, market_tz};
+    use jiff::civil::date;
 
-    fn at(d: u32, h: u32, m: u32) -> i64 {
-        chrono_tz::Europe::Stockholm
-            .from_local_datetime(
-                &NaiveDate::from_ymd_opt(2026, 11, d)
-                    .unwrap()
-                    .and_hms_opt(h, m, 0)
-                    .unwrap(),
-            )
+    fn at(d: i8, h: i8, m: i8) -> i64 {
+        date(2026, 11, d)
+            .at(h, m, 0, 0)
+            .to_zoned(stockholm())
             .unwrap()
-            .timestamp_millis()
+            .timestamp()
+            .as_millisecond()
     }
 
     /// Every area has 15 minute prices from 20 Nov up to and including the last quarter of market
     /// day `day`, or of the local day where that ends first (Finland). `skip` leaves out intervals.
     fn prices_through(
-        day: u32,
+        day: i8,
         skip: impl Fn(&str, i64) -> bool,
     ) -> HashMap<String, Vec<(i64, i64)>> {
         let q = 15 * 60_000;
         let mut out = HashMap::new();
         for country in COUNTRIES {
             let tz = country.timezone();
-            let next = NaiveDate::from_ymd_opt(2026, 11, day + 1).unwrap();
-            let local = local_midnight(&tz, next).timestamp_millis();
-            let market = local_midnight(&MARKET_TZ, next).timestamp_millis();
-            let first = local_midnight(&tz, NaiveDate::from_ymd_opt(2026, 11, 20).unwrap())
-                .timestamp_millis();
+            let next = date(2026, 11, day + 1);
+            let local = local_midnight(&tz, next).timestamp().as_millisecond();
+            let market = local_midnight(&market_tz(), next)
+                .timestamp()
+                .as_millisecond();
+            let first = local_midnight(&tz, date(2026, 11, 20))
+                .timestamp()
+                .as_millisecond();
             for area in country.areas {
                 let rows = (first..local.min(market))
                     .step_by(q as usize)
@@ -141,7 +133,7 @@ mod tests {
         out
     }
 
-    fn all(day: u32) -> HashMap<String, Vec<(i64, i64)>> {
+    fn all(day: i8) -> HashMap<String, Vec<(i64, i64)>> {
         prices_through(day, |_, _| false)
     }
 

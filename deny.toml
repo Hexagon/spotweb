@@ -6,12 +6,7 @@ all-features = false
 [advisories]
 # RustSec advisories. Vulnerabilities always fail; unmaintained crates only when we use them directly.
 unmaintained = "workspace"
-ignore = [
-  # chrono and chrono-tz are flagged unmaintained (no vulnerability). Moving all date handling to
-  # jiff is planned as a separate change, see plan.md.
-  { id = "RUSTSEC-2026-0543", reason = "chrono unmaintained, migration to jiff planned" },
-  { id = "RUSTSEC-2026-0555", reason = "chrono-tz unmaintained, migration to jiff planned" },
-]
+ignore = []
 
 [licenses]
 # Permissive licenses compatible with distributing an MIT binary

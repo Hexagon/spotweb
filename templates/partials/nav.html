@@ -1,9 +1,9 @@
 <header class="topbar">
-  <nav class="nav container" aria-label="Main">
+  <nav class="nav container" aria-label="{{ t('a11y.main_nav') }}">
     {%- if area is defined and area %}
-    <a class="nav-back" href="{% if country.areas|length > 1 %}/{{ country.id }}{% else %}/{% endif %}" aria-label="Back">&#8249;</a>
+    <a class="nav-back" href="{% if country.areas|length > 1 %}/{{ country.id }}{% else %}/{% endif %}" aria-label="{{ t('a11y.back') }}">&#8249;</a>
     {%- elif country is defined and country %}
-    <a class="nav-back" href="/" aria-label="Back">&#8249;</a>
+    <a class="nav-back" href="/" aria-label="{{ t('a11y.back') }}">&#8249;</a>
     {%- endif %}
     <a class="brand" href="/"><span class="bolt" aria-hidden="true">&#9889;</span><span class="brand-text">{{ t("nav.index") }}</span></a>
 

@@ -76,6 +76,11 @@ sudo systemctl daemon-reload && sudo systemctl restart spotweb
 
 spotweb compresses responses (brotli/gzip) and sets cache headers itself; static assets are served with ETags.
 
+Pages are sent with a `Content-Security-Policy` that only runs scripts carrying a fresh nonce (plus what those
+scripts load, `'strict-dynamic'`), so AdSense, Google Analytics and the analytics script work without listing their
+hosts. Don't add a second CSP in the proxy: browsers enforce both. To try it out first, set `SPOTWEB_CSP=report-only`
+and watch the browser console for "Content Security Policy" messages; `SPOTWEB_CSP=off` turns it off.
+
 ## 4. Upgrading from 1.x
 
 ```sh
@@ -163,6 +168,11 @@ Everything except the database can be re-created, and even the database can be r
   is logged as "upstream timeout": it is a non-standard code from ENTSO-e's gateway when its backend is slow, not from
   spotweb. spotweb's own per-request timeout is logged as "spotweb timeout".
 - Logs go to the journal; set `RUST_LOG=spotweb=debug` for detail.
+- `http` in `/api/v2/status` counts requests per route since start and for the last summary period: `requests`,
+  `p50_ms`/`p95_ms` (upper bound of the bucket: 1, 2, 5, 10, 20, 50 ms … 30 s; `null` above that) and `4xx`/`5xx`.
+  Bad parameters to `/api/v2/spot` and `/api/v2/hass` are answered with 500 as in 1.x and count as `5xx`. Embedded
+  files are grouped as `static`, unknown paths as `not found`. The same numbers are logged once a minute
+  (`SPOTWEB_HTTP_SUMMARY_SECS`), and `SPOTWEB_ACCESS_LOG=1` logs each request (no IP addresses or query strings).
 
 ## Several instances
 

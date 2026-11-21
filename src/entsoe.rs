@@ -5,7 +5,9 @@ use std::io::Read;
 use std::time::Duration;
 
 use anyhow::bail;
-use chrono::{DateTime, NaiveDate, NaiveDateTime, TimeZone, Utc};
+use jiff::civil::{Date, DateTime};
+use jiff::tz::TimeZone;
+use jiff::Timestamp;
 
 use crate::db::queries::NewOutage;
 use crate::timeutil::interval_ms;
@@ -133,20 +135,24 @@ pub struct GenerationPoint {
     pub value: f64,
 }
 
-fn fmt_time(t: DateTime<Utc>) -> String {
-    t.format("%Y%m%d%H%M").to_string()
+fn fmt_time(t: Timestamp) -> String {
+    t.strftime("%Y%m%d%H%M").to_string()
 }
 
+/// Civil date and time in UTC to milliseconds
+fn utc_ms(dt: DateTime) -> Option<i64> {
+    dt.to_zoned(TimeZone::UTC)
+        .ok()
+        .map(|z| z.timestamp().as_millisecond())
+}
+
+/// ENTSO-e times look like `2024-01-01T23:00Z`; full RFC 3339 and times without zone (UTC) work too.
 fn parse_time(s: &str) -> Option<i64> {
     let s = s.trim();
-    if let Ok(dt) = DateTime::parse_from_rfc3339(s) {
-        return Some(dt.timestamp_millis());
+    if let Ok(t) = s.parse::<Timestamp>() {
+        return Some(t.as_millisecond());
     }
-    let s = s.trim_end_matches('Z');
-    NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M")
-        .or_else(|_| NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S"))
-        .ok()
-        .map(|n| Utc.from_utc_datetime(&n).timestamp_millis())
+    utc_ms(s.trim_end_matches('Z').parse::<DateTime>().ok()?)
 }
 
 /// Expand a `<Period>` to `(start, value)` points. Handles curve type A03
@@ -354,12 +360,9 @@ pub fn psr_type_description(code: &str) -> &str {
 }
 
 fn outage_time(date: Option<&str>, time: Option<&str>) -> Option<i64> {
-    let d = NaiveDate::parse_from_str(date?, "%Y-%m-%d").ok()?;
-    let t = time.unwrap_or("00:00:00Z").trim_end_matches('Z');
-    let n = NaiveDateTime::parse_from_str(&format!("{d}T{t}"), "%Y-%m-%dT%H:%M:%S")
-        .or_else(|_| NaiveDateTime::parse_from_str(&format!("{d}T{t}"), "%Y-%m-%dT%H:%M"))
-        .ok()?;
-    Some(Utc.from_utc_datetime(&n).timestamp_millis())
+    let d: Date = date?.trim().parse().ok()?;
+    let t = time.unwrap_or("00:00:00Z").trim().trim_end_matches('Z');
+    utc_ms(format!("{d}T{t}").parse::<DateTime>().ok()?)
 }
 
 pub fn parse_unavailability(xml_doc: &str) -> anyhow::Result<Vec<NewOutage>> {
@@ -499,7 +502,7 @@ impl Client {
         }
     }
 
-    fn range(start: DateTime<Utc>, end: DateTime<Utc>) -> [(&'static str, String); 2] {
+    fn range(start: Timestamp, end: Timestamp) -> [(&'static str, String); 2] {
         [
             ("periodStart", fmt_time(start)),
             ("periodEnd", fmt_time(end)),
@@ -509,8 +512,8 @@ impl Client {
     pub async fn day_ahead_prices(
         &self,
         eic: &str,
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
+        start: Timestamp,
+        end: Timestamp,
     ) -> anyhow::Result<Vec<Point>> {
         let mut p = vec![
             ("documentType", "A44".to_string()),
@@ -528,8 +531,8 @@ impl Client {
     pub async fn generation(
         &self,
         eic: &str,
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
+        start: Timestamp,
+        end: Timestamp,
     ) -> anyhow::Result<Vec<GenerationPoint>> {
         let mut p = vec![
             ("documentType", "A75".to_string()),
@@ -547,8 +550,8 @@ impl Client {
     pub async fn load(
         &self,
         eic: &str,
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
+        start: Timestamp,
+        end: Timestamp,
     ) -> anyhow::Result<Vec<Point>> {
         let mut p = vec![
             ("documentType", "A65".to_string()),
@@ -568,8 +571,8 @@ impl Client {
         &self,
         out_eic: &str,
         in_eic: &str,
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
+        start: Timestamp,
+        end: Timestamp,
     ) -> anyhow::Result<Vec<Point>> {
         let mut p = vec![
             ("documentType", "A11".to_string()),
@@ -588,8 +591,8 @@ impl Client {
     pub async fn outages(
         &self,
         eic: &str,
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
+        start: Timestamp,
+        end: Timestamp,
     ) -> anyhow::Result<Vec<NewOutage>> {
         let mut out = vec![];
         for doc_type in ["A80", "A77"] {

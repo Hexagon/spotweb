@@ -3,7 +3,7 @@
 //! `cty` is the key used for country level rows in the `generation` and `load`
 //! tables. It is kept identical to spotweb 1.x so imported history lines up.
 
-use chrono_tz::Tz;
+use jiff::tz::TimeZone;
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
@@ -34,8 +34,8 @@ pub struct Country {
 }
 
 impl Country {
-    pub fn timezone(&self) -> Tz {
-        self.tz.parse().unwrap_or(chrono_tz::Europe::Stockholm)
+    pub fn timezone(&self) -> TimeZone {
+        TimeZone::get(self.tz).unwrap_or_else(|_| crate::timeutil::stockholm())
     }
     pub fn area(&self, name: &str) -> Option<&'static Area> {
         self.areas
@@ -337,7 +337,7 @@ mod tests {
     #[test]
     fn timezones_parse() {
         for c in COUNTRIES {
-            assert!(c.tz.parse::<Tz>().is_ok(), "{}", c.tz);
+            assert!(TimeZone::get(c.tz).is_ok(), "{}", c.tz);
         }
     }
 

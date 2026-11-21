@@ -10,7 +10,7 @@ Available in Swedish, Finnish, Danish, Norwegian, Spanish, French, German, Dutch
 ## What's new in 2.0
 
 - **One self-contained binary** (Rust, axum). Templates, translations, scripts, styles and icons are embedded – no Deno, no Pup, no CDN.
-- **Built-in scheduler** (tokio-cron-scheduler) replaces the separate Pup cron processes. Jobs never overlap, have timeouts and retries,
+- **Built-in scheduler** (fixed times in `SPOTWEB_SCHEDULE_TZ`, time zone database built into the binary) replaces the separate Pup cron processes. Jobs never overlap, have timeouts and retries,
   invalidate the in-memory cache directly when done, and are logged to the database (`/api/v2/status`).
 - **SQLite with proper keys.** Every table has a primary key on its natural key and writes are upserts, so the periodic "delete
   duplicates" clean-ups are gone. Schema changes are versioned migrations.
@@ -58,6 +58,9 @@ spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried po
 | `SPOTWEB_REQUEST_DELAY_MS` | `2000`                   | Pause after each ENTSO-e request, per worker                    |
 | `SPOTWEB_ENTSOE_CONCURRENCY` | `3`                    | Areas fetched from ENTSO-e at the same time (1–10)              |
 | `SPOTWEB_ENTSOE_TIMEOUT_SECS` | `60`                   | Timeout per ENTSO-e request                                     |
+| `SPOTWEB_CSP`              | `on`                     | Content-Security-Policy on pages: `on`, `report-only` or `off`   |
+| `SPOTWEB_ACCESS_LOG`       | off                      | `1` logs every request: method, path, status and time           |
+| `SPOTWEB_HTTP_SUMMARY_SECS` | `60`                    | Log HTTP counts, p50/p95 and 4xx/5xx per route this often; `0` is off |
 | `RUST_LOG`                 | `spotweb=info,warn`      | Log filter, `--debug` for verbose logs                          |
 
 ### Schedule
@@ -116,7 +119,7 @@ sensor format, unchanged. `currency=ORE` (öre) is new. See `/homeassistant` for
 
 `from` is the exporting side. Borders to neighbouring zones without prices on spotweb (EE, LT, NL, GB, CZ, IT, PT) are included.
 
-`GET /api/v2/status` – latest data, last job runs and `healthy`/`problems`. `GET /healthz` – liveness probe.
+`GET /api/v2/status` – latest data, last job runs, `healthy`/`problems` and HTTP statistics (`http`). `GET /healthz` – liveness probe.
 `GET /healthz/data` – `200` when prices are complete for today (and tomorrow after 14:00 CET) and load and generation are
 current, else `503`.
 

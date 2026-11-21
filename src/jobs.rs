@@ -6,16 +6,17 @@ use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
 use anyhow::Context;
-use chrono::{DateTime, Datelike, Months, NaiveDate, Offset, TimeZone, Utc};
-use chrono_tz::Tz;
+use jiff::civil::Date;
+use jiff::tz::TimeZone;
+use jiff::{SignedDuration, Timestamp, ToSpan, Zoned};
 use tokio::sync::{Mutex, Semaphore};
 use tokio::task::JoinSet;
-use tokio_cron_scheduler::{Job as CronJob, JobScheduler};
 
 use crate::countries::{Area, Country, COUNTRIES};
 use crate::db::queries::{self, AreaFailure, RunStatus};
 use crate::timeutil::{
-    day_ahead_end, interval_ms, local_date, local_midnight, now_ms, today, HOUR_MS,
+    add_days, day_ahead_end, interval_ms, local_date, local_midnight, market_tz, now_ms, stockholm,
+    today, HOUR_MS,
 };
 use crate::App;
 
@@ -52,14 +53,32 @@ impl Job {
 
     /// Cron expressions (with seconds) in the scheduler time zone. Same timing as 1.x pup.jsonc,
     /// plus a currency run after ECB publishes (around 16:00 CET).
-    pub fn schedules(&self) -> &'static [&'static str] {
+    pub fn schedules(&self) -> &'static [Schedule] {
+        const fn every_hour(minutes: &'static [i8]) -> Schedule {
+            Schedule {
+                minutes,
+                hours: None,
+            }
+        }
+        const fn at(hours: &'static [i8], minutes: &'static [i8]) -> Schedule {
+            Schedule {
+                minutes,
+                hours: Some(hours),
+            }
+        }
+        const PRICES: &[Schedule] = &[every_hour(&[0]), at(&[12], &[45]), at(&[13], &[15, 30, 45])];
+        const CURRENCY: &[Schedule] = &[at(&[9], &[5]), at(&[16], &[20])];
+        const OUTAGES: &[Schedule] = &[at(&[8], &[5])];
+        const LOAD: &[Schedule] = &[every_hour(&[5])];
+        const PRODUCTION: &[Schedule] = &[every_hour(&[50])];
+        const FLOWS: &[Schedule] = &[every_hour(&[25])];
         match self {
-            Job::Prices => &["0 0 * * * *", "0 45 12 * * *", "0 15,30,45 13 * * *"],
-            Job::Currency => &["0 5 9 * * *", "0 20 16 * * *"],
-            Job::Outages => &["0 5 8 * * *"],
-            Job::Load => &["0 5 * * * *"],
-            Job::Production => &["0 50 * * * *"],
-            Job::Flows => &["0 25 * * * *"],
+            Job::Prices => PRICES,
+            Job::Currency => CURRENCY,
+            Job::Outages => OUTAGES,
+            Job::Load => LOAD,
+            Job::Production => PRODUCTION,
+            Job::Flows => FLOWS,
         }
     }
 
@@ -252,18 +271,16 @@ async fn run_inner(app: &App, job: Job, scheduled: bool) -> anyhow::Result<Outco
     }
 }
 
-fn utc(t: DateTime<Tz>) -> DateTime<Utc> {
-    t.with_timezone(&Utc)
-}
-
 async fn update_currency(app: &App) -> anyhow::Result<Outcome> {
     let rates = crate::ecb::fetch().await.context("fetching ECB rates")?;
     let date = rates.date.clone();
     // Stored at midnight UTC of the ECB date
-    let period = NaiveDate::parse_from_str(&date, "%Y-%m-%d")?
-        .and_hms_opt(0, 0, 0)
-        .map(|n| Utc.from_utc_datetime(&n).timestamp_millis())
-        .context("bad date")?;
+    let period = date
+        .parse::<Date>()
+        .context("bad ECB date")?
+        .to_zoned(TimeZone::UTC)?
+        .timestamp()
+        .as_millisecond();
     let stored = app
         .db
         .run(move |c| Ok(queries::has_exchange_rates_for(c, period)?))
@@ -405,20 +422,20 @@ fn summarize<T>(
 /// A day whose last hour is stored is complete and is not fetched again; a partially
 /// stored day is.
 fn price_fetch_start(
-    tz: &Tz,
+    tz: &TimeZone,
     max_stored: Option<i64>,
-    history_start: NaiveDate,
-    end: DateTime<Tz>,
-) -> Option<NaiveDate> {
+    history_start: Date,
+    end: &Zoned,
+) -> Option<Date> {
     let Some(max) = max_stored else {
         return Some(history_start);
     };
-    if max >= end.timestamp_millis() - HOUR_MS {
+    if max >= end.timestamp().as_millisecond() - HOUR_MS {
         return None;
     }
     let day = local_date(tz, max);
-    let next = day.succ_opt()?;
-    if max >= local_midnight(tz, next).timestamp_millis() - HOUR_MS {
+    let next = day.tomorrow().ok()?;
+    if max >= local_midnight(tz, next).timestamp().as_millisecond() - HOUR_MS {
         Some(next)
     } else {
         Some(day)
@@ -427,17 +444,16 @@ fn price_fetch_start(
 
 /// Time zone and hour of the earliest day-ahead auction (Switzerland's at 11:00 CET, the
 /// European SDAC auction follows at 12:00 with results from about 12:45).
-const AUCTION_TZ: Tz = crate::timeutil::MARKET_TZ;
 const AUCTION_EARLIEST_HOUR: i64 = 11;
 
 /// Whether day-ahead prices for the local calendar day `day` can have been published at `now`.
 /// They come from an auction the day before; asking ENTSO-e earlier only returns "no data".
-fn day_ahead_published(day: NaiveDate, now: DateTime<Utc>) -> bool {
-    let Some(auction_day) = day.pred_opt() else {
+fn day_ahead_published(day: Date, now: Timestamp) -> bool {
+    let Ok(auction_day) = day.yesterday() else {
         return true;
     };
-    let earliest =
-        local_midnight(&AUCTION_TZ, auction_day) + chrono::Duration::hours(AUCTION_EARLIEST_HOUR);
+    let earliest = local_midnight(&market_tz(), auction_day).timestamp()
+        + SignedDuration::from_hours(AUCTION_EARLIEST_HOUR);
     now >= earliest
 }
 
@@ -468,11 +484,11 @@ impl std::fmt::Display for PriceResult {
 async fn stored_incomplete_days(
     app: &App,
     area: &'static str,
-    tz: &Tz,
-    from: NaiveDate,
+    tz: &TimeZone,
+    from: Date,
     end: i64,
-) -> anyhow::Result<Vec<NaiveDate>> {
-    let start = local_midnight(tz, from).timestamp_millis();
+) -> anyhow::Result<Vec<Date>> {
+    let start = local_midnight(tz, from).timestamp().as_millisecond();
     let rows = app
         .db
         .run(move |c| Ok(queries::spot_rows(c, area, start, end - 1)?))
@@ -505,34 +521,32 @@ async fn area_prices(
     // Days before the latest stored interval can have holes too (a day that failed while the next
     // one was stored, intervals dropped by 1.x); yesterday and today are fetched again. Tomorrow
     // is left to `price_fetch_start`, which knows whether it can have been auctioned yet.
-    let recent = today(&tz)
-        .pred_opt()
-        .unwrap_or_default()
-        .max(app.cfg.history_start);
-    let today_end = day_ahead_end(&tz, now_ms(), 1).timestamp_millis();
+    let recent = add_days(today(&tz), -1).max(app.cfg.history_start);
+    let today_end = day_ahead_end(&tz, now_ms(), 1).timestamp().as_millisecond();
     let gap = stored_incomplete_days(&app, name, &tz, recent, today_end)
         .await?
         .first()
         .copied();
-    let after_latest = price_fetch_start(&tz, max, app.cfg.history_start, end);
+    let after_latest = price_fetch_start(&tz, max, app.cfg.history_start, &end);
     let Some(mut start_date) = [after_latest, gap].into_iter().flatten().min() else {
         return Ok(res);
     };
-    if !day_ahead_published(start_date, Utc::now()) {
+    if !day_ahead_published(start_date, Timestamp::now()) {
         res.waiting = true;
         return Ok(res);
     }
-    while local_midnight(&tz, start_date) < end {
-        let chunk_start = local_midnight(&tz, start_date);
-        let next = start_date
-            .checked_add_months(Months::new(1))
-            .unwrap_or(start_date);
-        let chunk_end = local_midnight(&tz, next).min(end);
+    let end = end.timestamp();
+    while local_midnight(&tz, start_date).timestamp() < end {
+        let chunk_start = local_midnight(&tz, start_date).timestamp();
+        let Ok(next) = start_date.checked_add(1.month()) else {
+            break;
+        };
+        let chunk_end = local_midnight(&tz, next).timestamp().min(end);
         tracing::debug!(area = name, from = %chunk_start, to = %chunk_end, "fetching prices");
         res.requests += 1;
         let points = request(name, "price", || {
             app.entsoe
-                .day_ahead_prices(area.eic, utc(chunk_start), utc(chunk_end))
+                .day_ahead_prices(area.eic, chunk_start, chunk_end)
         })
         .await?;
         if points.is_empty() {
@@ -577,7 +591,7 @@ struct Repair {
     incomplete: usize,
     months: usize,
     rows: usize,
-    remaining: Vec<NaiveDate>,
+    remaining: Vec<Date>,
 }
 
 impl std::fmt::Display for Repair {
@@ -618,12 +632,12 @@ async fn area_repair(
     app: App,
     country: &'static Country,
     area: &'static Area,
-    from: NaiveDate,
+    from: Date,
 ) -> anyhow::Result<Repair> {
     let tz = country.timezone();
-    let end = day_ahead_end(&tz, now_ms(), 1);
+    let end = day_ahead_end(&tz, now_ms(), 1).timestamp();
     let name = area.name;
-    let start = local_midnight(&tz, from).timestamp_millis();
+    let start = local_midnight(&tz, from).timestamp().as_millisecond();
     let first = app
         .db
         .run(move |c| Ok(queries::min_spot_period(c, name, start)?))
@@ -632,22 +646,22 @@ async fn area_repair(
         return Ok(Repair::default());
     };
     let first_day = local_date(&tz, first).max(from);
-    let end_ms = end.timestamp_millis();
+    let end_ms = end.as_millisecond();
     let days = stored_incomplete_days(&app, name, &tz, first_day, end_ms).await?;
-    let months: std::collections::BTreeSet<NaiveDate> =
-        days.iter().filter_map(|d| d.with_day(1)).collect();
+    let months: std::collections::BTreeSet<Date> =
+        days.iter().map(|d| d.first_of_month()).collect();
     let mut res = Repair {
         incomplete: days.len(),
         months: months.len(),
         ..Default::default()
     };
     for month in months {
-        let chunk_start = local_midnight(&tz, month.max(first_day));
-        let next = month.checked_add_months(Months::new(1)).unwrap_or(month);
-        let chunk_end = local_midnight(&tz, next).min(end);
+        let chunk_start = local_midnight(&tz, month.max(first_day)).timestamp();
+        let next = month.checked_add(1.month()).unwrap_or(month);
+        let chunk_end = local_midnight(&tz, next).timestamp().min(end);
         let points = request(name, "price", || {
             app.entsoe
-                .day_ahead_prices(area.eic, utc(chunk_start), utc(chunk_end))
+                .day_ahead_prices(area.eic, chunk_start, chunk_end)
         })
         .await?;
         let rows: Vec<(i64, String, f64)> = points
@@ -670,7 +684,7 @@ async fn area_repair(
 /// `areas` limits it to some areas (all when empty). Returns a report and whether an area failed.
 pub async fn repair_prices(
     app: &App,
-    from: Option<NaiveDate>,
+    from: Option<Date>,
     areas: &[String],
 ) -> anyhow::Result<(String, bool)> {
     if !app.entsoe.has_token() {
@@ -721,11 +735,11 @@ pub async fn repair_prices(
 }
 
 /// Yesterday and today (local time): the most that load, production and flows fetch.
-fn recent_window(tz: &Tz) -> (DateTime<Utc>, DateTime<Utc>) {
+fn recent_window(tz: &TimeZone) -> (Timestamp, Timestamp) {
     let t = today(tz);
     (
-        utc(local_midnight(tz, t - chrono::Duration::days(1))),
-        utc(local_midnight(tz, t + chrono::Duration::days(1))),
+        local_midnight(tz, add_days(t, -1)).timestamp(),
+        local_midnight(tz, add_days(t, 1)).timestamp(),
     )
 }
 
@@ -734,15 +748,14 @@ fn recent_window(tz: &Tz) -> (DateTime<Utc>, DateTime<Utc>) {
 const LOOKBACK_MS: i64 = 6 * HOUR_MS;
 /// Local hour of the one run a day that fetches all of yesterday and today again, so values
 /// that arrive or change later than [`LOOKBACK_MS`] are picked up as well.
-const FULL_REFRESH_HOUR: u32 = 6;
+const FULL_REFRESH_HOUR: i8 = 6;
 
-fn local_hour(tz: &Tz, now: DateTime<Utc>) -> u32 {
-    use chrono::Timelike;
-    now.with_timezone(tz).hour()
+fn local_hour(tz: &TimeZone, now: Timestamp) -> i8 {
+    now.to_zoned(tz.clone()).hour()
 }
 
 /// Whether an hourly run at `now` is the daily full refresh
-fn is_full_refresh(tz: &Tz, now: DateTime<Utc>) -> bool {
+fn is_full_refresh(tz: &TimeZone, now: Timestamp) -> bool {
     local_hour(tz, now) == FULL_REFRESH_HOUR
 }
 
@@ -750,11 +763,11 @@ fn is_full_refresh(tz: &Tz, now: DateTime<Utc>) -> bool {
 /// Only the last few hours are fetched again, except when nothing is stored yet and on the
 /// daily `full` refresh.
 fn fetch_window(
-    window: (DateTime<Utc>, DateTime<Utc>),
+    window: (Timestamp, Timestamp),
     latest: Option<i64>,
-    now: DateTime<Utc>,
+    now: Timestamp,
     full: bool,
-) -> (DateTime<Utc>, DateTime<Utc>) {
+) -> (Timestamp, Timestamp) {
     let (full_start, end) = window;
     let Some(latest) = latest else {
         return window;
@@ -763,11 +776,11 @@ fn fetch_window(
         return window;
     }
     let floor_hour = |ms: i64| ms.div_euclid(HOUR_MS) * HOUR_MS;
-    let start = floor_hour(latest.min(now.timestamp_millis()) - LOOKBACK_MS)
-        .max(full_start.timestamp_millis());
-    match Utc.timestamp_millis_opt(start).single() {
-        Some(start) => (start, end),
-        None => window,
+    let start =
+        floor_hour(latest.min(now.as_millisecond()) - LOOKBACK_MS).max(full_start.as_millisecond());
+    match Timestamp::from_millisecond(start) {
+        Ok(start) => (start, end),
+        Err(_) => window,
     }
 }
 
@@ -783,7 +796,7 @@ async fn aggregate_countries<T>(
         {
             continue;
         }
-        let since = recent_window(&country.timezone()).0.timestamp_millis();
+        let since = recent_window(&country.timezone()).0.as_millisecond();
         let ids: Vec<&'static str> = country.areas.iter().map(|a| a.id).collect();
         app.db
             .run(move |c| Ok(queries::aggregate_country(c, country.cty, &ids, since)?))
@@ -811,7 +824,7 @@ async fn update_production(app: &App) -> anyhow::Result<Outcome> {
                 .db
                 .run(move |c| Ok(queries::max_generation_period(c, id)?))
                 .await?;
-            let now = Utc::now();
+            let now = Timestamp::now();
             let (start, end) =
                 fetch_window(recent_window(&tz), latest, now, is_full_refresh(&tz, now));
             let points = request(area.name, "generation", || {
@@ -844,7 +857,7 @@ async fn update_load(app: &App) -> anyhow::Result<Outcome> {
                 .db
                 .run(move |c| Ok(queries::max_load_period(c, id)?))
                 .await?;
-            let now = Utc::now();
+            let now = Timestamp::now();
             let (start, end) =
                 fetch_window(recent_window(&tz), latest, now, is_full_refresh(&tz, now));
             let points =
@@ -866,8 +879,8 @@ async fn update_load(app: &App) -> anyhow::Result<Outcome> {
 }
 
 async fn update_outages(app: &App) -> anyhow::Result<Outcome> {
-    let start = Utc::now() - chrono::Duration::days(30);
-    let end = Utc::now() + chrono::Duration::days(30);
+    let start = Timestamp::now() - SignedDuration::from_hours(30 * 24);
+    let end = Timestamp::now() + SignedDuration::from_hours(30 * 24);
     let results = for_each_area(Job::Outages, |country, area| {
         let app = app.clone();
         async move {
@@ -905,9 +918,9 @@ fn flow_borders(group: Option<usize>) -> impl Iterator<Item = (&'static str, &'s
 /// see [`fetch_window`]), at most [`concurrency`] requests at a time. Scheduled runs fetch
 /// one [`FLOW_GROUPS`] group of borders per hour.
 async fn update_flows(app: &App, scheduled: bool) -> anyhow::Result<Outcome> {
-    let tz = chrono_tz::Europe::Stockholm;
+    let tz = stockholm();
     let window = recent_window(&tz);
-    let now = Utc::now();
+    let now = Timestamp::now();
     let hour = local_hour(&tz, now) as usize;
     let group = scheduled.then_some(hour % FLOW_GROUPS);
     // Every group gets its daily full refresh in the hours starting at FULL_REFRESH_HOUR
@@ -991,68 +1004,93 @@ async fn update_flows(app: &App, scheduled: bool) -> anyhow::Result<Outcome> {
 // Scheduler
 // ---------------------------------------------------------------------------
 
-fn offset_now(tz: &Tz) -> i32 {
-    tz.offset_from_utc_datetime(&Utc::now().naive_utc())
-        .fix()
-        .local_minus_utc()
+/// When a job runs, in the scheduler time zone (`SPOTWEB_SCHEDULE_TZ`): at these minutes past
+/// each of these hours, `None` meaning every hour.
+#[derive(Debug, Clone, Copy)]
+pub struct Schedule {
+    pub minutes: &'static [i8],
+    pub hours: Option<&'static [i8]>,
 }
 
-async fn register(sched: &JobScheduler, app: &App) -> anyhow::Result<Vec<uuid::Uuid>> {
-    let mut ids = vec![];
-    for job in Job::ALL {
-        for expr in job.schedules() {
-            let app = app.clone();
-            let j = CronJob::new_async_tz(*expr, app.cfg.schedule_tz, move |_id, _l| {
-                let app = app.clone();
-                Box::pin(async move {
-                    let _ = run(&app, job, true).await;
-                })
-            })
-            .with_context(|| format!("bad cron expression {expr}"))?;
-            ids.push(sched.add(j).await?);
-        }
+impl Schedule {
+    fn matches(&self, t: &Zoned) -> bool {
+        self.minutes.contains(&t.minute()) && self.hours.is_none_or(|h| h.contains(&t.hour()))
     }
-    Ok(ids)
 }
 
-/// Start the scheduler. tokio-cron-scheduler freezes the UTC offset when a job is
-/// created, so jobs are re-registered whenever the scheduler time zone changes offset (DST).
-pub async fn start_scheduler(app: App) -> anyhow::Result<JobScheduler> {
-    let sched = JobScheduler::new().await?;
-    let mut ids = register(&sched, &app).await?;
-    sched.start().await?;
-    tracing::info!(tz = %app.cfg.schedule_tz, "scheduler started");
-
-    let s2 = sched.clone();
-    let app2 = app.clone();
-    tokio::spawn(async move {
-        let tz = app2.cfg.schedule_tz;
-        let mut offset = offset_now(&tz);
-        loop {
-            tokio::time::sleep(Duration::from_secs(60)).await;
-            let now = offset_now(&tz);
-            if now != offset {
-                tracing::info!("time zone offset changed, re-registering scheduled jobs");
-                for id in ids.drain(..) {
-                    let _ = s2.remove(&id).await;
-                }
-                match register(&s2, &app2).await {
-                    Ok(new_ids) => ids = new_ids,
-                    Err(e) => tracing::error!(error = %e, "failed re-registering jobs"),
-                }
-                offset = now;
-            }
+/// The first whole minute after `after` that matches one of `schedules` in `tz`. Minutes are
+/// walked in real time, so on the DST change in autumn the repeated hour runs hourly jobs twice
+/// (once per real hour) and in spring the skipped hour is skipped. Daily jobs are not in that hour.
+pub fn next_run(schedules: &[Schedule], tz: &TimeZone, after: Timestamp) -> Option<Timestamp> {
+    let minute = SignedDuration::from_mins(1);
+    let start = after.as_second().div_euclid(60) * 60 + 60;
+    let mut t = Timestamp::from_second(start).ok()?;
+    // Every schedule repeats at least daily; two days covers a DST change
+    for _ in 0..2 * 25 * 60 {
+        let z = t.to_zoned(tz.clone());
+        if schedules.iter().any(|s| s.matches(&z)) {
+            return Some(t);
         }
-    });
+        t = t.checked_add(minute).ok()?;
+    }
+    None
+}
+
+/// The running scheduler: one task per job
+pub struct Scheduler {
+    tasks: JoinSet<()>,
+}
+
+impl Scheduler {
+    pub async fn shutdown(mut self) {
+        self.tasks.shutdown().await;
+    }
+}
+
+/// Wait until `t`. Sleeps in short steps so that a wall clock change (suspend, NTP) is noticed.
+async fn sleep_until(t: Timestamp) {
+    loop {
+        let left = t.duration_since(Timestamp::now());
+        if left <= SignedDuration::ZERO {
+            return;
+        }
+        let step = left.min(SignedDuration::from_secs(30));
+        tokio::time::sleep(step.unsigned_abs()).await;
+    }
+}
+
+/// Start the scheduler, plus a catch-up run of currency and prices right away
+pub async fn start_scheduler(app: App) -> anyhow::Result<Scheduler> {
+    let tz = app.cfg.schedule_tz.clone();
+    let mut tasks = JoinSet::new();
+    for job in Job::ALL {
+        let app = app.clone();
+        let tz = tz.clone();
+        tasks.spawn(async move {
+            let mut after = Timestamp::now();
+            while let Some(at) = next_run(job.schedules(), &tz, after) {
+                sleep_until(at).await;
+                // Runs are spawned so a long run does not delay the next tick; overlapping runs
+                // of the same job are refused by its lock
+                let app = app.clone();
+                tokio::spawn(async move {
+                    let _ = run(&app, job, true).await;
+                });
+                after = at;
+            }
+            tracing::error!(job = job.name(), "no next run time, job not scheduled");
+        });
+    }
+    tracing::info!(tz = %tz.iana_name().unwrap_or("UTC"), "scheduler started");
 
     // Catch up right away instead of waiting for the next tick
     let app3 = app.clone();
-    tokio::spawn(async move {
+    tasks.spawn(async move {
         tokio::time::sleep(Duration::from_secs(5)).await;
         let _ = run(&app3, Job::Currency, false).await;
         let _ = run(&app3, Job::Prices, false).await;
     });
-    Ok(sched)
+    Ok(Scheduler { tasks })
 }
 
 #[cfg(test)]
@@ -1066,14 +1104,12 @@ mod tests {
     use super::*;
     use crate::countries::COUNTRIES;
     use crate::db::Db;
-    use crate::timeutil::HOUR_MS;
 
-    fn stockholm() -> Tz {
-        chrono_tz::Europe::Stockholm
-    }
+    use jiff::civil::date;
 
-    fn date(y: i32, m: u32, d: u32) -> NaiveDate {
-        NaiveDate::from_ymd_opt(y, m, d).unwrap()
+    /// `h` hours and `m` minutes (real time) after local midnight of `d`
+    fn after_midnight(tz: &TimeZone, d: Date, h: i64, m: i64) -> Timestamp {
+        local_midnight(tz, d).timestamp() + SignedDuration::from_mins(h * 60 + m)
     }
 
     #[test]
@@ -1081,10 +1117,8 @@ mod tests {
         let tz = stockholm();
         let hist = date(2021, 1, 1);
         // Today is 21 Nov, so everything up to the end of 22 Nov is wanted
-        let end = local_midnight(&tz, date(2026, 11, 23));
-        let ms = |d: NaiveDate, h: i64, m: i64| {
-            local_midnight(&tz, d).timestamp_millis() + h * HOUR_MS + m * 60_000
-        };
+        let end = &local_midnight(&tz, date(2026, 11, 23));
+        let ms = |d: Date, h: i64, m: i64| after_midnight(&tz, d, h, m).as_millisecond();
         assert_eq!(price_fetch_start(&tz, None, hist, end), Some(hist));
         // Tomorrow fully stored at 15 minutes or 60 minutes: nothing to fetch
         assert_eq!(
@@ -1106,7 +1140,7 @@ mod tests {
             Some(date(2026, 11, 22))
         );
         // DST change (25 hour day): last hour still starts at 23:00 local
-        let end = local_midnight(&tz, date(2026, 10, 26));
+        let end = &local_midnight(&tz, date(2026, 10, 26));
         assert_eq!(
             price_fetch_start(&tz, Some(ms(date(2026, 10, 25), 24, 0)), hist, end),
             None
@@ -1119,11 +1153,7 @@ mod tests {
 
     #[test]
     fn day_ahead_waits_for_auction() {
-        let brussels = |d: NaiveDate, h: i64, m: i64| {
-            utc(local_midnight(&AUCTION_TZ, d)
-                + chrono::Duration::hours(h)
-                + chrono::Duration::minutes(m))
-        };
+        let brussels = |d: Date, h: i64, m: i64| after_midnight(&market_tz(), d, h, m);
         let tomorrow = date(2026, 11, 22);
         // Not auctioned yet in the morning
         assert!(!day_ahead_published(
@@ -1154,9 +1184,8 @@ mod tests {
         ));
         // Finland: 00:30 local is still the day before in Brussels, the day after tomorrow
         // (Finnish time) is not auctioned until 11:00 CET
-        let helsinki = chrono_tz::Europe::Helsinki;
-        let now =
-            utc(local_midnight(&helsinki, date(2026, 11, 22)) + chrono::Duration::minutes(30));
+        let helsinki = crate::timeutil::tz("Europe/Helsinki");
+        let now = after_midnight(&helsinki, date(2026, 11, 22), 0, 30);
         assert!(!day_ahead_published(date(2026, 11, 23), now));
         assert!(day_ahead_published(date(2026, 11, 22), now));
     }
@@ -1164,24 +1193,22 @@ mod tests {
     #[test]
     fn fetch_window_refetches_only_recent_hours() {
         let tz = stockholm();
-        let at = |d: NaiveDate, h: i64, m: i64| {
-            utc(local_midnight(&tz, d) + chrono::Duration::hours(h) + chrono::Duration::minutes(m))
-        };
+        let at = |d: Date, h: i64, m: i64| after_midnight(&tz, d, h, m);
         let window = (at(date(2026, 11, 20), 0, 0), at(date(2026, 11, 22), 0, 0));
         let now = at(date(2026, 11, 21), 14, 5);
         // Nothing stored: the whole window
         assert_eq!(fetch_window(window, None, now, false), window);
         // Latest at 12:45: from six hours before, rounded down to the hour
-        let latest = at(date(2026, 11, 21), 12, 45).timestamp_millis();
+        let latest = at(date(2026, 11, 21), 12, 45).as_millisecond();
         assert_eq!(
             fetch_window(window, Some(latest), now, false),
             (at(date(2026, 11, 21), 6, 0), window.1)
         );
         // Latest long ago: never before the start of the window
-        let old = at(date(2026, 11, 1), 0, 0).timestamp_millis();
+        let old = at(date(2026, 11, 1), 0, 0).as_millisecond();
         assert_eq!(fetch_window(window, Some(old), now, false), window);
         // Latest in the future (bad data): based on now instead
-        let future = at(date(2026, 11, 21), 23, 0).timestamp_millis();
+        let future = at(date(2026, 11, 21), 23, 0).as_millisecond();
         assert_eq!(
             fetch_window(window, Some(future), now, false),
             (at(date(2026, 11, 21), 8, 0), window.1)
@@ -1191,6 +1218,54 @@ mod tests {
         assert!(is_full_refresh(&tz, six));
         assert!(!is_full_refresh(&tz, now));
         assert_eq!(fetch_window(window, Some(latest), six, true), window);
+    }
+
+    #[test]
+    fn schedule_next_runs() {
+        let tz = stockholm();
+        let local =
+            |d: Date, h: i8, m: i8| d.at(h, m, 0, 0).to_zoned(tz.clone()).unwrap().timestamp();
+        let d = date(2026, 11, 21);
+        // Hourly at :05, strictly after the given time
+        let s = Job::Load.schedules();
+        assert_eq!(next_run(s, &tz, local(d, 10, 4)), Some(local(d, 10, 5)));
+        assert_eq!(next_run(s, &tz, local(d, 10, 5)), Some(local(d, 11, 5)));
+        // Prices: every hour, plus 12:45 and 13:15/13:30/13:45
+        let s = Job::Prices.schedules();
+        let mut t = local(d, 12, 1);
+        let mut seen = vec![];
+        for _ in 0..6 {
+            t = next_run(s, &tz, t).unwrap();
+            seen.push(t.to_zoned(tz.clone()).time().to_string());
+        }
+        assert_eq!(
+            seen,
+            ["12:45:00", "13:00:00", "13:15:00", "13:30:00", "13:45:00", "14:00:00"]
+        );
+        // Daily: currency at 09:05 and 16:20, local time on both sides of DST
+        let s = Job::Currency.schedules();
+        assert_eq!(
+            next_run(s, &tz, local(d, 16, 20)),
+            Some(local(date(2026, 11, 22), 9, 5))
+        );
+        let summer = date(2026, 7, 1);
+        assert_eq!(
+            next_run(s, &tz, local(summer, 10, 0)),
+            Some(local(summer, 16, 20))
+        );
+        // Spring forward (29 Mar 2026, 02:00 -> 03:00): an hourly job runs every real hour
+        let s = Job::Production.schedules();
+        let before = local(date(2026, 3, 29), 1, 50);
+        let next = next_run(s, &tz, before).unwrap();
+        assert_eq!(next.duration_since(before).as_hours(), 1);
+        assert_eq!(next.to_zoned(tz.clone()).hour(), 3);
+        // Fall back (25 Oct 2026, 03:00 -> 02:00): 02:50 happens twice, both run
+        let first = local(date(2026, 10, 25), 1, 50);
+        let a = next_run(s, &tz, first).unwrap();
+        let b = next_run(s, &tz, a).unwrap();
+        assert_eq!(a.to_zoned(tz.clone()).hour(), 2);
+        assert_eq!(b.to_zoned(tz.clone()).hour(), 2);
+        assert_eq!(b.duration_since(a).as_hours(), 1);
     }
 
     #[test]
@@ -1242,9 +1317,9 @@ mod tests {
     /// Prices for today and tomorrow (Stockholm), hourly
     fn price_doc() -> String {
         let tz = stockholm();
-        let start = utc(local_midnight(&tz, today(&tz)));
-        let end = utc(local_midnight(&tz, today(&tz) + chrono::Duration::days(2)));
-        let hours = (end - start).num_hours();
+        let start = local_midnight(&tz, today(&tz)).timestamp();
+        let end = local_midnight(&tz, add_days(today(&tz), 2)).timestamp();
+        let hours = end.duration_since(start).as_hours();
         let points: String = (1..=hours)
             .map(|p| {
                 format!("<Point><position>{p}</position><price.amount>{p}.5</price.amount></Point>")
@@ -1254,8 +1329,8 @@ mod tests {
             "<Publication_MarketDocument><TimeSeries><curveType>A01</curveType><Period>\
              <timeInterval><start>{}</start><end>{}</end></timeInterval><resolution>PT60M</resolution>{points}\
              </Period></TimeSeries></Publication_MarketDocument>",
-            start.format("%Y-%m-%dT%H:%MZ"),
-            end.format("%Y-%m-%dT%H:%MZ")
+            start.strftime("%Y-%m-%dT%H:%MZ"),
+            end.strftime("%Y-%m-%dT%H:%MZ")
         )
     }
 
@@ -1313,6 +1388,7 @@ mod tests {
             ga_id: None,
             schedule_tz: stockholm(),
             history_start: today(&stockholm()),
+            csp: crate::web::Csp::Enforce,
         };
         let mut app = App::new(Db::open_memory(), cfg).unwrap();
         let entsoe = crate::entsoe::Client::with_endpoint(
@@ -1365,9 +1441,10 @@ mod tests {
         assert_eq!(mock.total.load(Ordering::Relaxed), areas + 1 + 2 + 2);
 
         let tz = stockholm();
-        let rows = (local_midnight(&tz, today(&tz) + chrono::Duration::days(2))
-            - local_midnight(&tz, today(&tz)))
-        .num_hours() as usize;
+        let rows = local_midnight(&tz, add_days(today(&tz), 2))
+            .timestamp()
+            .duration_since(local_midnight(&tz, today(&tz)).timestamp())
+            .as_hours() as usize;
         assert_eq!(msg, format!("stored {rows} price rows, 3 areas failed"));
 
         let runs = app
@@ -1402,8 +1479,9 @@ mod tests {
         let app = test_app(mock.clone()).await;
         let calls = |a: &str| mock.calls.lock().get(eic(a)).copied().unwrap_or(0);
         let tz = stockholm();
-        let today_end =
-            local_midnight(&tz, today(&tz) + chrono::Duration::days(1)).timestamp_millis();
+        let today_end = local_midnight(&tz, add_days(today(&tz), 1))
+            .timestamp()
+            .as_millisecond();
         // Today stored except one hour, tomorrow not at all
         let mut rows: Vec<(i64, String, f64)> = crate::entsoe::parse_prices(&price_doc())
             .unwrap()

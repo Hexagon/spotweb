@@ -144,13 +144,29 @@
     for (const s of series) for (const p of s.data) if (p.y !== null && p.y < m) m = p.y;
     return m;
   };
-  const draw = (id, options) => {
+  // Text alternative for a chart: per series lowest-highest value and average
+  const chartSummary = (el, series, fmt) => {
+    const head = el.closest("section");
+    const title = head && head.querySelector("h1, h2, h3") ? head.querySelector("h1, h2, h3").textContent.trim() : "";
+    const parts = series.map((s) => {
+      const ys = (s.data || []).map((p) => p.y).filter((v) => typeof v === "number" && Number.isFinite(v));
+      if (!ys.length) return "";
+      const avg = ys.reduce((a, v) => a + v, 0) / ys.length;
+      return `${s.name}: ${fmt(Math.min(...ys))} – ${fmt(Math.max(...ys))}, ${t("a11y.average")} ${fmt(avg)}`;
+    }).filter(Boolean);
+    return [title, ...parts].filter(Boolean).join(". ");
+  };
+  const priceFmt = (v) => `${new Intl.NumberFormat(locale, { minimumFractionDigits: prefs.decimals, maximumFractionDigits: prefs.decimals }).format(v)} ${unit()}`;
+  const mwText = (v) => `${mw(v)} MW`;
+  const draw = (id, options, fmt = priceFmt) => {
     const el = $(`[data-chart="${id}"]`);
     if (!el || typeof ApexCharts === "undefined") return;
     if (charts[id]) { charts[id].destroy(); delete charts[id]; }
     el.innerHTML = "";
     const hasData = (options.series || []).some((s) => s.data && s.data.length);
-    if (!hasData) { el.innerHTML = `<div class="chart-empty muted">-</div>`; return; }
+    el.setAttribute("role", "img");
+    if (!hasData) { el.innerHTML = `<div class="chart-empty muted">-</div>`; el.setAttribute("aria-label", t("a11y.no_data")); return; }
+    el.setAttribute("aria-label", chartSummary(el, options.series, fmt));
     charts[id] = new ApexCharts(el, options);
     charts[id].render();
   };
@@ -209,7 +225,7 @@
     o.yaxis = { labels: { formatter: (v) => mw(v) } };
     o.tooltip.y = { formatter: (v) => (mw(v) ? `${mw(v)} MW` : "") };
     o.annotations = { yaxis: [{ y: 0, borderColor: "#ccc", strokeDashArray: 0 }] };
-    draw("production", o);
+    draw("production", o, mwText);
   };
 
   const chartNet = () => {
@@ -222,7 +238,7 @@
     o.yaxis = { labels: { formatter: (v) => mw(v) } };
     o.tooltip.y = { formatter: (v) => (mw(v) ? `${mw(v)} MW` : "") };
     o.legend = { show: false };
-    draw("net", o);
+    draw("net", o, mwText);
   };
 
   // API helpers
@@ -348,7 +364,7 @@
       const res = await fetch(`/api/v2/spot?${params}`).then((r) => r.json());
       const data = res.status === "ok" ? res.data : [];
       const err = $("#custom-error");
-      if (err) { err.textContent = res.status === "ok" ? "" : res.details || "Error"; err.classList.toggle("hidden", res.status === "ok"); }
+      if (err) { err.textContent = res.status === "ok" ? "" : res.details || t("custom.error"); err.classList.toggle("hidden", res.status === "ok"); }
       $("#custom-result").classList.remove("hidden");
       $("#custom-permalink").href = `/custom?${params}`;
       $("#custom-json").href = `/api/v2/spot?${params}`;
@@ -356,8 +372,8 @@
       $("#custom-avg").textContent = `${price(avg)} ${unit()}`;
       $("#custom-min").textContent = `${price(data.length ? Math.min(...data.map((r) => r.min)) : null)} ${unit()}`;
       $("#custom-max").textContent = `${price(data.length ? Math.max(...data.map((r) => r.max)) : null)} ${unit()}`;
-      const fmt = (ms) => (ms === null ? "Total" : new Date(ms).toLocaleString(locale));
-      let html = `<thead><tr><th>Date/Time</th><th class="num">Price</th><th class="num">Min</th><th class="num">Max</th><th>Unit</th></tr></thead><tbody>`;
+      const fmt = (ms) => (ms === null ? t("custom.total") : new Date(ms).toLocaleString(locale));
+      let html = `<thead><tr><th>${t("custom.datetime")}</th><th class="num">${t("chart.price")}</th><th class="num">${t("custom.min")}</th><th class="num">${t("custom.max")}</th><th>${t("customize.unit")}</th></tr></thead><tbody>`;
       const shown = data.slice(0, 5000);
       for (const r of shown) html += `<tr><td>${fmt(r.time)}</td><td class="num">${price(r.price)}</td><td class="num">${price(r.min)}</td><td class="num">${price(r.max)}</td><td>${unit()}</td></tr>`;
       $("#custom-table").innerHTML = html + "</tbody>";
@@ -930,7 +946,7 @@ series:
     if ($("#compare-select")) $("#compare-select").addEventListener("change", chartThirtyDays);
     $$("[data-copy]").forEach((b) => b.addEventListener("click", () => {
       const txt = $("#" + b.dataset.copy).textContent;
-      if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => { b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1500); });
+      if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => { const was = b.textContent; b.textContent = t("custom.copied"); setTimeout(() => { b.textContent = was; }, 1500); });
     }));
   };
 

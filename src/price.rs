@@ -2,11 +2,11 @@
 
 use std::collections::BTreeMap;
 
-use chrono::{Datelike, NaiveDate, TimeZone};
-use chrono_tz::Tz;
+use jiff::civil::Date;
+use jiff::tz::TimeZone;
 use serde::Serialize;
 
-use crate::timeutil::{interval_ms, local_date, local_midnight};
+use crate::timeutil::{add_days, interval_ms, local_date, local_midnight};
 
 /// Raw row from the database
 #[derive(Debug, Clone)]
@@ -64,7 +64,7 @@ pub enum IntervalMode {
 }
 
 /// Pick which rows to use according to `mode`. Returns `(time, price, duration_ms)`, sorted by time.
-pub fn select_rows(rows: &[SpotRow], mode: &IntervalMode, tz: &Tz) -> Vec<(i64, f64, i64)> {
+pub fn select_rows(rows: &[SpotRow], mode: &IntervalMode, tz: &TimeZone) -> Vec<(i64, f64, i64)> {
     let mut out: Vec<(i64, f64, i64)> = match mode {
         IntervalMode::Exact(iv) => rows
             .iter()
@@ -73,7 +73,7 @@ pub fn select_rows(rows: &[SpotRow], mode: &IntervalMode, tz: &Tz) -> Vec<(i64, 
             .collect(),
         IntervalMode::Prefer(iv) => {
             // Group per local day
-            let mut days: BTreeMap<NaiveDate, Vec<&SpotRow>> = BTreeMap::new();
+            let mut days: BTreeMap<Date, Vec<&SpotRow>> = BTreeMap::new();
             for r in rows {
                 days.entry(local_date(tz, r.time)).or_default().push(r);
             }
@@ -108,17 +108,21 @@ pub fn select_rows(rows: &[SpotRow], mode: &IntervalMode, tz: &Tz) -> Vec<(i64, 
 /// day. A day that `end` cuts short only has to be covered up to `end`. `rows` are
 /// `(start, interval length)` in ms, sorted by start. A day counts as complete when a single
 /// resolution covers all of it, so a day stored at both 60 and 15 minutes is not double counted.
-pub fn incomplete_days(tz: &Tz, rows: &[(i64, i64)], from: NaiveDate, end: i64) -> Vec<NaiveDate> {
+pub fn incomplete_days(tz: &TimeZone, rows: &[(i64, i64)], from: Date, end: i64) -> Vec<Date> {
     let mut out = Vec::new();
-    let mut i = rows.partition_point(|r| r.0 < local_midnight(tz, from).timestamp_millis());
+    let mut i =
+        rows.partition_point(|r| r.0 < local_midnight(tz, from).timestamp().as_millisecond());
     let mut day = from;
     loop {
-        let start = local_midnight(tz, day).timestamp_millis();
-        let Some(next) = day.succ_opt() else { break };
+        let start = local_midnight(tz, day).timestamp().as_millisecond();
+        let Ok(next) = day.tomorrow() else { break };
         if start >= end {
             break;
         }
-        let stop = local_midnight(tz, next).timestamp_millis().min(end);
+        let stop = local_midnight(tz, next)
+            .timestamp()
+            .as_millisecond()
+            .min(end);
         // Covered ms per resolution
         let mut covered: Vec<(i64, i64)> = Vec::new();
         while i < rows.len() && rows[i].0 < stop {
@@ -138,28 +142,26 @@ pub fn incomplete_days(tz: &Tz, rows: &[(i64, i64)], from: NaiveDate, end: i64) 
 }
 
 /// Start of the group that contains `t` (`None` for [`Grouping::Total`])
-pub fn bucket(g: Grouping, tz: &Tz, t: i64) -> Option<i64> {
+pub fn bucket(g: Grouping, tz: &TimeZone, t: i64) -> Option<i64> {
     match g {
         Grouping::Total => None,
         Grouping::Hourly | Grouping::Minimum => Some(t),
         _ => {
             let d = local_date(tz, t);
             let start = match g {
-                Grouping::Yearly => NaiveDate::from_ymd_opt(d.year(), 1, 1).unwrap_or(d),
-                Grouping::Monthly => d.with_day(1).unwrap_or(d),
-                Grouping::Weekly => {
-                    d - chrono::Duration::days(d.weekday().num_days_from_monday() as i64)
-                }
+                Grouping::Yearly => d.first_of_year(),
+                Grouping::Monthly => d.first_of_month(),
+                Grouping::Weekly => add_days(d, -(d.weekday().to_monday_zero_offset() as i64)),
                 _ => d,
             };
-            Some(local_midnight(tz, start).timestamp_millis())
+            Some(local_midnight(tz, start).timestamp().as_millisecond())
         }
     }
 }
 
 /// Group selected rows. Averages are time weighted, which equals a plain average
 /// when all rows share the same resolution.
-pub fn group(rows: &[(i64, f64, i64)], g: Grouping, tz: &Tz) -> Vec<SpotApiRow> {
+pub fn group(rows: &[(i64, f64, i64)], g: Grouping, tz: &TimeZone) -> Vec<SpotApiRow> {
     // key: Option<i64> -> (weighted sum, weight, min, max)
     let mut groups: BTreeMap<Option<i64>, (f64, f64, f64, f64)> = BTreeMap::new();
     for &(t, p, dur) in rows {
@@ -251,26 +253,13 @@ pub fn infer_interval(rows: &[(i64, f64)]) -> i64 {
         .unwrap_or(crate::timeutil::HOUR_MS)
 }
 
-#[allow(dead_code)]
-pub fn tz_offset_ms(tz: &Tz, t: i64) -> i64 {
-    use chrono::Offset;
-    tz.offset_from_utc_datetime(
-        &chrono::DateTime::from_timestamp_millis(t)
-            .unwrap_or_default()
-            .naive_utc(),
-    )
-    .fix()
-    .local_minus_utc() as i64
-        * 1000
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::timeutil::day_range;
 
-    fn tz() -> Tz {
-        "Europe/Stockholm".parse().unwrap()
+    fn tz() -> TimeZone {
+        crate::timeutil::stockholm()
     }
 
     #[test]
@@ -300,8 +289,8 @@ mod tests {
     #[test]
     fn prefer_mode_spans_resolution_change() {
         let tz = tz();
-        let (d1, _) = day_range(&tz, NaiveDate::from_ymd_opt(2025, 9, 30).unwrap());
-        let (d2, _) = day_range(&tz, NaiveDate::from_ymd_opt(2025, 10, 1).unwrap());
+        let (d1, _) = day_range(&tz, jiff::civil::date(2025, 9, 30));
+        let (d2, _) = day_range(&tz, jiff::civil::date(2025, 10, 1));
         let mut rows = vec![];
         for h in 0..24 {
             rows.push(SpotRow {
@@ -341,18 +330,18 @@ mod tests {
     #[test]
     fn incomplete_days_finds_gaps() {
         let tz = tz();
-        let d = |day: u32| NaiveDate::from_ymd_opt(2026, 10, day).unwrap();
+        let d = |day: i8| jiff::civil::date(2026, 10, day);
         let q = 15 * 60_000;
         let h = 60 * 60_000;
-        let quarters = |day: u32| {
-            let s = local_midnight(&tz, d(day)).timestamp_millis();
-            let e = local_midnight(&tz, d(day + 1)).timestamp_millis();
+        let quarters = |day: i8| {
+            let s = local_midnight(&tz, d(day)).timestamp().as_millisecond();
+            let e = local_midnight(&tz, d(day + 1)).timestamp().as_millisecond();
             (s..e)
                 .step_by(q as usize)
                 .map(|t| (t, q))
                 .collect::<Vec<_>>()
         };
-        let end = local_midnight(&tz, d(27)).timestamp_millis();
+        let end = local_midnight(&tz, d(27)).timestamp().as_millisecond();
         // 24: complete; 25 (25 hours): one quarter missing; 26: nothing stored
         let mut rows = quarters(24);
         let mut dst = quarters(25);
@@ -361,7 +350,7 @@ mod tests {
         rows.extend(dst);
         assert_eq!(incomplete_days(&tz, &rows, d(24), end), vec![d(25), d(26)]);
         // A 25 hour day at 60 minutes is complete; mixed resolutions are not added up
-        let s = local_midnight(&tz, d(25)).timestamp_millis();
+        let s = local_midnight(&tz, d(25)).timestamp().as_millisecond();
         let mut hourly: Vec<(i64, i64)> = (0..25).map(|n| (s + n * h, h)).collect();
         assert!(incomplete_days(&tz, &hourly, d(25), s + 25 * h).is_empty());
         hourly.remove(3);
@@ -372,7 +361,7 @@ mod tests {
             vec![d(25)]
         );
         // A day cut short by `end` only has to be covered up to `end`
-        let cut = local_midnight(&tz, d(24)).timestamp_millis() + 23 * h;
+        let cut = local_midnight(&tz, d(24)).timestamp().as_millisecond() + 23 * h;
         let part: Vec<_> = quarters(24).into_iter().filter(|r| r.0 < cut).collect();
         assert!(incomplete_days(&tz, &part, d(24), cut).is_empty());
         assert_eq!(incomplete_days(&tz, &part[1..], d(24), cut), vec![d(24)]);

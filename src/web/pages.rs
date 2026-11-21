@@ -6,8 +6,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use axum::extract::{Path, Query, State};
 use axum::http::{header, HeaderMap, StatusCode, Uri};
 use axum::response::{Html, IntoResponse, Redirect, Response};
-use chrono::{Datelike, Months, TimeZone};
-use chrono_tz::Tz;
+use jiff::tz::TimeZone;
+use jiff::{Timestamp, ToSpan};
 use serde_json::{json, Map, Value};
 
 use super::{data, detect_lang, query_lang, WebState};
@@ -17,7 +17,7 @@ use crate::countries::{
 };
 use crate::db::queries::{GenerationRow, LoadRow, OutageRow};
 use crate::price::{process_price, PriceProps};
-use crate::timeutil::{day_range, interval_ms, now_ms, today, HOUR_MS};
+use crate::timeutil::{add_days, day_range, interval_ms, now_ms, today, HOUR_MS};
 
 type PageResult = Result<Response, Response>;
 
@@ -30,10 +30,24 @@ fn internal(e: anyhow::Error) -> Response {
         .into_response()
 }
 
-fn render(st: &WebState, name: &str, ctx: Value) -> PageResult {
+fn render(st: &WebState, name: &str, mut ctx: Value) -> PageResult {
+    let nonce = super::new_nonce();
+    if let Value::Object(m) = &mut ctx {
+        m.insert("nonce".into(), json!(nonce));
+    }
     let tpl = st.env.get_template(name).map_err(|e| internal(e.into()))?;
     let html = tpl.render(ctx).map_err(|e| internal(e.into()))?;
     let mut res = Html(html).into_response();
+    let csp_header = match st.app.cfg.csp {
+        super::Csp::Enforce => Some(header::CONTENT_SECURITY_POLICY),
+        super::Csp::ReportOnly => Some(header::CONTENT_SECURITY_POLICY_REPORT_ONLY),
+        super::Csp::Off => None,
+    };
+    if let Some(h) = csp_header {
+        if let Ok(v) = header::HeaderValue::from_str(&super::csp_policy(&nonce)) {
+            res.headers_mut().insert(h, v);
+        }
+    }
     res.headers_mut().insert(
         header::CACHE_CONTROL,
         header::HeaderValue::from_static("no-cache"),
@@ -45,16 +59,19 @@ fn render(st: &WebState, name: &str, ctx: Value) -> PageResult {
     Ok(res)
 }
 
-fn fmt_date(tz: &Tz, ms: Option<i64>) -> String {
-    ms.and_then(|ms| tz.timestamp_millis_opt(ms).single())
-        .map(|d| d.format("%Y-%m-%d").to_string())
+fn fmt_date(tz: &TimeZone, ms: Option<i64>) -> String {
+    ms.and_then(|ms| Timestamp::from_millisecond(ms).ok())
+        .map(|t| t.to_zoned(tz.clone()).date().to_string())
         .unwrap_or_default()
 }
 
-fn fmt_datetime(tz: &Tz, ms: i64) -> String {
-    tz.timestamp_millis_opt(ms)
-        .single()
-        .map(|d| d.format("%Y-%m-%d %H:%M").to_string())
+fn fmt_datetime(tz: &TimeZone, ms: i64) -> String {
+    Timestamp::from_millisecond(ms)
+        .map(|t| {
+            t.to_zoned(tz.clone())
+                .strftime("%Y-%m-%d %H:%M")
+                .to_string()
+        })
         .unwrap_or_default()
 }
 
@@ -71,8 +88,6 @@ const ENTSOE_TERMS: &str = "https://transparencyplatform.zendesk.com/hc/en-us/ar
 enum Kind {
     /// Translated page with one url per language (`?lang=`), linked with `hreflang`
     Localized,
-    /// Content in English only, one url for every language
-    English,
     /// Kept out of search results
     NoIndex,
 }
@@ -137,13 +152,14 @@ async fn base(
     };
     let canonical = match (head.kind, page) {
         (_, "404") => None,
+        // The form in every language; a filled in form is one url (and not indexed)
+        (Kind::Localized, _) => Some(lang_url(query_lang(uri))),
         (_, "custom") => Some(
             match uri.query().map(custom_query).filter(|q| !q.is_empty()) {
                 Some(q) => format!("{site}{path}?{q}"),
                 None => format!("{site}{path}"),
             },
         ),
-        (Kind::Localized, _) => Some(lang_url(query_lang(uri))),
         _ => Some(format!("{site}{path}")),
     };
     if head.kind == Kind::Localized {
@@ -176,7 +192,7 @@ async fn base(
         "url": url,
         "name": head.title,
         "description": head.description,
-        "inLanguage": lang_tag(if head.kind == Kind::English { "en" } else { lang }),
+        "inLanguage": lang_tag(lang),
         "isPartOf": { "@id": format!("{site}/#website") },
     });
     ctx.insert("ld_graph".into(), json!([website, webpage]));
@@ -285,7 +301,12 @@ fn psr_key(group: &Option<String>, consumption: i64) -> String {
     format!("{}_{}", group.as_deref().unwrap_or("other"), consumption)
 }
 
-fn production_overview(gen: &[GenerationRow], load: &[LoadRow], interval: &str, tz: &Tz) -> Value {
+fn production_overview(
+    gen: &[GenerationRow],
+    load: &[LoadRow],
+    interval: &str,
+    tz: &TimeZone,
+) -> Value {
     struct Last {
         date: i64,
         value: f64,
@@ -364,7 +385,7 @@ fn production_series(gen: &[GenerationRow]) -> Value {
     })
 }
 
-fn outage_json(o: &OutageRow, tz: &Tz) -> Value {
+fn outage_json(o: &OutageRow, tz: &TimeZone) -> Value {
     let planned = o.business_type.as_deref() == Some("Planned maintenance");
     json!({
         "planned": planned,
@@ -412,7 +433,7 @@ async fn area_overview(
     let today_s = data::day_series(&st.app, c, a.name, t)
         .await
         .map_err(internal)?;
-    let tomorrow_s = data::day_series(&st.app, c, a.name, t + chrono::Duration::days(1))
+    let tomorrow_s = data::day_series(&st.app, c, a.name, add_days(t, 1))
         .await
         .map_err(internal)?;
     let st_t = today_s.stats();
@@ -429,10 +450,7 @@ async fn area_overview(
         "tomorrow": tomorrow_s,
     });
     if detailed {
-        let prev = t
-            .with_day(1)
-            .and_then(|d| d.checked_sub_months(Months::new(1)))
-            .unwrap_or(t);
+        let prev = t.first_of_month().checked_sub(1.month()).unwrap_or(t);
         let m = data::month_stats(&st.app, c, a.name, t)
             .await
             .map_err(internal)?;
@@ -440,8 +458,8 @@ async fn area_overview(
             .await
             .map_err(internal)?;
         let o = v.as_object_mut().expect("object");
-        o.insert("month".into(), json!(t.month0()));
-        o.insert("prev_month".into(), json!(prev.month0()));
+        o.insert("month".into(), json!(t.month() - 1));
+        o.insert("prev_month".into(), json!(prev.month() - 1));
         o.insert("avg_month".into(), json!(m.map(|s| s.0)));
         o.insert("min_month".into(), json!(m.map(|s| s.1)));
         o.insert("max_month".into(), json!(m.map(|s| s.2)));
@@ -460,7 +478,7 @@ async fn production_ctx(
 ) -> Result<(Value, Value, Value), Response> {
     let tz = c.timezone();
     let t = today(&tz);
-    let (from, _) = day_range(&tz, t - chrono::Duration::days(1));
+    let (from, _) = day_range(&tz, add_days(t, -1));
     let (_, to) = day_range(&tz, t);
     let gen = data::generation(&st.app, key, from, to, c.interval)
         .await
@@ -513,7 +531,7 @@ pub async fn index(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> 
         kind: Kind::Localized,
     };
     let (mut ctx, mut boot) = base(&st, &lang, "index", head, &uri, &headers).await?;
-    set_modified(&mut ctx, &chrono::Utc::now().format("%Y-%m-%d").to_string());
+    set_modified(&mut ctx, &today(&TimeZone::UTC).to_string());
     let now = data::now_prices(&st.app).await.map_err(internal)?;
     let genload = data::current_generation_and_load(&st.app)
         .await
@@ -629,10 +647,7 @@ pub async fn country(
         )
     };
     set_description(&mut ctx, &description);
-    set_modified(
-        &mut ctx,
-        &today(&c.timezone()).format("%Y-%m-%d").to_string(),
-    );
+    set_modified(&mut ctx, &today(&c.timezone()).to_string());
     ctx.insert("h1".into(), json!(h1));
     let (overview, series, net) = production_ctx(&st, c, c.cty).await?;
     ctx.insert("country".into(), json!(c));
@@ -725,7 +740,7 @@ pub async fn area(
     };
     let rate = er.rate(iso).unwrap_or(1.0);
     let per_kwh = |v: Option<f64>| v.map(|v| (v * rate / 1000.0 * 1e5).round() / 1e5);
-    let day = today(&c.timezone()).format("%Y-%m-%d").to_string();
+    let day = today(&c.timezone()).to_string();
     let site = public_base(&st, &headers);
     let url = ctx
         .get("canonical")
@@ -737,9 +752,7 @@ pub async fn area(
         .iter()
         .filter_map(|(when, d)| {
             let avg = per_kwh(num(&format!("avg_{when}")))?;
-            let date = (today(&c.timezone()) + chrono::Duration::days(*d))
-                .format("%Y-%m-%d")
-                .to_string();
+            let date = add_days(today(&c.timezone()), *d).to_string();
             Some(json!({
                 "@type": "PropertyValue",
                 "name": format!("{avg_name} {} - {}", a.name, i18n.t(&lang, &format!("chart.{when}"))),
@@ -766,7 +779,7 @@ pub async fn area(
         "license": "https://creativecommons.org/licenses/by/4.0/",
         "keywords": [a.name, a.long, cname.as_str(), "spot price", "day-ahead"],
         "spatialCoverage": { "@type": "Place", "name": format!("{} - {}, {cname}", a.name, a.long) },
-        "temporalCoverage": format!("{}/..", st.app.cfg.history_start.format("%Y-%m-%d")),
+        "temporalCoverage": format!("{}/..", st.app.cfg.history_start),
         "dateModified": day,
         "variableMeasured": measured,
         "distribution": [{
@@ -810,16 +823,14 @@ pub async fn custom(
     let has_params = ["period", "area", "startDate", "endDate"]
         .iter()
         .any(|k| q.contains_key(*k));
-    let head = english_head(
-        &st,
-        "Custom period - electricity spot price table",
-        "Electricity spot prices for any bidding zone and period, per interval, day, week, month or year, as a table and chart.",
-        if has_params { Kind::NoIndex } else { Kind::English },
-    );
+    let kind = if has_params {
+        Kind::NoIndex
+    } else {
+        Kind::Localized
+    };
+    let head = page_head(&st, &lang, "custom", kind);
     let (mut ctx, mut boot) = base(&st, &lang, "custom", head, &uri, &headers).await?;
-    let d = today(&chrono_tz::Europe::Stockholm)
-        .format("%Y-%m-%d")
-        .to_string();
+    let d = today(&crate::timeutil::stockholm()).to_string();
     let form = json!({
         "area": q.get("area").cloned().unwrap_or_else(|| "SE1".into()),
         "period": q.get("period").cloned().unwrap_or_else(|| "daily".into()),
@@ -834,34 +845,30 @@ pub async fn custom(
 
 pub async fn help(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> PageResult {
     let lang = detect_lang(&uri, &headers);
-    let head = english_head(
-        &st,
-        "Help - spot price, taxes, install the app and open API",
-        "How spot, hourly and variable electricity prices work, how actual prices with fees and VAT are calculated, how to install the app, and the free open JSON API.",
-        Kind::English,
-    );
+    let head = page_head(&st, &lang, "help", Kind::Localized);
     let (ctx, boot) = base(&st, &lang, "help", head, &uri, &headers).await?;
     render(&st, "help.html", finish(ctx, boot))
 }
 
 pub async fn homeassistant(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> PageResult {
     let lang = detect_lang(&uri, &headers);
-    let head = english_head(
-        &st,
-        "Home Assistant - electricity spot price sensor",
-        "Electricity spot prices in Home Assistant with the free REST API: sensor configuration, parameters for fees, VAT and currency, and an apexcharts card.",
-        Kind::English,
-    );
+    let head = page_head(&st, &lang, "hass", Kind::Localized);
     let (mut ctx, boot) = base(&st, &lang, "homeassistant", head, &uri, &headers).await?;
     ctx.insert("base_url".into(), json!(public_base(&st, &headers)));
     render(&st, "homeassistant.html", finish(ctx, boot))
 }
 
-/// Head of a page whose content is only in English
-fn english_head(st: &WebState, title: &str, description: &str, kind: Kind) -> Head {
+/// Head of a translated page with its own title and description (`pages.<key>.page_title` and
+/// `pages.<key>.description`)
+fn page_head(st: &WebState, lang: &str, key: &str, kind: Kind) -> Head {
+    let i18n = &st.app.i18n;
     Head {
-        title: format!("{title} - {}", st.app.i18n.t("en", "page.title")),
-        description: description.into(),
+        title: format!(
+            "{} - {}",
+            i18n.t(lang, &format!("pages.{key}.page_title")),
+            i18n.t(lang, "page.title")
+        ),
+        description: i18n.t(lang, &format!("pages.{key}.description")),
         kind,
     }
 }
@@ -919,8 +926,8 @@ fn localized_paths() -> Vec<String> {
 
 pub async fn sitemap(State(st): State<WebState>, headers: HeaderMap) -> Response {
     let base = public_base(&st, &headers);
-    let day = chrono::Utc::now().format("%Y-%m-%d").to_string();
-    // (url, lastmod). Price pages change every day; the English pages have no date we know.
+    let day = today(&TimeZone::UTC).to_string();
+    // (url, lastmod). Price pages change every day.
     let mut urls: Vec<(String, Option<&str>)> = vec![];
     for p in localized_paths() {
         urls.push((format!("{base}{p}"), Some(&day)));
@@ -930,8 +937,12 @@ pub async fn sitemap(State(st): State<WebState>, headers: HeaderMap) -> Response
             }
         }
     }
+    // Translated pages without a date we know
     for p in ["/help", "/homeassistant", "/custom"] {
         urls.push((format!("{base}{p}"), None));
+        for l in LANGUAGES {
+            urls.push((format!("{base}{p}?lang={l}"), None));
+        }
     }
     let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>"#);
     xml.push_str(r#"<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">"#);
@@ -954,9 +965,8 @@ pub async fn sitemap(State(st): State<WebState>, headers: HeaderMap) -> Response
 pub async fn llms(State(st): State<WebState>, headers: HeaderMap) -> Response {
     let base = public_base(&st, &headers);
     let i18n = &st.app.i18n;
-    let d = today(&chrono_tz::Europe::Stockholm);
-    let from = (d - chrono::Duration::days(30)).format("%Y-%m-%d");
-    let d = d.format("%Y-%m-%d");
+    let d = today(&crate::timeutil::stockholm());
+    let from = add_days(d, -30);
     let mut out = format!(
         "# {site}\n\n\
          > Free website and open JSON API with day-ahead electricity spot prices for {zones} \
@@ -987,7 +997,7 @@ pub async fn llms(State(st): State<WebState>, headers: HeaderMap) -> Response {
          - [Map of all zones with current prices and flows]({base}/)\n",
         site = i18n.t("en", "page.title"),
         zones = zone_count(),
-        start = st.app.cfg.history_start.format("%Y-%m-%d"),
+        start = st.app.cfg.history_start,
         terms = ENTSOE_TERMS,
         langs = LANGUAGES
             .iter()

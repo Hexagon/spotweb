@@ -2,6 +2,7 @@
 
 mod api;
 pub mod data;
+pub mod metrics;
 mod pages;
 
 use std::sync::Arc;
@@ -30,6 +31,30 @@ struct Static;
 #[derive(RustEmbed)]
 #[folder = "templates/"]
 struct Templates;
+
+/// How pages send their Content-Security-Policy
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Csp {
+    Enforce,
+    ReportOnly,
+    Off,
+}
+
+/// A strict, nonce based policy as recommended by Google, so that AdSense, Analytics and the
+/// analytics script keep working without listing their hosts. Scripts need the page's nonce;
+/// scripts they load are trusted (`strict-dynamic`). `https:` and `'unsafe-inline'` are only
+/// fallbacks for browsers without nonce support and are ignored by the others.
+pub fn csp_policy(nonce: &str) -> String {
+    format!(
+        "script-src 'nonce-{nonce}' 'strict-dynamic' https: 'unsafe-inline'; \
+         object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+    )
+}
+
+/// Random nonce for one response
+pub fn new_nonce() -> String {
+    uuid::Uuid::new_v4().simple().to_string()
+}
 
 #[derive(Clone)]
 pub struct WebState {
@@ -258,6 +283,11 @@ pub fn static_file(path: &str, headers: &HeaderMap) -> Option<Response> {
     )
 }
 
+/// Whether `path` is one of the embedded static files
+pub fn is_static(path: &str) -> bool {
+    Static::get(path.trim_start_matches('/')).is_some()
+}
+
 async fn static_handler(req: Request) -> Response {
     static_file(req.uri().path(), req.headers())
         .unwrap_or_else(|| StatusCode::NOT_FOUND.into_response())
@@ -359,6 +389,10 @@ pub fn router(app: App) -> Router {
         .layer(TimeoutLayer::with_status_code(
             StatusCode::REQUEST_TIMEOUT,
             Duration::from_secs(30),
+        ))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            metrics::track,
         ))
         .layer(TraceLayer::new_for_http())
         .with_state(state)

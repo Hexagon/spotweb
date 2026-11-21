@@ -2,12 +2,12 @@
 {% import "macros.html" as m %}
 {% block content %}
 <section class="card pad">
-  <h1 class="h2">Custom period</h1>
+  <h1 class="h2">{{ t("pages.custom.title") }}</h1>
   <form class="form-row" id="custom-form" method="get" action="/custom">
-    <label>Period
+    <label>{{ t("pages.custom.period") }}
       <select name="period">
-        {%- for p, label in [("hourly", "Interval (raw)"), ("daily", "Day"), ("weekly", "Week"), ("monthly", "Month"), ("yearly", "Year"), ("total", "Total")] %}
-        <option value="{{ p }}"{% if form.period == p %} selected{% endif %}>{{ label }}</option>
+        {%- for p in ["hourly", "daily", "weekly", "monthly", "yearly", "total"] %}
+        <option value="{{ p }}"{% if form.period == p %} selected{% endif %}>{{ t("pages.custom.p_" ~ p) }}</option>
         {%- endfor %}
       </select>
     </label>
@@ -22,27 +22,26 @@
         {%- endfor %}
       </select>
     </label>
-    <label>Start date <input type="date" name="startDate" value="{{ form.startDate }}" required></label>
-    <label>End date <input type="date" name="endDate" value="{{ form.endDate }}" required></label>
-    <button class="btn" type="submit">Fetch</button>
+    <label>{{ t("pages.custom.start") }} <input type="date" name="startDate" value="{{ form.startDate }}" required></label>
+    <label>{{ t("pages.custom.end") }} <input type="date" name="endDate" value="{{ form.endDate }}" required></label>
+    <button class="btn" type="submit">{{ t("pages.custom.fetch") }}</button>
   </form>
-  <p class="muted small">Week, month and year groups are in the local time of the selected area. The end date is inclusive.
-    Raw intervals can be fetched for at most 31 days and days for at most 366 days per request.</p>
+  <p class="muted small">{{ t("pages.custom.note") }}</p>
   <p class="small hidden" id="custom-error" role="alert"></p>
 </section>
 
 <section class="card hidden" id="custom-result">
-  <header class="card-head"><h2>Result</h2>{{ m.share(attrs='data-share-from="#custom-permalink"') }}</header>
+  <header class="card-head"><h2>{{ t("pages.custom.result") }}</h2>{{ m.share(attrs='data-share-from="#custom-permalink"') }}</header>
   <div class="custom-grid">
     <div class="chart" data-chart="custom"></div>
     <table class="table stats-table">
-      <tr><td>Average</td><td class="num big" id="custom-avg">-</td></tr>
-      <tr><td>Minimum</td><td class="num big" id="custom-min">-</td></tr>
-      <tr><td>Maximum</td><td class="num big" id="custom-max">-</td></tr>
+      <tr><td>{{ t("pages.custom.average") }}</td><td class="num big" id="custom-avg">-</td></tr>
+      <tr><td>{{ t("pages.custom.minimum") }}</td><td class="num big" id="custom-min">-</td></tr>
+      <tr><td>{{ t("pages.custom.maximum") }}</td><td class="num big" id="custom-max">-</td></tr>
     </table>
   </div>
-  <p class="pad right small"><a id="custom-permalink" href="#">Permalink</a> &middot; <a id="custom-json" href="#">JSON</a> &middot; <a id="custom-csv" href="#" download="spotprice.csv">CSV</a></p>
-  <p class="pad right small muted">Source: ENTSO-E Transparency Platform.</p>
+  <p class="pad right small"><a id="custom-permalink" href="#">{{ t("pages.custom.permalink") }}</a> &middot; <a id="custom-json" href="#">JSON</a> &middot; <a id="custom-csv" href="#" download="spotprice.csv">CSV</a></p>
+  <p class="pad right small muted">{{ t("pages.custom.source") }}</p>
   <div class="table-scroll tall"><table class="table compact" id="custom-table"></table></div>
 </section>
 {% endblock %}

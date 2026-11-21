@@ -12,7 +12,7 @@ struct Locales;
 pub struct I18n {
     /// lang -> flattened key ("common.page.title") -> text
     flat: HashMap<String, HashMap<String, String>>,
-    /// lang -> original nested JSON, sent to the browser
+    /// lang -> original nested JSON without `pages`, sent to the browser
     raw: HashMap<String, Value>,
 }
 
@@ -46,10 +46,14 @@ impl I18n {
                 continue;
             };
             let data = Locales::get(&file).expect("embedded file");
-            let v: Value = serde_json::from_slice(&data.data)
+            let mut v: Value = serde_json::from_slice(&data.data)
                 .map_err(|e| anyhow::anyhow!("locales/{file}: {e}"))?;
             let mut m = HashMap::new();
             flatten("", &v, &mut m);
+            // Page texts (`pages.*`) are only rendered on the server, keep them out of the boot JSON
+            if let Some(o) = v.as_object_mut() {
+                o.remove("pages");
+            }
             flat.insert(lang.to_string(), m);
             raw.insert(lang.to_string(), v);
         }
@@ -57,8 +61,9 @@ impl I18n {
         Ok(Self { flat, raw })
     }
 
+    /// Look up `key`. Keys are relative to `common.` unless they start with `common.` or `pages.`.
     pub fn t(&self, lang: &str, key: &str) -> String {
-        let key = if key.starts_with("common.") {
+        let key = if key.starts_with("common.") || key.starts_with("pages.") {
             key.to_string()
         } else {
             format!("common.{key}")
@@ -141,5 +146,8 @@ mod tests {
         assert_eq!(i.t("sv", "common.page.title"), "Elpriset just nu");
         assert_eq!(i.t("xx", "page.title"), i.t("en", "page.title"));
         assert_eq!(i.t("en", "does.not.exist"), "common.does.not.exist");
+        assert_eq!(i.t("sv", "pages.custom.title"), "Egen period");
+        assert!(i.raw("sv").get("pages").is_none());
+        assert_eq!(i.raw("sv")["common"]["custom"]["copy"], "Kopiera");
     }
 }

@@ -16,18 +16,19 @@ fn test_app() -> App {
         public_url: Some("https://example.test".into()),
         adsense: None,
         ga_id: None,
-        schedule_tz: chrono_tz::Europe::Stockholm,
-        history_start: chrono::NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(),
+        schedule_tz: crate::timeutil::stockholm(),
+        history_start: jiff::civil::date(2021, 1, 1),
+        csp: crate::web::Csp::Enforce,
     };
     let app = App::new(db, cfg).unwrap();
     // Seed: SE1 today + tomorrow at 15 minutes, exchange rates
-    let tz = chrono_tz::Europe::Stockholm;
+    let tz = crate::timeutil::stockholm();
     let mut c = app.db.conn().unwrap();
     let mut rows = vec![];
     for d in [
-        today(&tz) - chrono::Duration::days(1),
+        crate::timeutil::add_days(today(&tz), -1),
         today(&tz),
-        today(&tz) + chrono::Duration::days(1),
+        crate::timeutil::add_days(today(&tz), 1),
     ] {
         let (s, e) = day_range(&tz, d);
         let mut t = s;
@@ -59,9 +60,7 @@ async fn get(app: &App, uri: &str) -> (StatusCode, String, axum::http::HeaderMap
 #[tokio::test]
 async fn spot_api_shape() {
     let app = test_app();
-    let d = today(&chrono_tz::Europe::Stockholm)
-        .format("%Y-%m-%d")
-        .to_string();
+    let d = today(&crate::timeutil::stockholm()).to_string();
     let (s, body, _) = get(
         &app,
         &format!("/api/v2/spot?period=hourly&area=se1&startDate={d}&endDate={d}"),
@@ -352,9 +351,7 @@ async fn get_if_none_match(
 #[tokio::test]
 async fn api_etag_and_not_modified() {
     let app = test_app();
-    let d = today(&chrono_tz::Europe::Stockholm)
-        .format("%Y-%m-%d")
-        .to_string();
+    let d = today(&crate::timeutil::stockholm()).to_string();
     for uri in [
         format!("/api/v2/spot?period=hourly&area=SE1&startDate={d}&endDate={d}"),
         "/api/v2/hass?area=SE1&currency=SEK".to_string(),
@@ -434,9 +431,7 @@ async fn permalinks_and_share_buttons() {
 #[tokio::test]
 async fn api_v1_compat_edge_cases() {
     let app = test_app();
-    let d = today(&chrono_tz::Europe::Stockholm)
-        .format("%Y-%m-%d")
-        .to_string();
+    let d = today(&crate::timeutil::stockholm()).to_string();
     let json = |b: &str| serde_json::from_str::<Value>(b).unwrap();
 
     // Repeated parameter: first value wins (URLSearchParams.get)
@@ -521,8 +516,8 @@ async fn api_v1_compat_edge_cases() {
 #[tokio::test]
 async fn api_attribution_and_range_limits() {
     let app = test_app();
-    let d = today(&chrono_tz::Europe::Stockholm);
-    let iso = |d: chrono::NaiveDate| d.format("%Y-%m-%d").to_string();
+    let d = today(&crate::timeutil::stockholm());
+    let iso = |d: jiff::civil::Date| d.to_string();
 
     // Source is always given, the conversion note only when converted
     let (_, body, _) = get(
@@ -556,7 +551,7 @@ async fn api_attribution_and_range_limits() {
     // Raw intervals: 31 days ok, 32 days refused
     let ok = format!(
         "/api/v2/spot?period=hourly&area=SE1&startDate={}&endDate={}",
-        iso(d - chrono::Duration::days(30)),
+        iso(crate::timeutil::add_days(d, -30)),
         iso(d)
     );
     assert_eq!(get(&app, &ok).await.0, StatusCode::OK);
@@ -564,7 +559,7 @@ async fn api_attribution_and_range_limits() {
         &app,
         &format!(
             "/api/v2/spot?period=hourly&area=SE1&startDate={}&endDate={}",
-            iso(d - chrono::Duration::days(31)),
+            iso(crate::timeutil::add_days(d, -31)),
             iso(d)
         ),
     )
@@ -575,7 +570,7 @@ async fn api_attribution_and_range_limits() {
     let span = |p: &str, days: i64| {
         format!(
             "/api/v2/spot?period={p}&area=SE1&startDate={}&endDate={}",
-            iso(d - chrono::Duration::days(days)),
+            iso(crate::timeutil::add_days(d, -days)),
             iso(d)
         )
     };
@@ -591,15 +586,15 @@ async fn api_attribution_and_range_limits() {
 async fn grouped_split_at_current_group_matches_unsplit() {
     use crate::price::{group, select_rows, Grouping, IntervalMode};
     let app = test_app();
-    let tz = chrono_tz::Europe::Stockholm;
+    let tz = crate::timeutil::stockholm();
     // Hourly history for the last ~400 days, so every calendar grouping crosses "now"
-    let (now_start, _) = day_range(&tz, today(&tz) - chrono::Duration::days(1));
+    let (now_start, _) = day_range(&tz, crate::timeutil::add_days(today(&tz), -1));
     let from = now_start - 400 * 86_400_000;
     let rows: Vec<_> = (0..400 * 24)
         .map(|i| (from + i * 3_600_000, "PT60M".to_string(), (i % 97) as f64))
         .collect();
     queries::upsert_spot(&mut app.db.conn().unwrap(), "sv", "SE1", &rows).unwrap();
-    let to = day_range(&tz, today(&tz) + chrono::Duration::days(1)).1;
+    let to = day_range(&tz, crate::timeutil::add_days(today(&tz), 1)).1;
     let mode = IntervalMode::Prefer("PT60M".into());
     let all = queries::spot_rows(&app.db.conn().unwrap(), "SE1", from, to).unwrap();
     for g in [
@@ -609,11 +604,99 @@ async fn grouped_split_at_current_group_matches_unsplit() {
         Grouping::Yearly,
     ] {
         let expected = group(&select_rows(&all, &mode, &tz), g, &tz);
-        let got = super::data::spot_grouped(&app, "SE1", from, to, g, &mode, tz)
+        let got = super::data::spot_grouped(&app, "SE1", from, to, g, &mode, tz.clone())
             .await
             .unwrap();
         assert_eq!(*got, expected, "{g:?}");
     }
+}
+
+#[tokio::test]
+async fn http_stats_per_route() {
+    let app = test_app();
+    let d = today(&crate::timeutil::stockholm()).to_string();
+    let (s, _, _) = get(
+        &app,
+        &format!("/api/v2/spot?period=hourly&area=SE1&startDate={d}&endDate={d}"),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    // 1.x compatible: bad parameters are answered with 500
+    get(&app, "/api/v2/spot?period=bogus&area=SE1").await;
+    get(&app, "/healthz").await;
+    get(&app, "/no/such/page/here").await;
+    get(&app, "/robots.txt").await;
+    let (s, body, _) = get(&app, "/api/v2/status").await;
+    assert_eq!(s, StatusCode::OK);
+    let v: Value = serde_json::from_str(&body).unwrap();
+    let routes = &v["http"]["routes"];
+    assert_eq!(routes["/api/v2/spot"]["requests"], 2, "{routes}");
+    assert_eq!(routes["/api/v2/spot"]["5xx"], 1, "{routes}");
+    assert_eq!(routes["/healthz"]["requests"], 1, "{routes}");
+    assert_eq!(routes["not found"]["4xx"], 1, "{routes}");
+    assert!(routes["/api/v2/spot"]["p95_ms"].is_u64(), "{routes}");
+    // The status request itself is counted once its response is done
+    assert!(routes.get("/api/v2/status").is_none());
+    assert_eq!(v["http"]["total"]["requests"], 5);
+    assert_eq!(routes["/robots.txt"]["requests"], 1, "{routes}");
+    get(&app, "/manifest.json").await;
+    assert_eq!(app.http_stats.to_json()["routes"]["static"]["requests"], 1);
+}
+
+#[tokio::test]
+async fn translated_pages_have_no_missing_keys() {
+    let app = test_app();
+    for lang in crate::countries::LANGUAGES {
+        for page in ["help", "homeassistant", "custom"] {
+            let (s, body, _) = get(&app, &format!("/{page}?lang={lang}")).await;
+            assert_eq!(s, StatusCode::OK);
+            assert!(!body.contains("pages."), "{page} {lang} shows a raw key");
+            assert!(
+                !body.contains("&lt;i&gt;"),
+                "{page} {lang} has escaped markup"
+            );
+        }
+    }
+    let (_, body, _) = get(&app, "/help?lang=sv").await;
+    assert!(body.contains("<i>Faktiskt timpris"), "{body}");
+    let (_, body, _) = get(&app, "/custom?lang=de").await;
+    assert!(body.contains("<title>") && body.contains("Eigener Zeitraum"));
+}
+
+#[tokio::test]
+async fn pages_send_nonce_csp() {
+    let app = test_app();
+    let (s, body, headers) = get(&app, "/sv/SE1").await;
+    assert_eq!(s, StatusCode::OK);
+    let csp = headers["content-security-policy"]
+        .to_str()
+        .unwrap()
+        .to_string();
+    let nonce = csp
+        .split("'nonce-")
+        .nth(1)
+        .and_then(|r| r.split('\'').next())
+        .unwrap();
+    assert!(nonce.len() >= 32, "{csp}");
+    assert!(csp.contains("'strict-dynamic'") && csp.contains("object-src 'none'"));
+    // Every executable script carries the nonce; only JSON data blocks are inline
+    for tag in body.split("<script").skip(1) {
+        let tag = tag.split('>').next().unwrap();
+        assert!(
+            tag.contains(&format!("nonce=\"{nonce}\"")) || tag.contains("application/"),
+            "script without nonce: {tag}"
+        );
+    }
+    assert!(!body.contains(" onclick=") && !body.contains(" onload="));
+    // A new nonce per response
+    let (_, _, h2) = get(&app, "/sv/SE1").await;
+    assert_ne!(
+        h2["content-security-policy"],
+        headers["content-security-policy"]
+    );
+    // Not on the API
+    let (_, _, h) = get(&app, "/api/v2/status").await;
+    assert!(h.get("content-security-policy").is_none());
 }
 
 /// Language versions, titles, descriptions and structured data
@@ -680,10 +763,33 @@ async fn search_engine_metadata() {
     assert!(body.contains(r#"<h1 class="h2 page-title">Elpris i Sverige idag och imorgon</h1>"#));
     assert!(body.contains("medel per elområde: SE1 "));
 
-    // English-only pages have one url for all languages
+    // Help, Home Assistant and the custom form are translated: one url per language
     let (_, body, _) = get(&app, "/help?lang=sv").await;
-    assert!(body.contains(r#"<link rel="canonical" href="https://example.test/help">"#));
+    assert!(body.contains(r#"<link rel="canonical" href="https://example.test/help?lang=sv">"#));
+    assert!(body.contains(
+        r#"<link rel="alternate" hreflang="fi" href="https://example.test/help?lang=fi">"#
+    ));
+    assert!(body.contains(
+        r#"<link rel="alternate" hreflang="x-default" href="https://example.test/help">"#
+    ));
+    assert!(body.contains("<title>Hjälp - spotpris, skatter, installera appen och öppet API - Elpriset just nu</title>"));
+    assert_eq!(ld(&body)["@graph"][1]["inLanguage"], "sv");
+    let (_, body, _) = get(&app, "/homeassistant?lang=de").await;
+    assert!(
+        body.contains(r#"<meta name="description" content="Strom-Spotpreise in Home Assistant"#)
+    );
+    // A filled in custom form is one url, kept out of the index
+    let (_, body, _) = get(&app, "/custom?lang=fi&area=SE3&period=daily").await;
+    assert!(body.contains(r#"<meta name="robots" content="noindex, follow">"#));
+    assert!(
+        body.contains(
+            r#"<link rel="canonical" href="https://example.test/custom?period=daily&amp;area=SE3">"#
+        ),
+        "{body}"
+    );
     assert!(!body.contains("hreflang"));
+    let (_, body, _) = get(&app, "/sitemap.xml").await;
+    assert!(body.contains("<loc>https://example.test/homeassistant?lang=no</loc>"));
 
     // 404 is kept out of the index
     let (_, body, _) = get(&app, "/xx").await;
