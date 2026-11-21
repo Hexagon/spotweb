@@ -172,14 +172,18 @@ async fn pages_render() {
 async fn redirects_static_and_404() {
     let app = test_app();
     let (s, _, h) = get(&app, "/fi").await;
-    assert_eq!(s, StatusCode::TEMPORARY_REDIRECT);
+    assert_eq!(s, StatusCode::PERMANENT_REDIRECT);
     assert_eq!(h["location"], "/fi/FI");
+    let (s, _, h) = get(&app, "/fi?lang=sv").await;
+    assert_eq!(s, StatusCode::PERMANENT_REDIRECT);
+    assert_eq!(h["location"], "/fi/FI?lang=sv");
     let (s, _, h) = get(&app, "/elomrade/SE3").await;
-    assert_eq!(s, StatusCode::TEMPORARY_REDIRECT);
+    assert_eq!(s, StatusCode::PERMANENT_REDIRECT);
     assert_eq!(h["location"], "/sv/SE3");
     let (s, body, _) = get(&app, "/robots.txt").await;
     assert_eq!(s, StatusCode::OK);
-    assert!(body.contains("Sitemap"));
+    assert!(body.contains("Sitemap: https://example.test/sitemap.xml"));
+    assert!(body.contains("Disallow: /healthz"));
     let (s, _, h) = get(&app, "/assets/app.js").await;
     assert_eq!(s, StatusCode::OK);
     assert!(h["content-type"].to_str().unwrap().contains("javascript"));
@@ -194,6 +198,11 @@ async fn redirects_static_and_404() {
     assert!(body.contains("<loc>https://example.test/sv/SE1</loc>"));
     assert!(body.contains("<loc>https://example.test/sv</loc>"));
     assert!(!body.contains("<loc>https://example.test/fi</loc>"));
+    // Every language version is listed, the language of the path only once
+    assert!(body.contains("<loc>https://example.test/sv/SE1?lang=en</loc>"));
+    assert!(body.contains("<loc>https://example.test/?lang=sv</loc>"));
+    assert!(!body.contains("<loc>https://example.test/sv/SE1?lang=sv</loc>"));
+    assert!(body.contains("<url><loc>https://example.test/help</loc></url>"));
     let (s, body, _) = get(&app, "/api/v2/status").await;
     assert_eq!(s, StatusCode::OK);
     assert!(body.contains("latest_price"));
@@ -214,17 +223,37 @@ async fn redirects_static_and_404() {
 #[test]
 fn lang_detection() {
     use axum::http::{HeaderMap, HeaderValue, Uri};
+    let lang = |uri: &'static str, h: &HeaderMap| super::detect_lang(&Uri::from_static(uri), h);
     let mut h = HeaderMap::new();
-    assert_eq!(super::detect_lang(&Uri::from_static("/sv/SE1"), &h), "sv");
+    assert_eq!(lang("/sv/SE1", &h), "sv");
+    assert_eq!(lang("/", &h), "en");
+    assert_eq!(lang("/pl/PL", &h), "en");
     h.insert(
         "accept-language",
         HeaderValue::from_static("de-DE,de;q=0.9"),
     );
-    assert_eq!(super::detect_lang(&Uri::from_static("/sv/SE1"), &h), "de");
-    assert_eq!(
-        super::detect_lang(&Uri::from_static("/sv/SE1?lang=fi"), &h),
-        "fi"
+    // A url with a language serves that language, whatever the browser asks for
+    assert_eq!(lang("/sv/SE1", &h), "sv");
+    assert_eq!(lang("/", &h), "de");
+    assert_eq!(lang("/pl/PL", &h), "de");
+    assert_eq!(lang("/sv/SE1?lang=fi", &h), "fi");
+    // Danish and Norwegian browsers, and q-values
+    h.insert(
+        "accept-language",
+        HeaderValue::from_static("da-DK,da;q=0.9"),
     );
+    assert_eq!(lang("/", &h), "dk");
+    h.insert("accept-language", HeaderValue::from_static("nb-NO"));
+    assert_eq!(lang("/", &h), "no");
+    h.insert(
+        "accept-language",
+        HeaderValue::from_static("pl;q=1, en;q=0.2, fi;q=0.8"),
+    );
+    assert_eq!(lang("/", &h), "fi");
+    // A language picked earlier wins over the url
+    h.insert("cookie", HeaderValue::from_static("a=b; lang=es"));
+    assert_eq!(lang("/sv/SE1", &h), "es");
+    assert_eq!(lang("/sv/SE1?lang=fi", &h), "fi");
     assert_eq!(super::format_int(1234567.4, "en"), "1,234,567");
     assert_eq!(super::format_int(-1234.0, "de"), "-1.234");
 }
@@ -359,13 +388,19 @@ async fn api_etag_and_not_modified() {
 #[tokio::test]
 async fn permalinks_and_share_buttons() {
     let app = test_app();
-    let (s, body, _) = get(&app, "/sv/SE1?lang=de").await;
-    let body = body.replace("&#x2f;", "/");
+    let (s, body, h) = get(&app, "/sv/SE1?lang=de").await;
     assert_eq!(s, StatusCode::OK);
-    // Canonical and preview tags point at the page without the language parameter
+    // Each language version is its own page
+    assert!(body.contains(r#"<link rel="canonical" href="https://example.test/sv/SE1?lang=de">"#));
+    assert!(
+        body.contains(r#"<meta property="og:url" content="https://example.test/sv/SE1?lang=de">"#)
+    );
+    assert!(h["set-cookie"].to_str().unwrap().starts_with("lang=de;"));
+    let (_, body, h) = get(&app, "/sv/SE1").await;
     assert!(body.contains(r#"<link rel="canonical" href="https://example.test/sv/SE1">"#));
-    assert!(body.contains(r#"<meta property="og:url" content="https://example.test/sv/SE1">"#));
+    assert!(h.get("set-cookie").is_none());
     assert!(body.contains(r#"content="https://example.test/icon-512x512.png""#));
+    let body = body.replace("&#x2f;", "/");
     assert!(body.contains(r#"data-share data-share-url="/sv/SE1""#));
 
     let (_, body, _) = get(&app, "/sv").await;
@@ -386,10 +421,12 @@ async fn permalinks_and_share_buttons() {
         "/custom?endDate=2024-01-31&area=SE3&utm_source=x&startDate=2024-01-01&period=daily",
     )
     .await;
-    let body = body.replace("&#x2f;", "/");
     assert!(body.contains(
         r#"<link rel="canonical" href="https://example.test/custom?period=daily&amp;area=SE3&amp;startDate=2024-01-01&amp;endDate=2024-01-31">"#
     ));
+    assert!(body.contains(r#"<meta name="robots" content="noindex, follow">"#));
+    let (_, body, _) = get(&app, "/custom").await;
+    assert!(!body.contains("noindex"));
     assert!(body.contains(r##"data-share-from="#custom-permalink""##));
 }
 
@@ -577,4 +614,91 @@ async fn grouped_split_at_current_group_matches_unsplit() {
             .unwrap();
         assert_eq!(*got, expected, "{g:?}");
     }
+}
+
+/// Language versions, titles, descriptions and structured data
+#[tokio::test]
+async fn search_engine_metadata() {
+    let app = test_app();
+    let ld = |body: &str| -> Value {
+        let s = body
+            .split(r#"<script type="application/ld+json">"#)
+            .nth(1)
+            .unwrap();
+        serde_json::from_str(s.split("</script>").next().unwrap()).unwrap()
+    };
+
+    // Swedish zone page: hreflang for every language, Swedish on the plain url
+    let (_, body, _) = get(&app, "/sv/SE1").await;
+    assert!(body.contains(r#"<html lang="sv">"#));
+    assert!(
+        body.contains(r#"<link rel="alternate" hreflang="sv" href="https://example.test/sv/SE1">"#)
+    );
+    assert!(body.contains(
+        r#"<link rel="alternate" hreflang="da" href="https://example.test/sv/SE1?lang=dk">"#
+    ));
+    assert!(body.contains(
+        r#"<link rel="alternate" hreflang="x-default" href="https://example.test/sv/SE1">"#
+    ));
+    assert!(body
+        .contains("<title>Elpris SE1 (Norra Sverige) idag och imorgon - Elpriset just nu</title>"));
+    assert!(body
+        .contains(r#"<meta name="description" content="Spotpris SE1 Norra Sverige idag: medel "#));
+    assert!(body.contains("<h1>SE1 - Norra Sverige</h1>"));
+    let v = ld(&body);
+    let graph = v["@graph"].as_array().unwrap();
+    assert_eq!(v["@context"], "https://schema.org");
+    assert_eq!(graph[1]["@type"], "WebPage");
+    assert_eq!(graph[1]["url"], "https://example.test/sv/SE1");
+    assert_eq!(graph[1]["inLanguage"], "sv");
+    let ds = graph.iter().find(|n| n["@type"] == "Dataset").unwrap();
+    let today = &ds["variableMeasured"][0];
+    assert_eq!(today["unitText"], "SEK/kWh");
+    assert!(today["value"].is_number());
+    assert!(today["minValue"].as_f64() <= today["value"].as_f64());
+    assert!(ds["distribution"][0]["contentUrl"]
+        .as_str()
+        .unwrap()
+        .ends_with("/api/v2/hass?area=SE1&currency=SEK"));
+
+    // Danish version of the same page
+    let (_, body, _) = get(&app, "/sv/SE1?lang=dk").await;
+    assert!(body.contains(r#"<html lang="da">"#));
+    assert_eq!(ld(&body)["@graph"][1]["inLanguage"], "da");
+
+    // Start page follows the browser and is the x-default
+    let (_, body, _) = get(&app, "/").await;
+    assert!(body.contains(r#"<link rel="canonical" href="https://example.test/">"#));
+    assert!(body
+        .contains(r#"<link rel="alternate" hreflang="en" href="https://example.test/?lang=en">"#));
+    assert!(body
+        .contains(r#"<link rel="alternate" hreflang="x-default" href="https://example.test/">"#));
+
+    // Country page has a heading of its own and prices per zone in the description
+    let (_, body, _) = get(&app, "/sv/").await;
+    assert!(body.contains(r#"<link rel="canonical" href="https://example.test/sv">"#));
+    assert!(body.contains(r#"<h1 class="h2 page-title">Elpris i Sverige idag och imorgon</h1>"#));
+    assert!(body.contains("medel per elområde: SE1 "));
+
+    // English-only pages have one url for all languages
+    let (_, body, _) = get(&app, "/help?lang=sv").await;
+    assert!(body.contains(r#"<link rel="canonical" href="https://example.test/help">"#));
+    assert!(!body.contains("hreflang"));
+
+    // 404 is kept out of the index
+    let (_, body, _) = get(&app, "/xx").await;
+    assert!(body.contains(r#"<meta name="robots" content="noindex, follow">"#));
+    assert!(!body.contains("canonical"));
+
+    // llms.txt lists the API and every zone
+    let (s, body, h) = get(&app, "/llms.txt").await;
+    assert_eq!(s, StatusCode::OK);
+    assert!(h["content-type"]
+        .to_str()
+        .unwrap()
+        .starts_with("text/plain"));
+    assert!(body.starts_with("# Electricity price right now\n\n> "));
+    assert!(body.contains("https://example.test/api/v2/spot?period=daily&area=SE3"));
+    assert!(body.contains("(https://example.test/sv/SE1)"));
+    assert!(body.contains("(https://example.test/pt/PT)"));
 }

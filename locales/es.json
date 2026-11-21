@@ -197,6 +197,18 @@
       "copied": "Enlace copiado",
       "more": "Más opciones…",
       "email": "Correo"
+    },
+    "seo": {
+      "index_title": "Precio de la luz hoy y mañana en los países nórdicos y Europa",
+      "index_description": "Precios spot de la electricidad ahora mismo, hoy y mañana, para {zones} zonas de oferta en los países nórdicos y Europa, con flujos de energía, producción y consumo. Datos de ENTSO-E.",
+      "area_title": "Precio de la luz {area} ({long}) hoy y mañana",
+      "area_description": "Precio spot {area} {long} hoy: media {avg} {unit}, mínimo {min}, máximo {max}.",
+      "area_description_tomorrow": "Mañana: media {avg} {unit}, {min}–{max}.",
+      "area_description_more": "Precios por hora y cuarto de hora, histórico, producción y consumo.",
+      "area_description_nodata": "Precio spot de la electricidad para {area} {long} hoy, mañana e histórico, con producción y consumo.",
+      "country_title": "Precio de la luz {country} hoy y mañana",
+      "country_description": "Precio spot {country} hoy, media por zona de oferta: {prices} {unit}. Producción, consumo e indisponibilidades.",
+      "dataset_name": "Precios spot de la electricidad {area} ({long})"
     }
   }
 }

@@ -197,6 +197,18 @@
       "copied": "Lenken er kopiert",
       "more": "Flere alternativer…",
       "email": "E-post"
+    },
+    "seo": {
+      "index_title": "Strømpris i dag og i morgen i Norden og Europa",
+      "index_description": "Spotpris på strøm akkurat nå, i dag og i morgen, for {zones} prisområder i Norden og Europa, med kraftflyt, produksjon og forbruk. Data fra ENTSO-E.",
+      "area_title": "Strømpris {area} ({long}) i dag og i morgen",
+      "area_description": "Spotpris {area} {long} i dag: snitt {avg} {unit}, lavest {min}, høyest {max}.",
+      "area_description_tomorrow": "I morgen: snitt {avg} {unit}, {min}–{max}.",
+      "area_description_more": "Pris per time og kvarter, historikk, produksjon og forbruk.",
+      "area_description_nodata": "Spotpris på strøm for {area} {long} i dag, i morgen og historisk, med produksjon og forbruk.",
+      "country_title": "Strømpris i {country} i dag og i morgen",
+      "country_description": "Spotpris i {country} i dag, snitt per prisområde: {prices} {unit}. Produksjon, forbruk og driftsavbrudd.",
+      "dataset_name": "Spotpriser på strøm {area} ({long})"
     }
   }
 }

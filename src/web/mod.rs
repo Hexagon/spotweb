@@ -109,6 +109,8 @@ fn template_env(app: &App) -> Environment<'static> {
             None => Value::from_safe_string(r#"<span class="p">-</span>"#.to_string()),
         }
     });
+    // Urls in attributes (canonical, hreflang, og:url) without escaping `/`
+    env.add_filter("attr", |s: String| Value::from_safe_string(attr_escape(&s)));
     env.add_function("mw", |state: &TplState, v: Option<f64>| -> String {
         let lang = state
             .lookup("lang")
@@ -119,41 +121,103 @@ fn template_env(app: &App) -> Environment<'static> {
     env
 }
 
-/// Language selection, same rules as the 1.x middleware: path, then
-/// Accept-Language, then `?lang=`, falling back to English.
-pub fn detect_lang(uri: &Uri, headers: &HeaderMap) -> String {
-    let mut lang = lang_from_path(uri.path()).to_string();
-    if let Some(al) = headers
-        .get(header::ACCEPT_LANGUAGE)
-        .and_then(|v| v.to_str().ok())
-    {
-        let primary = al
-            .split(';')
-            .next()
-            .unwrap_or("")
-            .split(',')
-            .next()
-            .unwrap_or("")
-            .split('-')
-            .next()
-            .unwrap_or("");
-        if let Some(m) = LANGUAGES.iter().find(|l| primary.contains(*l)) {
-            lang = m.to_string();
+/// Name of the cookie that remembers a language picked with `?lang=`
+pub const LANG_COOKIE: &str = "lang";
+
+/// Valid `?lang=` value of a request, if any
+pub fn query_lang(uri: &Uri) -> Option<&'static str> {
+    uri.query()?
+        .split('&')
+        .filter_map(|pair| pair.strip_prefix("lang="))
+        .filter_map(|v| LANGUAGES.iter().find(|l| **l == v).copied())
+        .next_back()
+}
+
+fn cookie_lang(headers: &HeaderMap) -> Option<&'static str> {
+    headers
+        .get_all(header::COOKIE)
+        .iter()
+        .filter_map(|v| v.to_str().ok())
+        .flat_map(|v| v.split(';'))
+        .filter_map(|c| c.trim().strip_prefix(LANG_COOKIE)?.strip_prefix('='))
+        .find_map(|v| LANGUAGES.iter().find(|l| **l == v).copied())
+}
+
+/// Best supported language in an `Accept-Language` header, by q-value
+fn accept_lang(headers: &HeaderMap) -> Option<&'static str> {
+    let al = headers.get(header::ACCEPT_LANGUAGE)?.to_str().ok()?;
+    let mut best: Option<(f32, &'static str)> = None;
+    for part in al.split(',') {
+        let mut it = part.split(';');
+        let tag = it.next().unwrap_or("");
+        let q = it
+            .find_map(|p| p.trim().strip_prefix("q="))
+            .and_then(|q| q.trim().parse::<f32>().ok())
+            .unwrap_or(1.0);
+        if q <= 0.0 {
+            continue;
         }
-    }
-    if let Some(q) = uri.query() {
-        for pair in q.split('&') {
-            if let Some(v) = pair.strip_prefix("lang=") {
-                if LANGUAGES.contains(&v) {
-                    lang = v.to_string();
-                }
+        if let Some(l) = crate::countries::lang_from_tag(tag) {
+            if best.is_none_or(|(bq, _)| q > bq) {
+                best = Some((q, l));
             }
         }
     }
-    if !LANGUAGES.contains(&lang.as_str()) {
-        lang = "en".into();
+    best.map(|b| b.1)
+}
+
+/// Language of a page: `?lang=`, then a language picked earlier (cookie), then the
+/// language of the url (`/sv/...`), then `Accept-Language`, falling back to English.
+///
+/// A url that names a language always serves that language to visitors without a
+/// preference of their own, so crawlers see the same content as the `hreflang` tags claim.
+pub fn detect_lang(uri: &Uri, headers: &HeaderMap) -> String {
+    query_lang(uri)
+        .or_else(|| cookie_lang(headers))
+        .or_else(|| lang_from_path(uri.path()))
+        .or_else(|| accept_lang(headers))
+        .unwrap_or("en")
+        .to_string()
+}
+
+/// Remember a language picked with `?lang=` on a page, so links without the parameter
+/// keep it. Crawlers do not keep cookies and always see the language of the url.
+async fn remember_lang(req: Request, next: axum::middleware::Next) -> Response {
+    let lang = if req.uri().path().starts_with("/api/") {
+        None
+    } else {
+        query_lang(req.uri())
+    };
+    let mut res = next.run(req).await;
+    let is_html = res
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v.starts_with("text/html"));
+    if let (Some(l), true) = (lang, is_html) {
+        if let Ok(v) = HeaderValue::from_str(&format!(
+            "{LANG_COOKIE}={l}; Path=/; Max-Age=31536000; SameSite=Lax"
+        )) {
+            res.headers_mut().append(header::SET_COOKIE, v);
+        }
     }
-    lang
+    res
+}
+
+/// Escape for an html attribute, leaving `/` alone (the default escaper turns it into `&#x2f;`)
+fn attr_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            '\'' => out.push_str("&#39;"),
+            c => out.push(c),
+        }
+    }
+    out
 }
 
 /// Serve an embedded static file
@@ -273,6 +337,7 @@ pub fn router(app: App) -> Router {
         .route("/custom", get(pages::custom))
         .route("/sitemap.xml", get(pages::sitemap))
         .route("/robots.txt", get(pages::robots))
+        .route("/llms.txt", get(pages::llms))
         .route("/api/v2/spot", get(api::spot))
         .route("/api/v2/hass", get(api::hass))
         .route("/api/v2/status", get(api::status))
@@ -288,6 +353,7 @@ pub fn router(app: App) -> Router {
     }
     r.fallback(pages::not_found)
         .layer(axum::middleware::from_fn(api_etag))
+        .layer(axum::middleware::from_fn(remember_lang))
         .layer(axum::middleware::from_fn(security_headers))
         .layer(CompressionLayer::new())
         .layer(TimeoutLayer::with_status_code(

@@ -197,6 +197,18 @@
       "copied": "Link copied",
       "more": "More options…",
       "email": "Email"
+    },
+    "seo": {
+      "index_title": "Electricity prices today and tomorrow in the Nordics and Europe",
+      "index_description": "Electricity spot prices right now, today and tomorrow, for {zones} bidding zones in the Nordics and Europe, with power flows, production and consumption. Data from ENTSO-E.",
+      "area_title": "Electricity price {area} ({long}) today and tomorrow",
+      "area_description": "Spot price {area} {long} today: average {avg} {unit}, lowest {min}, highest {max}.",
+      "area_description_tomorrow": "Tomorrow: average {avg} {unit}, {min}–{max}.",
+      "area_description_more": "Prices per hour and quarter-hour, history, production and consumption.",
+      "area_description_nodata": "Electricity spot price for {area} {long} today, tomorrow and historically, with production and consumption.",
+      "country_title": "Electricity price in {country} today and tomorrow",
+      "country_description": "Spot price in {country} today, average per bidding zone: {prices} {unit}. Production, consumption and outages.",
+      "dataset_name": "Electricity spot prices {area} ({long})"
     }
   }
 }

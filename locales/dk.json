@@ -197,6 +197,18 @@
       "copied": "Linket er kopieret",
       "more": "Flere muligheder…",
       "email": "E-mail"
+    },
+    "seo": {
+      "index_title": "Elprisen i dag og i morgen i Norden og Europa",
+      "index_description": "Spotpriser på el lige nu, i dag og i morgen, for {zones} prisområder i Norden og Europa, med eludveksling, produktion og forbrug. Data fra ENTSO-E.",
+      "area_title": "Elpris {area} ({long}) i dag og i morgen",
+      "area_description": "Spotpris {area} {long} i dag: gennemsnit {avg} {unit}, laveste {min}, højeste {max}.",
+      "area_description_tomorrow": "I morgen: gennemsnit {avg} {unit}, {min}–{max}.",
+      "area_description_more": "Pris pr. time og kvarter, historik, produktion og forbrug.",
+      "area_description_nodata": "Spotpris på el for {area} {long} i dag, i morgen og historisk, med produktion og forbrug.",
+      "country_title": "Elpris i {country} i dag og i morgen",
+      "country_description": "Spotpris i {country} i dag, gennemsnit pr. prisområde: {prices} {unit}. Produktion, forbrug og driftsforstyrrelser.",
+      "dataset_name": "Spotpriser på el {area} ({long})"
     }
   }
 }

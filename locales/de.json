@@ -197,6 +197,18 @@
       "copied": "Link kopiert",
       "more": "Weitere Optionen…",
       "email": "E-Mail"
+    },
+    "seo": {
+      "index_title": "Strompreise heute und morgen in Skandinavien und Europa",
+      "index_description": "Aktuelle Strom-Spotpreise, heute und morgen, für {zones} Gebotszonen in Skandinavien und Europa, mit Stromflüssen, Erzeugung und Verbrauch. Daten von ENTSO-E.",
+      "area_title": "Strompreis {area} ({long}) heute und morgen",
+      "area_description": "Spotpreis {area} {long} heute: Durchschnitt {avg} {unit}, niedrigster {min}, höchster {max}.",
+      "area_description_tomorrow": "Morgen: Durchschnitt {avg} {unit}, {min}–{max}.",
+      "area_description_more": "Preise pro Stunde und Viertelstunde, Verlauf, Erzeugung und Verbrauch.",
+      "area_description_nodata": "Strom-Spotpreis für {area} {long} heute, morgen und historisch, mit Erzeugung und Verbrauch.",
+      "country_title": "Strompreis {country} heute und morgen",
+      "country_description": "Spotpreis {country} heute, Durchschnitt je Gebotszone: {prices} {unit}. Erzeugung, Verbrauch und Ausfälle.",
+      "dataset_name": "Strom-Spotpreise {area} ({long})"
     }
   }
 }
