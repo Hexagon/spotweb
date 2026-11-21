@@ -503,7 +503,7 @@ series:
     // Arrow spot and direction per border, from scripts/build_map.py: {"A|B": [x, y, ux, uy]} pointing A -> B
     try { map.flowAt = JSON.parse($("g.flows", svg).dataset.at || "{}"); } catch (_) { map.flowAt = {}; }
     map.full = svg.getAttribute("viewBox").split(" ").map(Number);
-    // Nordic view: bounding box of the Nordic zones plus the Baltic neighbours
+    // Nordic view: bounding box of the Nordic zones, padded to show the Baltic zones
     // Europe view: bounding box of all our zones
     const bbox = (keep) => {
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;

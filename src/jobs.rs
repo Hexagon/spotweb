@@ -14,7 +14,7 @@ use tokio_cron_scheduler::{Job as CronJob, JobScheduler};
 
 use crate::countries::{Area, Country, COUNTRIES};
 use crate::db::queries::{self, AreaFailure, RunStatus};
-use crate::timeutil::{local_date, local_midnight, now_ms, today, HOUR_MS};
+use crate::timeutil::{day_ahead_end, local_date, local_midnight, now_ms, today, HOUR_MS};
 use crate::App;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, clap::ValueEnum)]
@@ -421,7 +421,7 @@ fn price_fetch_start(
 
 /// Time zone and hour of the earliest day-ahead auction (Switzerland's at 11:00 CET, the
 /// European SDAC auction follows at 12:00 with results from about 12:45).
-const AUCTION_TZ: Tz = chrono_tz::Europe::Brussels;
+const AUCTION_TZ: Tz = crate::timeutil::MARKET_TZ;
 const AUCTION_EARLIEST_HOUR: i64 = 11;
 
 /// Whether day-ahead prices for the local calendar day `day` can have been published at `now`.
@@ -465,7 +465,7 @@ async fn area_prices(
 ) -> anyhow::Result<PriceResult> {
     let tz = country.timezone();
     // Up to and including tomorrow
-    let end = local_midnight(&tz, today(&tz) + chrono::Duration::days(2));
+    let end = day_ahead_end(&tz, now_ms(), 2);
     let name = area.name;
     let max = app
         .db

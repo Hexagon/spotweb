@@ -264,10 +264,13 @@ async fn start_page_map_and_flows_api() {
     let (s, body, _) = get(&app, "/?lang=sv").await;
     assert_eq!(s, StatusCode::OK);
     // Map with every zone, a neighbour and the side panel
-    for name in ["SE1", "SE3", "NO4", "DK2", "DE-LU", "ES"] {
+    for name in [
+        "SE1", "SE3", "NO4", "DK2", "DE-LU", "ES", "EE", "LV", "LT", "CZ", "PT",
+    ] {
         assert!(body.contains(&format!(r#"data-area="{name}""#)), "{name}");
     }
-    assert!(body.contains(r#"data-ext="NL""#));
+    assert!(body.contains(r#"data-area="NL""#));
+    assert!(body.contains(r#"data-ext="GB""#));
     assert!(body.contains(r#"id="zone-panel""#));
     assert!(body.contains("Elpris och överföring just nu"));
     assert!(body.contains(r#"<option value="SE3" selected>"#));
@@ -287,7 +290,8 @@ async fn start_page_map_and_flows_api() {
     );
     assert!(boot["zones"]["SE1"]["now"].is_number());
     assert_eq!(boot["flows"]["borders"].as_array().unwrap().len(), 2);
-    assert_eq!(boot["neighbours"]["NL"], "Nederland");
+    assert_eq!(boot["neighbours"]["GB"], "Great Britain");
+    assert!(boot["neighbours"].get("NL").is_none());
     assert_eq!(boot["default_area"], "SE3");
 
     let (_, body, _) = get(&app, "/?lang=de").await;

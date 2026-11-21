@@ -116,6 +116,30 @@ pub static COUNTRIES: &[Country] = &[
         ],
     },
     Country {
+        id: "ee",
+        name: "Eesti",
+        cty: "Estonia (EE)",
+        interval: "PT15M",
+        tz: "Europe/Tallinn",
+        areas: &[area!("EE", "BZN|EE", "Eesti", "10Y1001A1001A39I", 1)],
+    },
+    Country {
+        id: "lv",
+        name: "Latvija",
+        cty: "Latvia (LV)",
+        interval: "PT15M",
+        tz: "Europe/Riga",
+        areas: &[area!("LV", "BZN|LV", "Latvija", "10YLV-1001A00074", 1)],
+    },
+    Country {
+        id: "lt",
+        name: "Lietuva",
+        cty: "Lithuania (LT)",
+        interval: "PT15M",
+        tz: "Europe/Vilnius",
+        areas: &[area!("LT", "BZN|LT", "Lietuva", "10YLT-1001A0008Q", 1)],
+    },
+    Country {
         id: "de",
         name: "Deutschland",
         cty: "Germany (DE)",
@@ -146,12 +170,28 @@ pub static COUNTRIES: &[Country] = &[
         areas: &[area!("BE", "BZN|BE", "Belgium", "10YBE----------2", 1)],
     },
     Country {
+        id: "nl",
+        name: "Nederland",
+        cty: "Netherlands (NL)",
+        interval: "PT15M",
+        tz: "Europe/Amsterdam",
+        areas: &[area!("NL", "BZN|NL", "Nederland", "10YNL----------L", 1)],
+    },
+    Country {
         id: "ch",
         name: "Switzerland",
         cty: "Switzerland (CH)",
         interval: "PT60M",
         tz: "Europe/Zurich",
         areas: &[area!("CH", "BZN|CH", "Switzerland", "10YCH-SWISSGRIDZ", 1)],
+    },
+    Country {
+        id: "cz",
+        name: "Česko",
+        cty: "Czechia (CZ)",
+        interval: "PT15M",
+        tz: "Europe/Prague",
+        areas: &[area!("CZ", "BZN|CZ", "Česko", "10YCZ-CEPS-----N", 1)],
     },
     Country {
         id: "es",
@@ -176,6 +216,14 @@ pub static COUNTRIES: &[Country] = &[
         interval: "PT15M",
         tz: "Europe/Warsaw",
         areas: &[area!("PL", "BZN|PL", "Poland", "10YPL-AREA-----S", 1)],
+    },
+    Country {
+        id: "pt",
+        name: "Portugal",
+        cty: "Portugal (PT)",
+        interval: "PT15M",
+        tz: "Europe/Lisbon",
+        areas: &[area!("PT", "BZN|PT", "Portugal", "10YPT-REN------W", 1)],
     },
 ];
 
@@ -241,7 +289,7 @@ pub fn lang_from_path(path: &str) -> &'static str {
     let first = p.split('/').next().unwrap_or("");
     match first {
         "sv" => "sv",
-        "be" => "nl",
+        "be" | "nl" => "nl",
         "no" => "no",
         "fi" => "fi",
         "dk" => "dk",
@@ -279,6 +327,7 @@ mod tests {
         assert_eq!(lang_from_path("/sv/SE1"), "sv");
         assert_eq!(lang_from_path("/at"), "de");
         assert_eq!(lang_from_path("/be"), "nl");
+        assert_eq!(lang_from_path("/nl/NL"), "nl");
         assert_eq!(lang_from_path("/"), "en");
     }
 }

@@ -18,39 +18,14 @@ pub struct Neighbour {
 
 pub static NEIGHBOURS: &[Neighbour] = &[
     Neighbour {
-        name: "EE",
-        long: "Eesti",
-        eic: "10Y1001A1001A39I",
-    },
-    Neighbour {
-        name: "LT",
-        long: "Lietuva",
-        eic: "10YLT-1001A0008Q",
-    },
-    Neighbour {
-        name: "NL",
-        long: "Nederland",
-        eic: "10YNL----------L",
-    },
-    Neighbour {
         name: "GB",
         long: "Great Britain",
         eic: "10YGB----------A",
     },
     Neighbour {
-        name: "CZ",
-        long: "Česko",
-        eic: "10YCZ-CEPS-----N",
-    },
-    Neighbour {
         name: "IT",
         long: "Italia (Nord)",
         eic: "10Y1001A1001A73I",
-    },
-    Neighbour {
-        name: "PT",
-        long: "Portugal",
-        eic: "10YPT-REN------W",
     },
 ];
 
@@ -87,6 +62,8 @@ pub static BORDERS: &[(&str, &str)] = &[
     ("DK1", "GB"),
     ("DK2", "DE-LU"),
     ("FI", "EE"),
+    ("EE", "LV"),
+    ("LV", "LT"),
     ("DE-LU", "AT"),
     ("DE-LU", "CH"),
     ("DE-LU", "FR"),
@@ -100,6 +77,7 @@ pub static BORDERS: &[(&str, &str)] = &[
     ("BE", "FR"),
     ("BE", "NL"),
     ("BE", "GB"),
+    ("NL", "GB"),
     ("CH", "FR"),
     ("CH", "IT"),
     ("ES", "FR"),
