@@ -481,8 +481,6 @@ series:
     return el;
   };
   const esc = (s) => String(s === null || s === undefined ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-  // Where a border arrow sits when the midpoint between the two labels is a poor spot (svg units)
-  const FLOW_AT = {};
   const NORDIC = ["sv", "no", "fi", "dk"];
 
   const map = { ready: false, selected: null, view: null };
@@ -502,6 +500,8 @@ series:
     map.tip = $(".map-tooltip", app);
     map.anchor = {};
     $$("[data-x]", svg).forEach((p) => { map.anchor[p.dataset.area || p.dataset.ext] = [Number(p.dataset.x), Number(p.dataset.y)]; });
+    // Arrow spot and direction per border, from scripts/build_map.py: {"A|B": [x, y, ux, uy]} pointing A -> B
+    try { map.flowAt = JSON.parse($("g.flows", svg).dataset.at || "{}"); } catch (_) { map.flowAt = {}; }
     map.full = svg.getAttribute("viewBox").split(" ").map(Number);
     // Nordic view: bounding box of the Nordic zones plus the Baltic neighbours
     // Europe view: bounding box of all our zones
@@ -612,10 +612,15 @@ series:
   const flowArrow = (g, f, i, selected) => {
     const a = map.anchor[f.from], b = map.anchor[f.to];
     if (!a || !b) return;
-    const key = [f.from, f.to].sort().join("|");
     const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1;
-    const ux = dx / len, uy = dy / len, px = -uy, py = ux;
-    const mid = FLOW_AT[key] || [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    let ux = dx / len, uy = dy / len, mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const spot = map.flowAt[[f.from, f.to].sort().join("|")];
+    if (spot) {
+      const s = f.from < f.to ? 1 : -1;
+      mid = [spot[0], spot[1]];
+      ux = spot[2] * s; uy = spot[3] * s;
+    }
+    const px = -uy, py = ux;
     const touches = selected && (f.from === selected || f.to === selected);
     const cls = "flow" + (touches ? " active" : selected ? " dim" : "");
     const grp = svgEl("g", { class: cls, "data-flow": i }, g);
