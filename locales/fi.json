@@ -198,6 +198,18 @@
       "more": "Lisää vaihtoehtoja…",
       "email": "Sähköposti"
     },
+    "seo": {
+      "index_title": "Sähkön hinta tänään ja huomenna Pohjoismaissa ja Euroopassa",
+      "index_description": "Sähkön spot-hinnat juuri nyt, tänään ja huomenna, {zones} tarjousalueelle Pohjoismaissa ja Euroopassa, sekä siirrot, tuotanto ja kulutus. Tiedot: ENTSO-E.",
+      "area_title": "Sähkön hinta {area} ({long}) tänään ja huomenna",
+      "area_description": "Spot-hinta {area} {long} tänään: keskiarvo {avg} {unit}, alin {min}, ylin {max}.",
+      "area_description_tomorrow": "Huomenna: keskiarvo {avg} {unit}, {min}–{max}.",
+      "area_description_more": "Hinnat tunneittain ja varteittain, historia, tuotanto ja kulutus.",
+      "area_description_nodata": "Sähkön spot-hinta {area} {long} tänään, huomenna ja historiassa, sekä tuotanto ja kulutus.",
+      "country_title": "Sähkön hinta: {country} tänään ja huomenna",
+      "country_description": "Spot-hinta tänään, {country}, keskiarvo tarjousalueittain: {prices} {unit}. Tuotanto, kulutus ja häiriöt.",
+      "dataset_name": "Sähkön spot-hinnat {area} ({long})"
+    },
     "custom": {
       "error": "Virhe",
       "total": "Yhteensä",
@@ -234,10 +246,12 @@
       "minimum": "Alin",
       "maximum": "Ylin",
       "permalink": "Pysyvä linkki",
-      "source": "Lähde: ENTSO-E Transparency Platform."
+      "source": "Lähde: ENTSO-E Transparency Platform.",
+      "page_title": "Oma aikaväli - sähkön spot-hinnat taulukkona",
+      "description": "Sähkön spot-hinnat mille tahansa hinta-alueelle ja aikavälille, jaksoittain, päivittäin, viikoittain, kuukausittain tai vuosittain, taulukkona ja kuvaajana."
     },
     "help": {
-      "page_title": "Ohje - Asenna sovellus, lisätietoja",
+      "page_title": "Ohje - spot-hinta, verot, sovelluksen asennus ja avoin API",
       "toc": "Sisältö",
       "info_title": "Tietoa sähkön hinnoista",
       "info_intro": "Täältä voit lukea tuntihinnasta, muuttuvasta hinnasta, veroista ja maksuista.",
@@ -277,10 +291,11 @@
       "api_hass": "eilen, tänään ja huomenna, katso",
       "api_flows": "fyysinen nettosiirto rajoittain juuri nyt (MW).",
       "api_status": "tietojen ajantasaisuus.",
-      "api_source": "Tietojen lähde: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, hinnat muunnettu EKP:n viitekursseilla. Mainitse lähde, kun käytät tietoja uudelleen. Uudelleenkäyttöön sovelletaan ENTSO-E Transparency Platformin <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">käyttöehtoja</a>. spotweb on itsenäinen projekti, joka ei ole sidoksissa ENTSO-E:hen."
+      "api_source": "Tietojen lähde: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, hinnat muunnettu EKP:n viitekursseilla. Mainitse lähde, kun käytät tietoja uudelleen. Uudelleenkäyttöön sovelletaan ENTSO-E Transparency Platformin <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">käyttöehtoja</a>. spotweb on itsenäinen projekti, joka ei ole sidoksissa ENTSO-E:hen.",
+      "description": "Miten spot-hinta, tuntihinta ja muuttuva sähkön hinta toimivat, miten todellinen hinta maksuineen ja arvonlisäveroineen lasketaan, miten sovellus asennetaan, sekä maksuton avoin JSON-API."
     },
     "hass": {
-      "page_title": "Home Assistant REST -integraatio",
+      "page_title": "Home Assistant - sähkön spot-hinnan sensori",
       "intro": "Saat nykyiset ja historialliset sähkön hinnat Home Assistantiin käyttämällä REST-rajapintaa yhdessä Home Assistantin <a href=\"https://www.home-assistant.io/integrations/rest/\">RESTful-integraation</a> kanssa.",
       "entity": "Esimerkkimääritys luo entiteetin <code>sensor.spotprice_now</code>, joka näyttää hinnan juuri nyt. Entiteetti saa myös joukon attribuutteja:",
       "attr_data": "kaikki hintapisteet eilisestä huomiseen.",
@@ -301,7 +316,8 @@
       "p_interval": "PT15M tai PT60M. Oletuksena hinta-alueen nykyinen markkinaresoluutio.",
       "apex_title": "Apexcharts-card Lovelacessa",
       "apex_p": "Esimerkki siitä, miten yllä olevaa määritystä käytetään <a href=\"https://github.com/RomRider/apexcharts-card\">apexcharts-cardin</a> kanssa kuvaajan piirtämiseen tämän päivän ja huomisen hinnoista.",
-      "img_alt": "Home Assistantin kuvaaja tämän päivän ja huomisen spot-hinnoista"
+      "img_alt": "Home Assistantin kuvaaja tämän päivän ja huomisen spot-hinnoista",
+      "description": "Sähkön spot-hinnat Home Assistantiin maksuttomalla REST-API:lla: sensorin määritys, parametrit maksuille, arvonlisäverolle ja valuutalle sekä apexcharts-kortti."
     }
   }
 }

@@ -91,6 +91,10 @@ pup stop            # or: systemctl stop pup-spotweb / pup uninstall --name spot
 sudo -u spotweb spotweb --db /var/lib/spotweb/spotweb.db import-v1 /path/to/spotweb-1/db/main.db
 
 sudo systemctl start spotweb
+
+# Refetch the imported days that are incomplete (1.x dropped zero prices); needs API_TOKEN
+sudo systemd-run --pipe --wait -p User=spotweb -p EnvironmentFile=/etc/spotweb/spotweb.env \
+  /usr/local/bin/spotweb repair-prices
 ```
 
 The import keeps the newest row on duplicates (same rule as 1.x clean-ups) and can be repeated. Point the reverse proxy at

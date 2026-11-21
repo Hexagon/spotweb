@@ -198,6 +198,18 @@
       "more": "Weitere Optionen…",
       "email": "E-Mail"
     },
+    "seo": {
+      "index_title": "Strompreise heute und morgen in Skandinavien und Europa",
+      "index_description": "Aktuelle Strom-Spotpreise, heute und morgen, für {zones} Gebotszonen in Skandinavien und Europa, mit Stromflüssen, Erzeugung und Verbrauch. Daten von ENTSO-E.",
+      "area_title": "Strompreis {area} ({long}) heute und morgen",
+      "area_description": "Spotpreis {area} {long} heute: Durchschnitt {avg} {unit}, niedrigster {min}, höchster {max}.",
+      "area_description_tomorrow": "Morgen: Durchschnitt {avg} {unit}, {min}–{max}.",
+      "area_description_more": "Preise pro Stunde und Viertelstunde, Verlauf, Erzeugung und Verbrauch.",
+      "area_description_nodata": "Strom-Spotpreis für {area} {long} heute, morgen und historisch, mit Erzeugung und Verbrauch.",
+      "country_title": "Strompreis {country} heute und morgen",
+      "country_description": "Spotpreis {country} heute, Durchschnitt je Gebotszone: {prices} {unit}. Erzeugung, Verbrauch und Ausfälle.",
+      "dataset_name": "Strom-Spotpreise {area} ({long})"
+    },
     "custom": {
       "error": "Fehler",
       "total": "Gesamt",
@@ -234,10 +246,12 @@
       "minimum": "Minimum",
       "maximum": "Maximum",
       "permalink": "Permalink",
-      "source": "Quelle: ENTSO-E Transparency Platform."
+      "source": "Quelle: ENTSO-E Transparency Platform.",
+      "page_title": "Eigener Zeitraum - Tabelle der Strom-Spotpreise",
+      "description": "Strom-Spotpreise für jede Gebotszone und jeden Zeitraum, pro Intervall, Tag, Woche, Monat oder Jahr, als Tabelle und Diagramm."
     },
     "help": {
-      "page_title": "Hilfe - App installieren, weitere Informationen",
+      "page_title": "Hilfe - Spotpreis, Steuern, App installieren und offene API",
       "toc": "Inhalt",
       "info_title": "Informationen zu Strompreisen",
       "info_intro": "Hier erfahren Sie mehr über Stundenpreise, variable Preise, Steuern und Abgaben.",
@@ -277,10 +291,11 @@
       "api_hass": "gestern, heute und morgen, siehe",
       "api_flows": "physikalischer Nettofluss pro Grenze im Moment (MW).",
       "api_status": "Aktualität der Daten.",
-      "api_source": "Datenquelle: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, Preise umgerechnet mit Referenzkursen der EZB. Bitte nennen Sie die Quelle, wenn Sie die Daten weiterverwenden. Die Weiterverwendung unterliegt den <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">Nutzungsbedingungen</a> der ENTSO-E Transparency Platform. spotweb ist ein unabhängiges Projekt und steht in keiner Verbindung zu ENTSO-E."
+      "api_source": "Datenquelle: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, Preise umgerechnet mit Referenzkursen der EZB. Bitte nennen Sie die Quelle, wenn Sie die Daten weiterverwenden. Die Weiterverwendung unterliegt den <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">Nutzungsbedingungen</a> der ENTSO-E Transparency Platform. spotweb ist ein unabhängiges Projekt und steht in keiner Verbindung zu ENTSO-E.",
+      "description": "Wie Spot-, Stunden- und variable Strompreise funktionieren, wie der tatsächliche Preis mit Gebühren und MwSt. berechnet wird, wie man die App installiert, und die kostenlose offene JSON-API."
     },
     "hass": {
-      "page_title": "Home Assistant REST-Integration",
+      "page_title": "Home Assistant - Sensor für Strom-Spotpreise",
       "intro": "Sie können aktuelle und historische Strompreise in Home Assistant abrufen, indem Sie den REST-Endpunkt zusammen mit der <a href=\"https://www.home-assistant.io/integrations/rest/\">RESTful-Integration</a> von Home Assistant verwenden.",
       "entity": "Die Beispielkonfiguration erstellt die Entität <code>sensor.spotprice_now</code>, die den aktuellen Preis anzeigt. Die Entität erhält außerdem einige Attribute:",
       "attr_data": "alle Preispunkte von gestern bis morgen.",
@@ -301,7 +316,8 @@
       "p_interval": "PT15M oder PT60M. Standard ist die aktuelle Marktauflösung der Gebotszone.",
       "apex_title": "Apexcharts-card in Lovelace",
       "apex_p": "Ein Beispiel, wie die obige Konfiguration mit <a href=\"https://github.com/RomRider/apexcharts-card\">apexcharts-card</a> verwendet wird, um ein Diagramm der Preise von heute und morgen zu zeichnen.",
-      "img_alt": "Home-Assistant-Diagramm der Spotpreise von heute und morgen"
+      "img_alt": "Home-Assistant-Diagramm der Spotpreise von heute und morgen",
+      "description": "Strom-Spotpreise in Home Assistant mit der kostenlosen REST-API: Sensorkonfiguration, Parameter für Gebühren, MwSt. und Währung sowie eine Apexcharts-Karte."
     }
   }
 }

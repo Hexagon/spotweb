@@ -198,6 +198,18 @@
       "more": "Flere alternativer…",
       "email": "E-post"
     },
+    "seo": {
+      "index_title": "Strømpris i dag og i morgen i Norden og Europa",
+      "index_description": "Spotpris på strøm akkurat nå, i dag og i morgen, for {zones} prisområder i Norden og Europa, med kraftflyt, produksjon og forbruk. Data fra ENTSO-E.",
+      "area_title": "Strømpris {area} ({long}) i dag og i morgen",
+      "area_description": "Spotpris {area} {long} i dag: snitt {avg} {unit}, lavest {min}, høyest {max}.",
+      "area_description_tomorrow": "I morgen: snitt {avg} {unit}, {min}–{max}.",
+      "area_description_more": "Pris per time og kvarter, historikk, produksjon og forbruk.",
+      "area_description_nodata": "Spotpris på strøm for {area} {long} i dag, i morgen og historisk, med produksjon og forbruk.",
+      "country_title": "Strømpris i {country} i dag og i morgen",
+      "country_description": "Spotpris i {country} i dag, snitt per prisområde: {prices} {unit}. Produksjon, forbruk og driftsavbrudd.",
+      "dataset_name": "Spotpriser på strøm {area} ({long})"
+    },
     "custom": {
       "error": "Feil",
       "total": "Totalt",
@@ -234,10 +246,12 @@
       "minimum": "Laveste",
       "maximum": "Høyeste",
       "permalink": "Permanent lenke",
-      "source": "Kilde: ENTSO-E Transparency Platform."
+      "source": "Kilde: ENTSO-E Transparency Platform.",
+      "page_title": "Egendefinert periode - tabell over spotpriser",
+      "description": "Spotpriser på strøm for valgfritt prisområde og periode, per intervall, dag, uke, måned eller år, som tabell og graf."
     },
     "help": {
-      "page_title": "Hjelp - Installer appen, mer informasjon",
+      "page_title": "Hjelp - spotpris, avgifter, installer appen og åpent API",
       "toc": "Innhold",
       "info_title": "Om strømpriser",
       "info_intro": "Her kan du lese om timepris, variabel pris, avgifter og gebyrer.",
@@ -277,10 +291,11 @@
       "api_hass": "i går, i dag og i morgen, se",
       "api_flows": "fysisk nettoflyt per grense akkurat nå (MW).",
       "api_status": "hvor oppdaterte dataene er.",
-      "api_source": "Datakilde: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, priser omregnet med ECBs referansekurser. Oppgi kilden når du gjenbruker dataene. Gjenbruk skjer i henhold til ENTSO-E Transparency Platforms <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">bruksvilkår</a>. spotweb er et uavhengig prosjekt uten tilknytning til ENTSO-E."
+      "api_source": "Datakilde: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, priser omregnet med ECBs referansekurser. Oppgi kilden når du gjenbruker dataene. Gjenbruk skjer i henhold til ENTSO-E Transparency Platforms <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">bruksvilkår</a>. spotweb er et uavhengig prosjekt uten tilknytning til ENTSO-E.",
+      "description": "Hvordan spotpris, timepris og variabel strømpris fungerer, hvordan faktisk pris med gebyrer og mva beregnes, hvordan du installerer appen, og det gratis åpne JSON-API-et."
     },
     "hass": {
-      "page_title": "Home Assistant REST-integrasjon",
+      "page_title": "Home Assistant - sensor for spotpris på strøm",
       "intro": "Du kan få aktuelle og historiske strømpriser i Home Assistant ved å bruke REST-endepunktet sammen med Home Assistants <a href=\"https://www.home-assistant.io/integrations/rest/\">RESTful-integrasjon</a>.",
       "entity": "Eksempelkonfigurasjonen gir deg entiteten <code>sensor.spotprice_now</code>, som viser prisen akkurat nå. Entiteten får også en rekke attributter:",
       "attr_data": "alle prispunkter, fra i går til i morgen.",
@@ -301,7 +316,8 @@
       "p_interval": "PT15M eller PT60M. Standard er prisområdets nåværende markedsoppløsning.",
       "apex_title": "Apexcharts-card i Lovelace",
       "apex_p": "Et eksempel på hvordan konfigurasjonen over brukes med <a href=\"https://github.com/RomRider/apexcharts-card\">apexcharts-card</a> for å tegne en graf over prisene i dag og i morgen.",
-      "img_alt": "Graf i Home Assistant over spotprisen i dag og i morgen"
+      "img_alt": "Graf i Home Assistant over spotprisen i dag og i morgen",
+      "description": "Spotpriser på strøm i Home Assistant med det gratis REST-API-et: sensorkonfigurasjon, parametere for gebyrer, mva og valuta, og et apexcharts-kort."
     }
   }
 }

@@ -10,9 +10,10 @@ use jiff::tz::TimeZone;
 use jiff::{Timestamp, ToSpan};
 use serde_json::{json, Map, Value};
 
-use super::{data, detect_lang, WebState};
+use super::{data, detect_lang, query_lang, WebState};
 use crate::countries::{
-    country as find_country, default_currency, default_decimals, Area, Country, COUNTRIES,
+    country as find_country, default_currency, default_decimals, lang_from_path, lang_tag, Area,
+    Country, COUNTRIES, LANGUAGES,
 };
 use crate::db::queries::{GenerationRow, LoadRow, OutageRow};
 use crate::price::{process_price, PriceProps};
@@ -53,7 +54,7 @@ fn render(st: &WebState, name: &str, mut ctx: Value) -> PageResult {
     );
     res.headers_mut().insert(
         header::VARY,
-        header::HeaderValue::from_static("Accept-Language"),
+        header::HeaderValue::from_static("Accept-Language, Cookie"),
     );
     Ok(res)
 }
@@ -79,21 +80,55 @@ fn script_json(v: &Value) -> String {
     v.to_string().replace("</", "<\\/")
 }
 
+/// Terms of use of the ENTSO-E Transparency Platform, which apply to re-use of the data
+const ENTSOE_TERMS: &str = "https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions";
+
+/// How a page relates to languages and search engines
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Kind {
+    /// Translated page with one url per language (`?lang=`), linked with `hreflang`
+    Localized,
+    /// Kept out of search results
+    NoIndex,
+}
+
+/// `<title>`, meta description and search engine treatment of a page
+struct Head {
+    title: String,
+    description: String,
+    kind: Kind,
+}
+
+fn zone_count() -> usize {
+    COUNTRIES.iter().map(|c| c.areas.len()).sum()
+}
+
+/// Path without a trailing slash, the form used in canonical links
+fn clean_path(path: &str) -> &str {
+    match path.trim_end_matches('/') {
+        "" => "/",
+        p => p,
+    }
+}
+
 /// Context shared by all pages. `boot` is handed to app.js.
 async fn base(
     st: &WebState,
     lang: &str,
     page: &str,
-    title: String,
+    head: Head,
     uri: &Uri,
     headers: &HeaderMap,
 ) -> Result<(Map<String, Value>, Map<String, Value>), Response> {
     let er = data::exchange_rates(&st.app).await.map_err(internal)?;
+    let i18n = &st.app.i18n;
     let currency = default_currency(lang);
     let mut ctx = Map::new();
     ctx.insert("lang".into(), json!(lang));
+    ctx.insert("html_lang".into(), json!(lang_tag(lang)));
     ctx.insert("page".into(), json!(page));
-    ctx.insert("title".into(), json!(title));
+    ctx.insert("head_title".into(), json!(head.title));
+    ctx.insert("description".into(), json!(head.description));
     ctx.insert("version".into(), json!(env!("CARGO_PKG_VERSION")));
     ctx.insert("adsense".into(), json!(st.app.cfg.adsense));
     ctx.insert("ga_id".into(), json!(st.app.cfg.ga_id));
@@ -103,33 +138,121 @@ async fn base(
     ctx.insert("decimals".into(), json!(default_decimals(currency)));
     ctx.insert("sub_unit".into(), json!(currency == "öre"));
     ctx.insert("er".into(), json!(&*er));
-    ctx.insert("languages".into(), json!(crate::countries::LANGUAGES));
-    // Absolute links for sharing and link previews. The language is left out on purpose:
-    // the recipient gets the page in their own language.
+    ctx.insert("languages".into(), json!(LANGUAGES));
+
+    // Every language version of a translated page has its own url: the plain url in the
+    // language of its path (`/sv/SE3` is Swedish), `?lang=xx` for the others. Paths without
+    // a language (`/`, `/pl/PL`) follow the browser and are the `x-default`.
     let site = public_base(st, headers);
-    let canonical = match (page, uri.query()) {
-        ("custom", Some(q)) => format!("{site}{}?{}", uri.path(), custom_query(q)),
-        _ => format!("{site}{}", uri.path()),
+    let path = clean_path(uri.path());
+    let path_lang = lang_from_path(path);
+    let lang_url = |l: Option<&str>| match l {
+        Some(l) if Some(l) != path_lang => format!("{site}{path}?lang={l}"),
+        _ => format!("{site}{path}"),
     };
+    let canonical = match (head.kind, page) {
+        (_, "404") => None,
+        // The form in every language; a filled in form is one url (and not indexed)
+        (Kind::Localized, _) => Some(lang_url(query_lang(uri))),
+        (_, "custom") => Some(
+            match uri.query().map(custom_query).filter(|q| !q.is_empty()) {
+                Some(q) => format!("{site}{path}?{q}"),
+                None => format!("{site}{path}"),
+            },
+        ),
+        _ => Some(format!("{site}{path}")),
+    };
+    if head.kind == Kind::Localized {
+        let mut alt: Vec<Value> = LANGUAGES
+            .iter()
+            .map(|l| json!({ "hreflang": lang_tag(l), "href": lang_url(Some(l)) }))
+            .collect();
+        alt.push(json!({ "hreflang": "x-default", "href": lang_url(None) }));
+        ctx.insert("alternates".into(), json!(alt));
+    }
+    if head.kind == Kind::NoIndex {
+        ctx.insert("robots".into(), json!("noindex, follow"));
+    }
     ctx.insert("site_url".into(), json!(site));
     ctx.insert("canonical".into(), json!(canonical));
 
-    let page_ld = json!({
-        "@context": "http://schema.org",
-        "@type": "WebPage",
-        "name": st.app.i18n.t(lang, "page.title"),
-        "description": format!("{} - {}.", st.app.i18n.t(lang, "header.title"), title),
-        "dateModified": today(&TimeZone::UTC).to_string(),
+    // Structured data, completed by the handlers and serialised in `finish`
+    let website = json!({
+        "@type": "WebSite",
+        "@id": format!("{site}/#website"),
+        "url": format!("{site}/"),
+        "name": i18n.t(lang, "page.title"),
+        "description": i18n.tf(lang, "seo.index_description", &[("zones", &zone_count().to_string())]),
+        "inLanguage": LANGUAGES.iter().map(|l| lang_tag(l)).collect::<Vec<_>>(),
     });
-    ctx.insert("jsonld_page".into(), json!(script_json(&page_ld)));
+    let url = canonical.unwrap_or_else(|| format!("{site}{path}"));
+    let webpage = json!({
+        "@type": "WebPage",
+        "@id": format!("{url}#webpage"),
+        "url": url,
+        "name": head.title,
+        "description": head.description,
+        "inLanguage": lang_tag(lang),
+        "isPartOf": { "@id": format!("{site}/#website") },
+    });
+    ctx.insert("ld_graph".into(), json!([website, webpage]));
 
     let mut boot = Map::new();
     boot.insert("lang".into(), json!(lang));
     boot.insert("page".into(), json!(page));
-    boot.insert("i18n".into(), st.app.i18n.raw(lang).clone());
+    boot.insert("i18n".into(), i18n.raw(lang).clone());
     boot.insert("er".into(), json!(&*er));
     boot.insert("countries".into(), json!(COUNTRIES));
     Ok((ctx, boot))
+}
+
+/// Structured data nodes of a page; `[0]` is the WebSite, `[1]` the WebPage
+fn ld_graph(ctx: &mut Map<String, Value>) -> &mut Vec<Value> {
+    ctx.entry("ld_graph")
+        .or_insert_with(|| json!([]))
+        .as_array_mut()
+        .expect("array")
+}
+
+/// Replace the meta description once the page data is known
+fn set_description(ctx: &mut Map<String, Value>, d: &str) {
+    ctx.insert("description".into(), json!(d));
+    if let Some(p) = ld_graph(ctx).get_mut(1) {
+        p["description"] = json!(d);
+    }
+}
+
+/// Mark the page as changed on `day` (pages with prices change every day)
+fn set_modified(ctx: &mut Map<String, Value>, day: &str) {
+    if let Some(p) = ld_graph(ctx).get_mut(1) {
+        p["dateModified"] = json!(day);
+    }
+}
+
+/// Price in EUR/MWh as text in the currency of the page, like the `price` template function
+fn price_text(ctx: &Map<String, Value>, v: Option<f64>) -> Option<String> {
+    let rate = ctx.get("rate").and_then(Value::as_f64).unwrap_or(1.0);
+    let decimals = ctx.get("decimals").and_then(Value::as_u64).unwrap_or(2) as usize;
+    let sub_unit = ctx
+        .get("sub_unit")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let props = PriceProps {
+        extra: 0.0,
+        multiplier: 1.0,
+        factor: 1.0,
+        decimals,
+        price_factor: false,
+        sub_unit,
+    };
+    v.map(|v| process_price(Some(v * rate), &props))
+}
+
+fn unit_text(ctx: &Map<String, Value>) -> String {
+    format!(
+        "{}/kWh",
+        ctx.get("currency").and_then(Value::as_str).unwrap_or("EUR")
+    )
 }
 
 /// The parameters of `/custom` that make up its permalink, in a fixed order
@@ -162,6 +285,10 @@ fn url_encode(s: &str) -> String {
 }
 
 fn finish(mut ctx: Map<String, Value>, boot: Map<String, Value>) -> Value {
+    if let Some(graph) = ctx.remove("ld_graph") {
+        let ld = json!({ "@context": "https://schema.org", "@graph": graph });
+        ctx.insert("jsonld".into(), json!(script_json(&ld)));
+    }
     ctx.insert("boot".into(), json!(script_json(&Value::Object(boot))));
     Value::Object(ctx)
 }
@@ -389,8 +516,22 @@ fn default_map_area(lang: &str) -> &'static str {
 
 pub async fn index(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> PageResult {
     let lang = detect_lang(&uri, &headers);
-    let title = st.app.i18n.t(&lang, "header.title");
-    let (mut ctx, mut boot) = base(&st, &lang, "index", title, &uri, &headers).await?;
+    let i18n = &st.app.i18n;
+    let head = Head {
+        title: format!(
+            "{} - {}",
+            i18n.t(&lang, "seo.index_title"),
+            i18n.t(&lang, "page.title")
+        ),
+        description: i18n.tf(
+            &lang,
+            "seo.index_description",
+            &[("zones", &zone_count().to_string())],
+        ),
+        kind: Kind::Localized,
+    };
+    let (mut ctx, mut boot) = base(&st, &lang, "index", head, &uri, &headers).await?;
+    set_modified(&mut ctx, &today(&TimeZone::UTC).to_string());
     let now = data::now_prices(&st.app).await.map_err(internal)?;
     let genload = data::current_generation_and_load(&st.app)
         .await
@@ -462,23 +603,52 @@ pub async fn country(
         return Ok(not_found_page(&st, &uri, &headers).await);
     };
     if c.areas.len() == 1 {
-        return Ok(Redirect::temporary(&format!("/{}/{}", c.id, c.areas[0].name)).into_response());
+        return Ok(moved(format!("/{}/{}", c.id, c.areas[0].name), &uri));
     }
     let lang = detect_lang(&uri, &headers);
-    let title = format!(
-        "{} - {}",
-        c.name,
-        c.areas
-            .iter()
-            .map(|a| a.name)
-            .collect::<Vec<_>>()
-            .join(", ")
-    );
-    let (mut ctx, mut boot) = base(&st, &lang, c.id, title, &uri, &headers).await?;
+    let i18n = &st.app.i18n;
+    let cname = i18n.t(&lang, &format!("countries.{}", c.id));
+    let h1 = i18n.tf(&lang, "seo.country_title", &[("country", &cname)]);
+    let head = Head {
+        title: format!(
+            "{h1} - {}",
+            c.areas
+                .iter()
+                .map(|a| a.name)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        description: String::new(),
+        kind: Kind::Localized,
+    };
+    let (mut ctx, mut boot) = base(&st, &lang, c.id, head, &uri, &headers).await?;
     let mut areas = vec![];
     for a in c.areas {
         areas.push(area_overview(&st, c, a, false).await?);
     }
+    let prices = areas
+        .iter()
+        .filter_map(|a| {
+            let p = price_text(&ctx, a.get("avg_today").and_then(Value::as_f64))?;
+            Some(format!("{} {p}", a["name"].as_str().unwrap_or("")))
+        })
+        .collect::<Vec<_>>();
+    let description = if prices.is_empty() {
+        format!("{h1}. {}", i18n.t(&lang, "seo.area_description_more"))
+    } else {
+        i18n.tf(
+            &lang,
+            "seo.country_description",
+            &[
+                ("country", &cname),
+                ("prices", &prices.join(", ")),
+                ("unit", &unit_text(&ctx)),
+            ],
+        )
+    };
+    set_description(&mut ctx, &description);
+    set_modified(&mut ctx, &today(&c.timezone()).to_string());
+    ctx.insert("h1".into(), json!(h1));
     let (overview, series, net) = production_ctx(&st, c, c.cty).await?;
     ctx.insert("country".into(), json!(c));
     ctx.insert("areas".into(), json!(areas));
@@ -498,7 +668,7 @@ pub async fn area(
     headers: HeaderMap,
 ) -> PageResult {
     if cid == "elomrade" {
-        return Ok(Redirect::temporary(&format!("/sv/{aname}")).into_response());
+        return Ok(moved(format!("/sv/{aname}"), &uri));
     }
     let Some(c) = find_country(&cid) else {
         return Ok(not_found_page(&st, &uri, &headers).await);
@@ -507,8 +677,18 @@ pub async fn area(
         return Ok(not_found_page(&st, &uri, &headers).await);
     };
     let lang = detect_lang(&uri, &headers);
-    let title = format!("{} - {}", a.name, a.long);
-    let (mut ctx, mut boot) = base(&st, &lang, a.id, title, &uri, &headers).await?;
+    let i18n = &st.app.i18n;
+    let names = [("area", a.name), ("long", a.long)];
+    let head = Head {
+        title: format!(
+            "{} - {}",
+            i18n.tf(&lang, "seo.area_title", &names),
+            i18n.t(&lang, "page.title")
+        ),
+        description: String::new(),
+        kind: Kind::Localized,
+    };
+    let (mut ctx, mut boot) = base(&st, &lang, a.id, head, &uri, &headers).await?;
     let ov = area_overview(&st, c, a, true).await?;
     let (overview, series, net) = production_ctx(&st, c, a.id).await?;
     let single = c.areas.len() == 1;
@@ -516,32 +696,103 @@ pub async fn area(
         ctx.insert("outages".into(), outages_ctx(&st, c).await?);
     }
 
-    // schema.org price descriptor, like 1.x (default currency, spot price)
-    let currency = default_currency(&lang);
-    let rate = ctx.get("rate").and_then(|r| r.as_f64()).unwrap_or(1.0);
-    let props = PriceProps {
-        extra: 0.0,
-        multiplier: 1.0,
-        factor: 1.0,
-        decimals: 5,
-        price_factor: false,
-        sub_unit: currency == "öre",
+    // Description with today's (and tomorrow's) prices in the default currency
+    let num = |k: &str| ov.get(k).and_then(Value::as_f64);
+    let unit = unit_text(&ctx);
+    let today_txt = ["avg_today", "min_today", "max_today"].map(|k| price_text(&ctx, num(k)));
+    let tomorrow_txt =
+        ["avg_tomorrow", "min_tomorrow", "max_tomorrow"].map(|k| price_text(&ctx, num(k)));
+    // Today, then tomorrow when known, then what else the page has
+    let mut parts = vec![];
+    match &today_txt {
+        [Some(avg), Some(min), Some(max)] => parts.push(i18n.tf(
+            &lang,
+            "seo.area_description",
+            &[
+                names[0],
+                names[1],
+                ("avg", avg),
+                ("min", min),
+                ("max", max),
+                ("unit", &unit),
+            ],
+        )),
+        _ => parts.push(i18n.tf(&lang, "seo.area_description_nodata", &names)),
+    }
+    if let [Some(avg), Some(min), Some(max)] = &tomorrow_txt {
+        parts.push(i18n.tf(
+            &lang,
+            "seo.area_description_tomorrow",
+            &[("avg", avg), ("min", min), ("max", max), ("unit", &unit)],
+        ));
+    }
+    if today_txt.iter().all(Option::is_some) {
+        parts.push(i18n.t(&lang, "seo.area_description_more"));
+    }
+    let description = parts.join(" ");
+    set_description(&mut ctx, &description);
+
+    // schema.org Dataset with today's and tomorrow's spot price, in an ISO 4217 currency
+    let er = data::exchange_rates(&st.app).await.map_err(internal)?;
+    let iso = match default_currency(&lang) {
+        "öre" => "SEK",
+        c => c,
     };
-    let p = |k: &str| process_price(ov.get(k).and_then(|v| v.as_f64()).map(|v| v * rate), &props);
+    let rate = er.rate(iso).unwrap_or(1.0);
+    let per_kwh = |v: Option<f64>| v.map(|v| (v * rate / 1000.0 * 1e5).round() / 1e5);
     let day = today(&c.timezone()).to_string();
-    let price_ld = json!({
-        "@context": "https://schema.org",
-        "@type": "UnitPriceSpecification",
-        "maxPrice": p("max_today"),
-        "minPrice": p("min_today"),
-        "name": format!("{} {} - {}", st.app.i18n.t(&lang, "header.avg_today_short"), a.name, a.long),
-        "price": p("avg_today"),
-        "priceCurrency": currency,
-        "unitCode": "kWh",
-        "validFrom": day,
-        "validThrough": day,
+    let site = public_base(&st, &headers);
+    let url = ctx
+        .get("canonical")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
+    let avg_name = i18n.t(&lang, "header.avg_today_short");
+    let measured: Vec<Value> = [("today", 0), ("tomorrow", 1)]
+        .iter()
+        .filter_map(|(when, d)| {
+            let avg = per_kwh(num(&format!("avg_{when}")))?;
+            let date = add_days(today(&c.timezone()), *d).to_string();
+            Some(json!({
+                "@type": "PropertyValue",
+                "name": format!("{avg_name} {} - {}", a.name, i18n.t(&lang, &format!("chart.{when}"))),
+                "value": avg,
+                "minValue": per_kwh(num(&format!("min_{when}"))),
+                "maxValue": per_kwh(num(&format!("max_{when}"))),
+                "unitText": format!("{iso}/kWh"),
+                "validFrom": date,
+                "validThrough": date,
+            }))
+        })
+        .collect();
+    let cname = i18n.t(&lang, &format!("countries.{}", c.id));
+    let dataset = json!({
+        "@type": "Dataset",
+        "@id": format!("{url}#dataset"),
+        "name": i18n.tf(&lang, "seo.dataset_name", &names),
+        "description": description,
+        "url": url,
+        "inLanguage": lang_tag(&lang),
+        "isAccessibleForFree": true,
+        "creditText": "ENTSO-E Transparency Platform",
+        "isBasedOn": "https://transparency.entsoe.eu/",
+        "license": "https://creativecommons.org/licenses/by/4.0/",
+        "keywords": [a.name, a.long, cname.as_str(), "spot price", "day-ahead"],
+        "spatialCoverage": { "@type": "Place", "name": format!("{} - {}, {cname}", a.name, a.long) },
+        "temporalCoverage": format!("{}/..", st.app.cfg.history_start),
+        "dateModified": day,
+        "variableMeasured": measured,
+        "distribution": [{
+            "@type": "DataDownload",
+            "encodingFormat": "application/json",
+            "contentUrl": format!("{site}/api/v2/hass?area={}&currency={iso}", a.name),
+        }],
     });
-    ctx.insert("jsonld_price".into(), json!(script_json(&price_ld)));
+    set_modified(&mut ctx, &day);
+    if let Some(p) = ld_graph(&mut ctx).get_mut(1) {
+        p["mainEntity"] = json!({ "@id": format!("{url}#dataset") });
+    }
+    ld_graph(&mut ctx).push(dataset);
     ctx.insert("country".into(), json!(c));
     ctx.insert("area".into(), ov.clone());
     ctx.insert("single".into(), json!(single));
@@ -568,15 +819,17 @@ pub async fn custom(
     Query(q): Query<BTreeMap<String, String>>,
 ) -> PageResult {
     let lang = detect_lang(&uri, &headers);
-    let (mut ctx, mut boot) = base(
-        &st,
-        &lang,
-        "custom",
-        st.app.i18n.t(&lang, "pages.custom.title"),
-        &uri,
-        &headers,
-    )
-    .await?;
+    // Every period and area is its own url; only the empty form is worth indexing
+    let has_params = ["period", "area", "startDate", "endDate"]
+        .iter()
+        .any(|k| q.contains_key(*k));
+    let kind = if has_params {
+        Kind::NoIndex
+    } else {
+        Kind::Localized
+    };
+    let head = page_head(&st, &lang, "custom", kind);
+    let (mut ctx, mut boot) = base(&st, &lang, "custom", head, &uri, &headers).await?;
     let d = today(&crate::timeutil::stockholm()).to_string();
     let form = json!({
         "area": q.get("area").cloned().unwrap_or_else(|| "SE1".into()),
@@ -592,31 +845,41 @@ pub async fn custom(
 
 pub async fn help(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> PageResult {
     let lang = detect_lang(&uri, &headers);
-    let (ctx, boot) = base(
-        &st,
-        &lang,
-        "help",
-        st.app.i18n.t(&lang, "pages.help.page_title"),
-        &uri,
-        &headers,
-    )
-    .await?;
+    let head = page_head(&st, &lang, "help", Kind::Localized);
+    let (ctx, boot) = base(&st, &lang, "help", head, &uri, &headers).await?;
     render(&st, "help.html", finish(ctx, boot))
 }
 
 pub async fn homeassistant(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> PageResult {
     let lang = detect_lang(&uri, &headers);
-    let (mut ctx, boot) = base(
-        &st,
-        &lang,
-        "homeassistant",
-        st.app.i18n.t(&lang, "pages.hass.page_title"),
-        &uri,
-        &headers,
-    )
-    .await?;
+    let head = page_head(&st, &lang, "hass", Kind::Localized);
+    let (mut ctx, boot) = base(&st, &lang, "homeassistant", head, &uri, &headers).await?;
     ctx.insert("base_url".into(), json!(public_base(&st, &headers)));
     render(&st, "homeassistant.html", finish(ctx, boot))
+}
+
+/// Head of a translated page with its own title and description (`pages.<key>.page_title` and
+/// `pages.<key>.description`)
+fn page_head(st: &WebState, lang: &str, key: &str, kind: Kind) -> Head {
+    let i18n = &st.app.i18n;
+    Head {
+        title: format!(
+            "{} - {}",
+            i18n.t(lang, &format!("pages.{key}.page_title")),
+            i18n.t(lang, "page.title")
+        ),
+        description: i18n.t(lang, &format!("pages.{key}.description")),
+        kind,
+    }
+}
+
+/// Permanent redirect that keeps the query (`?lang=`)
+fn moved(to: String, uri: &Uri) -> Response {
+    let to = match uri.query() {
+        Some(q) => format!("{to}?{q}"),
+        None => to,
+    };
+    Redirect::permanent(&to).into_response()
 }
 
 fn public_base(st: &WebState, headers: &HeaderMap) -> String {
@@ -638,15 +901,18 @@ pub async fn robots(State(st): State<WebState>, headers: HeaderMap) -> Response 
     let base = public_base(&st, &headers);
     (
         [(header::CONTENT_TYPE, "text/plain; charset=utf-8")],
-        format!("User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {base}/sitemap.xml\n"),
+        format!(
+            "User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /healthz\n\n\
+             # Site and API summary for language models: {base}/llms.txt\n\
+             Sitemap: {base}/sitemap.xml\n"
+        ),
     )
         .into_response()
 }
 
-pub async fn sitemap(State(st): State<WebState>, headers: HeaderMap) -> Response {
-    let base = public_base(&st, &headers);
-    let day = today(&TimeZone::UTC);
-    let mut paths = vec!["/".to_string(), "/help".into(), "/homeassistant".into()];
+/// Paths of the translated pages: start page, countries with several zones, every zone
+fn localized_paths() -> Vec<String> {
+    let mut paths = vec!["/".to_string()];
     for c in COUNTRIES {
         if c.areas.len() > 1 {
             paths.push(format!("/{}", c.id));
@@ -655,12 +921,37 @@ pub async fn sitemap(State(st): State<WebState>, headers: HeaderMap) -> Response
             paths.push(format!("/{}/{}", c.id, a.name));
         }
     }
+    paths
+}
+
+pub async fn sitemap(State(st): State<WebState>, headers: HeaderMap) -> Response {
+    let base = public_base(&st, &headers);
+    let day = today(&TimeZone::UTC).to_string();
+    // (url, lastmod). Price pages change every day.
+    let mut urls: Vec<(String, Option<&str>)> = vec![];
+    for p in localized_paths() {
+        urls.push((format!("{base}{p}"), Some(&day)));
+        for l in LANGUAGES {
+            if lang_from_path(&p) != Some(*l) {
+                urls.push((format!("{base}{p}?lang={l}"), Some(&day)));
+            }
+        }
+    }
+    // Translated pages without a date we know
+    for p in ["/help", "/homeassistant", "/custom"] {
+        urls.push((format!("{base}{p}"), None));
+        for l in LANGUAGES {
+            urls.push((format!("{base}{p}?lang={l}"), None));
+        }
+    }
     let mut xml = String::from(r#"<?xml version="1.0" encoding="UTF-8"?>"#);
     xml.push_str(r#"<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">"#);
-    for p in paths {
-        xml.push_str(&format!(
-            "<url><loc>{base}{p}</loc><lastmod>{day}</lastmod></url>"
-        ));
+    for (loc, lastmod) in urls {
+        xml.push_str(&format!("<url><loc>{}</loc>", loc.replace('&', "&amp;")));
+        if let Some(d) = lastmod {
+            xml.push_str(&format!("<lastmod>{d}</lastmod>"));
+        }
+        xml.push_str("</url>");
     }
     xml.push_str("</urlset>");
     (
@@ -670,9 +961,95 @@ pub async fn sitemap(State(st): State<WebState>, headers: HeaderMap) -> Response
         .into_response()
 }
 
+/// `/llms.txt`: what the site is, its pages and its API, for language models and agents
+pub async fn llms(State(st): State<WebState>, headers: HeaderMap) -> Response {
+    let base = public_base(&st, &headers);
+    let i18n = &st.app.i18n;
+    let d = today(&crate::timeutil::stockholm());
+    let from = add_days(d, -30);
+    let mut out = format!(
+        "# {site}\n\n\
+         > Free website and open JSON API with day-ahead electricity spot prices for {zones} \
+         bidding zones in the Nordics and Europe: the price right now, today, tomorrow (published \
+         around 13:00 CET) and history since {start}, plus production per type, consumption, \
+         cross-border power flows and outages. Prices come from the ENTSO-E Transparency Platform \
+         and are converted with ECB reference rates. No API key is needed.\n\n\
+         Spot prices exclude surcharges, grid fees, energy tax and VAT. The API returns prices in \
+         the chosen currency per MWh (`/api/v2/spot`, times in milliseconds since the epoch) or \
+         per kWh (`/api/v2/hass`). Days follow the local time zone of the zone. Prices are \
+         in 15-minute or 60-minute intervals depending on the market. Please credit \
+         \"ENTSO-E Transparency Platform\" when re-using the data; the data is licensed \
+         CC BY 4.0 under the [ENTSO-E terms of use]({terms}). This project is independent of ENTSO-E.\n\n\
+         Pages are available in {langs}: add `?lang=xx` to any page url.\n\n\
+         ## API\n\n\
+         - [Spot prices]({base}/api/v2/spot?period=daily&area=SE3&startDate={from}&endDate={d}&currency=EUR): \
+         `period` = `hourly` (raw intervals), `daily`, `weekly`, `monthly`, `yearly` or `total`; \
+         `area` = zone code from the list below; `startDate`/`endDate` = `YYYY-MM-DD`; \
+         optional `currency` (any ECB currency, default EUR) and `interval` (`PT15M`/`PT60M`). \
+         At most 31 days per request for `hourly`, 366 days for `daily`. Returns \
+         `[{{time, price, min, max}}]` in currency/MWh.\n\
+         - [Yesterday, today and tomorrow]({base}/api/v2/hass?area=SE3&currency=SEK): \
+         per-kWh prices with `now`, `avg`, `min`, `max` and the same for tomorrow and yesterday. \
+         Optional `extra` (fee per kWh), `multiplier`, `factor` (VAT, e.g. 1.25) and `decimals`.\n\
+         - [Cross-border flows]({base}/api/v2/flows): latest physical flows between zones, MW.\n\
+         - [Status]({base}/api/v2/status): data freshness.\n\n\
+         ## Bidding zones\n\n\
+         - [Map of all zones with current prices and flows]({base}/)\n",
+        site = i18n.t("en", "page.title"),
+        zones = zone_count(),
+        start = st.app.cfg.history_start,
+        terms = ENTSOE_TERMS,
+        langs = LANGUAGES
+            .iter()
+            .map(|l| lang_tag(l))
+            .collect::<Vec<_>>()
+            .join(", "),
+    );
+    for c in COUNTRIES {
+        let cname = i18n.t("en", &format!("countries.{}", c.id));
+        if c.areas.len() > 1 {
+            out.push_str(&format!(
+                "- [{cname}, all zones]({base}/{}): {}\n",
+                c.id,
+                c.areas
+                    .iter()
+                    .map(|a| a.name)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ));
+        }
+        for a in c.areas {
+            out.push_str(&format!(
+                "- [{cname} {} - {}]({base}/{}/{}): area code `{}`\n",
+                a.name, a.long, c.id, a.name, a.name
+            ));
+        }
+    }
+    out.push_str(&format!(
+        "\n## Optional\n\n\
+         - [Help]({base}/help): price types, taxes and fees, how actual prices are calculated\n\
+         - [Home Assistant]({base}/homeassistant): REST sensor configuration\n\
+         - [Custom period]({base}/custom): table of prices for any zone and period\n\
+         - [Source code](https://github.com/Hexagon/spotweb)\n"
+    ));
+    (
+        [
+            (header::CONTENT_TYPE, "text/plain; charset=utf-8"),
+            (header::CACHE_CONTROL, "public, max-age=3600"),
+        ],
+        out,
+    )
+        .into_response()
+}
+
 async fn not_found_page(st: &WebState, uri: &Uri, headers: &HeaderMap) -> Response {
     let lang = detect_lang(uri, headers);
-    let res = match base(st, &lang, "404", "404".into(), uri, headers).await {
+    let head = Head {
+        title: format!("404 - {}", st.app.i18n.t(&lang, "page.title")),
+        description: String::new(),
+        kind: Kind::NoIndex,
+    };
+    let res = match base(st, &lang, "404", head, uri, headers).await {
         Ok((ctx, boot)) => render(st, "404.html", finish(ctx, boot)).unwrap_or_else(|r| r),
         Err(r) => r,
     };

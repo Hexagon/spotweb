@@ -1,18 +1,32 @@
 <!DOCTYPE html>
-<html lang="{{ lang }}">
+<html lang="{{ html_lang }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ t("page.title") }} - {{ title }}</title>
-  <meta name="description" content="{{ t('header.title') }} - {{ title }}">
+  <title>{{ head_title }}</title>
+  {%- if description %}
+  <meta name="description" content="{{ description|attr }}">
+  {%- endif %}
+  {%- if robots %}
+  <meta name="robots" content="{{ robots }}">
+  {%- endif %}
   <meta name="theme-color" content="#14171f">
-  <link rel="canonical" href="{{ canonical }}">
+  {%- if canonical %}
+  <link rel="canonical" href="{{ canonical|attr }}">
+  {%- endif %}
+  {%- for a in alternates or [] %}
+  <link rel="alternate" hreflang="{{ a.hreflang }}" href="{{ a.href|attr }}">
+  {%- endfor %}
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="{{ t('page.title') }}">
-  <meta property="og:title" content="{{ title }} - {{ t('page.title') }}">
-  <meta property="og:description" content="{{ t('header.title') }} - {{ title }}">
-  <meta property="og:url" content="{{ canonical }}">
-  <meta property="og:image" content="{{ site_url }}/icon-512x512.png">
+  <meta property="og:title" content="{{ head_title|attr }}">
+  {%- if description %}
+  <meta property="og:description" content="{{ description|attr }}">
+  {%- endif %}
+  {%- if canonical %}
+  <meta property="og:url" content="{{ canonical|attr }}">
+  {%- endif %}
+  <meta property="og:image" content="{{ (site_url ~ '/icon-512x512.png')|attr }}">
   <meta name="twitter:card" content="summary">
   <link rel="icon" type="image/png" href="/icon-192x192.png">
   <link rel="apple-touch-icon" href="/icon-192x192.png">
@@ -26,9 +40,8 @@
   {%- if adsense %}
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense }}" crossorigin="anonymous" nonce="{{ nonce }}"></script>
   {%- endif %}
-  <script type="application/ld+json">{{ jsonld_page|safe }}</script>
-  {%- if jsonld_price %}
-  <script type="application/ld+json">{{ jsonld_price|safe }}</script>
+  {%- if jsonld %}
+  <script type="application/ld+json">{{ jsonld|safe }}</script>
   {%- endif %}
 </head>
 <body data-page="{{ page }}">

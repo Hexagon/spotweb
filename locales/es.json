@@ -198,6 +198,18 @@
       "more": "Más opciones…",
       "email": "Correo"
     },
+    "seo": {
+      "index_title": "Precio de la luz hoy y mañana en los países nórdicos y Europa",
+      "index_description": "Precios spot de la electricidad ahora mismo, hoy y mañana, para {zones} zonas de oferta en los países nórdicos y Europa, con flujos de energía, producción y consumo. Datos de ENTSO-E.",
+      "area_title": "Precio de la luz {area} ({long}) hoy y mañana",
+      "area_description": "Precio spot {area} {long} hoy: media {avg} {unit}, mínimo {min}, máximo {max}.",
+      "area_description_tomorrow": "Mañana: media {avg} {unit}, {min}–{max}.",
+      "area_description_more": "Precios por hora y cuarto de hora, histórico, producción y consumo.",
+      "area_description_nodata": "Precio spot de la electricidad para {area} {long} hoy, mañana e histórico, con producción y consumo.",
+      "country_title": "Precio de la luz {country} hoy y mañana",
+      "country_description": "Precio spot {country} hoy, media por zona de oferta: {prices} {unit}. Producción, consumo e indisponibilidades.",
+      "dataset_name": "Precios spot de la electricidad {area} ({long})"
+    },
     "custom": {
       "error": "Error",
       "total": "Total",
@@ -234,10 +246,12 @@
       "minimum": "Mínimo",
       "maximum": "Máximo",
       "permalink": "Enlace permanente",
-      "source": "Fuente: ENTSO-E Transparency Platform."
+      "source": "Fuente: ENTSO-E Transparency Platform.",
+      "page_title": "Periodo personalizado - tabla de precios spot de la electricidad",
+      "description": "Precios spot de la electricidad para cualquier zona y periodo, por intervalo, día, semana, mes o año, en tabla y gráfico."
     },
     "help": {
-      "page_title": "Ayuda - Instalar la app, más información",
+      "page_title": "Ayuda - precio spot, impuestos, instalar la app y API abierta",
       "toc": "Contenido",
       "info_title": "Información sobre los precios de la electricidad",
       "info_intro": "A continuación puedes leer sobre precios por horas, precios variables, impuestos y cargos.",
@@ -277,10 +291,11 @@
       "api_hass": "ayer, hoy y mañana, ver",
       "api_flows": "flujo físico neto por frontera en este momento (MW).",
       "api_status": "actualidad de los datos.",
-      "api_source": "Fuente de los datos: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, precios convertidos con los tipos de referencia del BCE. Menciona la fuente cuando reutilices los datos. La reutilización está sujeta a las <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">condiciones de uso</a> de la ENTSO-E Transparency Platform. spotweb es un proyecto independiente, sin relación con ENTSO-E."
+      "api_source": "Fuente de los datos: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, precios convertidos con los tipos de referencia del BCE. Menciona la fuente cuando reutilices los datos. La reutilización está sujeta a las <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">condiciones de uso</a> de la ENTSO-E Transparency Platform. spotweb es un proyecto independiente, sin relación con ENTSO-E.",
+      "description": "Cómo funcionan los precios spot, por horas y variables de la electricidad, cómo se calcula el precio real con cargos e IVA, cómo instalar la app y la API JSON abierta y gratuita."
     },
     "hass": {
-      "page_title": "Integración REST para Home Assistant",
+      "page_title": "Home Assistant - sensor del precio spot de la electricidad",
       "intro": "Puedes obtener precios actuales e históricos de la electricidad en Home Assistant usando la dirección REST junto con la <a href=\"https://www.home-assistant.io/integrations/rest/\">integración RESTful</a> de Home Assistant.",
       "entity": "La configuración de ejemplo crea una entidad llamada <code>sensor.spotprice_now</code>, que muestra el precio actual. La entidad también recibe varios atributos:",
       "attr_data": "todos los puntos de precio, de ayer a mañana.",
@@ -301,7 +316,8 @@
       "p_interval": "PT15M o PT60M. Por defecto, la resolución actual del mercado de la zona.",
       "apex_title": "Apexcharts-card en Lovelace",
       "apex_p": "Un ejemplo de cómo usar la configuración anterior con <a href=\"https://github.com/RomRider/apexcharts-card\">apexcharts-card</a> para dibujar un gráfico de los precios de hoy y mañana.",
-      "img_alt": "Gráfico de Home Assistant con los precios spot de hoy y mañana"
+      "img_alt": "Gráfico de Home Assistant con los precios spot de hoy y mañana",
+      "description": "Precios spot de la electricidad en Home Assistant con la API REST gratuita: configuración del sensor, parámetros para cargos, IVA y moneda, y una tarjeta apexcharts."
     }
   }
 }

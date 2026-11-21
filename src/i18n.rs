@@ -76,6 +76,13 @@ impl I18n {
             .unwrap_or(key)
     }
 
+    /// `t` with `{name}` placeholders filled in
+    pub fn tf(&self, lang: &str, key: &str, args: &[(&str, &str)]) -> String {
+        args.iter().fold(self.t(lang, key), |s, (k, v)| {
+            s.replace(&format!("{{{k}}}"), v)
+        })
+    }
+
     pub fn raw(&self, lang: &str) -> &Value {
         self.raw
             .get(lang)

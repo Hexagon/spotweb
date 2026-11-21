@@ -198,6 +198,18 @@
       "more": "Fler alternativ…",
       "email": "E-post"
     },
+    "seo": {
+      "index_title": "Elpriset idag och imorgon i Norden och Europa",
+      "index_description": "Aktuella spotpriser på el just nu, idag och imorgon, för {zones} elområden i Norden och Europa, med överföring, produktion och förbrukning. Data från ENTSO-E.",
+      "area_title": "Elpris {area} ({long}) idag och imorgon",
+      "area_description": "Spotpris {area} {long} idag: medel {avg} {unit}, lägst {min}, högst {max}.",
+      "area_description_tomorrow": "Imorgon: medel {avg} {unit}, {min}–{max}.",
+      "area_description_more": "Pris per timme och kvart, historik, produktion och förbrukning.",
+      "area_description_nodata": "Spotpris på el för {area} {long} idag, imorgon och historiskt, med produktion och förbrukning.",
+      "country_title": "Elpris i {country} idag och imorgon",
+      "country_description": "Spotpris i {country} idag, medel per elområde: {prices} {unit}. Produktion, förbrukning och driftstörningar.",
+      "dataset_name": "Spotpriser på el {area} ({long})"
+    },
     "custom": {
       "error": "Fel",
       "total": "Totalt",
@@ -234,10 +246,12 @@
       "minimum": "Lägsta",
       "maximum": "Högsta",
       "permalink": "Permanent länk",
-      "source": "Källa: ENTSO-E Transparency Platform."
+      "source": "Källa: ENTSO-E Transparency Platform.",
+      "page_title": "Egen period - tabell över spotpriser",
+      "description": "Spotpriser på el för valfritt elområde och period, per intervall, dag, vecka, månad eller år, som tabell och diagram."
     },
     "help": {
-      "page_title": "Hjälp - Installera appen, mer information",
+      "page_title": "Hjälp - spotpris, skatter, installera appen och öppet API",
       "toc": "Innehåll",
       "info_title": "Om elpriser",
       "info_intro": "Här kan du läsa om timpris, rörligt pris, skatter och avgifter.",
@@ -277,10 +291,11 @@
       "api_hass": "igår, idag och imorgon, se",
       "api_flows": "fysiskt nettoflöde per gräns just nu (MW).",
       "api_status": "hur aktuell datan är.",
-      "api_source": "Datakälla: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, priser omräknade med ECB:s referenskurser. Ange källan när du återanvänder datan. Återanvändning sker enligt ENTSO-E Transparency Platforms <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">användarvillkor</a>. spotweb är ett fristående projekt utan koppling till ENTSO-E."
+      "api_source": "Datakälla: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, priser omräknade med ECB:s referenskurser. Ange källan när du återanvänder datan. Återanvändning sker enligt ENTSO-E Transparency Platforms <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">användarvillkor</a>. spotweb är ett fristående projekt utan koppling till ENTSO-E.",
+      "description": "Hur spotpris, timpris och rörligt elpris fungerar, hur verkligt pris med avgifter och moms räknas ut, hur du installerar appen och det fria öppna JSON-API:t."
     },
     "hass": {
-      "page_title": "Home Assistant REST-integration",
+      "page_title": "Home Assistant - sensor för spotpris på el",
       "intro": "Du kan få aktuella och historiska elpriser i Home Assistant genom att använda REST-anropet tillsammans med Home Assistants <a href=\"https://www.home-assistant.io/integrations/rest/\">RESTful-integration</a>.",
       "entity": "Exempelkonfigurationen ger dig entiteten <code>sensor.spotprice_now</code>, som visar priset just nu. Entiteten får också ett antal attribut:",
       "attr_data": "alla prispunkter, från igår till imorgon.",
@@ -301,7 +316,8 @@
       "p_interval": "PT15M eller PT60M. Standard är elområdets nuvarande marknadsupplösning.",
       "apex_title": "Apexcharts-card i Lovelace",
       "apex_p": "Ett exempel på hur konfigurationen ovan används med <a href=\"https://github.com/RomRider/apexcharts-card\">apexcharts-card</a> för att rita ett diagram över priserna idag och imorgon.",
-      "img_alt": "Diagram i Home Assistant över spotpriset idag och imorgon"
+      "img_alt": "Diagram i Home Assistant över spotpriset idag och imorgon",
+      "description": "Spotpriser på el i Home Assistant med det fria REST-API:t: sensorkonfiguration, parametrar för avgifter, moms och valuta samt ett apexcharts-kort."
     }
   }
 }

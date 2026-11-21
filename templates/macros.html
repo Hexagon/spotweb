@@ -10,7 +10,8 @@
 {% macro area_card(a, country, detailed) %}
 <section class="card area-card">
   <header class="card-head bg-color-{{ a.color }}">
-    <h2>{{ a.name }} - {{ a.long }}</h2>
+    {#- The zone is the subject of its own page #}
+    {%- if detailed %}<h1>{{ a.name }} - {{ a.long }}</h1>{% else %}<h2>{{ a.name }} - {{ a.long }}</h2>{% endif %}
     {{ share("/" ~ country.id ~ "/" ~ a.name, a.name ~ " - " ~ a.long) }}
   </header>
   <div class="now-box">

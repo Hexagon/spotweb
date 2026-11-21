@@ -198,6 +198,18 @@
       "more": "More options…",
       "email": "Email"
     },
+    "seo": {
+      "index_title": "Electricity prices today and tomorrow in the Nordics and Europe",
+      "index_description": "Electricity spot prices right now, today and tomorrow, for {zones} bidding zones in the Nordics and Europe, with power flows, production and consumption. Data from ENTSO-E.",
+      "area_title": "Electricity price {area} ({long}) today and tomorrow",
+      "area_description": "Spot price {area} {long} today: average {avg} {unit}, lowest {min}, highest {max}.",
+      "area_description_tomorrow": "Tomorrow: average {avg} {unit}, {min}–{max}.",
+      "area_description_more": "Prices per hour and quarter-hour, history, production and consumption.",
+      "area_description_nodata": "Electricity spot price for {area} {long} today, tomorrow and historically, with production and consumption.",
+      "country_title": "Electricity price in {country} today and tomorrow",
+      "country_description": "Spot price in {country} today, average per bidding zone: {prices} {unit}. Production, consumption and outages.",
+      "dataset_name": "Electricity spot prices {area} ({long})"
+    },
     "custom": {
       "error": "Error",
       "total": "Total",
@@ -234,10 +246,12 @@
       "minimum": "Minimum",
       "maximum": "Maximum",
       "permalink": "Permalink",
-      "source": "Source: ENTSO-E Transparency Platform."
+      "source": "Source: ENTSO-E Transparency Platform.",
+      "page_title": "Custom period - electricity spot price table",
+      "description": "Electricity spot prices for any bidding zone and period, per interval, day, week, month or year, as a table and chart."
     },
     "help": {
-      "page_title": "Help - Install app, more information",
+      "page_title": "Help - spot price, taxes, install the app and open API",
       "toc": "Table of Contents",
       "info_title": "Information on Electricity Prices",
       "info_intro": "Learn about hourly prices, variable prices, taxes, and fees under each respective category below.",
@@ -277,10 +291,11 @@
       "api_hass": "yesterday, today and tomorrow, see",
       "api_flows": "net physical flow per border right now (MW).",
       "api_status": "data freshness.",
-      "api_source": "Source of the data: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, prices converted with ECB reference rates. Please mention the source when you re-use the data. Re-use is subject to the ENTSO-E Transparency Platform <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">terms of use</a>. spotweb is an independent project, not affiliated with or endorsed by ENTSO-E."
+      "api_source": "Source of the data: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, prices converted with ECB reference rates. Please mention the source when you re-use the data. Re-use is subject to the ENTSO-E Transparency Platform <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">terms of use</a>. spotweb is an independent project, not affiliated with or endorsed by ENTSO-E.",
+      "description": "How spot, hourly and variable electricity prices work, how actual prices with fees and VAT are calculated, how to install the app, and the free open JSON API."
     },
     "hass": {
-      "page_title": "Home Assistant REST integration",
+      "page_title": "Home Assistant - electricity spot price sensor",
       "intro": "You can get current and historical electricity prices in Home Assistant by using the REST endpoint together with Home Assistant's <a href=\"https://www.home-assistant.io/integrations/rest/\">RESTful integration</a>.",
       "entity": "The example configuration gives you an entity called <code>sensor.spotprice_now</code>, which displays the price right now. The entity also receives a number of attributes:",
       "attr_data": "every price point, yesterday to tomorrow.",
@@ -301,7 +316,8 @@
       "p_interval": "PT15M or PT60M. Defaults to the current market resolution of the area.",
       "apex_title": "Apexcharts-card in Lovelace",
       "apex_p": "An example showing how to use the configuration above with <a href=\"https://github.com/RomRider/apexcharts-card\">apexcharts-card</a> to render a graph of prices today and tomorrow.",
-      "img_alt": "Home Assistant chart of spot prices today and tomorrow"
+      "img_alt": "Home Assistant chart of spot prices today and tomorrow",
+      "description": "Electricity spot prices in Home Assistant with the free REST API: sensor configuration, parameters for fees, VAT and currency, and an apexcharts card."
     }
   }
 }

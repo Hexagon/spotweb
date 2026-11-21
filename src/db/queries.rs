@@ -46,6 +46,15 @@ pub fn spot_rows_all(
     rows.collect()
 }
 
+/// Start of the first stored price interval of an area at or after `from`
+pub fn min_spot_period(c: &Connection, area: &str, from: i64) -> rusqlite::Result<Option<i64>> {
+    c.query_row(
+        "SELECT MIN(period) FROM spotprice WHERE area = ?1 AND period >= ?2",
+        params![area, from],
+        |r| r.get(0),
+    )
+}
+
 pub fn max_spot_period(c: &Connection, area: &str) -> rusqlite::Result<Option<i64>> {
     c.query_row(
         "SELECT MAX(period) FROM spotprice WHERE area = ?1",
@@ -808,19 +817,22 @@ pub struct DataFreshness {
 
 /// Raw values for [`crate::health::check`]
 pub struct HealthInputs {
-    /// Start of the latest stored price interval per area
-    pub prices: std::collections::HashMap<String, i64>,
+    /// Stored price intervals `(start, length)` in ms per area, sorted
+    pub prices: std::collections::HashMap<String, Vec<(i64, i64)>>,
     pub generation: Option<i64>,
     pub load: Option<i64>,
 }
 
-pub fn health_inputs(c: &Connection) -> rusqlite::Result<HealthInputs> {
+/// Prices are read from `since` (ms) on
+pub fn health_inputs(c: &Connection, since: i64) -> rusqlite::Result<HealthInputs> {
     let mut prices = std::collections::HashMap::new();
     for country in crate::countries::COUNTRIES {
         for area in country.areas {
-            if let Some(p) = max_spot_period(c, area.name)? {
-                prices.insert(area.name.to_string(), p);
-            }
+            let rows = spot_rows(c, area.name, since, i64::MAX)?
+                .iter()
+                .map(|r| (r.time, crate::timeutil::interval_ms(&r.interval)))
+                .collect();
+            prices.insert(area.name.to_string(), rows);
         }
     }
     let max = |sql: &str| c.query_row(sql, [], |r| r.get::<_, Option<i64>>(0));

@@ -198,6 +198,18 @@
       "more": "Meer opties…",
       "email": "E-mail"
     },
+    "seo": {
+      "index_title": "Stroomprijs vandaag en morgen in Scandinavië en Europa",
+      "index_description": "Actuele spotprijzen voor stroom, vandaag en morgen, voor {zones} biedzones in Scandinavië en Europa, met stroomstromen, productie en verbruik. Gegevens van ENTSO-E.",
+      "area_title": "Stroomprijs {area} ({long}) vandaag en morgen",
+      "area_description": "Spotprijs {area} {long} vandaag: gemiddeld {avg} {unit}, laagste {min}, hoogste {max}.",
+      "area_description_tomorrow": "Morgen: gemiddeld {avg} {unit}, {min}–{max}.",
+      "area_description_more": "Prijzen per uur en kwartier, historie, productie en verbruik.",
+      "area_description_nodata": "Spotprijs voor stroom in {area} {long} vandaag, morgen en historisch, met productie en verbruik.",
+      "country_title": "Stroomprijs {country} vandaag en morgen",
+      "country_description": "Spotprijs {country} vandaag, gemiddeld per biedzone: {prices} {unit}. Productie, verbruik en storingen.",
+      "dataset_name": "Spotprijzen stroom {area} ({long})"
+    },
     "custom": {
       "error": "Fout",
       "total": "Totaal",
@@ -234,10 +246,12 @@
       "minimum": "Minimum",
       "maximum": "Maximum",
       "permalink": "Permalink",
-      "source": "Bron: ENTSO-E Transparency Platform."
+      "source": "Bron: ENTSO-E Transparency Platform.",
+      "page_title": "Eigen periode - tabel met spotprijzen voor stroom",
+      "description": "Spotprijzen voor stroom voor elke biedzone en periode, per interval, dag, week, maand of jaar, als tabel en grafiek."
     },
     "help": {
-      "page_title": "Help - App installeren, meer informatie",
+      "page_title": "Help - spotprijs, belastingen, app installeren en open API",
       "toc": "Inhoud",
       "info_title": "Over stroomprijzen",
       "info_intro": "Hieronder lees je meer over uurprijzen, variabele prijzen, belastingen en kosten.",
@@ -277,10 +291,11 @@
       "api_hass": "gisteren, vandaag en morgen, zie",
       "api_flows": "fysieke netto-stroom per grens op dit moment (MW).",
       "api_status": "actualiteit van de gegevens.",
-      "api_source": "Bron van de gegevens: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, prijzen omgerekend met referentiekoersen van de ECB. Vermeld de bron als je de gegevens hergebruikt. Hergebruik valt onder de <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">gebruiksvoorwaarden</a> van het ENTSO-E Transparency Platform. spotweb is een onafhankelijk project, niet verbonden aan ENTSO-E."
+      "api_source": "Bron van de gegevens: <a href=\"https://transparency.entsoe.eu/\" rel=\"noopener\">ENTSO-E Transparency Platform</a>, prijzen omgerekend met referentiekoersen van de ECB. Vermeld de bron als je de gegevens hergebruikt. Hergebruik valt onder de <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">gebruiksvoorwaarden</a> van het ENTSO-E Transparency Platform. spotweb is een onafhankelijk project, niet verbonden aan ENTSO-E.",
+      "description": "Hoe spot-, uur- en variabele stroomprijzen werken, hoe de werkelijke prijs met kosten en btw wordt berekend, hoe je de app installeert, en de gratis open JSON-API."
     },
     "hass": {
-      "page_title": "Home Assistant REST-integratie",
+      "page_title": "Home Assistant - sensor voor de spotprijs van stroom",
       "intro": "Je kunt actuele en historische stroomprijzen in Home Assistant krijgen met het REST-adres en de <a href=\"https://www.home-assistant.io/integrations/rest/\">RESTful-integratie</a> van Home Assistant.",
       "entity": "De voorbeeldconfiguratie maakt de entiteit <code>sensor.spotprice_now</code> aan, die de prijs van dit moment toont. De entiteit krijgt ook een aantal attributen:",
       "attr_data": "alle prijspunten, van gisteren tot morgen.",
@@ -301,7 +316,8 @@
       "p_interval": "PT15M of PT60M. Standaard de huidige marktresolutie van de biedzone.",
       "apex_title": "Apexcharts-card in Lovelace",
       "apex_p": "Een voorbeeld van hoe je de configuratie hierboven gebruikt met <a href=\"https://github.com/RomRider/apexcharts-card\">apexcharts-card</a> om een grafiek van de prijzen van vandaag en morgen te tekenen.",
-      "img_alt": "Home Assistant-grafiek van de spotprijzen van vandaag en morgen"
+      "img_alt": "Home Assistant-grafiek van de spotprijzen van vandaag en morgen",
+      "description": "Spotprijzen voor stroom in Home Assistant met de gratis REST-API: sensorconfiguratie, parameters voor kosten, btw en valuta, en een apexcharts-kaart."
     }
   }
 }

@@ -39,6 +39,7 @@ spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried po
 | `spotweb serve`                  | Web server + scheduler (default). `--no-scheduler` for a read-only node. |
 | `spotweb import-v1 [db/main.db]` | Import history from a 1.x database. Safe to run repeatedly.              |
 | `spotweb run-job prices …`       | Run `prices`, `currency`, `load`, `production`, `flows`, `outages` once. |
+| `spotweb repair-prices [AREA…]`  | Refetch months with incomplete days in stored history. `--from DATE`.    |
 | `spotweb backup <file>`          | Consistent online copy, safe while running. `*.zst` is zstd-compressed.  |
 
 ### Configuration (environment)
@@ -79,6 +80,7 @@ Runs only fetch what can have changed:
 
 - `prices` skips areas whose prices are stored up to the end of tomorrow, and does not ask for tomorrow before the
   earliest day-ahead auction (11:00 CET), so the hourly runs before noon make no requests once today is complete.
+  An area with a hole in yesterday or today is fetched again from that day, even when later prices are stored.
 - `load`, `production` and `flows` fetch from six hours before the latest stored interval instead of all of yesterday
   and today. Once a day, at 06 local time, the whole two days are fetched again to pick up late values and revisions.
   For `flows` that is the 06 and 07 runs, one for each half of the borders. `spotweb run-job flows` fetches every
@@ -118,7 +120,8 @@ sensor format, unchanged. `currency=ORE` (öre) is new. See `/homeassistant` for
 `from` is the exporting side. Borders to neighbouring zones without prices on spotweb (EE, LT, NL, GB, CZ, IT, PT) are included.
 
 `GET /api/v2/status` – latest data, last job runs, `healthy`/`problems` and HTTP statistics (`http`). `GET /healthz` – liveness probe.
-`GET /healthz/data` – `200` when prices (tomorrow's after 14:00 CET), load and generation are current, else `503`.
+`GET /healthz/data` – `200` when prices are complete for today (and tomorrow after 14:00 CET) and load and generation are
+current, else `503`.
 
 Data source: [ENTSO-E Transparency Platform](https://transparency.entsoe.eu/). Re-use is subject to its
 [terms of use](https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions); mention the
@@ -136,6 +139,14 @@ list of freely re-usable data. spotweb is not affiliated with or endorsed by ENT
    ```
 
 4. Start spotweb 2. Anything newer than the imported data is fetched by the jobs on start.
+5. Fill the holes in the imported history (1.x did not store intervals priced at exactly zero). With `API_TOKEN` set:
+
+   ```sh
+   spotweb --db /var/lib/spotweb/spotweb.db repair-prices
+   ```
+
+   Only months with an incomplete day are fetched again. Days ENTSO-e cannot fill are listed at the end. Safe while
+   the server runs; restart it (or wait for the next price update) to drop cached results.
 
 Rolling back is just starting 1.x again on its own database.
 
