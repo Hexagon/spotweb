@@ -54,6 +54,7 @@ pub fn max_spot_period(c: &Connection, area: &str) -> rusqlite::Result<Option<i6
     )
 }
 
+/// Returns the number of rows inserted or changed; identical rows are not rewritten.
 pub fn upsert_spot(
     c: &mut Connection,
     country: &str,
@@ -61,17 +62,19 @@ pub fn upsert_spot(
     rows: &[(i64, String, f64)],
 ) -> rusqlite::Result<usize> {
     let tx = c.transaction()?;
+    let mut changed = 0;
     {
         let mut st = tx.prepare_cached(
             "INSERT INTO spotprice (country, area, period, interval, spotprice) VALUES (?1, ?2, ?3, ?4, ?5)
-             ON CONFLICT (area, period, interval) DO UPDATE SET spotprice = excluded.spotprice, country = excluded.country",
+             ON CONFLICT (area, period, interval) DO UPDATE SET spotprice = excluded.spotprice, country = excluded.country
+             WHERE spotprice IS NOT excluded.spotprice OR country IS NOT excluded.country",
         )?;
         for (period, interval, price) in rows {
-            st.execute(params![country, area, period, interval, price])?;
+            changed += st.execute(params![country, area, period, interval, price])?;
         }
     }
     tx.commit()?;
-    Ok(rows.len())
+    Ok(changed)
 }
 
 // ---------------------------------------------------------------------------
@@ -359,44 +362,66 @@ pub fn current_generation_and_load(c: &Connection, from: i64) -> rusqlite::Resul
     rows.collect()
 }
 
-/// `(period, interval, psr, consumption, value)`
+/// Start of the latest stored generation interval of an area (`BZN|SE1`)
+pub fn max_generation_period(c: &Connection, area: &str) -> rusqlite::Result<Option<i64>> {
+    c.query_row(
+        "SELECT MAX(period) FROM generation WHERE area = ?1",
+        params![area],
+        |r| r.get(0),
+    )
+}
+
+/// Start of the latest stored load interval of an area
+pub fn max_load_period(c: &Connection, area: &str) -> rusqlite::Result<Option<i64>> {
+    c.query_row(
+        "SELECT MAX(period) FROM load WHERE area = ?1",
+        params![area],
+        |r| r.get(0),
+    )
+}
+
+/// `(period, interval, psr, consumption, value)`. Returns the number of rows inserted or changed.
 pub fn upsert_generation(
     c: &mut Connection,
     area: &str,
     rows: &[(i64, String, String, i64, f64)],
 ) -> rusqlite::Result<usize> {
     let tx = c.transaction()?;
+    let mut changed = 0;
     {
         let mut st = tx.prepare_cached(
             "INSERT INTO generation (area, period, interval, psr, consumption, value) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
-             ON CONFLICT (area, period, interval, psr, consumption) DO UPDATE SET value = excluded.value",
+             ON CONFLICT (area, period, interval, psr, consumption) DO UPDATE SET value = excluded.value
+             WHERE value IS NOT excluded.value",
         )?;
         for (period, interval, psr, consumption, value) in rows {
-            st.execute(params![area, period, interval, psr, consumption, value])?;
+            changed += st.execute(params![area, period, interval, psr, consumption, value])?;
         }
     }
     tx.commit()?;
-    Ok(rows.len())
+    Ok(changed)
 }
 
-/// `(period, interval, value)`
+/// `(period, interval, value)`. Returns the number of rows inserted or changed.
 pub fn upsert_load(
     c: &mut Connection,
     area: &str,
     rows: &[(i64, String, f64)],
 ) -> rusqlite::Result<usize> {
     let tx = c.transaction()?;
+    let mut changed = 0;
     {
         let mut st = tx.prepare_cached(
             "INSERT INTO load (area, period, interval, value) VALUES (?1, ?2, ?3, ?4)
-             ON CONFLICT (area, period, interval) DO UPDATE SET value = excluded.value",
+             ON CONFLICT (area, period, interval) DO UPDATE SET value = excluded.value
+             WHERE value IS NOT excluded.value",
         )?;
         for (period, interval, value) in rows {
-            st.execute(params![area, period, interval, value])?;
+            changed += st.execute(params![area, period, interval, value])?;
         }
     }
     tx.commit()?;
-    Ok(rows.len())
+    Ok(changed)
 }
 
 /// Write country level rows (`cty`) as the sum of its areas, for periods where every
@@ -433,7 +458,8 @@ pub fn aggregate_country(
                     WHERE area IN ({placeholders}) AND period >= ?2
                     GROUP BY period, interval HAVING COUNT(DISTINCT area) = {n_param})
              GROUP BY period, interval, psr, consumption
-             ON CONFLICT (area, period, interval, psr, consumption) DO UPDATE SET value = excluded.value"
+             ON CONFLICT (area, period, interval, psr, consumption) DO UPDATE SET value = excluded.value
+             WHERE value IS NOT excluded.value"
         ),
         rusqlite::params_from_iter(p.iter()),
     )?;
@@ -444,7 +470,8 @@ pub fn aggregate_country(
              FROM load
              WHERE area IN ({placeholders}) AND period >= ?2
              GROUP BY period, interval HAVING COUNT(DISTINCT area) = {n_param}
-             ON CONFLICT (area, period, interval) DO UPDATE SET value = excluded.value"
+             ON CONFLICT (area, period, interval) DO UPDATE SET value = excluded.value
+             WHERE value IS NOT excluded.value"
         ),
         rusqlite::params_from_iter(p.iter()),
     )?;
@@ -542,12 +569,15 @@ pub struct NewOutage {
     pub availability: Vec<(i64, i64, f64)>,
 }
 
+/// Store outages, replacing older revisions. Returns the number of outages written;
+/// an outage whose revision is already stored is skipped.
 pub fn replace_outages(
     c: &mut Connection,
     country: &str,
     outages: &[NewOutage],
 ) -> rusqlite::Result<usize> {
     let tx = c.transaction()?;
+    let mut changed = 0;
     {
         let mut del = tx.prepare_cached("DELETE FROM outage WHERE mrid = ?1")?;
         let mut del_a = tx.prepare_cached("DELETE FROM outage_availability WHERE mrid = ?1")?;
@@ -557,7 +587,15 @@ pub fn replace_outages(
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
         )?;
         let mut ins_a = tx.prepare_cached("INSERT INTO outage_availability (mrid, start_date, end_date, quantity) VALUES (?1, ?2, ?3, ?4)")?;
+        let mut stored = tx.prepare_cached("SELECT revision FROM outage WHERE mrid = ?1")?;
         for o in outages {
+            let revision: Option<Option<i64>> =
+                stored.query_row(params![o.mrid], |r| r.get(0)).optional()?;
+            if o.revision.is_some() && revision == Some(o.revision) {
+                // Same revision as stored, ENTSO-e publishes changes as a new revision
+                continue;
+            }
+            changed += 1;
             del.execute(params![o.mrid])?;
             del_a.execute(params![o.mrid])?;
             ins.execute(params![
@@ -583,7 +621,7 @@ pub fn replace_outages(
         }
     }
     tx.commit()?;
-    Ok(outages.len())
+    Ok(changed)
 }
 
 // ---------------------------------------------------------------------------
@@ -705,7 +743,16 @@ pub fn latest_job_runs(c: &Connection) -> rusqlite::Result<Vec<JobStatus>> {
 // Cross-border flows
 // ---------------------------------------------------------------------------
 
-/// `(period, interval, MW)` for one direction
+/// Start of the latest stored flow interval in one direction
+pub fn max_flow_period(c: &Connection, from: &str, to: &str) -> rusqlite::Result<Option<i64>> {
+    c.query_row(
+        "SELECT MAX(period) FROM flow WHERE from_area = ?1 AND to_area = ?2",
+        params![from, to],
+        |r| r.get(0),
+    )
+}
+
+/// `(period, interval, MW)` for one direction. Returns the number of rows inserted or changed.
 pub fn upsert_flows(
     c: &mut Connection,
     from: &str,
@@ -713,17 +760,19 @@ pub fn upsert_flows(
     rows: &[(i64, String, f64)],
 ) -> rusqlite::Result<usize> {
     let tx = c.transaction()?;
+    let mut changed = 0;
     {
         let mut st = tx.prepare_cached(
             "INSERT INTO flow (from_area, to_area, period, interval, value) VALUES (?1, ?2, ?3, ?4, ?5)
-             ON CONFLICT (from_area, to_area, period, interval) DO UPDATE SET value = excluded.value",
+             ON CONFLICT (from_area, to_area, period, interval) DO UPDATE SET value = excluded.value
+             WHERE value IS NOT excluded.value",
         )?;
         for (period, interval, value) in rows {
-            st.execute(params![from, to, period, interval, value])?;
+            changed += st.execute(params![from, to, period, interval, value])?;
         }
     }
     tx.commit()?;
-    Ok(rows.len())
+    Ok(changed)
 }
 
 /// Flow rows in `[from, to)`
@@ -818,7 +867,10 @@ mod tests {
             &[(1000, "PT60M".into(), 10.0), (2000, "PT60M".into(), 11.0)],
         )
         .unwrap();
-        upsert_spot(&mut c, "sv", "SE1", &[(1000, "PT60M".into(), 12.0)]).unwrap();
+        // Only rows that are new or changed count
+        let rows = [(1000, "PT60M".into(), 12.0), (2000, "PT60M".into(), 11.0)];
+        assert_eq!(upsert_spot(&mut c, "sv", "SE1", &rows).unwrap(), 1);
+        assert_eq!(upsert_spot(&mut c, "sv", "SE1", &rows).unwrap(), 0);
         let rows = spot_rows(&c, "SE1", 0, 5000).unwrap();
         assert_eq!(rows.len(), 2);
         assert_eq!(rows[0].price, 12.0);
@@ -843,6 +895,11 @@ mod tests {
         }
         // SE2 only has data for period 2000 -> must not be aggregated
         upsert_load(&mut c, "BZN|SE2", &[(2000, "PT15M".into(), 1.0)]).unwrap();
+        assert_eq!(
+            upsert_load(&mut c, "BZN|SE2", &[(2000, "PT15M".into(), 1.0)]).unwrap(),
+            0
+        );
+        assert_eq!(max_load_period(&c, "BZN|SE2").unwrap(), Some(2000));
         aggregate_country(&mut c, "Sweden (SE)", &["BZN|SE1", "BZN|SE2"], 0).unwrap();
         let g = generation(&c, "Sweden (SE)", 0, 5000, "PT15M").unwrap();
         let water: f64 = g

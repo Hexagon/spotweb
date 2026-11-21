@@ -72,6 +72,15 @@ Same timing as 1.x, in `SPOTWEB_SCHEDULE_TZ` (DST changes are handled):
 | `flows`      | every hour at :25 (physical flows, two requests per border)      |
 | `outages`    | 08:05                                                             |
 
+Runs only fetch what can have changed:
+
+- `prices` skips areas whose prices are stored up to the end of tomorrow, and does not ask for tomorrow before the
+  earliest day-ahead auction (11:00 CET), so the hourly runs before noon make no requests once today is complete.
+- `load`, `production` and `flows` fetch from six hours before the latest stored interval instead of all of yesterday
+  and today. Once a day, at 06 local time, the whole two days are fetched again to pick up late values and revisions.
+- Rows that are unchanged are not rewritten, and outages whose revision is already stored are skipped.
+- When a run changed nothing, the cache is kept and the database is not re-analyzed.
+
 ## API
 
 Free and without key. Errors are returned as HTTP 500 with `{"status":"error","details":"…"}`, as in 1.x.
