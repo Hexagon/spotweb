@@ -1,8 +1,9 @@
 //! Tiny XML DOM on top of quick-xml. ENTSO-e and ECB documents are small enough
 //! (a few MB at most) that building a tree keeps the extraction code readable.
 
+use quick_xml::escape::resolve_predefined_entity;
 use quick_xml::events::Event;
-use quick_xml::Reader;
+use quick_xml::{Reader, XmlVersion};
 
 #[derive(Debug, Default, Clone)]
 pub struct Element {
@@ -42,8 +43,7 @@ impl Element {
     }
 }
 
-fn local(name: &[u8]) -> String {
-    let s = String::from_utf8_lossy(name);
+fn local(s: &str) -> String {
     match s.rsplit_once(':') {
         Some((_, l)) => l.to_string(),
         None => s.to_string(),
@@ -57,11 +57,11 @@ fn element_from(e: &quick_xml::events::BytesStart) -> Element {
     };
     for a in e.attributes().flatten() {
         let key = local(a.key.as_ref());
-        if key == "xmlns" || a.key.as_ref().starts_with(b"xmlns:") {
+        if key == "xmlns" || a.key.as_ref().starts_with("xmlns:") {
             continue;
         }
         let val = a
-            .unescape_value()
+            .normalized_value(XmlVersion::Implicit1_0)
             .map(|v| v.to_string())
             .unwrap_or_default();
         el.attrs.push((key, val));
@@ -89,12 +89,24 @@ pub fn parse(xml: &str) -> anyhow::Result<Element> {
             }
             Event::Text(t) => {
                 if let Some(cur) = stack.last_mut() {
-                    cur.text.push_str(&t.unescape()?);
+                    cur.text.push_str(&t.xml10_content());
                 }
             }
             Event::CData(t) => {
                 if let Some(cur) = stack.last_mut() {
-                    cur.text.push_str(&String::from_utf8_lossy(&t));
+                    cur.text.push_str(&t.xml10_content());
+                }
+            }
+            // Entity and character references come as separate events since quick-xml 0.38
+            Event::GeneralRef(r) => {
+                if let Some(cur) = stack.last_mut() {
+                    if let Some(c) = r.resolve_char_ref()? {
+                        cur.text.push(c);
+                    } else if let Some(v) = resolve_predefined_entity(&r) {
+                        cur.text.push_str(v);
+                    } else {
+                        anyhow::bail!("unknown entity &{};", &*r);
+                    }
                 }
             }
             Event::Eof => break,
@@ -122,5 +134,17 @@ mod tests {
         assert_eq!(root.text_of("b"), Some("hi"));
         assert_eq!(root.child("b").unwrap().attr("k"), Some("v"));
         assert!(root.child("c").is_some());
+    }
+
+    #[test]
+    fn resolves_entities_and_cdata() {
+        let root = super::parse(
+            r#"<r a="x &amp; y"><t>A &amp; B &lt;&#x43;&#68;&gt;</t><c><![CDATA[1 < 2]]></c></r>"#,
+        )
+        .unwrap();
+        assert_eq!(root.attr("a"), Some("x & y"));
+        assert_eq!(root.text_of("t"), Some("A & B <CD>"));
+        assert_eq!(root.text_of("c"), Some("1 < 2"));
+        assert!(super::parse("<r>&nope;</r>").is_err());
     }
 }

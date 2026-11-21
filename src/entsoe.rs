@@ -489,18 +489,7 @@ impl Client {
             .await
             .map_err(|e| RequestError::from_reqwest(e, timeout))?;
         if is_zip || body.starts_with(b"PK\x03\x04") {
-            let mut archive = zip::ZipArchive::new(std::io::Cursor::new(body))?;
-            let mut docs = vec![];
-            for i in 0..archive.len() {
-                let mut f = archive.by_index(i)?;
-                if f.is_dir() {
-                    continue;
-                }
-                let mut s = String::new();
-                f.read_to_string(&mut s)?;
-                docs.push(s);
-            }
-            Ok(docs)
+            unzip_documents(&body)
         } else {
             let text = String::from_utf8_lossy(&body).to_string();
             if !status.is_success() && !text.contains("Acknowledgement_MarketDocument") {
@@ -626,8 +615,44 @@ impl Client {
     }
 }
 
+/// The XML documents in a zip response (outages come as one document per unit), read in memory
+fn unzip_documents(body: &[u8]) -> anyhow::Result<Vec<String>> {
+    let mut archive = zip::ZipArchive::new(std::io::Cursor::new(body))?;
+    let mut docs = vec![];
+    for i in 0..archive.len() {
+        let mut f = archive.by_index(i)?;
+        if f.is_dir() {
+            continue;
+        }
+        let mut s = String::new();
+        f.read_to_string(&mut s)?;
+        docs.push(s);
+    }
+    Ok(docs)
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn unzips_all_documents() {
+        use std::io::Write;
+        let mut buf = std::io::Cursor::new(Vec::new());
+        {
+            let mut w = zip::ZipWriter::new(&mut buf);
+            let opt = zip::write::SimpleFileOptions::default()
+                .compression_method(zip::CompressionMethod::Deflated);
+            w.add_directory("dir/", opt).unwrap();
+            w.start_file("dir/a.xml", opt).unwrap();
+            w.write_all(b"<a>1</a>").unwrap();
+            w.start_file("b.xml", opt).unwrap();
+            w.write_all("<b>å</b>".as_bytes()).unwrap();
+            w.finish().unwrap();
+        }
+        let docs = super::unzip_documents(&buf.into_inner()).unwrap();
+        assert_eq!(docs, vec!["<a>1</a>".to_string(), "<b>å</b>".to_string()]);
+        assert!(super::unzip_documents(b"PK\x03\x04 broken").is_err());
+    }
+
     use super::*;
 
     const PRICES: &str = r#"<?xml version="1.0" encoding="UTF-8"?>

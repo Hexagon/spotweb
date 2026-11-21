@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    # Weekly, so advisories published for unchanged dependencies are noticed
+    - cron: "17 5 * * 1"
 
 permissions:
   contents: read
@@ -31,6 +34,15 @@ jobs:
       - name: Check client script syntax
         run: node --check static/assets/app.js
 
+  # Security advisories (RustSec), licenses and crate sources, configured in deny.toml.
+  # Runs on every push so new advisories for existing dependencies show up too.
+  deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check advisories licenses bans sources
 
   test-other-os:
     strategy:

@@ -1,0 +1,38 @@
+# cargo-deny: security advisories, licenses and crate sources. Run with `cargo deny check`.
+
+[graph]
+all-features = false
+
+[advisories]
+# RustSec advisories. Vulnerabilities always fail; unmaintained crates only when we use them directly.
+unmaintained = "workspace"
+ignore = [
+  # chrono and chrono-tz are flagged unmaintained (no vulnerability). Moving all date handling to
+  # jiff is planned as a separate change, see plan.md.
+  { id = "RUSTSEC-2026-0543", reason = "chrono unmaintained, migration to jiff planned" },
+  { id = "RUSTSEC-2026-0555", reason = "chrono-tz unmaintained, migration to jiff planned" },
+]
+
+[licenses]
+# Permissive licenses compatible with distributing an MIT binary
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Zlib",
+  "Unicode-3.0",
+  "CDLA-Permissive-2.0",
+]
+confidence-threshold = 0.9
+
+[bans]
+multiple-versions = "allow"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

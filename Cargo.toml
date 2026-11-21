@@ -15,11 +15,11 @@ chrono-tz = "0.10"
 clap = { version = "4", features = ["derive", "env"] }
 minijinja = { version = "2", features = ["loader", "json"] }
 parking_lot = "0.12"
-quick-xml = "0.37"
+quick-xml = "0.42"
 r2d2 = "0.8"
-r2d2_sqlite = "0.25"
+r2d2_sqlite = "0.37"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip"] }
-rusqlite = { version = "0.32", features = ["bundled", "backup"] }
+rusqlite = { version = "0.42", features = ["bundled", "backup"] }
 rust-embed = { version = "8", features = ["mime-guess"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
@@ -29,7 +29,7 @@ tower-http = { version = "0.6", features = ["compression-gzip", "compression-br"
 tracing = "0.1"
 uuid = "1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
-zip = { version = "2", default-features = false, features = ["deflate"] }
+zip = { version = "9", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
