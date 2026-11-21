@@ -197,6 +197,18 @@ async fn redirects_static_and_404() {
     let (s, body, _) = get(&app, "/api/v2/status").await;
     assert_eq!(s, StatusCode::OK);
     assert!(body.contains("latest_price"));
+    // Test data does not reach tomorrow and has no generation, so data is not healthy
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["healthy"], false);
+    assert!(v["problems"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|p| p == "no generation data"));
+    let (s, body, h) = get(&app, "/healthz/data").await;
+    assert_eq!(s, StatusCode::SERVICE_UNAVAILABLE);
+    assert!(body.contains("no generation data"));
+    assert_eq!(h["cache-control"], "no-store");
 }
 
 #[test]

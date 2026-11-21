@@ -37,13 +37,13 @@ Varje punkt är tänkt att bli en egen PR.
 
 9. ✅ ~~**Förlopp i loggen för load och production.**~~ Logga per område på info-nivå (antal rader och tid), som prisjobbet gör,
    och en sammanfattning per körning.
-10. **Kallstart varje timme för översiktssidan.** Frågan `generation cur` tar cirka 1,6 s när cachenyckeln byts varje
+10. ✅ ~~**Kallstart varje timme för översiktssidan.** Frågan `generation cur` tar cirka 1,6 s när cachenyckeln byts varje
     timme. Åtgärd: värm cachen direkt efter jobben för generation och load, och se över index för `generation (period)` i
-    fönsterfrågan.
+    fönsterfrågan.~~
 11. **Testa ENTSO-e-parsningen mot riktiga svar.** Spara XML-svar från produktionen (A44 med 15-min-upplösning, A75, A65
     och en zip med A77/A80) under `tests/fixtures/`.
-12. **Larm när data saknas.** Lägg till `healthy: true/false` i `/api/v2/status`: imorgons priser ska finnas efter
-    14:00 CET och load/generation ska vara högst 3 h gamla. Koppla en extern övervakare till det.
+12. ✅ ~~**Larm när data saknas.** Lägg till `healthy: true/false` i `/api/v2/status`: imorgons priser ska finnas efter
+    14:00 CET och load/generation ska vara högst 3 h gamla. Koppla en extern övervakare till det.~~
 
 ## P2 – Drift och kvalitet
 
@@ -91,6 +91,15 @@ Varje punkt är tänkt att bli en egen PR.
   område (15 s, 60 s vid 429/503), status `partial` med `failures` i `job_run` och `/api/v2/status`, 3 samtidiga områden
   (`SPOTWEB_ENTSOE_CONCURRENCY`) och 60 s timeout per anrop (`SPOTWEB_ENTSOE_TIMEOUT_SECS`), 599 loggas som
   "upstream timeout", och alla ENTSO-e-jobb loggar per område och en sammanfattning med tid.
+
+- Punkt 10: orsaken var att databasen saknade planerarstatistik (`sqlite_stat1`). Utan den skannar frågan hela
+  `generation` och `load` (220 ms på 5 miljoner testrader, mot 7 ms med statistik). Nu körs `PRAGMA optimize` (med
+  `analysis_limit`) när databasen öppnas och efter varje datajobb. Cachenyckeln för översikten byts inte längre varje
+  timme, och jobben värmer cachen för översikt, priser och flöden direkt efter att de skrivit data. Migration 4 lägger
+  till index på `load (period)`.
+- Punkt 12: `healthy` och `problems` i `/api/v2/status`, och `/healthz/data` som svarar 503 när data saknas (för
+  övervakare som bara ser statuskoden). Kraven: dagens priser för alla områden, efter 14:00 CET även morgondagens,
+  och load/generation högst 3 h gamla.
 
 - En binär med inbyggd schemaläggare, SQLite med nycklar, import från 1.x
 - Signerade releaser för Linux, macOS och Windows, CI på alla tre plattformarna

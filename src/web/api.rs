@@ -298,6 +298,20 @@ fn empty_hass() -> HassResponse {
     }
 }
 
+async fn data_health(st: &WebState) -> anyhow::Result<crate::health::Health> {
+    let i = st
+        .app
+        .db
+        .run(|c| Ok(crate::db::queries::health_inputs(c)?))
+        .await?;
+    Ok(crate::health::check(
+        now_ms(),
+        |a| i.prices.get(a).copied(),
+        i.generation,
+        i.load,
+    ))
+}
+
 /// `GET /api/v2/status` - data freshness and last job runs, for monitoring
 pub async fn status(State(st): State<WebState>) -> Response {
     let res = st
@@ -310,18 +324,21 @@ pub async fn status(State(st): State<WebState>) -> Response {
             ))
         })
         .await;
-    match res {
-        Ok((fresh, jobs)) => json_response(
+    let health = data_health(&st).await;
+    match (res, health) {
+        (Ok((fresh, jobs)), Ok(health)) => json_response(
             StatusCode::OK,
             json!({
                 "status": "ok",
                 "version": env!("CARGO_PKG_VERSION"),
+                "healthy": health.healthy,
+                "problems": health.problems,
                 "data": fresh,
                 "jobs": jobs,
             }),
             0,
         ),
-        Err(e) => {
+        (Err(e), _) | (_, Err(e)) => {
             tracing::error!(error = %e, "status query failed");
             api_error("Query failed")
         }
@@ -363,6 +380,26 @@ pub async fn healthz(State(st): State<WebState>) -> impl IntoResponse {
         Ok(_) => (StatusCode::OK, "ok"),
         Err(_) => (StatusCode::SERVICE_UNAVAILABLE, "database unavailable"),
     }
+}
+
+/// `GET /healthz/data` - `200 ok` when prices, load and generation are up to date,
+/// otherwise `503` with one problem per line. For external monitors that only look at the status code.
+pub async fn healthz_data(State(st): State<WebState>) -> Response {
+    let mut res = match data_health(&st).await {
+        Ok(h) if h.healthy => (StatusCode::OK, "ok".to_string()).into_response(),
+        Ok(h) => (StatusCode::SERVICE_UNAVAILABLE, h.problems.join("\n")).into_response(),
+        Err(e) => {
+            tracing::error!(error = %e, "health query failed");
+            (
+                StatusCode::SERVICE_UNAVAILABLE,
+                "database unavailable".to_string(),
+            )
+                .into_response()
+        }
+    };
+    res.headers_mut()
+        .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    res
 }
 
 #[cfg(test)]

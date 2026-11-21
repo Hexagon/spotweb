@@ -98,7 +98,8 @@ sensor format, unchanged. `currency=ORE` (öre) is new. See `/homeassistant` for
 
 `from` is the exporting side. Borders to neighbouring zones without prices on spotweb (EE, LT, NL, GB, CZ, IT, PT) are included.
 
-`GET /api/v2/status` – latest data and last job runs. `GET /healthz` – liveness probe.
+`GET /api/v2/status` – latest data, last job runs and `healthy`/`problems`. `GET /healthz` – liveness probe.
+`GET /healthz/data` – `200` when prices (tomorrow's after 14:00 CET), load and generation are current, else `503`.
 
 ## Upgrading from 1.x
 

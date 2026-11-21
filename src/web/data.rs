@@ -205,21 +205,48 @@ pub async fn now_prices(app: &App) -> anyhow::Result<Arc<NowPrices>> {
         .await
 }
 
+/// Latest generation and load per area. The key is stable: the load and production jobs
+/// invalidate the realm and call [`warm`], so visitors do not pay for the query.
 pub async fn current_generation_and_load(app: &App) -> anyhow::Result<Arc<Vec<GenLoadRow>>> {
-    let from = now_ms() - 12 * HOUR_MS;
-    let from = from - from.rem_euclid(HOUR_MS);
     let db = app.db.clone();
     app.cache
         .get_or_load(
             "generation",
-            format!("cur:{from}"),
-            Duration::from_secs(30 * MIN),
+            "cur".into(),
+            Duration::from_secs(90 * MIN),
             || async move {
+                let from = now_ms() - 12 * HOUR_MS;
+                let from = from - from.rem_euclid(HOUR_MS);
                 db.run(move |c| Ok(queries::current_generation_and_load(c, from)?))
                     .await
             },
         )
         .await
+}
+
+/// Reload the cached data behind the start page after a job has invalidated it
+pub async fn warm(app: &App, realms: &[&str]) {
+    let t0 = std::time::Instant::now();
+    if realms.iter().any(|r| *r == "generation" || *r == "load") {
+        if let Err(e) = current_generation_and_load(app).await {
+            tracing::warn!(error = %format!("{e:#}"), "warming generation cache failed");
+        }
+    }
+    if realms.contains(&"flow") {
+        if let Err(e) = current_flows(app).await {
+            tracing::warn!(error = %format!("{e:#}"), "warming flow cache failed");
+        }
+    }
+    if realms.contains(&"spotprice") {
+        if let Err(e) = now_prices(app).await {
+            tracing::warn!(error = %format!("{e:#}"), "warming price cache failed");
+        }
+    }
+    tracing::debug!(
+        ms = t0.elapsed().as_millis() as u64,
+        ?realms,
+        "cache warmed"
+    );
 }
 
 pub async fn generation(

@@ -116,8 +116,12 @@ Everything except the database can be re-created, and even the database can be r
 ## Monitoring
 
 - `GET /healthz` returns `200 ok` when the process and database are fine.
-- `GET /api/v2/status` lists the newest price/generation/load timestamps and the last run of each job. Alert if
-  `latest_price` is less than ~12 hours ahead of now after 14:00 CET, or if a job keeps reporting `"status": "failed"`.
+- `GET /healthz/data` returns `200 ok` when the data is current and `503` with one problem per line otherwise. Point an
+  external monitor (Uptime Kuma, UptimeRobot, Healthchecks…) at it, every 5–15 minutes. Current means: every area has
+  prices for today, and after 14:00 CET for tomorrow too; the newest generation and load are at most 3 hours old.
+  Expect an alert if ENTSO-e publishes late, and keep in mind that generation for some areas lags by a few hours.
+- `GET /api/v2/status` has the same verdict as `healthy` and `problems`, the newest price/generation/load timestamps and
+  the last run of each job. Also alert if a job keeps reporting `"status": "failed"`.
   Each job run has a `status`: `ok`, `partial` (finished, but some areas failed; they are listed in `failures` with the
   reason), `failed` or `running`. `ok` stays `true` for `partial` runs, for compatibility with 2.0.0.
 - Each ENTSO-e request is retried twice after 15 s on timeouts, connection errors and 5xx (60 s on 429/503). HTTP 599

@@ -1,7 +1,7 @@
 //! HTTP server: routing, static assets, templates
 
 mod api;
-mod data;
+pub mod data;
 mod pages;
 
 use std::sync::Arc;
@@ -228,6 +228,7 @@ pub fn router(app: App) -> Router {
         .route("/api/v2/status", get(api::status))
         .route("/api/v2/flows", get(api::flows))
         .route("/healthz", get(api::healthz))
+        .route("/healthz/data", get(api::healthz_data))
         .route("/{country}", get(pages::country))
         .route("/{country}/", get(pages::country))
         .route("/{country}/{area}", get(pages::area));
