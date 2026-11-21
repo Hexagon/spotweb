@@ -38,8 +38,8 @@
       "avg_today_short": "Precio spot promedio"
     },
     "warning": {
-      "actual_price": "Precio actual de la electricidad",
-      "actual_price_text": "Actualmente tiene activado el precio de la electricidad, pero no ha realizado ninguna configuración para impuestos y tarifas. Haga clic en el engranaje y complete el Factor (por ejemplo, 1,25 para el 25 % de IVA) y su tarifa (por ejemplo, 0,095 para 9,5 céntimos/kWh antes del IVA)"
+      "actual_price": "Precio real",
+      "actual_price_text": "Tiene activado el precio real, pero no ha configurado impuestos ni tarifas. Haga clic en el engranaje y complete el Factor (por ejemplo, 1,25 para el 25 % de IVA) y su tarifa (por ejemplo, 0,095 para 9,5 céntimos/kWh antes del IVA)."
     },
     "information": {
       "title": "Información y Condiciones de Uso",
@@ -59,26 +59,26 @@
       "right_now": "ahora mismo",
       "more_about": "Más sobre",
       "span": "Intervalo:",
-      "so_far": "Hasta ahora",
+      "so_far": "En lo que va de",
       "cheapest_hour": "Hora más barata a partir de ahora",
       "cheapest_3h": "3 horas más baratas a partir de ahora"
     },
     "nav": {
-      "actual_price_instead": "Precio real por hora en lugar de precio al contado",
+      "actual_price_instead": "Precio real por hora en lugar del precio spot",
       "all_of": "Entero",
       "index": "Resumen",
-      "table": "Mesa",
+      "table": "Tabla",
       "country": "País",
       "area": "Área",
       "help": "Ayuda"
     },
     "customize": {
-      "title": "Ajustar precio actual",
+      "title": "Ajustar precio real",
       "unit": "Unidad",
       "currency": "Moneda",
       "fees": "Tarifas",
       "factor": "Factor",
-      "decimals": "decimales",
+      "decimals": "Decimales",
       "multiplier": "Multiplicador"
     },
     "countries": {
@@ -109,25 +109,31 @@
     "generation": {
       "current_production": "Producción y consumo",
       "production_method": "Método",
-      "production_share": "Compartir",
+      "production_share": "Proporción",
       "production": "Producción",
       "consumption": "Consumo",
       "last_updated": "Última actualización",
       "excess": "Exceso",
       "deficit": "Déficit",
       "psr_coal_0": "Carbón",
-      "psr_oil_0": "Aceite",
-      "psr_gas_0": "Gasolina",
+      "psr_oil_0": "Petróleo",
+      "psr_gas_0": "Gas",
       "psr_peat_0": "Turba",
-      "psr_water_0": "Agua",
-      "psr_water_1": "Agua - Cons.",
+      "psr_water_0": "Hidráulica",
+      "psr_water_1": "Hidráulica - Cons.",
       "psr_nuclear_0": "Nuclear",
       "psr_solar_0": "Solar",
-      "psr_wind_0": "Viento",
-      "psr_wind_1": "Viento - Cons.",
+      "psr_wind_0": "Eólica",
+      "psr_wind_1": "Eólica - Cons.",
       "psr_other_0": "Otro",
-      "primary_source": "Fuente de alimentación principal",
-      "psr_other_1": "Otro - Cons."
+      "primary_source": "Fuente principal",
+      "psr_other_1": "Otro - Cons.",
+      "psr_coal_1": "Carbón - Cons.",
+      "psr_oil_1": "Petróleo - Cons.",
+      "psr_gas_1": "Gas - Cons.",
+      "psr_peat_1": "Turba - Cons.",
+      "psr_nuclear_1": "Nuclear - Cons.",
+      "psr_solar_1": "Solar - Cons."
     },
     "outage": {
       "title": "Interrupciones en ",
@@ -140,9 +146,9 @@
       "capacity_total": "Capacidad total",
       "planned_maintenance": "Mantenimiento planificado",
       "unplanned_outage": "Interrupción no planificada",
-      "started_unplanned_outage": "afectado por una interrupción no planificada que comenzó ",
-      "started_planned_maintenance": "afectado por un mantenimiento planificado que comienza ",
-      "done": " y se estima que finalizará "
+      "started_unplanned_outage": "está afectado por una interrupción no planificada que comenzó el ",
+      "started_planned_maintenance": "está afectado por un mantenimiento planificado que comienza el ",
+      "done": " y se estima que finalizará el "
     },
     "longtermchart": {
       "title": "Precio de la electricidad por mes - ",

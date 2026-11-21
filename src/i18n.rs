@@ -109,6 +109,25 @@ mod tests {
         }
     }
 
+    /// Keys built at runtime (`countries.<id>`, `generation.psr_<group>_<0|1>`) must exist,
+    /// otherwise the raw key is shown in the page or in chart legends.
+    #[test]
+    fn dynamic_keys_exist() {
+        let i = I18n::load().unwrap();
+        let en = i.keys("en");
+        let has = |k: String| assert!(en.contains(&k), "en is missing {k}");
+        for c in crate::countries::COUNTRIES {
+            has(format!("common.countries.{}", c.id));
+        }
+        for group in [
+            "coal", "oil", "gas", "peat", "water", "nuclear", "solar", "wind", "other",
+        ] {
+            for consumption in [0, 1] {
+                has(format!("common.generation.psr_{group}_{consumption}"));
+            }
+        }
+    }
+
     #[test]
     fn lookup_and_fallback() {
         let i = I18n::load().unwrap();
