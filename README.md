@@ -117,7 +117,7 @@ sensor format, unchanged. `currency=ORE` (öre) is new. See `/homeassistant` for
 { "status": "ok", "source": "ENTSO-E Transparency Platform (https://transparency.entsoe.eu/)", "license": "CC-BY-4.0", "updated": "2026-11-21T14:00:00.000Z", "data": [{ "from": "SE3", "to": "FI", "value": 1000.0, "time": "2026-11-21T13:00:00.000Z" }] }
 ```
 
-`from` is the exporting side. Borders to neighbouring zones without prices on spotweb (EE, LT, NL, GB, CZ, IT, PT) are included.
+`from` is the exporting side. Borders to neighbouring zones without prices on spotweb (GB and northern Italy) are included.
 
 `GET /api/v2/status` – latest data, last job runs, `healthy`/`problems` and HTTP statistics (`http`). `GET /healthz` – liveness probe.
 `GET /healthz/data` – `200` when prices are complete for today (and tomorrow after 14:00 CET) and load and generation are
@@ -161,13 +161,13 @@ sha256sum --ignore-missing -c SHA256SUMS
 
 # Signature: proves the archive was built by this repository's release workflow
 cosign verify-blob \
-  --bundle spotweb-v2.0.0-x86_64-unknown-linux-musl.tar.gz.sigstore.json \
+  --bundle spotweb-v2.1.0-x86_64-unknown-linux-musl.tar.gz.sigstore.json \
   --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  spotweb-v2.0.0-x86_64-unknown-linux-musl.tar.gz
+  spotweb-v2.1.0-x86_64-unknown-linux-musl.tar.gz
 
 # Or with the GitHub CLI (build provenance attestation)
-gh attestation verify spotweb-v2.0.0-x86_64-unknown-linux-musl.tar.gz --repo Hexagon/spotweb
+gh attestation verify spotweb-v2.1.0-x86_64-unknown-linux-musl.tar.gz --repo Hexagon/spotweb
 ```
 
 ### Recommended setup (Linux, systemd)
