@@ -12,7 +12,7 @@ Internet ──TLS──> Caddy / nginx ──HTTP──> 127.0.0.1:6000 spotweb
 
 ## Requirements
 
-- Any 64-bit Linux (x86_64 or aarch64) with systemd. The binary is static, no runtime libraries needed.
+- Any 64-bit Linux (x86_64 or aarch64) with systemd 245 or newer. The binary is static, no runtime libraries needed.
 - ~256 MB RAM is plenty. The database grows by roughly 100–200 MB per year with all countries.
 - Outbound HTTPS to `web-api.tp.entsoe.eu` and `www.ecb.europa.eu`.
 - An ENTSO-e API token: register at <https://transparency.entsoe.eu/>, then email `transparency@entsoe.eu` with the subject
@@ -56,6 +56,16 @@ journalctl -u spotweb -f
 
 The unit runs with a strict sandbox (`ProtectSystem=strict`, no capabilities, syscall filter, only `/var/lib/spotweb`
 writable). `systemd-analyze security spotweb` should report a low exposure score.
+
+The unit needs systemd 245 or newer (Ubuntu 20.04, Debian 11, RHEL 9). On systemd 247 or newer (Ubuntu 22.04, Debian 12)
+you can also hide other processes' `/proc` entries with the drop-in in `deploy/systemd/spotweb.service.d/proc.conf`;
+older versions would log "Unknown key name" warnings for those settings, which is why they are not in the main unit:
+
+```sh
+systemctl --version | head -1          # 247 or newer?
+sudo install -D -m 644 deploy/systemd/spotweb.service.d/proc.conf /etc/systemd/system/spotweb.service.d/proc.conf
+sudo systemctl daemon-reload && sudo systemctl restart spotweb
+```
 
 ## 3. Reverse proxy with TLS
 

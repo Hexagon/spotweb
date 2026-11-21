@@ -19,7 +19,8 @@ Restart=on-failure
 RestartSec=5
 TimeoutStopSec=30
 
-# Hardening
+# Hardening. Works with systemd >= 245 (Ubuntu 20.04, Debian 11). On systemd >= 247 also
+# install spotweb.service.d/proc.conf for ProtectProc/ProcSubset, see docs/deployment.md.
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
@@ -31,8 +32,6 @@ ProtectKernelLogs=yes
 ProtectControlGroups=yes
 ProtectClock=yes
 ProtectHostname=yes
-ProtectProc=invisible
-ProcSubset=pid
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 RestrictNamespaces=yes
 RestrictRealtime=yes
