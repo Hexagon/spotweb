@@ -184,7 +184,7 @@ pub fn process_price(price: Option<f64>, p: &PriceProps) -> String {
     if p.sub_unit {
         price *= 100.0;
     }
-    format!("{:.*}", p.decimals.min(20), price)
+    format!("{:.*}", p.decimals.min(100), price)
 }
 
 pub fn stats(values: &[f64]) -> Option<(f64, f64, f64)> {
