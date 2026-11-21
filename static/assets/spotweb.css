@@ -273,15 +273,18 @@ body.currency-eur .hide-eur { display: none; }
 .kv-row dd { margin: 0; font-variant-numeric: tabular-nums; text-align: right; }
 .kv-row.text-danger dd, .kv-row.text-success dd { font-weight: 600; }
 .flow-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.flow-list li { display: grid; grid-template-columns: 16px 52px 56px 1fr auto; align-items: center; gap: 6px; }
+.flow-list li { display: grid; grid-template-columns: 16px 52px 56px 1fr 76px; align-items: center; gap: 6px; }
+.flow-list .num { text-align: right; white-space: nowrap; }
 .flow-list .flow-dir { color: var(--muted); text-align: center; }
-.flow-list .is-import .flow-dir { color: #7fd8ff; }
-.flow-list .is-export .flow-dir { color: #eea23a; }
+.flow-list .is-import .flow-dir { color: #e0707b; }
+.flow-list .is-export .flow-dir { color: #5cc98c; }
 .flow-list a { color: var(--text); font-weight: 600; }
-.flow-bar { height: 6px; background: var(--card-2); border-radius: 3px; overflow: hidden; }
-.flow-bar span { display: block; height: 100%; border-radius: 3px; background: #8d96ab; }
-.flow-list .is-import .flow-bar span { background: #7fd8ff; }
-.flow-list .is-export .flow-bar span { background: #eea23a; }
+/* Diverging bar: centre line, export grows right (green), import grows left (red). */
+.flow-bar { position: relative; height: 8px; background: var(--card-2); border-radius: 3px; }
+.flow-bar::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; margin-left: -0.5px; background: var(--muted); opacity: .6; }
+.flow-bar span { position: absolute; top: 0; bottom: 0; left: 50%; display: block; min-width: 2px; background: #8d96ab; }
+.flow-list .is-export .flow-bar span { background: #4caf7d; border-radius: 0 3px 3px 0; }
+.flow-list .is-import .flow-bar span { left: auto; right: 50%; background: #d0606b; border-radius: 3px 0 0 3px; }
 @media (max-width: 1000px) {
   .map-layout { grid-template-columns: 1fr; }
   .zone-panel { position: static; }

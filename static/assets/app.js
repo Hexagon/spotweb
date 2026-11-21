@@ -737,7 +737,7 @@ series:
       net += f.import ? -f.value : f.value;
       const dir = f.value < 1 ? "" : f.import ? t("map.import") : t("map.export");
       const link = boot.zones[f.other] ? `<a href="#${esc(f.other)}" data-goto="${esc(f.other)}">${esc(f.other)}</a>` : `<span>${esc(f.other)}</span>`;
-      return `<li class="${f.value < 1 ? "" : f.import ? "is-import" : "is-export"}"><span class="flow-dir" aria-hidden="true">${f.value < 1 ? "·" : f.import ? "&larr;" : "&rarr;"}</span>${link}<span class="muted small">${esc(dir)}</span><span class="flow-bar"><span style="width:${(f.value / max) * 100}%"></span></span><span class="num">${mw(f.value)} MW</span></li>`;
+      return `<li class="${f.value < 1 ? "" : f.import ? "is-import" : "is-export"}"><span class="flow-dir" aria-hidden="true">${f.value < 1 ? "·" : f.import ? "&larr;" : "&rarr;"}</span>${link}<span class="muted small">${esc(dir)}</span><span class="flow-bar"><span style="width:${(f.value / max) * 50}%"></span></span><span class="num">${mw(f.value)} MW</span></li>`;
     }).join("") : `<li class="muted">${t("map.no_flows")}</li>`;
     $("[data-zone-flow-total]", panel).textContent = list.length ? `· ${net < 0 ? t("map.net_import") : t("map.net_export")} ${mw(Math.abs(net))} MW` : "";
     $$("[data-goto]", panel).forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); map.select(a.dataset.goto, false); }));
