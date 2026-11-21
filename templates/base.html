@@ -10,7 +10,9 @@
   {%- if robots %}
   <meta name="robots" content="{{ robots }}">
   {%- endif %}
-  <meta name="theme-color" content="#14171f">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#14171f" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f5f6f9" media="(prefers-color-scheme: light)">
   {%- if canonical %}
   <link rel="canonical" href="{{ canonical|attr }}">
   {%- endif %}

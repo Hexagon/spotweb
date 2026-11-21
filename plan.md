@@ -64,9 +64,9 @@ Varje punkt är tänkt att bli en egen PR.
 
 ## P3 – Nya funktioner
 
-20. **`/api/v2/cheapest?area=SE3&hours=3`** för automationer.
-21. **Fler elområden:** Nederländerna (finns redan som språk) och Baltikum (EE, LV, LT).
-22. **Ljust tema** som följer `prefers-color-scheme`.
+20. ✅ ~~**`/api/v2/cheapest?area=SE3&hours=3`** för automationer.~~
+21. ✅ ~~**Fler elområden:** Nederländerna (finns redan som språk) och Baltikum (EE, LV, LT).~~ Klart i #47.
+22. ✅ ~~**Ljust tema** som följer `prefers-color-scheme`.~~
 23. **Docker-image i GHCR**, signerad med cosign.
 
 ## Ny startsida
@@ -138,6 +138,18 @@ Varje punkt är tänkt att bli en egen PR.
   `SPOTWEB_SCHEDULE_TZ`). Den går minut för minut i verklig tid, så sommartid behöver inte längre hanteras genom att
   registrera om jobben. chrono finns inte kvar i beroendeträdet och undantagen i `deny.toml` är borttagna. Kontrollerat
   att gamla och nya binären ger identiska svar för 28 adresser (alla grupperingar, Portugal/Finland, sidor).
+
+- Punkt 20: `/api/v2/cheapest?area=SE3&hours=3` ger den billigaste sammanhängande perioden (eller med
+  `consecutive=false` de billigaste enskilda intervallen) från nu till slutet av imorgon, eller mellan `from` och
+  `to` (högst 7 dagar). Svaret har `start`, `end`, tidsviktat snittpris, `windows`, intervallen i `data` och
+  `active`, som är `true` medan ett av de valda intervallen pågår, så att en automation kan fråga och slå på efter
+  det. `found: false` när priserna inte räcker ännu. Valfri `currency` och `interval`. Dokumenterat i README, på
+  hjälpsidan (alla nio språk) och i `llms.txt`.
+- Punkt 21: Nederländerna, Estland, Lettland och Litauen lades till i #47 (tillsammans med Tjeckien och Portugal).
+- Punkt 22: ljust tema via `prefers-color-scheme`. Alla färger i CSS:en är variabler med ljusa värden i ett
+  media-block, och app.js läser diagrammens och kartans färger (även prisskalan, som går från ljust till mörkt i
+  det ljusa temat) från samma variabler och ritar om när systemets tema byts medan sidan är öppen. `theme-color`
+  finns för båda temana. Inget manuellt val i inställningarna ännu.
 
 - En binär med inbyggd schemaläggare, SQLite med nycklar, import från 1.x
 - Signerade releaser för Linux, macOS och Windows, CI på alla tre plattformarna
