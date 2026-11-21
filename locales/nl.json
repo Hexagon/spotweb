@@ -156,6 +156,27 @@
       "priceFactorDescriptionPart3": "(btw). Dit wordt aangepast volgens uw huidige instellingen.",
       "nonPriceFactorDescription": "De elektriciteitsprijs in de tabel is de huidige spotprijs. Hou er rekening mee dat er extra kosten en belastingen van toepassing kunnen zijn. Je kunt ervoor kiezen om de spotprijs of de actuele prijs weer te geven via de instellingen op de pagina.",
       "month": "Maand"
+    },
+    "map": {
+      "title": "Stroomprijzen en stroomstromen nu",
+      "hint": "Klik op een biedzone voor meer informatie",
+      "view_nordic": "Noorden",
+      "view_europe": "Europa",
+      "cheap": "Goedkoop",
+      "expensive": "Duur",
+      "flows": "Stroomstromen",
+      "import": "Import",
+      "export": "Export",
+      "net_import": "Netto-import",
+      "net_export": "Netto-export",
+      "flows_updated": "Stromen bijgewerkt",
+      "no_flows": "Nog geen stroomgegevens",
+      "avg_tomorrow": "Gemiddelde morgen",
+      "not_published": "Nog niet gepubliceerd",
+      "today_tomorrow": "Vandaag en morgen",
+      "note": "De grenzen van de biedzones zijn bij benadering. Pijlen tonen de fysieke nettostroom (MW) tussen zones.",
+      "all_areas": "Alle biedzones",
+      "zoom": "Zoomniveau"
     }
   }
 }

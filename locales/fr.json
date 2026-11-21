@@ -156,6 +156,27 @@
       "priceFactorDescriptionPart3": "(taxe). Ceci est ajusté en fonction de vos paramètres actuels.",
       "nonPriceFactorDescription": "Le prix de l'électricité dans le tableau représente le prix spot actuel. Gardez à l'esprit que des frais supplémentaires et des taxes peuvent s'appliquer. Vous pouvez choisir d'afficher soit le prix spot, soit le prix réel à travers les paramètres de la page.",
       "month": "Mois"
+    },
+    "map": {
+      "title": "Prix de l'électricité et flux en ce moment",
+      "hint": "Cliquez sur une zone de dépôt des offres pour plus d'informations",
+      "view_nordic": "Pays nordiques",
+      "view_europe": "Europe",
+      "cheap": "Bon marché",
+      "expensive": "Cher",
+      "flows": "Flux d'électricité",
+      "import": "Import",
+      "export": "Export",
+      "net_import": "Import net",
+      "net_export": "Export net",
+      "flows_updated": "Flux mis à jour",
+      "no_flows": "Pas encore de données de flux",
+      "avg_tomorrow": "Moyenne demain",
+      "not_published": "Pas encore publié",
+      "today_tomorrow": "Aujourd'hui et demain",
+      "note": "Les frontières des zones sont approximatives. Les flèches indiquent le flux physique net (MW) entre les zones.",
+      "all_areas": "Toutes les zones",
+      "zoom": "Niveau de zoom"
     }
   }
 }

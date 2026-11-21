@@ -156,6 +156,27 @@
       "priceFactorDescriptionPart3": "(tax). This is adjusted according to your current settings.",
       "nonPriceFactorDescription": "The electricity price in the table represents the current spot price. Keep in mind that additional fees and taxes may apply. You can choose to display either the spot price or the actual price through the settings on the page.",
       "month": "Month"
+    },
+    "map": {
+      "title": "Electricity prices and power flows right now",
+      "hint": "Click a bidding zone for more information",
+      "view_nordic": "Nordics",
+      "view_europe": "Europe",
+      "cheap": "Cheap",
+      "expensive": "Expensive",
+      "flows": "Power flows",
+      "import": "Import",
+      "export": "Export",
+      "net_import": "Net import",
+      "net_export": "Net export",
+      "flows_updated": "Flows updated",
+      "no_flows": "No flow data yet",
+      "avg_tomorrow": "Average tomorrow",
+      "not_published": "Not published yet",
+      "today_tomorrow": "Today and tomorrow",
+      "note": "Bidding zone borders are approximate. Arrows show the net physical flow (MW) between zones.",
+      "all_areas": "All bidding zones",
+      "zoom": "Zoom level"
     }
   }
 }

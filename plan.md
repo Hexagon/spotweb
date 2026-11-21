@@ -66,6 +66,17 @@ Varje punkt är tänkt att bli en egen PR.
 22. **Ljust tema** som följer `prefers-color-scheme`.
 23. **Docker-image i GHCR**, signerad med cosign.
 
+## Ny startsida
+
+- ✅ Startsidan är en karta över elområdena med pris just nu (färgskala billigt–dyrt) och pilar för fysiskt nettoflöde
+  mellan områdena. Klick på ett område visar en panel med pris nu, snitt idag/imorgon, diagram för idag och imorgon,
+  produktion och förbrukning samt import/export per granne. Vyerna Norden och Europa; valt område sparas i
+  webbläsaren och i adressen (`/#SE3`). Tabellen över alla elområden finns kvar under kartan.
+- ✅ Nytt jobb `flows` (varje timme :25) hämtar ENTSO-e A11 för 52 gränser, båda riktningarna, till tabellen `flow`
+  (migration 3). Nytt API `/api/v2/flows`, och `latest_flow` i `/api/v2/status`.
+- Följ upp: att A11 svarar för alla gränser med zonkoderna som används (särskilt DE-LU, IT-Nord och GB), och jobbets
+  körtid med 104 anrop.
+
 ## Att följa upp i driften
 
 - Produktionsjobbet (:50) och avbrottsjobbet (08:05) hade inte körts när loggarna lästes.

@@ -311,3 +311,23 @@ pub async fn outages(
         )
         .await
 }
+
+/// Net flow per border at the latest stored time (last 12 hours)
+pub async fn current_flows(app: &App) -> anyhow::Result<Arc<crate::flows::Flows>> {
+    let now = now_ms();
+    let slot = now - now.rem_euclid(15 * 60_000);
+    let db = app.db.clone();
+    app.cache
+        .get_or_load(
+            "flow",
+            format!("cur:{slot}"),
+            Duration::from_secs(15 * MIN),
+            || async move {
+                let rows = db
+                    .run(move |c| Ok(queries::flow_rows(c, now - 12 * HOUR_MS, now + HOUR_MS)?))
+                    .await?;
+                Ok(crate::flows::latest(&rows))
+            },
+        )
+        .await
+}

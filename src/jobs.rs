@@ -24,14 +24,16 @@ pub enum Job {
     Outages,
     Load,
     Production,
+    Flows,
 }
 
 impl Job {
-    pub const ALL: [Job; 5] = [
+    pub const ALL: [Job; 6] = [
         Job::Currency,
         Job::Prices,
         Job::Load,
         Job::Production,
+        Job::Flows,
         Job::Outages,
     ];
 
@@ -42,6 +44,7 @@ impl Job {
             Job::Outages => "outages",
             Job::Load => "load",
             Job::Production => "production",
+            Job::Flows => "flows",
         }
     }
 
@@ -54,6 +57,7 @@ impl Job {
             Job::Outages => &["0 5 8 * * *"],
             Job::Load => &["0 5 * * * *"],
             Job::Production => &["0 50 * * * *"],
+            Job::Flows => &["0 25 * * * *"],
         }
     }
 
@@ -63,6 +67,8 @@ impl Job {
             Job::Outages => Duration::from_secs(3600),
             // A first run back-fills all history since 2021
             Job::Prices => Duration::from_secs(4 * 3600),
+            // Two requests per border
+            Job::Flows => Duration::from_secs(1800),
             _ => Duration::from_secs(900),
         }
     }
@@ -73,6 +79,7 @@ impl Job {
             Job::Currency => &["exrate", "spotprice"],
             Job::Outages => &["outage"],
             Job::Load | Job::Production => &["load", "generation"],
+            Job::Flows => &["flow"],
         }
     }
 }
@@ -222,6 +229,7 @@ async fn run_inner(app: &App, job: Job) -> anyhow::Result<Outcome> {
         Job::Outages => update_outages(app).await,
         Job::Load => update_load(app).await,
         Job::Production => update_production(app).await,
+        Job::Flows => update_flows(app).await,
     }
 }
 
@@ -590,6 +598,76 @@ async fn update_outages(app: &App) -> anyhow::Result<Outcome> {
     summarize(&results, |r| r.0, "outage")
 }
 
+/// Physical flows for every border direction, yesterday and today (Stockholm time),
+/// at most [`concurrency`] requests at a time.
+async fn update_flows(app: &App) -> anyhow::Result<Outcome> {
+    let (start, end) = recent_window(&chrono_tz::Europe::Stockholm);
+    let sem = Arc::new(Semaphore::new(concurrency()));
+    let mut set = JoinSet::new();
+    for (from, to) in crate::flows::directions() {
+        let (Some(out_eic), Some(in_eic)) = (crate::flows::eic(from), crate::flows::eic(to)) else {
+            continue;
+        };
+        let app = app.clone();
+        let sem = sem.clone();
+        set.spawn(async move {
+            let _permit = sem.acquire_owned().await.expect("semaphore");
+            let name = format!("{from}>{to}");
+            let t0 = Instant::now();
+            let r: anyhow::Result<usize> = async {
+                let points = request(&name, "flow", || {
+                    app.entsoe.physical_flows(out_eic, in_eic, start, end)
+                })
+                .await?;
+                let rows: Vec<(i64, String, f64)> = points
+                    .into_iter()
+                    .map(|p| (p.start, p.interval, p.value))
+                    .collect();
+                app.db
+                    .run(move |c| Ok(queries::upsert_flows(c, from, to, &rows)?))
+                    .await
+            }
+            .await;
+            let ms = t0.elapsed().as_millis() as u64;
+            match &r {
+                Ok(n) => tracing::info!(job = "flows", border = %name, ms, "stored {n} flow rows"),
+                Err(e) => tracing::warn!(job = "flows", border = %name, ms, error = %format!("{e:#}"), "border failed"),
+            }
+            (name, r)
+        });
+    }
+    let mut results = vec![];
+    while let Some(res) = set.join_next().await {
+        match res {
+            Ok(r) => results.push(r),
+            Err(e) => tracing::error!(job = "flows", error = %e, "flow task panicked"),
+        }
+    }
+    results.sort_by(|a, b| a.0.cmp(&b.0));
+    let mut total = 0;
+    let mut failures = vec![];
+    for (name, r) in &results {
+        match r {
+            Ok(n) => total += n,
+            Err(e) => failures.push(AreaFailure {
+                area: name.clone(),
+                error: format!("{e:#}"),
+            }),
+        }
+    }
+    if !results.is_empty() && failures.len() == results.len() {
+        anyhow::bail!(
+            "all flow requests failed: {}",
+            failures.first().map(|f| f.error.as_str()).unwrap_or("")
+        );
+    }
+    let mut message = format!("stored {total} flow rows");
+    if !failures.is_empty() {
+        message.push_str(&format!(", {} directions failed", failures.len()));
+    }
+    Ok(Outcome { message, failures })
+}
+
 // ---------------------------------------------------------------------------
 // Scheduler
 // ---------------------------------------------------------------------------
@@ -833,6 +911,30 @@ mod tests {
         .unwrap();
         Arc::get_mut(&mut app.0).unwrap().entsoe = entsoe;
         app
+    }
+
+    #[tokio::test]
+    async fn flows_job_stores_every_direction() {
+        let mock = Mock::default();
+        let app = test_app(mock.clone()).await;
+        let msg = run(&app, Job::Flows, false).await.unwrap();
+        let directions = crate::flows::directions().count();
+        // Every direction is requested once; SE1-SE4 in_Domain mocks fail or answer with prices,
+        // which are not a flow document, the rest has no data
+        assert!(mock.total.load(Ordering::Relaxed) >= directions);
+        assert!(msg.starts_with("stored 0 flow rows"), "{msg}");
+        let runs = app
+            .db
+            .run(|c| Ok(queries::latest_job_runs(c)?))
+            .await
+            .unwrap();
+        let r = runs.iter().find(|r| r.job == "flows").unwrap();
+        assert_eq!(r.status, RunStatus::Partial);
+        assert!(r.failures.iter().all(|f| f.area.contains('>')));
+        assert!(r
+            .failures
+            .iter()
+            .any(|f| f.area.ends_with(">SE4") && f.error.contains("401")));
     }
 
     #[tokio::test]

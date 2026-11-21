@@ -156,6 +156,27 @@
       "priceFactorDescriptionPart3": "(moms). Justeret ifølge dine nuværende indstillinger.",
       "nonPriceFactorDescription": "Elprisen i tabellen repræsenterer den aktuelle spotpris. Vær opmærksom på, at yderligere gebyrer og moms kan pålægges. Du kan vælge at vise enten spotprisen eller den faktiske pris via indstillingerne på siden.",
       "month": "Måned"
+    },
+    "map": {
+      "title": "Elpris og elflow lige nu",
+      "hint": "Klik på et prisområde for mere information",
+      "view_nordic": "Norden",
+      "view_europe": "Europa",
+      "cheap": "Billigt",
+      "expensive": "Dyrt",
+      "flows": "Elflow",
+      "import": "Import",
+      "export": "Eksport",
+      "net_import": "Nettoimport",
+      "net_export": "Nettoeksport",
+      "flows_updated": "Flow opdateret",
+      "no_flows": "Ingen flowdata endnu",
+      "avg_tomorrow": "Gns. i morgen",
+      "not_published": "Ikke offentliggjort endnu",
+      "today_tomorrow": "I dag og i morgen",
+      "note": "Grænserne mellem prisområderne er omtrentlige. Pilene viser fysisk nettoflow (MW) mellem områderne.",
+      "all_areas": "Alle prisområder",
+      "zoom": "Zoomniveau"
     }
   }
 }

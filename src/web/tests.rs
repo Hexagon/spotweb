@@ -216,3 +216,68 @@ fn lang_detection() {
     assert_eq!(super::format_int(1234567.4, "en"), "1,234,567");
     assert_eq!(super::format_int(-1234.0, "de"), "-1.234");
 }
+
+#[tokio::test]
+async fn start_page_map_and_flows_api() {
+    let app = test_app();
+    let now = crate::timeutil::now_ms();
+    let hour = now - now.rem_euclid(3_600_000) - 3_600_000;
+    {
+        let mut c = app.db.conn().unwrap();
+        queries::upsert_flows(&mut c, "SE3", "FI", &[(hour, "PT60M".into(), 1200.0)]).unwrap();
+        queries::upsert_flows(&mut c, "FI", "SE3", &[(hour, "PT60M".into(), 200.0)]).unwrap();
+        queries::upsert_flows(&mut c, "NO2", "NL", &[(hour, "PT60M".into(), 0.0)]).unwrap();
+        queries::upsert_flows(&mut c, "NL", "NO2", &[(hour, "PT60M".into(), 700.0)]).unwrap();
+    }
+
+    let (s, body, headers) = get(&app, "/api/v2/flows").await;
+    assert_eq!(s, StatusCode::OK, "{body}");
+    assert_eq!(headers["access-control-allow-origin"], "*");
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["status"], "ok");
+    let data = v["data"].as_array().unwrap();
+    assert_eq!(data.len(), 2);
+    let fi = data.iter().find(|f| f["to"] == "FI").unwrap();
+    assert_eq!(
+        (fi["from"].as_str(), fi["value"].as_f64()),
+        (Some("SE3"), Some(1000.0))
+    );
+    let nl = data.iter().find(|f| f["from"] == "NL").unwrap();
+    assert_eq!(
+        (nl["to"].as_str(), nl["value"].as_f64()),
+        (Some("NO2"), Some(700.0))
+    );
+    assert!(v["updated"].is_string());
+
+    let (s, body, _) = get(&app, "/?lang=sv").await;
+    assert_eq!(s, StatusCode::OK);
+    // Map with every zone, a neighbour and the side panel
+    for name in ["SE1", "SE3", "NO4", "DK2", "DE-LU", "ES"] {
+        assert!(body.contains(&format!(r#"data-area="{name}""#)), "{name}");
+    }
+    assert!(body.contains(r#"data-ext="NL""#));
+    assert!(body.contains(r#"id="zone-panel""#));
+    assert!(body.contains("Elpris och överföring just nu"));
+    assert!(body.contains(r#"<option value="SE3" selected>"#));
+    // Boot data carries zones, flows and neighbour names
+    let boot = body
+        .split(r#"<script id="sw-boot" type="application/json">"#)
+        .nth(1)
+        .unwrap();
+    let boot: Value = serde_json::from_str(boot.split("</script>").next().unwrap()).unwrap();
+    assert_eq!(boot["zones"]["SE1"]["country"], "sv");
+    assert!(
+        boot["zones"]["SE1"]["today"]["points"]
+            .as_array()
+            .unwrap()
+            .len()
+            >= 92
+    );
+    assert!(boot["zones"]["SE1"]["now"].is_number());
+    assert_eq!(boot["flows"]["borders"].as_array().unwrap().len(), 2);
+    assert_eq!(boot["neighbours"]["NL"], "Nederland");
+    assert_eq!(boot["default_area"], "SE3");
+
+    let (_, body, _) = get(&app, "/?lang=de").await;
+    assert!(body.contains(r#"<option value="DE-LU" selected>"#));
+}

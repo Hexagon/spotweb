@@ -120,6 +120,21 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
     ALTER TABLE job_run ADD COLUMN failures TEXT;
     "#,
     ),
+    (
+        3,
+        "cross-border physical flows",
+        r#"
+    CREATE TABLE flow (
+        from_area TEXT    NOT NULL,
+        to_area   TEXT    NOT NULL,
+        period    INTEGER NOT NULL,
+        interval  TEXT    NOT NULL,
+        value     REAL    NOT NULL,
+        PRIMARY KEY (from_area, to_area, period, interval)
+    ) WITHOUT ROWID;
+    CREATE INDEX flow_period ON flow (period);
+    "#,
+    ),
 ];
 
 fn init_connection(c: &mut Connection) -> rusqlite::Result<()> {

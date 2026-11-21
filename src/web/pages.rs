@@ -314,6 +314,20 @@ async fn production_ctx(
 // Handlers
 // ---------------------------------------------------------------------------
 
+/// Zone selected on the start page map before the visitor picks one
+fn default_map_area(lang: &str) -> &'static str {
+    match lang {
+        "no" => "NO1",
+        "fi" => "FI",
+        "dk" => "DK1",
+        "de" => "DE-LU",
+        "fr" => "FR",
+        "es" => "ES",
+        "nl" => "BE",
+        _ => "SE3",
+    }
+}
+
 pub async fn index(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> PageResult {
     let lang = detect_lang(&uri, &headers);
     let title = st.app.i18n.t(&lang, "header.title");
@@ -352,8 +366,29 @@ pub async fn index(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> 
             })
         })
         .collect();
+    // Everything the map and its side panel need, per bidding zone
+    let mut zones = Map::new();
+    for c in COUNTRIES {
+        for a in c.areas {
+            let mut z = area_overview(&st, c, a, false).await?;
+            let o = z.as_object_mut().expect("object");
+            o.insert("country".into(), json!(c.id));
+            o.insert("gl".into(), json!(gl(a.id)));
+            zones.insert(a.name.into(), z);
+        }
+    }
+    let flows = data::current_flows(&st.app).await.map_err(internal)?;
+    let neighbours: Map<String, Value> = crate::flows::NEIGHBOURS
+        .iter()
+        .map(|n| (n.name.to_string(), json!(n.long)))
+        .collect();
     ctx.insert("rows".into(), json!(rows));
+    ctx.insert("default_area".into(), json!(default_map_area(&lang)));
     boot.insert("upcoming".into(), json!(now.upcoming));
+    boot.insert("zones".into(), Value::Object(zones));
+    boot.insert("flows".into(), json!(&*flows));
+    boot.insert("neighbours".into(), Value::Object(neighbours));
+    boot.insert("default_area".into(), json!(default_map_area(&lang)));
     render(&st, "index.html", finish(ctx, boot))
 }
 

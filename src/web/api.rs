@@ -328,6 +328,30 @@ pub async fn status(State(st): State<WebState>) -> Response {
     }
 }
 
+/// `GET /api/v2/flows` - net physical flow per border right now (MW)
+pub async fn flows(State(st): State<WebState>) -> Response {
+    match data::current_flows(&st.app).await {
+        Ok(f) => json_response(
+            StatusCode::OK,
+            json!({
+                "status": "ok",
+                "updated": f.updated.map(js_iso),
+                "data": f.borders.iter().map(|b| json!({
+                    "from": b.from,
+                    "to": b.to,
+                    "value": b.value,
+                    "time": js_iso(b.period),
+                })).collect::<Vec<_>>(),
+            }),
+            300,
+        ),
+        Err(e) => {
+            tracing::error!(error = %format!("{e:#}"), "flows query failed");
+            api_error("Query failed")
+        }
+    }
+}
+
 /// `GET /healthz` - liveness incl. database
 pub async fn healthz(State(st): State<WebState>) -> impl IntoResponse {
     match st

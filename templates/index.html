@@ -1,8 +1,83 @@
 {% extends "base.html" %}
 {% import "macros.html" as m %}
 {% block content %}
+<section class="map-layout" id="map-app" data-default-area="{{ default_area }}">
+  <div class="card map-card">
+    <header class="card-head map-head">
+      <div>
+        <h1 class="map-title">{{ t("map.title") }}</h1>
+        <p class="muted small map-hint">{{ t("map.hint") }}</p>
+      </div>
+      <div class="segmented" role="group" aria-label="{{ t('map.zoom') }}">
+        <button type="button" data-map-view="nordic" aria-pressed="true">{{ t("map.view_nordic") }}</button>
+        <button type="button" data-map-view="europe" aria-pressed="false">{{ t("map.view_europe") }}</button>
+      </div>
+    </header>
+    <div class="map-wrap">
+      {% include "partials/map.svg" %}
+      <div class="map-tooltip" role="tooltip" hidden></div>
+    </div>
+    <footer class="map-foot">
+      <div class="map-legend" aria-hidden="true">
+        <span class="muted small">{{ t("map.cheap") }}</span>
+        <span class="legend-ramp"></span>
+        <span class="muted small">{{ t("map.expensive") }}</span>
+        <span class="legend-range small"><span data-legend-min>-</span> &ndash; <span data-legend-max>-</span> {{ m.unit() }}</span>
+      </div>
+      <div class="muted small" data-flows-updated></div>
+    </footer>
+  </div>
+
+  <aside class="card zone-panel" id="zone-panel" aria-live="polite">
+    <header class="card-head zone-panel-head">
+      <div>
+        <h2 data-zone-title>&nbsp;</h2>
+        <div class="muted small" data-zone-sub>&nbsp;</div>
+      </div>
+      <select class="compact-select" id="zone-select" aria-label="{{ t('nav.area') }}">
+        {%- for c in countries %}
+        <optgroup label="{{ t('countries.' ~ c.id) }}">
+          {%- for a in c.areas %}
+          <option value="{{ a.name }}"{% if a.name == default_area %} selected{% endif %}>{{ a.name }} &ndash; {{ a.long }}</option>
+          {%- endfor %}
+        </optgroup>
+        {%- endfor %}
+      </select>
+    </header>
+    <div class="now-box">
+      <div class="price-big" data-zone-now>-</div>
+      <div class="muted">{{ m.unit() }} {{ t("overview.right_now") }}</div>
+    </div>
+    <div class="stats">
+      <div>
+        <h3>{{ t("overview.average_today") }}</h3>
+        <div class="big" data-zone-avg-today>-</div>
+        <div class="muted" data-zone-span-today></div>
+      </div>
+      <div class="right">
+        <h3>{{ t("map.avg_tomorrow") }}</h3>
+        <div class="big" data-zone-avg-tomorrow>-</div>
+        <div class="muted" data-zone-span-tomorrow></div>
+      </div>
+    </div>
+    <div class="zone-chart-head muted small">{{ t("map.today_tomorrow") }}</div>
+    <div class="chart chart-small" data-chart="zone"><div class="chart-empty muted">&hellip;</div></div>
+    <div class="zone-section">
+      <h3>{{ t("generation.current_production") }}</h3>
+      <dl class="kv" data-zone-gl></dl>
+    </div>
+    <div class="zone-section">
+      <h3>{{ t("map.flows") }} <span class="muted small" data-zone-flow-total></span></h3>
+      <ul class="flow-list" data-zone-flows></ul>
+    </div>
+    <a class="card-foot" data-zone-link href="/">{{ t("overview.more_about") }} <span data-zone-name></span> &rsaquo;</a>
+  </aside>
+</section>
+<p class="muted small map-note">{{ t("map.note") }}</p>
+
 {{ m.ad(adsense) }}
 <section class="card">
+  <header class="card-head"><h2>{{ t("map.all_areas") }}</h2></header>
   <div class="table-scroll">
   <table class="table overview-table">
     <thead>

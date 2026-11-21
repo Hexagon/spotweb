@@ -38,7 +38,7 @@ spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried po
 | -------------------------------- | ------------------------------------------------------------------------ |
 | `spotweb serve`                  | Web server + scheduler (default). `--no-scheduler` for a read-only node. |
 | `spotweb import-v1 [db/main.db]` | Import history from a 1.x database. Safe to run repeatedly.              |
-| `spotweb run-job prices …`       | Run `prices`, `currency`, `load`, `production`, `outages` once.          |
+| `spotweb run-job prices …`       | Run `prices`, `currency`, `load`, `production`, `flows`, `outages` once. |
 | `spotweb backup <file>`          | Consistent online copy of the database, safe while running.              |
 
 ### Configuration (environment)
@@ -69,6 +69,7 @@ Same timing as 1.x, in `SPOTWEB_SCHEDULE_TZ` (DST changes are handled):
 | `currency`   | 09:05 and 16:20 (after ECB publishes), and at startup             |
 | `load`       | every hour at :05                                                 |
 | `production` | every hour at :50                                                 |
+| `flows`      | every hour at :25 (physical flows, two requests per border)      |
 | `outages`    | 08:05                                                             |
 
 ## API
@@ -88,6 +89,14 @@ long ranges cover both hourly and 15-minute history. Averages are time weighted.
 
 `GET /api/v2/hass?area=SE3&currency=SEK[&multiplier=1][&extra=0][&factor=1][&decimals=5][&interval=PT15M]` – Home Assistant
 sensor format, unchanged. `currency=ORE` (öre) is new. See `/homeassistant` for a configuration generator.
+
+`GET /api/v2/flows` – net physical flow per border right now, in MW (new):
+
+```json
+{ "status": "ok", "updated": "2026-11-21T14:00:00.000Z", "data": [{ "from": "SE3", "to": "FI", "value": 1000.0, "time": "2026-11-21T13:00:00.000Z" }] }
+```
+
+`from` is the exporting side. Borders to neighbouring zones without prices on spotweb (EE, LT, NL, GB, CZ, IT, PT) are included.
 
 `GET /api/v2/status` – latest data and last job runs. `GET /healthz` – liveness probe.
 
@@ -153,6 +162,10 @@ cargo fmt && cargo clippy --all-targets
 
 The front end is plain HTML templates (`templates/`, [minijinja](https://github.com/mitsuhiko/minijinja)) and one script
 (`static/assets/app.js`) using [ApexCharts](https://apexcharts.com/) (vendored, MIT).
+
+The start page map (`templates/partials/map.svg`) is generated from [Natural Earth](https://www.naturalearthdata.com/) 1:10m data
+(public domain) by `scripts/build_map.py`; see the script for how to rebuild it. Swedish, Norwegian and Danish bidding zones are
+approximated from counties and regions, so their borders are schematic.
 
 To release: bump `version` in `Cargo.toml`, commit, tag `vX.Y.Z` and push the tag. The release workflow builds, signs and publishes.
 

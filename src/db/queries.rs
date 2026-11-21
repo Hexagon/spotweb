@@ -701,11 +701,59 @@ pub fn latest_job_runs(c: &Connection) -> rusqlite::Result<Vec<JobStatus>> {
     rows.collect()
 }
 
+// ---------------------------------------------------------------------------
+// Cross-border flows
+// ---------------------------------------------------------------------------
+
+/// `(period, interval, MW)` for one direction
+pub fn upsert_flows(
+    c: &mut Connection,
+    from: &str,
+    to: &str,
+    rows: &[(i64, String, f64)],
+) -> rusqlite::Result<usize> {
+    let tx = c.transaction()?;
+    {
+        let mut st = tx.prepare_cached(
+            "INSERT INTO flow (from_area, to_area, period, interval, value) VALUES (?1, ?2, ?3, ?4, ?5)
+             ON CONFLICT (from_area, to_area, period, interval) DO UPDATE SET value = excluded.value",
+        )?;
+        for (period, interval, value) in rows {
+            st.execute(params![from, to, period, interval, value])?;
+        }
+    }
+    tx.commit()?;
+    Ok(rows.len())
+}
+
+/// Flow rows in `[from, to)`
+pub fn flow_rows(
+    c: &Connection,
+    from: i64,
+    to: i64,
+) -> rusqlite::Result<Vec<crate::flows::FlowRow>> {
+    let mut st = c.prepare_cached(
+        "SELECT from_area, to_area, period, interval, value FROM flow WHERE period >= ?1 AND period < ?2",
+    )?;
+    let rows = st.query_map(params![from, to], |r| {
+        let iv: String = r.get(3)?;
+        Ok((
+            r.get(0)?,
+            r.get(1)?,
+            r.get(2)?,
+            crate::timeutil::interval_ms(&iv),
+            r.get(4)?,
+        ))
+    })?;
+    rows.collect()
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct DataFreshness {
     pub latest_price: Option<String>,
     pub latest_generation: Option<String>,
     pub latest_load: Option<String>,
+    pub latest_flow: Option<String>,
     pub exchange_rate_date: Option<String>,
 }
 
@@ -718,6 +766,7 @@ pub fn data_freshness(c: &Connection) -> rusqlite::Result<DataFreshness> {
         latest_price: max("SELECT MAX(period) FROM spotprice")?,
         latest_generation: max("SELECT MAX(period) FROM generation")?,
         latest_load: max("SELECT MAX(period) FROM load")?,
+        latest_flow: max("SELECT MAX(period) FROM flow")?,
         exchange_rate_date: c
             .query_row(
                 "SELECT date FROM exchangerate ORDER BY period DESC LIMIT 1",
