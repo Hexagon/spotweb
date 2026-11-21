@@ -40,6 +40,16 @@ fn api_error(details: &str) -> Response {
     )
 }
 
+/// Collect query parameters. Like `URLSearchParams.get` in 1.x, the first
+/// occurrence of a repeated parameter wins.
+fn query_map(pairs: Vec<(String, String)>) -> HashMap<String, String> {
+    let mut q = HashMap::with_capacity(pairs.len());
+    for (k, v) in pairs {
+        q.entry(k).or_insert(v);
+    }
+    q
+}
+
 fn param<'a>(q: &'a HashMap<String, String>, k: &str) -> Option<&'a str> {
     q.get(k).map(|s| s.trim()).filter(|s| !s.is_empty())
 }
@@ -96,8 +106,9 @@ fn interval_mode(q: &HashMap<String, String>, area: &str) -> IntervalMode {
 /// `GET /api/v2/spot?period=hourly&area=SE1&startDate=2024-01-01&endDate=2024-01-31[&currency=SEK][&interval=PT15M]`
 pub async fn spot(
     State(st): State<WebState>,
-    Query(q): Query<HashMap<String, String>>,
+    Query(pairs): Query<Vec<(String, String)>>,
 ) -> Response {
+    let q = query_map(pairs);
     let Some(grouping) = param(&q, "period").and_then(Grouping::parse) else {
         return api_error("Period not valid");
     };
@@ -175,8 +186,9 @@ struct HassResponse {
 /// `GET /api/v2/hass?area=SE2&currency=SEK[&multiplier=1][&extra=0][&factor=1][&decimals=5][&interval=PT15M]`
 pub async fn hass(
     State(st): State<WebState>,
-    Query(q): Query<HashMap<String, String>>,
+    Query(pairs): Query<Vec<(String, String)>>,
 ) -> Response {
+    let q = query_map(pairs);
     let area = param(&q, "area").map(str::to_uppercase);
     let currency = param(&q, "currency").map(str::to_uppercase);
     let num = |k: &str, d: f64| match param(&q, k) {
@@ -193,7 +205,8 @@ pub async fn hass(
     let (Some(area), Some(currency), Some(decimals)) = (area, currency, decimals) else {
         return api_error("Missing/invalid parameters");
     };
-    if multiplier.is_nan() || factor.is_nan() || extra.is_nan() || !(0..=20).contains(&decimals) {
+    // 1.x used `Number.prototype.toFixed`, which accepts 0-100 decimals
+    if multiplier.is_nan() || factor.is_nan() || extra.is_nan() || !(0..=100).contains(&decimals) {
         return api_error("Missing/invalid parameters");
     }
     let Some((country, area_def)) = find_area(&area) else {
