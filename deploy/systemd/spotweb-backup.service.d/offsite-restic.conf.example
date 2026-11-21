@@ -10,6 +10,6 @@
 EnvironmentFile=/etc/spotweb/restic.env
 CacheDirectory=spotweb-restic
 Environment=RESTIC_CACHE_DIR=/var/cache/spotweb-restic
-ExecStartPost=/bin/sh -c 'exec restic backup --tag spotweb --host spotweb /var/lib/spotweb/backup/spotweb-$(date +%%u).db'
+ExecStartPost=/bin/sh -c 'exec restic backup --tag spotweb --host spotweb /var/lib/spotweb/backup/spotweb-$(date +%%u).db.zst'
 # Keep 7 daily, 4 weekly and 6 monthly snapshots; prune once a week (Sunday)
 ExecStartPost=/bin/sh -c 'restic forget --tag spotweb --host spotweb --keep-daily 7 --keep-weekly 4 --keep-monthly 6 $( [ "$(date +%%u)" = 7 ] && echo --prune )'

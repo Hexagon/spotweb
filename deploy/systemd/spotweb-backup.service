@@ -13,7 +13,11 @@ EnvironmentFile=/etc/spotweb/spotweb.env
 StateDirectory=spotweb spotweb/backup
 StateDirectoryMode=0750
 WorkingDirectory=/var/lib/spotweb
-ExecStart=/bin/sh -c 'exec /usr/local/bin/spotweb backup /var/lib/spotweb/backup/spotweb-$(date +%%u).db'
+# The .zst suffix makes spotweb compress the copy (roughly 5-10x smaller). Restore with `zstd -d`.
+# The uncompressed copy is written next to it first, so keep free space for one full database.
+ExecStart=/bin/sh -c 'exec /usr/local/bin/spotweb backup /var/lib/spotweb/backup/spotweb-$(date +%%u).db.zst'
+Nice=10
+IOSchedulingClass=idle
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes

@@ -104,8 +104,15 @@ Database migrations run automatically at start. Take a backup first (`sudo syste
 
 ## Backups
 
-`spotweb-backup.timer` writes a consistent copy every night to `/var/lib/spotweb/backup/spotweb-<weekday>.db` (seven rotating
-files) using SQLite's online backup API. Copy that directory off the machine (restic, borg, rsync…).
+`spotweb-backup.timer` writes a consistent copy every night to `/var/lib/spotweb/backup/spotweb-<weekday>.db.zst` (seven
+rotating files) using SQLite's online backup API. The `.zst` suffix makes `spotweb backup` compress the copy with zstd,
+which shrinks a 1.6 GB database to a fraction of that; name the file `.db` instead to keep it uncompressed. The copy is
+written uncompressed next to the destination first, so the backup directory briefly needs room for one full database.
+The output is "rsyncable", so restic and borg still deduplicate most of it between nights. Copy that directory off the
+machine (restic, borg, rsync…).
+
+Upgrading from a version that wrote `spotweb-<weekday>.db`: install the new unit, `systemctl daemon-reload`, and delete the
+old `.db` files from `/var/lib/spotweb/backup` once the first `.zst` backups exist.
 
 ### Off-site copy
 
@@ -130,8 +137,9 @@ If the copy fails, the unit fails and `systemctl --failed` shows it; the local b
 restic with `restic restore latest --tag spotweb --target /tmp/restore`, then follow the steps below. Test a restore
 once, the repository password is the only way back.
 
-Restore: stop the service, copy a backup to `/var/lib/spotweb/spotweb.db`, remove any `spotweb.db-wal`/`-shm` files,
-`chown spotweb:spotweb`, start.
+Restore: stop the service, unpack a backup to `/var/lib/spotweb/spotweb.db`
+(`zstd -d /var/lib/spotweb/backup/spotweb-3.db.zst -o /var/lib/spotweb/spotweb.db`, `apt install zstd` if missing; an
+uncompressed `.db` backup is just copied), remove any `spotweb.db-wal`/`-shm` files, `chown spotweb:spotweb`, start.
 
 Everything except the database can be re-created, and even the database can be rebuilt from ENTSO-e (set
 `SPOTWEB_HISTORY_START` and start with an empty file) – it just takes a few hours.
