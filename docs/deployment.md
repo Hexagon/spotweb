@@ -21,7 +21,7 @@ Internet ──TLS──> Caddy / nginx ──HTTP──> 127.0.0.1:6000 spotweb
 ## 1. Install the binary
 
 ```sh
-VERSION=v2.0.0
+VERSION=v2.1.0
 TARGET=x86_64-unknown-linux-musl      # or aarch64-unknown-linux-musl
 BASE=https://github.com/Hexagon/spotweb/releases/download/$VERSION
 curl -LO $BASE/spotweb-$VERSION-$TARGET.tar.gz
