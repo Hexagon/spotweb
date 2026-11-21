@@ -52,7 +52,13 @@ pub async fn spot_selected(
         .await
 }
 
-/// Grouped spot prices in EUR/MWh, the core of `/api/v2/spot`
+/// Grouped spot prices in EUR/MWh, the core of `/api/v2/spot`.
+///
+/// For calendar groupings (daily up to yearly) the range is split at the start of the
+/// current group. Closed groups do not change when the hourly price job writes new rows,
+/// so they are cached in their own realm and only the current group is recomputed. The
+/// start page asks for monthly prices since 2021 per area, which would otherwise read and
+/// group the whole history again after every price job.
 pub async fn spot_grouped(
     app: &App,
     area: &str,
@@ -62,15 +68,74 @@ pub async fn spot_grouped(
     mode: &IntervalMode,
     tz: Tz,
 ) -> anyhow::Result<Arc<Vec<SpotApiRow>>> {
-    let key = format!("grp:{area}:{from}:{to}:{grouping:?}:{mode:?}:{tz}");
-    let mut ttl = if to < now_ms() { 3600 } else { 6 * MIN };
-    if grouping == Grouping::Monthly || grouping == Grouping::Yearly {
-        ttl = 6 * 3600;
+    let calendar = matches!(
+        grouping,
+        Grouping::Daily | Grouping::Weekly | Grouping::Monthly | Grouping::Yearly
+    );
+    if calendar {
+        if let Some(split) = crate::price::bucket(grouping, &tz, now_ms()) {
+            if from < split && split <= to {
+                let closed = grouped_range(
+                    app,
+                    HISTORY_REALM,
+                    area,
+                    from,
+                    split - 1,
+                    grouping,
+                    mode,
+                    tz,
+                )
+                .await?;
+                let open =
+                    grouped_range(app, "spotprice", area, split, to, grouping, mode, tz).await?;
+                let mut rows = Vec::with_capacity(closed.len() + open.len());
+                rows.extend(closed.iter().cloned());
+                rows.extend(open.iter().cloned());
+                return Ok(Arc::new(rows));
+            }
+        }
     }
-    let sel = spot_selected(app, area, from, to, mode, tz).await?;
+    grouped_range(app, "spotprice", area, from, to, grouping, mode, tz).await
+}
+
+/// Cache realm for grouped prices of closed calendar groups. Not invalidated by the price
+/// job; the TTL covers late corrections and back-fills.
+const HISTORY_REALM: &str = "spothist";
+
+#[allow(clippy::too_many_arguments)]
+async fn grouped_range(
+    app: &App,
+    realm: &'static str,
+    area: &str,
+    from: i64,
+    to: i64,
+    grouping: Grouping,
+    mode: &IntervalMode,
+    tz: Tz,
+) -> anyhow::Result<Arc<Vec<SpotApiRow>>> {
+    let key = format!("grp:{area}:{from}:{to}:{grouping:?}:{mode:?}:{tz}");
+    let ttl = if realm == HISTORY_REALM {
+        6 * 3600
+    } else if to < now_ms() {
+        3600
+    } else {
+        6 * MIN
+    };
+    let app2 = app.clone();
+    let (area, mode) = (area.to_string(), mode.clone());
     app.cache
-        .get_or_load("spotprice", key, Duration::from_secs(ttl), || async move {
-            Ok(group(&sel, grouping, &tz))
+        .get_or_load(realm, key, Duration::from_secs(ttl), || async move {
+            if matches!(grouping, Grouping::Hourly | Grouping::Minimum) {
+                // Short ranges (max 31 days), share the selected rows with the pages
+                let sel = spot_selected(&app2, &area, from, to, &mode, tz).await?;
+                return Ok(group(&sel, grouping, &tz));
+            }
+            // Long ranges: do not keep the (large) selected rows in the cache
+            let rows = app2
+                .db
+                .run(move |c| Ok(queries::spot_rows(c, &area, from, to)?))
+                .await?;
+            Ok(group(&select_rows(&rows, &mode, &tz), grouping, &tz))
         })
         .await
 }
