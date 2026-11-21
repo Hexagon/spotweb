@@ -40,16 +40,20 @@ pub fn import_v1(db: &Db, source: &Path) -> anyhow::Result<ImportReport> {
     if !source.exists() {
         bail!("1.x database not found at {}", source.display());
     }
-    let src = std::fs::canonicalize(source)?;
-    if let (Ok(a), Ok(b)) = (std::fs::canonicalize(db.path()), Ok::<_, ()>(src.clone())) {
+    if let (Ok(a), Ok(b)) = (
+        std::fs::canonicalize(db.path()),
+        std::fs::canonicalize(source),
+    ) {
         if a == b {
             bail!("source and destination database are the same file");
         }
     }
+    let src = source;
 
     let mut c = db.conn()?;
-    let uri = format!("file:{}?mode=ro", src.display());
-    c.execute("ATTACH DATABASE ?1 AS v1", params![uri])
+    // Attach by plain path. A `file:` URI breaks on Windows (`\\?\C:\..`) and on
+    // paths containing `?`, `#` or `%`. The 1.x database is only read from.
+    c.execute("ATTACH DATABASE ?1 AS v1", params![src.to_string_lossy()])
         .context("attaching 1.x database")?;
     let result = (|| -> anyhow::Result<ImportReport> {
         let tables: Vec<String> = {
