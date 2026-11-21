@@ -1,18 +1,20 @@
 //! Data update jobs and the built in scheduler (replaces the Pup cron processes of 1.x).
 
 use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
+use std::future::Future;
+use std::sync::{Arc, OnceLock};
+use std::time::{Duration, Instant};
 
 use anyhow::Context;
 use chrono::{DateTime, Months, NaiveDate, Offset, TimeZone, Utc};
 use chrono_tz::Tz;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Semaphore};
+use tokio::task::JoinSet;
 use tokio_cron_scheduler::{Job as CronJob, JobScheduler};
 
-use crate::countries::COUNTRIES;
-use crate::db::queries;
-use crate::timeutil::{local_date, local_midnight, now_ms, today};
+use crate::countries::{Area, Country, COUNTRIES};
+use crate::db::queries::{self, AreaFailure, RunStatus};
+use crate::timeutil::{local_date, local_midnight, now_ms, today, HOUR_MS};
 use crate::App;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, clap::ValueEnum)]
@@ -75,20 +77,43 @@ impl Job {
     }
 }
 
-/// Pause between ENTSO-e requests (`SPOTWEB_REQUEST_DELAY_MS`, default 2000)
+fn env_num<T: std::str::FromStr>(name: &str) -> Option<T> {
+    std::env::var(name).ok().and_then(|v| v.trim().parse().ok())
+}
+
+/// Pause after each ENTSO-e request, per worker (`SPOTWEB_REQUEST_DELAY_MS`, default 2000)
 fn pause() -> Duration {
-    static P: std::sync::OnceLock<Duration> = std::sync::OnceLock::new();
-    *P.get_or_init(|| {
-        Duration::from_millis(
-            std::env::var("SPOTWEB_REQUEST_DELAY_MS")
-                .ok()
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(2000),
-        )
+    static P: OnceLock<Duration> = OnceLock::new();
+    if cfg!(test) {
+        return Duration::ZERO;
+    }
+    *P.get_or_init(|| Duration::from_millis(env_num("SPOTWEB_REQUEST_DELAY_MS").unwrap_or(2000)))
+}
+
+/// Number of areas fetched at the same time (`SPOTWEB_ENTSOE_CONCURRENCY`, default 3).
+/// ENTSO-e allows 400 requests per minute, the requests themselves take 20-30 s.
+fn concurrency() -> usize {
+    static C: OnceLock<usize> = OnceLock::new();
+    *C.get_or_init(|| {
+        env_num::<usize>("SPOTWEB_ENTSOE_CONCURRENCY")
+            .unwrap_or(3)
+            .clamp(1, 10)
     })
 }
+
+/// Retries of the whole job when it fails completely
 const RETRIES: usize = 2;
 const RETRY_DELAY: Duration = Duration::from_secs(120);
+/// Retries of a single ENTSO-e request (timeouts, 5xx, 599, 429)
+const AREA_RETRIES: usize = 2;
+/// Wait before retrying a request; rate limiting (429/503) waits four times as long
+fn area_retry_delay() -> Duration {
+    if cfg!(test) {
+        Duration::from_millis(10)
+    } else {
+        Duration::from_secs(15)
+    }
+}
 
 #[derive(Default)]
 pub struct JobLocks(HashMap<Job, Arc<Mutex<()>>>);
@@ -101,6 +126,23 @@ impl JobLocks {
                 .map(|j| (*j, Arc::new(Mutex::new(()))))
                 .collect(),
         )
+    }
+}
+
+/// Result of a job that finished. Areas that failed make it `partial`.
+#[derive(Debug, Default)]
+pub struct Outcome {
+    pub message: String,
+    pub failures: Vec<AreaFailure>,
+}
+
+impl Outcome {
+    fn status(&self) -> RunStatus {
+        if self.failures.is_empty() {
+            RunStatus::Ok
+        } else {
+            RunStatus::Partial
+        }
     }
 }
 
@@ -119,6 +161,7 @@ pub async fn run(app: &App, job: Job, retry: bool) -> anyhow::Result<String> {
             .run(move |c| Ok(queries::job_started(c, job.name(), now_ms())?))
             .await?;
         tracing::info!(job = job.name(), attempt, "job started");
+        let t0 = Instant::now();
         let result = match tokio::time::timeout(job.timeout(), run_inner(app, job)).await {
             Ok(r) => r,
             Err(_) => Err(anyhow::anyhow!("timed out after {:?}", job.timeout())),
@@ -126,21 +169,36 @@ pub async fn run(app: &App, job: Job, retry: bool) -> anyhow::Result<String> {
         for realm in job.cache_realms() {
             app.cache.invalidate(realm);
         }
-        let (ok, msg) = match &result {
-            Ok(m) => (true, m.clone()),
-            Err(e) => (false, format!("{e:#}")),
+        let (status, msg, failures) = match &result {
+            Ok(o) => (o.status(), o.message.clone(), o.failures.clone()),
+            Err(e) => (RunStatus::Failed, format!("{e:#}"), vec![]),
         };
         let m2 = msg.clone();
         app.db
-            .run(move |c| Ok(queries::job_finished(c, id, now_ms(), ok, &m2)?))
+            .run(move |c| {
+                Ok(queries::job_finished(
+                    c,
+                    id,
+                    now_ms(),
+                    status,
+                    &m2,
+                    &failures,
+                )?)
+            })
             .await?;
+        let secs = t0.elapsed().as_secs();
         match result {
-            Ok(m) => {
-                tracing::info!(job = job.name(), result = %m, "job done");
-                return Ok(m);
+            Ok(o) if o.failures.is_empty() => {
+                tracing::info!(job = job.name(), secs, result = %o.message, "job done");
+                return Ok(o.message);
+            }
+            Ok(o) => {
+                let areas: Vec<&str> = o.failures.iter().map(|f| f.area.as_str()).collect();
+                tracing::warn!(job = job.name(), secs, result = %o.message, failed = %areas.join(","), "job partially done");
+                return Ok(o.message);
             }
             Err(e) => {
-                tracing::error!(job = job.name(), attempt, error = %msg, "job failed");
+                tracing::error!(job = job.name(), attempt, secs, error = %msg, "job failed");
                 last_err = Some(e);
                 if attempt < attempts {
                     tokio::time::sleep(RETRY_DELAY).await;
@@ -151,9 +209,12 @@ pub async fn run(app: &App, job: Job, retry: bool) -> anyhow::Result<String> {
     Err(last_err.unwrap_or_else(|| anyhow::anyhow!("job failed")))
 }
 
-async fn run_inner(app: &App, job: Job) -> anyhow::Result<String> {
+async fn run_inner(app: &App, job: Job) -> anyhow::Result<Outcome> {
     if job != Job::Currency && !app.entsoe.has_token() {
-        return Ok("skipped, no ENTSO-e API token (API_TOKEN)".into());
+        return Ok(Outcome {
+            message: "skipped, no ENTSO-e API token (API_TOKEN)".into(),
+            ..Default::default()
+        });
     }
     match job {
         Job::Prices => update_prices(app).await,
@@ -168,105 +229,255 @@ fn utc(t: DateTime<Tz>) -> DateTime<Utc> {
     t.with_timezone(&Utc)
 }
 
-async fn update_currency(app: &App) -> anyhow::Result<String> {
+async fn update_currency(app: &App) -> anyhow::Result<Outcome> {
     let rates = crate::ecb::fetch().await.context("fetching ECB rates")?;
     let date = rates.date.clone();
-    let d = date.clone();
-    if app
-        .db
-        .run(move |c| Ok(queries::has_exchange_rates_for(c, &d)?))
-        .await?
-    {
-        return Ok(format!("rates for {date} already stored"));
-    }
+    // Stored at midnight UTC of the ECB date
     let period = NaiveDate::parse_from_str(&date, "%Y-%m-%d")?
         .and_hms_opt(0, 0, 0)
         .map(|n| Utc.from_utc_datetime(&n).timestamp_millis())
         .context("bad date")?;
-    let n = rates.entries.len();
-    app.db
-        .run(move |c| {
-            Ok(queries::insert_exchange_rates(
-                c,
-                &rates.date,
-                period,
-                &rates.entries,
-            )?)
-        })
-        .await?;
-    Ok(format!("stored {n} rates for {date}"))
+    let message = if app
+        .db
+        .run(move |c| Ok(queries::has_exchange_rates_for(c, period)?))
+        .await?
+    {
+        format!("rates for {date} already stored")
+    } else {
+        let n = rates.entries.len();
+        app.db
+            .run(move |c| {
+                Ok(queries::insert_exchange_rates(
+                    c,
+                    &rates.date,
+                    period,
+                    &rates.entries,
+                )?)
+            })
+            .await?;
+        format!("stored {n} rates for {date}")
+    };
+    Ok(Outcome {
+        message,
+        ..Default::default()
+    })
 }
 
-async fn update_prices(app: &App) -> anyhow::Result<String> {
-    let mut total = 0usize;
-    let mut errors = vec![];
-    for country in COUNTRIES {
-        let tz = country.timezone();
-        // Up to and including tomorrow
-        let end = local_midnight(&tz, today(&tz) + chrono::Duration::days(2));
-        for area in country.areas {
-            let name = area.name;
-            let max = app
-                .db
-                .run(move |c| Ok(queries::max_spot_period(c, name)?))
-                .await?;
-            // Re-fetch the last stored day so partially published days get completed
-            let mut start_date = match max {
-                Some(ms) => local_date(&tz, ms),
-                None => app.cfg.history_start,
-            };
-            while local_midnight(&tz, start_date) < end {
-                let chunk_start = local_midnight(&tz, start_date);
-                let next = start_date
-                    .checked_add_months(Months::new(1))
-                    .unwrap_or(start_date);
-                let chunk_end = local_midnight(&tz, next).min(end);
-                tracing::debug!(area = name, from = %chunk_start, to = %chunk_end, "fetching prices");
-                match app
-                    .entsoe
-                    .day_ahead_prices(area.eic, utc(chunk_start), utc(chunk_end))
-                    .await
-                {
-                    Ok(points) if points.is_empty() => {
-                        tracing::debug!(area = name, "no new prices");
-                        tokio::time::sleep(pause()).await;
-                        break;
-                    }
-                    Ok(points) => {
-                        let rows: Vec<(i64, String, f64)> = points
-                            .into_iter()
-                            .map(|p| (p.start, p.interval, p.value))
-                            .collect();
-                        let cid = country.id;
-                        let n = app
-                            .db
-                            .run(move |c| Ok(queries::upsert_spot(c, cid, name, &rows)?))
-                            .await?;
-                        tracing::info!(area = name, rows = n, from = %chunk_start, "stored prices");
-                        total += n;
-                    }
-                    Err(e) => {
-                        tracing::warn!(area = name, error = %format!("{e:#}"), "price request failed");
-                        errors.push(format!("{name}: {e}"));
-                        tokio::time::sleep(pause()).await;
-                        break;
-                    }
+/// One ENTSO-e request with retries for transient errors, followed by the configured pause.
+async fn request<T, F, Fut>(area: &str, what: &str, f: F) -> anyhow::Result<T>
+where
+    F: Fn() -> Fut,
+    Fut: Future<Output = anyhow::Result<T>>,
+{
+    let mut attempt = 0;
+    let result = loop {
+        attempt += 1;
+        match f().await {
+            Ok(v) => break Ok(v),
+            Err(e) => match crate::entsoe::retry_delay(&e, area_retry_delay()) {
+                Some(delay) if attempt <= AREA_RETRIES => {
+                    tracing::warn!(
+                        area,
+                        attempt,
+                        retry_in_s = delay.as_secs(),
+                        error = %format!("{e:#}"),
+                        "{what} request failed, retrying"
+                    );
+                    tokio::time::sleep(delay).await;
                 }
-                start_date = next;
-                tokio::time::sleep(pause()).await;
-            }
+                _ => break Err(e),
+            },
+        }
+    };
+    tokio::time::sleep(pause()).await;
+    result
+}
+
+/// Run `f` for every bidding zone, at most [`concurrency`] at a time. Results are returned in
+/// [`COUNTRIES`] order. Each area is logged at info level (or as a warning when it fails).
+async fn for_each_area<T, F, Fut>(
+    job: Job,
+    f: F,
+) -> Vec<(&'static Country, &'static Area, anyhow::Result<T>)>
+where
+    T: std::fmt::Display + Send + 'static,
+    F: Fn(&'static Country, &'static Area) -> Fut,
+    Fut: Future<Output = anyhow::Result<T>> + Send + 'static,
+{
+    let sem = Arc::new(Semaphore::new(concurrency()));
+    let mut set = JoinSet::new();
+    let mut index = 0usize;
+    for country in COUNTRIES {
+        for area in country.areas {
+            let fut = f(country, area);
+            let sem = sem.clone();
+            let i = index;
+            index += 1;
+            set.spawn(async move {
+                let _permit = sem.acquire_owned().await.expect("semaphore");
+                let t0 = Instant::now();
+                let r = fut.await;
+                let ms = t0.elapsed().as_millis() as u64;
+                match &r {
+                    Ok(v) => tracing::info!(job = job.name(), area = area.name, ms, "{v}"),
+                    Err(e) => tracing::warn!(job = job.name(), area = area.name, ms, error = %format!("{e:#}"), "area failed"),
+                }
+                (i, country, area, r)
+            });
         }
     }
-    if total == 0
-        && !errors.is_empty()
-        && errors.len() >= COUNTRIES.iter().map(|c| c.areas.len()).sum::<usize>()
-    {
-        anyhow::bail!("all price requests failed: {}", errors.join("; "));
+    let mut out = Vec::with_capacity(index);
+    while let Some(res) = set.join_next().await {
+        match res {
+            Ok(r) => out.push(r),
+            Err(e) => tracing::error!(job = job.name(), error = %e, "area task panicked"),
+        }
     }
-    Ok(format!(
-        "stored {total} price rows, {} errors",
-        errors.len()
-    ))
+    out.sort_by_key(|r| r.0);
+    out.into_iter().map(|(_, c, a, r)| (c, a, r)).collect()
+}
+
+/// Sum the per-area results into an [`Outcome`]. Fails only when every area failed.
+fn summarize<T>(
+    results: &[(&'static Country, &'static Area, anyhow::Result<T>)],
+    rows: impl Fn(&T) -> usize,
+    what: &str,
+) -> anyhow::Result<Outcome> {
+    let mut total = 0;
+    let mut failures = vec![];
+    for (_, area, r) in results {
+        match r {
+            Ok(v) => total += rows(v),
+            Err(e) => failures.push(AreaFailure {
+                area: area.name.to_string(),
+                error: format!("{e:#}"),
+            }),
+        }
+    }
+    if !results.is_empty() && failures.len() == results.len() {
+        let list: Vec<String> = failures
+            .iter()
+            .map(|f| format!("{}: {}", f.area, f.error))
+            .collect();
+        anyhow::bail!("all {what} requests failed: {}", list.join("; "));
+    }
+    let mut message = format!("stored {total} {what} rows");
+    if !failures.is_empty() {
+        message.push_str(&format!(", {} areas failed", failures.len()));
+    }
+    Ok(Outcome { message, failures })
+}
+
+/// Where to start fetching prices for an area so that everything up to `end` is stored.
+/// `None` when the last stored interval already reaches the end (nothing to fetch).
+/// A day whose last hour is stored is complete and is not fetched again; a partially
+/// stored day is.
+fn price_fetch_start(
+    tz: &Tz,
+    max_stored: Option<i64>,
+    history_start: NaiveDate,
+    end: DateTime<Tz>,
+) -> Option<NaiveDate> {
+    let Some(max) = max_stored else {
+        return Some(history_start);
+    };
+    if max >= end.timestamp_millis() - HOUR_MS {
+        return None;
+    }
+    let day = local_date(tz, max);
+    let next = day.succ_opt()?;
+    if max >= local_midnight(tz, next).timestamp_millis() - HOUR_MS {
+        Some(next)
+    } else {
+        Some(day)
+    }
+}
+
+struct PriceResult {
+    rows: usize,
+    requests: usize,
+}
+
+impl std::fmt::Display for PriceResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.requests == 0 {
+            write!(f, "prices up to date")
+        } else {
+            write!(
+                f,
+                "stored {} price rows ({} requests)",
+                self.rows, self.requests
+            )
+        }
+    }
+}
+
+async fn area_prices(
+    app: App,
+    country: &'static Country,
+    area: &'static Area,
+) -> anyhow::Result<PriceResult> {
+    let tz = country.timezone();
+    // Up to and including tomorrow
+    let end = local_midnight(&tz, today(&tz) + chrono::Duration::days(2));
+    let name = area.name;
+    let max = app
+        .db
+        .run(move |c| Ok(queries::max_spot_period(c, name)?))
+        .await?;
+    let mut res = PriceResult {
+        rows: 0,
+        requests: 0,
+    };
+    let Some(mut start_date) = price_fetch_start(&tz, max, app.cfg.history_start, end) else {
+        return Ok(res);
+    };
+    while local_midnight(&tz, start_date) < end {
+        let chunk_start = local_midnight(&tz, start_date);
+        let next = start_date
+            .checked_add_months(Months::new(1))
+            .unwrap_or(start_date);
+        let chunk_end = local_midnight(&tz, next).min(end);
+        tracing::debug!(area = name, from = %chunk_start, to = %chunk_end, "fetching prices");
+        res.requests += 1;
+        let points = request(name, "price", || {
+            app.entsoe
+                .day_ahead_prices(area.eic, utc(chunk_start), utc(chunk_end))
+        })
+        .await?;
+        if points.is_empty() {
+            tracing::debug!(area = name, "no new prices");
+            break;
+        }
+        let rows: Vec<(i64, String, f64)> = points
+            .into_iter()
+            .map(|p| (p.start, p.interval, p.value))
+            .collect();
+        let cid = country.id;
+        res.rows += app
+            .db
+            .run(move |c| Ok(queries::upsert_spot(c, cid, name, &rows)?))
+            .await?;
+        start_date = next;
+    }
+    Ok(res)
+}
+
+async fn update_prices(app: &App) -> anyhow::Result<Outcome> {
+    let results = for_each_area(Job::Prices, |country, area| {
+        area_prices(app.clone(), country, area)
+    })
+    .await;
+    let skipped = results
+        .iter()
+        .filter(|r| matches!(&r.2, Ok(p) if p.requests == 0))
+        .count();
+    let mut o = summarize(&results, |p| p.rows, "price")?;
+    if skipped > 0 {
+        o.message
+            .push_str(&format!(", {skipped} areas already complete"));
+    }
+    Ok(o)
 }
 
 fn recent_window(tz: &Tz) -> (DateTime<Utc>, DateTime<Utc>) {
@@ -277,104 +488,106 @@ fn recent_window(tz: &Tz) -> (DateTime<Utc>, DateTime<Utc>) {
     )
 }
 
-async fn aggregate(
+/// Recompute the country totals for every country where at least one area succeeded
+async fn aggregate_countries<T>(
     app: &App,
-    country: &'static crate::countries::Country,
-    since: i64,
+    results: &[(&'static Country, &'static Area, anyhow::Result<T>)],
 ) -> anyhow::Result<()> {
-    let ids: Vec<&'static str> = country.areas.iter().map(|a| a.id).collect();
-    app.db
-        .run(move |c| Ok(queries::aggregate_country(c, country.cty, &ids, since)?))
-        .await?;
+    for country in COUNTRIES {
+        if !results
+            .iter()
+            .any(|(c, _, r)| c.id == country.id && r.is_ok())
+        {
+            continue;
+        }
+        let since = recent_window(&country.timezone()).0.timestamp_millis();
+        let ids: Vec<&'static str> = country.areas.iter().map(|a| a.id).collect();
+        app.db
+            .run(move |c| Ok(queries::aggregate_country(c, country.cty, &ids, since)?))
+            .await?;
+    }
     Ok(())
 }
 
-async fn update_production(app: &App) -> anyhow::Result<String> {
-    let mut total = 0;
-    let mut errors = 0;
-    for country in COUNTRIES {
-        let tz = country.timezone();
-        let (start, end) = recent_window(&tz);
-        for area in country.areas {
-            match app.entsoe.generation(area.eic, start, end).await {
-                Ok(points) => {
-                    let rows: Vec<(i64, String, String, i64, f64)> = points
-                        .into_iter()
-                        .map(|p| (p.start, p.interval, p.psr, p.consumption as i64, p.value))
-                        .collect();
-                    let id = area.id;
-                    total += app
-                        .db
-                        .run(move |c| Ok(queries::upsert_generation(c, id, &rows)?))
-                        .await?;
-                }
-                Err(e) => {
-                    errors += 1;
-                    tracing::warn!(area = area.name, error = %format!("{e:#}"), "generation request failed");
-                }
-            }
-            tokio::time::sleep(pause()).await;
-        }
-        aggregate(app, country, start.timestamp_millis()).await?;
+/// Row count for the per-area log line
+struct Rows(usize, &'static str);
+
+impl std::fmt::Display for Rows {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "stored {} {} rows", self.0, self.1)
     }
-    Ok(format!("stored {total} generation rows, {errors} errors"))
 }
 
-async fn update_load(app: &App) -> anyhow::Result<String> {
-    let mut total = 0;
-    let mut errors = 0;
-    for country in COUNTRIES {
-        let tz = country.timezone();
-        let (start, end) = recent_window(&tz);
-        for area in country.areas {
-            match app.entsoe.load(area.eic, start, end).await {
-                Ok(points) => {
-                    let rows: Vec<(i64, String, f64)> = points
-                        .into_iter()
-                        .map(|p| (p.start, p.interval, p.value))
-                        .collect();
-                    let id = area.id;
-                    total += app
-                        .db
-                        .run(move |c| Ok(queries::upsert_load(c, id, &rows)?))
-                        .await?;
-                }
-                Err(e) => {
-                    errors += 1;
-                    tracing::warn!(area = area.name, error = %format!("{e:#}"), "load request failed");
-                }
-            }
-            tokio::time::sleep(pause()).await;
+async fn update_production(app: &App) -> anyhow::Result<Outcome> {
+    let results = for_each_area(Job::Production, |country, area| {
+        let app = app.clone();
+        async move {
+            let (start, end) = recent_window(&country.timezone());
+            let points = request(area.name, "generation", || {
+                app.entsoe.generation(area.eic, start, end)
+            })
+            .await?;
+            let rows: Vec<(i64, String, String, i64, f64)> = points
+                .into_iter()
+                .map(|p| (p.start, p.interval, p.psr, p.consumption as i64, p.value))
+                .collect();
+            let id = area.id;
+            let n = app
+                .db
+                .run(move |c| Ok(queries::upsert_generation(c, id, &rows)?))
+                .await?;
+            Ok(Rows(n, "generation"))
         }
-        aggregate(app, country, start.timestamp_millis()).await?;
-    }
-    Ok(format!("stored {total} load rows, {errors} errors"))
+    })
+    .await;
+    aggregate_countries(app, &results).await?;
+    summarize(&results, |r| r.0, "generation")
 }
 
-async fn update_outages(app: &App) -> anyhow::Result<String> {
-    let mut total = 0;
-    let mut errors = 0;
+async fn update_load(app: &App) -> anyhow::Result<Outcome> {
+    let results = for_each_area(Job::Load, |country, area| {
+        let app = app.clone();
+        async move {
+            let (start, end) = recent_window(&country.timezone());
+            let points =
+                request(area.name, "load", || app.entsoe.load(area.eic, start, end)).await?;
+            let rows: Vec<(i64, String, f64)> = points
+                .into_iter()
+                .map(|p| (p.start, p.interval, p.value))
+                .collect();
+            let id = area.id;
+            let n = app
+                .db
+                .run(move |c| Ok(queries::upsert_load(c, id, &rows)?))
+                .await?;
+            Ok(Rows(n, "load"))
+        }
+    })
+    .await;
+    aggregate_countries(app, &results).await?;
+    summarize(&results, |r| r.0, "load")
+}
+
+async fn update_outages(app: &App) -> anyhow::Result<Outcome> {
     let start = Utc::now() - chrono::Duration::days(30);
     let end = Utc::now() + chrono::Duration::days(30);
-    for country in COUNTRIES {
-        for area in country.areas {
-            match app.entsoe.outages(area.eic, start, end).await {
-                Ok(outages) => {
-                    let cid = country.id;
-                    total += app
-                        .db
-                        .run(move |c| Ok(queries::replace_outages(c, cid, &outages)?))
-                        .await?;
-                }
-                Err(e) => {
-                    errors += 1;
-                    tracing::warn!(area = area.name, error = %format!("{e:#}"), "outage request failed");
-                }
-            }
-            tokio::time::sleep(pause()).await;
+    let results = for_each_area(Job::Outages, |country, area| {
+        let app = app.clone();
+        async move {
+            let outages = request(area.name, "outage", || {
+                app.entsoe.outages(area.eic, start, end)
+            })
+            .await?;
+            let cid = country.id;
+            let n = app
+                .db
+                .run(move |c| Ok(queries::replace_outages(c, cid, &outages)?))
+                .await?;
+            Ok(Rows(n, "outage"))
         }
-    }
-    Ok(format!("stored {total} outages, {errors} errors"))
+    })
+    .await;
+    summarize(&results, |r| r.0, "outage")
 }
 
 // ---------------------------------------------------------------------------
@@ -443,4 +656,229 @@ pub async fn start_scheduler(app: App) -> anyhow::Result<JobScheduler> {
         let _ = run(&app3, Job::Prices, false).await;
     });
     Ok(sched)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    use axum::extract::{Query, State};
+    use axum::http::StatusCode;
+
+    use super::*;
+    use crate::countries::COUNTRIES;
+    use crate::db::Db;
+    use crate::timeutil::HOUR_MS;
+
+    fn stockholm() -> Tz {
+        chrono_tz::Europe::Stockholm
+    }
+
+    fn date(y: i32, m: u32, d: u32) -> NaiveDate {
+        NaiveDate::from_ymd_opt(y, m, d).unwrap()
+    }
+
+    #[test]
+    fn fetch_start_skips_complete_days() {
+        let tz = stockholm();
+        let hist = date(2021, 1, 1);
+        // Today is 21 Nov, so everything up to the end of 22 Nov is wanted
+        let end = local_midnight(&tz, date(2026, 11, 23));
+        let ms = |d: NaiveDate, h: i64, m: i64| {
+            local_midnight(&tz, d).timestamp_millis() + h * HOUR_MS + m * 60_000
+        };
+        assert_eq!(price_fetch_start(&tz, None, hist, end), Some(hist));
+        // Tomorrow fully stored at 15 minutes or 60 minutes: nothing to fetch
+        assert_eq!(
+            price_fetch_start(&tz, Some(ms(date(2026, 11, 22), 23, 45)), hist, end),
+            None
+        );
+        assert_eq!(
+            price_fetch_start(&tz, Some(ms(date(2026, 11, 22), 23, 0)), hist, end),
+            None
+        );
+        // Today complete, tomorrow not published: only tomorrow is fetched
+        assert_eq!(
+            price_fetch_start(&tz, Some(ms(date(2026, 11, 21), 23, 45)), hist, end),
+            Some(date(2026, 11, 22))
+        );
+        // Tomorrow partially stored: fetch it again
+        assert_eq!(
+            price_fetch_start(&tz, Some(ms(date(2026, 11, 22), 12, 0)), hist, end),
+            Some(date(2026, 11, 22))
+        );
+        // DST change (25 hour day): last hour still starts at 23:00 local
+        let end = local_midnight(&tz, date(2026, 10, 26));
+        assert_eq!(
+            price_fetch_start(&tz, Some(ms(date(2026, 10, 25), 24, 0)), hist, end),
+            None
+        );
+        assert_eq!(
+            price_fetch_start(&tz, Some(ms(date(2026, 10, 25), 23, 0)), hist, end),
+            Some(date(2026, 10, 25))
+        );
+    }
+
+    #[test]
+    fn retry_policy() {
+        use crate::entsoe::RequestError as E;
+        let base = Duration::from_secs(15);
+        assert_eq!(E::UpstreamTimeout.retry_delay(base), Some(base));
+        assert_eq!(E::Timeout(base).retry_delay(base), Some(base));
+        assert_eq!(E::Http(502).retry_delay(base), Some(base));
+        assert_eq!(E::RateLimited.retry_delay(base), Some(base * 4));
+        assert_eq!(E::Http(503).retry_delay(base), Some(base * 4));
+        assert_eq!(E::Unauthorized.retry_delay(base), None);
+        assert_eq!(E::Http(400).retry_delay(base), None);
+        assert!(E::UpstreamTimeout
+            .to_string()
+            .contains("upstream timeout (HTTP 599"));
+        assert_eq!(
+            crate::entsoe::retry_delay(&anyhow::anyhow!("bad xml"), base),
+            None
+        );
+    }
+
+    fn eic(name: &str) -> &'static str {
+        COUNTRIES
+            .iter()
+            .flat_map(|c| c.areas)
+            .find(|a| a.name == name)
+            .unwrap()
+            .eic
+    }
+
+    /// Prices for today and tomorrow (Stockholm), hourly
+    fn price_doc() -> String {
+        let tz = stockholm();
+        let start = utc(local_midnight(&tz, today(&tz)));
+        let end = utc(local_midnight(&tz, today(&tz) + chrono::Duration::days(2)));
+        let hours = (end - start).num_hours();
+        let points: String = (1..=hours)
+            .map(|p| {
+                format!("<Point><position>{p}</position><price.amount>{p}.5</price.amount></Point>")
+            })
+            .collect();
+        format!(
+            "<Publication_MarketDocument><TimeSeries><curveType>A01</curveType><Period>\
+             <timeInterval><start>{}</start><end>{}</end></timeInterval><resolution>PT60M</resolution>{points}\
+             </Period></TimeSeries></Publication_MarketDocument>",
+            start.format("%Y-%m-%dT%H:%MZ"),
+            end.format("%Y-%m-%dT%H:%MZ")
+        )
+    }
+
+    #[derive(Clone, Default)]
+    struct Mock {
+        calls: Arc<parking_lot::Mutex<HashMap<String, usize>>>,
+        total: Arc<AtomicUsize>,
+    }
+
+    /// SE1: 599 once, then prices. SE2: always 599. SE3: slower than the client timeout.
+    /// SE4: 401. Everything else: no data.
+    async fn entsoe_mock(
+        State(m): State<Mock>,
+        Query(q): Query<HashMap<String, String>>,
+    ) -> (StatusCode, String) {
+        m.total.fetch_add(1, Ordering::Relaxed);
+        let area = q.get("in_Domain").cloned().unwrap_or_default();
+        let n = {
+            let mut calls = m.calls.lock();
+            let n = calls.entry(area.clone()).or_default();
+            *n += 1;
+            *n
+        };
+        let no_data = "<Acknowledgement_MarketDocument><Reason><code>999</code><text>No matching data found</text></Reason></Acknowledgement_MarketDocument>";
+        let upstream_timeout = StatusCode::from_u16(599).unwrap();
+        if area == eic("SE1") {
+            if n == 1 {
+                return (upstream_timeout, String::new());
+            }
+            return (StatusCode::OK, price_doc());
+        }
+        if area == eic("SE2") {
+            return (upstream_timeout, String::new());
+        }
+        if area == eic("SE3") {
+            tokio::time::sleep(Duration::from_millis(1500)).await;
+            return (StatusCode::OK, no_data.into());
+        }
+        if area == eic("SE4") {
+            return (StatusCode::UNAUTHORIZED, String::new());
+        }
+        (StatusCode::OK, no_data.into())
+    }
+
+    async fn test_app(mock: Mock) -> App {
+        let router = axum::Router::new()
+            .route("/api", axum::routing::get(entsoe_mock))
+            .with_state(mock);
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+        let cfg = crate::Config {
+            public_url: None,
+            adsense: None,
+            ga_id: None,
+            schedule_tz: stockholm(),
+            history_start: today(&stockholm()),
+        };
+        let mut app = App::new(Db::open_memory(), cfg).unwrap();
+        let entsoe = crate::entsoe::Client::with_endpoint(
+            "token".into(),
+            format!("http://{addr}/api"),
+            Duration::from_millis(500),
+        )
+        .unwrap();
+        Arc::get_mut(&mut app.0).unwrap().entsoe = entsoe;
+        app
+    }
+
+    #[tokio::test]
+    async fn prices_retry_partial_and_skip() {
+        let mock = Mock::default();
+        let app = test_app(mock.clone()).await;
+        let msg = run(&app, Job::Prices, false).await.unwrap();
+        let areas = COUNTRIES.iter().map(|c| c.areas.len()).sum::<usize>();
+        let calls = |a: &str| mock.calls.lock().get(eic(a)).copied().unwrap_or(0);
+        // SE1 recovered after one retry, SE2 and SE3 gave up after two retries, SE4 is not retried
+        assert_eq!(calls("SE1"), 2);
+        assert_eq!(calls("SE2"), 3);
+        assert_eq!(calls("SE3"), 3);
+        assert_eq!(calls("SE4"), 1);
+        assert_eq!(calls("FI"), 1);
+        assert_eq!(mock.total.load(Ordering::Relaxed), areas + 1 + 2 + 2);
+
+        let tz = stockholm();
+        let rows = (local_midnight(&tz, today(&tz) + chrono::Duration::days(2))
+            - local_midnight(&tz, today(&tz)))
+        .num_hours() as usize;
+        assert_eq!(msg, format!("stored {rows} price rows, 3 areas failed"));
+
+        let runs = app
+            .db
+            .run(|c| Ok(queries::latest_job_runs(c)?))
+            .await
+            .unwrap();
+        let r = runs.iter().find(|r| r.job == "prices").unwrap();
+        assert_eq!(r.status, RunStatus::Partial);
+        let failed: Vec<(&str, &str)> = r
+            .failures
+            .iter()
+            .map(|f| (f.area.as_str(), f.error.as_str()))
+            .collect();
+        assert_eq!(failed.len(), 3);
+        assert_eq!(failed[0].0, "SE2");
+        assert!(failed[0].1.contains("upstream timeout"), "{}", failed[0].1);
+        assert_eq!(failed[1].0, "SE3");
+        assert!(failed[1].1.contains("spotweb timeout"), "{}", failed[1].1);
+        assert_eq!(failed[2].0, "SE4");
+        assert!(failed[2].1.contains("401"), "{}", failed[2].1);
+
+        // Second run: SE1 is complete up to the end of tomorrow and is not fetched again
+        run(&app, Job::Prices, false).await.unwrap();
+        assert_eq!(calls("SE1"), 2);
+        assert_eq!(calls("FI"), 2);
+    }
 }

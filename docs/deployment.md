@@ -12,7 +12,7 @@ Internet ──TLS──> Caddy / nginx ──HTTP──> 127.0.0.1:6000 spotweb
 
 ## Requirements
 
-- Any 64-bit Linux (x86_64 or aarch64) with systemd. The binary is static, no runtime libraries needed.
+- Any 64-bit Linux (x86_64 or aarch64) with systemd 245 or newer. The binary is static, no runtime libraries needed.
 - ~256 MB RAM is plenty. The database grows by roughly 100–200 MB per year with all countries.
 - Outbound HTTPS to `web-api.tp.entsoe.eu` and `www.ecb.europa.eu`.
 - An ENTSO-e API token: register at <https://transparency.entsoe.eu/>, then email `transparency@entsoe.eu` with the subject
@@ -56,6 +56,16 @@ journalctl -u spotweb -f
 
 The unit runs with a strict sandbox (`ProtectSystem=strict`, no capabilities, syscall filter, only `/var/lib/spotweb`
 writable). `systemd-analyze security spotweb` should report a low exposure score.
+
+The unit needs systemd 245 or newer (Ubuntu 20.04, Debian 11, RHEL 9). On systemd 247 or newer (Ubuntu 22.04, Debian 12)
+you can also hide other processes' `/proc` entries with the drop-in in `deploy/systemd/spotweb.service.d/proc.conf`;
+older versions would log "Unknown key name" warnings for those settings, which is why they are not in the main unit:
+
+```sh
+systemctl --version | head -1          # 247 or newer?
+sudo install -D -m 644 deploy/systemd/spotweb.service.d/proc.conf /etc/systemd/system/spotweb.service.d/proc.conf
+sudo systemctl daemon-reload && sudo systemctl restart spotweb
+```
 
 ## 3. Reverse proxy with TLS
 
@@ -107,7 +117,12 @@ Everything except the database can be re-created, and even the database can be r
 
 - `GET /healthz` returns `200 ok` when the process and database are fine.
 - `GET /api/v2/status` lists the newest price/generation/load timestamps and the last run of each job. Alert if
-  `latest_price` is less than ~12 hours ahead of now after 14:00 CET, or if a job keeps reporting `"ok": false`.
+  `latest_price` is less than ~12 hours ahead of now after 14:00 CET, or if a job keeps reporting `"status": "failed"`.
+  Each job run has a `status`: `ok`, `partial` (finished, but some areas failed; they are listed in `failures` with the
+  reason), `failed` or `running`. `ok` stays `true` for `partial` runs, for compatibility with 2.0.0.
+- Each ENTSO-e request is retried twice after 15 s on timeouts, connection errors and 5xx (60 s on 429/503). HTTP 599
+  is logged as "upstream timeout": it is a non-standard code from ENTSO-e's gateway when its backend is slow, not from
+  spotweb. spotweb's own per-request timeout is logged as "spotweb timeout".
 - Logs go to the journal; set `RUST_LOG=spotweb=debug` for detail.
 
 ## Several instances

@@ -54,7 +54,9 @@ spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried po
 | `SPOTWEB_GA_ID`            | –                        | Google Analytics measurement id                                 |
 | `SPOTWEB_SCHEDULE_TZ`      | `Europe/Stockholm`       | Time zone of the job schedule                                   |
 | `SPOTWEB_HISTORY_START`    | `2021-01-01`             | First day to back-fill on an empty database                     |
-| `SPOTWEB_REQUEST_DELAY_MS` | `2000`                   | Pause between ENTSO-e requests                                  |
+| `SPOTWEB_REQUEST_DELAY_MS` | `2000`                   | Pause after each ENTSO-e request, per worker                    |
+| `SPOTWEB_ENTSOE_CONCURRENCY` | `3`                    | Areas fetched from ENTSO-e at the same time (1–10)              |
+| `SPOTWEB_ENTSOE_TIMEOUT_SECS` | `60`                   | Timeout per ENTSO-e request                                     |
 | `RUST_LOG`                 | `spotweb=info,warn`      | Log filter, `--debug` for verbose logs                          |
 
 ### Schedule

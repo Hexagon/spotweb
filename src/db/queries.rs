@@ -119,10 +119,14 @@ pub fn exchange_rates(c: &Connection) -> rusqlite::Result<ExchangeRates> {
     Ok(out)
 }
 
-pub fn has_exchange_rates_for(c: &Connection, date: &str) -> rusqlite::Result<bool> {
+/// Whether rates are stored for `period` (midnight UTC of the ECB date).
+///
+/// Checks `period`, not `date`: rows imported from 1.x have the *fetch* date in `date` (and local midnight of
+/// that day in `period`), so the ECB rate published on the same day would wrongly look like it was already stored.
+pub fn has_exchange_rates_for(c: &Connection, period: i64) -> rusqlite::Result<bool> {
     let n: i64 = c.query_row(
-        "SELECT COUNT(*) FROM exchangerate WHERE date = ?1",
-        params![date],
+        "SELECT COUNT(*) FROM exchangerate WHERE period = ?1",
+        params![period],
         |r| r.get(0),
     )?;
     Ok(n > 0)
@@ -594,16 +598,58 @@ pub fn job_started(c: &Connection, job: &str, now: i64) -> rusqlite::Result<i64>
     Ok(c.last_insert_rowid())
 }
 
+/// Outcome of a job run
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RunStatus {
+    Running,
+    Ok,
+    /// Finished, but some areas failed
+    Partial,
+    Failed,
+}
+
+impl RunStatus {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Running => "running",
+            Self::Ok => "ok",
+            Self::Partial => "partial",
+            Self::Failed => "failed",
+        }
+    }
+}
+
+/// One area that failed in an otherwise finished job
+#[derive(Debug, Clone, PartialEq, Serialize, serde::Deserialize)]
+pub struct AreaFailure {
+    pub area: String,
+    pub error: String,
+}
+
 pub fn job_finished(
     c: &Connection,
     id: i64,
     now: i64,
-    ok: bool,
+    status: RunStatus,
     message: &str,
+    failures: &[AreaFailure],
 ) -> rusqlite::Result<()> {
+    let failures = if failures.is_empty() {
+        None
+    } else {
+        serde_json::to_string(failures).ok()
+    };
     c.execute(
-        "UPDATE job_run SET finished = ?2, ok = ?3, message = ?4 WHERE id = ?1",
-        params![id, now, ok, message],
+        "UPDATE job_run SET finished = ?2, ok = ?3, message = ?4, status = ?5, failures = ?6 WHERE id = ?1",
+        params![
+            id,
+            now,
+            status != RunStatus::Failed,
+            message,
+            status.as_str(),
+            failures
+        ],
     )?;
     // Keep the table small
     c.execute(
@@ -618,22 +664,38 @@ pub struct JobStatus {
     pub job: String,
     pub started: String,
     pub finished: Option<String>,
+    /// `true` unless the job failed as a whole (kept for compatibility, see `status`)
     pub ok: Option<bool>,
+    pub status: RunStatus,
     pub message: Option<String>,
+    /// Areas that failed in a `partial` run
+    pub failures: Vec<AreaFailure>,
 }
 
 pub fn latest_job_runs(c: &Connection) -> rusqlite::Result<Vec<JobStatus>> {
     let mut st = c.prepare_cached(
-        "SELECT job, started, finished, ok, message FROM job_run
+        "SELECT job, started, finished, ok, message, status, failures FROM job_run
          WHERE id IN (SELECT MAX(id) FROM job_run GROUP BY job) ORDER BY job",
     )?;
     let rows = st.query_map([], |r| {
+        let ok: Option<bool> = r.get(3)?;
+        let status = match (r.get::<_, Option<String>>(5)?.as_deref(), ok) {
+            (Some("partial"), _) => RunStatus::Partial,
+            (Some("failed"), _) | (None, Some(false)) => RunStatus::Failed,
+            (Some("ok"), _) | (None, Some(true)) => RunStatus::Ok,
+            _ => RunStatus::Running,
+        };
         Ok(JobStatus {
             job: r.get(0)?,
             started: crate::timeutil::js_iso(r.get(1)?),
             finished: r.get::<_, Option<i64>>(2)?.map(crate::timeutil::js_iso),
-            ok: r.get(3)?,
+            ok,
+            status,
             message: r.get(4)?,
+            failures: r
+                .get::<_, Option<String>>(6)?
+                .and_then(|f| serde_json::from_str(&f).ok())
+                .unwrap_or_default(),
         })
     })?;
     rows.collect()
@@ -740,5 +802,54 @@ mod tests {
         assert_eq!(r.rate("öre"), Some(11.5));
         assert_eq!(r.rate("EUR"), Some(1.0));
         assert_eq!(r.date, "2024-01-02");
+    }
+
+    #[test]
+    fn job_status_partial() {
+        let db = Db::open_memory();
+        let c = db.conn().unwrap();
+        let a = job_started(&c, "load", 1).unwrap();
+        // Row written by 2.0.1, without status
+        c.execute(
+            "UPDATE job_run SET finished = 2, ok = 1, message = 'x' WHERE id = ?1",
+            params![a],
+        )
+        .unwrap();
+        let p = job_started(&c, "prices", 1).unwrap();
+        let f = vec![AreaFailure {
+            area: "SE2".into(),
+            error: "upstream timeout".into(),
+        }];
+        job_finished(&c, p, 2, RunStatus::Partial, "stored 10 rows", &f).unwrap();
+        job_started(&c, "outages", 1).unwrap();
+        let runs = latest_job_runs(&c).unwrap();
+        let get = |j: &str| runs.iter().find(|r| r.job == j).unwrap();
+        assert_eq!(get("load").status, RunStatus::Ok);
+        assert_eq!(get("prices").status, RunStatus::Partial);
+        assert_eq!(get("prices").ok, Some(true));
+        assert_eq!(get("prices").failures, f);
+        assert_eq!(get("outages").status, RunStatus::Running);
+    }
+
+    #[test]
+    fn exchange_rate_after_v1_import() {
+        // 1.x stored the rate fetched on 21 Nov (ECB's rate for 20 Nov) with the fetch date and local midnight
+        let db = Db::open_memory();
+        let mut c = db.conn().unwrap();
+        let mut e = BTreeMap::new();
+        e.insert("SEK".to_string(), 11.0);
+        let v1_period = 1_763_679_600_000; // 2025-11-20T23:00:00Z = 2025-11-21 00:00 CET
+        insert_exchange_rates(&mut c, "2025-11-21", v1_period, &e).unwrap();
+        // ECB's rate for 21 Nov is stored at midnight UTC and must not be treated as a duplicate
+        let ecb_period = 1_763_683_200_000; // 2025-11-21T00:00:00Z
+        assert!(!has_exchange_rates_for(&c, ecb_period).unwrap());
+        e.insert("SEK".to_string(), 11.2);
+        insert_exchange_rates(&mut c, "2025-11-21", ecb_period, &e).unwrap();
+        assert!(has_exchange_rates_for(&c, ecb_period).unwrap());
+        assert_eq!(exchange_rates(&c).unwrap().rate("SEK"), Some(11.2));
+        assert_eq!(
+            data_freshness(&c).unwrap().exchange_rate_date.as_deref(),
+            Some("2025-11-21")
+        );
     }
 }
