@@ -150,13 +150,13 @@ pub async fn spot(
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 struct HassPoint {
     st: String,
     p: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 struct HassResponse {
     updated: String,
     now: String,
@@ -277,7 +277,38 @@ pub async fn hass(
             })
             .collect(),
     };
-    json_response(StatusCode::OK, body, 60)
+    // `updated` is the time of the request; leave it out of the ETag so unchanged data gives 304
+    let tag = etag(
+        &serde_json::to_vec(&HassResponse {
+            updated: String::new(),
+            ..body.clone()
+        })
+        .unwrap_or_default(),
+    );
+    let mut res = json_response(StatusCode::OK, body, 60);
+    if let Ok(v) = HeaderValue::from_str(&tag) {
+        res.headers_mut().insert(header::ETAG, v);
+    }
+    res
+}
+
+/// Weak ETag from a stable 64-bit FNV-1a hash of the body (weak, because compression
+/// changes the bytes on the wire but not the meaning)
+pub fn etag(body: &[u8]) -> String {
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for b in body {
+        h ^= *b as u64;
+        h = h.wrapping_mul(0x0100_0000_01b3);
+    }
+    format!("W/\"{h:016x}\"")
+}
+
+/// `If-None-Match` matches `tag` (weak comparison, list or `*`)
+pub fn etag_matches(if_none_match: &str, tag: &str) -> bool {
+    let bare = |t: &str| t.trim().trim_start_matches("W/").to_string();
+    if_none_match
+        .split(',')
+        .any(|t| t.trim() == "*" || bare(t) == bare(tag))
 }
 
 fn empty_hass() -> HassResponse {

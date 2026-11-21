@@ -211,6 +211,56 @@ async fn security_headers(req: Request, next: axum::middleware::Next) -> Respons
     res
 }
 
+/// ETag and `304 Not Modified` for successful API GET responses. Handlers may set their own
+/// ETag (when the body contains volatile fields), otherwise it is computed from the body.
+async fn api_etag(req: Request, next: axum::middleware::Next) -> Response {
+    let is_api = req.method() == axum::http::Method::GET && req.uri().path().starts_with("/api/");
+    let inm = req
+        .headers()
+        .get(header::IF_NONE_MATCH)
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_string);
+    let res = next.run(req).await;
+    if !is_api || res.status() != StatusCode::OK {
+        return res;
+    }
+    let (mut parts, body) = res.into_parts();
+    let tag = match parts
+        .headers
+        .get(header::ETAG)
+        .and_then(|v| v.to_str().ok())
+    {
+        Some(t) => t.to_string(),
+        None => {
+            // API bodies are small JSON documents that are already complete in memory
+            let Ok(bytes) = axum::body::to_bytes(body, usize::MAX).await else {
+                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            };
+            let tag = api::etag(&bytes);
+            if let Ok(v) = HeaderValue::from_str(&tag) {
+                parts.headers.insert(header::ETAG, v);
+            }
+            return finish_etag(parts, Body::from(bytes), inm.as_deref(), &tag);
+        }
+    };
+    finish_etag(parts, body, inm.as_deref(), &tag)
+}
+
+fn finish_etag(
+    mut parts: axum::http::response::Parts,
+    body: Body,
+    if_none_match: Option<&str>,
+    tag: &str,
+) -> Response {
+    if if_none_match.is_some_and(|inm| api::etag_matches(inm, tag)) {
+        parts.status = StatusCode::NOT_MODIFIED;
+        parts.headers.remove(header::CONTENT_TYPE);
+        parts.headers.remove(header::CONTENT_LENGTH);
+        return Response::from_parts(parts, Body::empty());
+    }
+    Response::from_parts(parts, body)
+}
+
 pub fn router(app: App) -> Router {
     let state = WebState {
         env: Arc::new(template_env(&app)),
@@ -237,6 +287,7 @@ pub fn router(app: App) -> Router {
         r = r.route(&format!("/{file}"), get(static_handler));
     }
     r.fallback(pages::not_found)
+        .layer(axum::middleware::from_fn(api_etag))
         .layer(axum::middleware::from_fn(security_headers))
         .layer(CompressionLayer::new())
         .layer(TimeoutLayer::with_status_code(

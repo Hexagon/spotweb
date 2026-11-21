@@ -75,6 +75,8 @@ Same timing as 1.x, in `SPOTWEB_SCHEDULE_TZ` (DST changes are handled):
 ## API
 
 Free and without key. Errors are returned as HTTP 500 with `{"status":"error","details":"…"}`, as in 1.x.
+Successful responses carry an `ETag`; send it back in `If-None-Match` to get an empty `304 Not Modified` while the
+data is unchanged (for `/api/v2/hass` the `updated` field is not part of the tag).
 
 `GET /api/v2/spot?period=daily&area=SE3&startDate=2024-01-01&endDate=2024-01-31[&currency=SEK][&interval=PT15M]`
 

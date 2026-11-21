@@ -57,7 +57,7 @@ Varje punkt är tänkt att bli en egen PR.
 17. **Översätt Custom, Hjälp och Home Assistant**, som i dag är på engelska.
 18. **Content-Security-Policy och tillgänglighet.** Ta bort de inline-skript som återstår, sätt en CSP-header och ge
     diagrammen textalternativ.
-19. **ETag/304 i API:t.** Det minskar trafiken från Home Assistant-installationer som frågar var tredje minut.
+19. ✅ ~~**ETag/304 i API:t.** Det minskar trafiken från Home Assistant-installationer som frågar var tredje minut.~~
 
 ## P3 – Nya funktioner
 
@@ -100,6 +100,9 @@ Varje punkt är tänkt att bli en egen PR.
 - Punkt 12: `healthy` och `problems` i `/api/v2/status`, och `/healthz/data` som svarar 503 när data saknas (för
   övervakare som bara ser statuskoden). Kraven: dagens priser för alla områden, efter 14:00 CET även morgondagens,
   och load/generation högst 3 h gamla.
+- Punkt 19: svag `ETag` på alla lyckade GET under `/api/` och `304` vid `If-None-Match`. För `/api/v2/hass` räknas
+  taggen utan `updated`, som annars ändras vid varje anrop. Home Assistants inbyggda REST-sensor skickar inte
+  `If-None-Match`, så vinsten gäller främst egna integrationer och proxyer/CDN framför sajten.
 
 - En binär med inbyggd schemaläggare, SQLite med nycklar, import från 1.x
 - Signerade releaser för Linux, macOS och Windows, CI på alla tre plattformarna

@@ -293,3 +293,61 @@ async fn start_page_map_and_flows_api() {
     let (_, body, _) = get(&app, "/?lang=de").await;
     assert!(body.contains(r#"<option value="DE-LU" selected>"#));
 }
+
+async fn get_if_none_match(
+    app: &App,
+    uri: &str,
+    tag: &str,
+) -> (StatusCode, String, axum::http::HeaderMap) {
+    let res = super::router(app.clone())
+        .oneshot(
+            Request::builder()
+                .uri(uri)
+                .header("if-none-match", tag)
+                .header("accept-encoding", "gzip")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let status = res.status();
+    let headers = res.headers().clone();
+    let body = res.into_body().collect().await.unwrap().to_bytes();
+    (status, String::from_utf8_lossy(&body).to_string(), headers)
+}
+
+#[tokio::test]
+async fn api_etag_and_not_modified() {
+    let app = test_app();
+    let d = today(&chrono_tz::Europe::Stockholm)
+        .format("%Y-%m-%d")
+        .to_string();
+    for uri in [
+        format!("/api/v2/spot?period=hourly&area=SE1&startDate={d}&endDate={d}"),
+        "/api/v2/hass?area=SE1&currency=SEK".to_string(),
+        "/api/v2/flows".to_string(),
+    ] {
+        let (s, _, h) = get(&app, &uri).await;
+        assert_eq!(s, StatusCode::OK, "{uri}");
+        let tag = h["etag"].to_str().unwrap().to_string();
+        assert!(tag.starts_with("W/\""), "{tag}");
+        // hass has a fresh `updated` per request, but the same data gives the same tag
+        let (s, body, h) = get_if_none_match(&app, &uri, &tag).await;
+        assert_eq!(s, StatusCode::NOT_MODIFIED, "{uri}");
+        assert!(body.is_empty());
+        assert_eq!(h["etag"].to_str().unwrap(), tag);
+        assert!(h.contains_key("cache-control"));
+        assert_eq!(h["access-control-allow-origin"], "*");
+        // Strong form and lists match too, other tags do not
+        let strong = tag.trim_start_matches("W/");
+        let (s, _, _) = get_if_none_match(&app, &uri, &format!("\"x\", {strong}")).await;
+        assert_eq!(s, StatusCode::NOT_MODIFIED);
+        let (s, body, _) = get_if_none_match(&app, &uri, "W/\"0000\"").await;
+        assert_eq!(s, StatusCode::OK);
+        assert!(!body.is_empty());
+    }
+    // Errors and pages get no ETag
+    let (s, _, h) = get(&app, "/api/v2/spot?period=nope").await;
+    assert_eq!(s, StatusCode::INTERNAL_SERVER_ERROR);
+    assert!(!h.contains_key("etag"));
+}
