@@ -109,9 +109,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # The release may already exist (created in the GitHub UI); then just attach the files
-          if gh release view "$TAG" --repo "${{ github.repository }}" > /dev/null 2>&1; then
-            gh release upload "$TAG" dist/* --repo "${{ github.repository }}" --clobber
+          repo="${{ github.repository }}"
+          # The release may already exist (created in the GitHub UI); then attach the files
+          # and fill in auto-generated release notes if the body was left empty
+          if gh release view "$TAG" --repo "$repo" > /dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --repo "$repo" --clobber
+            body=$(gh release view "$TAG" --repo "$repo" --json body --jq .body)
+            if [ -z "$(echo "$body" | tr -d '[:space:]')" ]; then
+              gh api "repos/$repo/releases/generate-notes" -f tag_name="$TAG" --jq .body > notes.md
+              gh release edit "$TAG" --repo "$repo" --notes-file notes.md
+            fi
           else
             gh release create "$TAG" dist/* \
               --repo "${{ github.repository }}" \
