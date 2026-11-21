@@ -120,24 +120,42 @@
 
   // ------------------------------------------------------------------ charts
   const charts = {};
-  const COLORS = ["rgba(224,255,24,.85)", "rgba(24,255,124,.85)", "rgba(24,144,255,.9)", "rgba(232,24,255,.85)", "rgba(224,24,71,.9)"];
+  // Theme colors come from CSS variables in spotweb.css, which switch with prefers-color-scheme
+  const lightMq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: light)") : null;
+  let theme = {};
+  const readTheme = () => {
+    const cs = getComputedStyle(document.documentElement);
+    const v = (name) => cs.getPropertyValue(name).trim();
+    theme = {
+      mode: lightMq && lightMq.matches ? "light" : "dark",
+      areas: [1, 2, 3, 4, 5].map((i) => `rgba(${v("--c" + i)},.9)`),
+      text: v("--chart-text"), grid: v("--chart-grid"), zero: v("--chart-zero"),
+      now: v("--chart-now"), nowText: v("--chart-now-text"), nowBg: v("--chart-now-bg"),
+      c1: v("--chart-1"), c2: v("--chart-2"), c3: v("--chart-3"), zone: v("--chart-zone"),
+      negative: v("--chart-negative"), positive: v("--chart-positive"),
+      ramp: v("--ramp").split(",").map((x) => x.trim()).filter((x) => /^#[0-9a-f]{6}$/i.test(x)),
+    };
+    if (theme.ramp.length < 2) theme.ramp = ["#2b2418", "#ffd58a"];
+  };
+  readTheme();
+  const areaColor = (a) => theme.areas[(a.color - 1) % theme.areas.length];
   const PSR_COLORS = {
     nuclear_0: "#f6c344", water_0: "#1890ff", water_1: "#0b4d8c", wind_0: "#7fd8ff", wind_1: "#3d8aa8", solar_0: "#ffe14d",
     gas_0: "#ff8a3d", coal_0: "#8d6e63", oil_0: "#6d4c41", peat_0: "#a1887f", other_0: "#9e9e9e", other_1: "#616161",
   };
   const baseChart = () => ({
-    chart: { foreColor: "#c7cbd6", toolbar: { show: false }, height: 330, animations: { enabled: false }, background: "transparent", zoom: { enabled: false } },
-    theme: { mode: "dark" },
+    chart: { foreColor: theme.text, toolbar: { show: false }, height: 330, animations: { enabled: false }, background: "transparent", zoom: { enabled: false } },
+    theme: { mode: theme.mode },
     yaxis: { forceNiceScale: true, labels: { formatter: (v) => (v === null || v === undefined ? "" : Number(v).toFixed(Math.min(prefs.decimals, 2))) } },
     xaxis: { type: "datetime", labels: { datetimeUTC: false } },
     legend: { show: true },
     stroke: { width: 3, curve: "stepline" },
     dataLabels: { enabled: false },
-    tooltip: { theme: "dark", x: { format: "yyyy-MM-dd HH:mm" } },
-    grid: { borderColor: "#2a3145" },
+    tooltip: { theme: theme.mode, x: { format: "yyyy-MM-dd HH:mm" } },
+    grid: { borderColor: theme.grid },
   });
   const nowAnnotation = (x) => ({
-    xaxis: [{ x, borderColor: "#ff7da0", label: { style: { color: "#eee", background: "#234" }, text: t("chart.now") } }],
+    xaxis: [{ x, borderColor: theme.now, label: { style: { color: theme.nowText, background: theme.nowBg }, text: t("chart.now") } }],
   });
   const minY = (series) => {
     let m = 0;
@@ -191,7 +209,7 @@
     }
     const o = unitTooltip(baseChart());
     o.series = series;
-    o.colors = ["rgba(24,255,124,1)", "rgba(110,120,230,1)"];
+    o.colors = [theme.c1, theme.c2];
     o.yaxis.min = minY(series);
     o.xaxis.labels.format = "HH:mm";
     o.tooltip.x.format = "HH:mm";
@@ -204,7 +222,7 @@
     const series = boot.areas.map((a) => ({ name: a.name, data: toSeries(a[which].points) }));
     const o = unitTooltip(baseChart());
     o.series = series;
-    o.colors = boot.areas.map((a) => COLORS[(a.color - 1) % COLORS.length]);
+    o.colors = boot.areas.map((a) => areaColor(a));
     o.yaxis.min = minY(series);
     o.xaxis.labels.format = "HH:mm";
     if (which === "today") o.annotations = nowAnnotation(currentSlot(boot.areas[0]));
@@ -224,7 +242,7 @@
     o.colors = p.series.map((s) => PSR_COLORS[s.key] || "#9e9e9e");
     o.yaxis = { labels: { formatter: (v) => mw(v) } };
     o.tooltip.y = { formatter: (v) => (mw(v) ? `${mw(v)} MW` : "") };
-    o.annotations = { yaxis: [{ y: 0, borderColor: "#ccc", strokeDashArray: 0 }] };
+    o.annotations = { yaxis: [{ y: 0, borderColor: theme.zero, strokeDashArray: 0 }] };
     draw("production", o, mwText);
   };
 
@@ -233,7 +251,7 @@
     const o = baseChart();
     o.chart.type = "bar";
     o.stroke = { width: 0 };
-    o.plotOptions = { bar: { columnWidth: "95%", colors: { ranges: [{ from: -1e9, to: 0, color: "#ff5c6c" }, { from: 0, to: 1e9, color: "#33d17a" }] } } };
+    o.plotOptions = { bar: { columnWidth: "95%", colors: { ranges: [{ from: -1e9, to: 0, color: theme.negative }, { from: 0, to: 1e9, color: theme.positive }] } } };
     o.series = [{ name: t("chart.net_production"), data: boot.net.map((r) => ({ x: r[0], y: r[1] })) }];
     o.yaxis = { labels: { formatter: (v) => mw(v) } };
     o.tooltip.y = { formatter: (v) => (mw(v) ? `${mw(v)} MW` : "") };
@@ -259,7 +277,7 @@
     const o = unitTooltip(baseChart());
     o.series = [{ name: a.name, data: data.map((r) => ({ x: r.time, y: priceRounded(r.price) })) }];
     o.stroke = { width: 2, curve: "smooth" };
-    o.colors = ["rgba(24,255,124,1)"];
+    o.colors = [theme.c1];
     o.tooltip.x.format = "MMM yyyy";
     o.yaxis.min = minY(o.series);
     draw("longterm-area", o);
@@ -276,7 +294,7 @@
     const sets = await Promise.all(boot.areas.map((a) => fetchSpot(a.name, "monthly", "2021-01-01", tomorrowIso())));
     const o = unitTooltip(baseChart());
     o.series = boot.areas.map((a, i) => ({ name: a.name, data: sets[i].map((r) => ({ x: r.time, y: priceRounded(r.price) })) }));
-    o.colors = boot.areas.map((a) => COLORS[(a.color - 1) % COLORS.length]);
+    o.colors = boot.areas.map((a) => areaColor(a));
     o.stroke = { width: 2, curve: "smooth" };
     o.tooltip.x.format = "MMM yyyy";
     o.yaxis.min = minY(o.series);
@@ -299,7 +317,7 @@
     const o = unitTooltip(baseChart());
     o.series = names.map((n, i) => ({ name: n, data: sets[i].map((r) => ({ x: r.time, y: priceRounded(r.price) })) }));
     o.stroke = { width: 2, curve: "smooth" };
-    o.colors = ["rgba(24,255,124,1)", "rgba(79,96,255,.9)"];
+    o.colors = [theme.c1, theme.c3];
     o.tooltip.x.format = "yyyy-MM-dd";
     o.yaxis.min = minY(o.series);
     const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
@@ -382,7 +400,7 @@
       const o = unitTooltip(baseChart());
       o.series = [{ name: fd.get("area"), data: data.filter((r) => r.time !== null).map((r) => ({ x: r.time, y: priceRounded(r.price) })) }];
       o.stroke = { width: 2, curve: fd.get("period") === "hourly" ? "stepline" : "smooth" };
-      o.colors = ["#54ef54"];
+      o.colors = [theme.c1];
       o.yaxis.min = minY(o.series);
       draw("custom", o);
     };
@@ -480,13 +498,13 @@ series:
   };
 
   // ------------------------------------------------------------- start page map
-  // Sequential ramp (one hue, dark = cheap, light = expensive) on the dark surface
-  const RAMP = ["#2b2418", "#5a3d12", "#8f5a0e", "#c47a12", "#eea23a", "#ffd58a"];
+  // Sequential ramp (one hue, cheap blends into the background, expensive stands out), from `--ramp`
   const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
   const rampColor = (f) => {
-    const x = Math.max(0, Math.min(1, f)) * (RAMP.length - 1);
-    const i = Math.min(RAMP.length - 2, Math.floor(x));
-    const a = hexRgb(RAMP[i]), b = hexRgb(RAMP[i + 1]), k = x - i;
+    const ramp = theme.ramp;
+    const x = Math.max(0, Math.min(1, f)) * (ramp.length - 1);
+    const i = Math.min(ramp.length - 2, Math.floor(x));
+    const a = hexRgb(ramp[i]), b = hexRgb(ramp[i + 1]), k = x - i;
     return `rgb(${a.map((v, j) => Math.round(v + (b[j] - v) * k)).join(",")})`;
   };
   const SVG_NS = "http://www.w3.org/2000/svg";
@@ -686,7 +704,7 @@ series:
     if (selPath) selPath.parentNode.appendChild(selPath);
     $("[data-legend-min]").textContent = price(lo);
     $("[data-legend-max]").textContent = price(hi);
-    $(".legend-ramp").style.background = `linear-gradient(90deg, ${RAMP.join(",")})`;
+    $(".legend-ramp").style.background = `linear-gradient(90deg, ${theme.ramp.join(",")})`;
 
     // Flows
     const fg = $("g.flows", svg);
@@ -764,7 +782,7 @@ series:
     o.chart.height = 190;
     o.chart.type = "area";
     o.series = [{ name: z.name, data: toSeries(pts) }];
-    o.colors = ["#eea23a"];
+    o.colors = [theme.zone];
     o.fill = { type: "gradient", gradient: { shadeIntensity: 0, opacityFrom: 0.35, opacityTo: 0.02 } };
     o.stroke = { width: 2, curve: "stepline" };
     o.legend = { show: false };
@@ -960,6 +978,13 @@ series:
     if (customRun && !$("#custom-result").classList.contains("hidden")) safe(customRun);
     renderStatic();
   };
+
+  // Follow the system theme while the page is open
+  if (lightMq) {
+    const onTheme = () => { readTheme(); rerender(); };
+    if (lightMq.addEventListener) lightMq.addEventListener("change", onTheme);
+    else if (lightMq.addListener) lightMq.addListener(onTheme);
+  }
 
   settingsUi();
   safe(shareUi);

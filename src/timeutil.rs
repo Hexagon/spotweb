@@ -127,6 +127,24 @@ pub fn parse_api_date(s: &str, tz: &TimeZone) -> Option<Date> {
     s.get(..10).and_then(|d| d.parse::<Date>().ok())
 }
 
+/// Parse an instant given to the API, in ms. Accepts RFC 3339 timestamps, local date-times in `tz`
+/// without offset (`2024-01-01T07:00`) and dates (`YYYY-MM-DD`): the start of that local day, or with
+/// `end_of_day` the start of the next one.
+pub fn parse_api_instant(s: &str, tz: &TimeZone, end_of_day: bool) -> Option<i64> {
+    let s = s.trim();
+    if let Ok(t) = s.parse::<Timestamp>() {
+        return Some(t.as_millisecond());
+    }
+    if let Ok(d) = s.parse::<Date>() {
+        if s.len() == 10 {
+            let d = if end_of_day { add_days(d, 1) } else { d };
+            return Some(local_midnight(tz, d).timestamp().as_millisecond());
+        }
+    }
+    let dt = s.parse::<jiff::civil::DateTime>().ok()?;
+    Some(dt.to_zoned(tz.clone()).ok()?.timestamp().as_millisecond())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -212,6 +230,27 @@ mod tests {
         );
         assert_eq!(parse_api_date("nonsense", &tz), None);
         assert_eq!(parse_api_date("ååååååå", &tz), None);
+    }
+
+    #[test]
+    fn api_instants() {
+        let tz = stockholm();
+        // 2024-01-31 00:00 in Stockholm is 23:00 UTC the day before
+        let midnight = 1_706_655_600_000;
+        assert_eq!(parse_api_instant("2024-01-31", &tz, false), Some(midnight));
+        assert_eq!(
+            parse_api_instant("2024-01-31", &tz, true),
+            Some(midnight + 24 * HOUR_MS)
+        );
+        assert_eq!(
+            parse_api_instant("2024-01-30T23:00:00Z", &tz, false),
+            Some(midnight)
+        );
+        assert_eq!(
+            parse_api_instant("2024-01-31T07:00", &tz, true),
+            Some(midnight + 7 * HOUR_MS)
+        );
+        assert_eq!(parse_api_instant("nonsense", &tz, false), None);
     }
 
     #[test]

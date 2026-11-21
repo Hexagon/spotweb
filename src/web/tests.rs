@@ -101,6 +101,95 @@ async fn spot_api_shape() {
 }
 
 #[tokio::test]
+async fn cheapest_api() {
+    let tz = crate::timeutil::stockholm();
+    let app = test_app();
+    let t = today(&tz);
+    let tomorrow = crate::timeutil::add_days(t, 1);
+    let start = day_range(&tz, tomorrow).0;
+    let json = |b: &str| serde_json::from_str::<Value>(b).unwrap();
+
+    // Prices rise through each day from 50, so the first hour of the day is the cheapest
+    let (s, body, _) = get(
+        &app,
+        &format!("/api/v2/cheapest?area=se1&hours=1&from={tomorrow}&to={tomorrow}"),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{body}");
+    let v = json(&body);
+    assert_eq!(v["status"], "ok");
+    assert_eq!(v["area"], "SE1");
+    assert_eq!(v["currency"], "EUR");
+    assert_eq!(v["found"], true);
+    assert_eq!(v["active"], false);
+    assert_eq!(v["start"], crate::timeutil::js_iso(start));
+    assert_eq!(v["end"], crate::timeutil::js_iso(start + 3_600_000));
+    assert_eq!(v["price"], 51.5);
+    assert_eq!(v["windows"].as_array().unwrap().len(), 1);
+    assert_eq!(v["data"].as_array().unwrap().len(), 4);
+    assert_eq!(v["data"][0]["price"], 50.0);
+
+    // Separate intervals: the first of each day (both 50); currency converts
+    let (_, body, _) = get(
+        &app,
+        &format!("/api/v2/cheapest?area=SE1&hours=0.5&consecutive=false&from={t}&to={tomorrow}&currency=SEK"),
+    )
+    .await;
+    let v = json(&body);
+    assert_eq!(v["start"], crate::timeutil::js_iso(day_range(&tz, t).0));
+    assert_eq!(v["price"], 500.0);
+    assert_eq!(v["windows"].as_array().unwrap().len(), 2);
+    assert_eq!(v["end"], crate::timeutil::js_iso(start + 900_000));
+    assert!(v["note"].is_string());
+    // Consecutive over two days: the earliest of equal windows wins
+    let (_, body, _) = get(
+        &app,
+        &format!("/api/v2/cheapest?area=SE1&hours=0.5&from={t}&to={tomorrow}"),
+    )
+    .await;
+    assert_eq!(
+        json(&body)["start"],
+        crate::timeutil::js_iso(day_range(&tz, t).0)
+    );
+
+    // The window must end by `to`
+    let to = crate::timeutil::js_iso(start + 2 * 3_600_000);
+    let (_, body, _) = get(
+        &app,
+        &format!("/api/v2/cheapest?area=SE1&hours=1.5&from={tomorrow}&to={to}"),
+    )
+    .await;
+    let v = json(&body);
+    assert_eq!(v["data"].as_array().unwrap().len(), 6);
+    assert_eq!(v["start"], crate::timeutil::js_iso(start));
+
+    // No prices in range: ok, but nothing found
+    let (s, body, _) = get(
+        &app,
+        "/api/v2/cheapest?area=SE1&hours=1&from=2020-01-01&to=2020-01-02",
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    let v = json(&body);
+    assert_eq!(v["found"], false);
+    assert!(v["start"].is_null() && v["price"].is_null());
+    assert_eq!(v["data"].as_array().unwrap().len(), 0);
+
+    for bad in [
+        "area=XX&hours=1",
+        "area=SE1",
+        "area=SE1&hours=0",
+        "area=SE1&hours=1&consecutive=maybe",
+        "area=SE1&hours=1&from=2024-01-01&to=2024-02-01",
+        "area=SE1&hours=30&from=2024-01-01&to=2024-01-01",
+        "area=SE1&hours=1&currency=XXX",
+    ] {
+        let (s, _, _) = get(&app, &format!("/api/v2/cheapest?{bad}")).await;
+        assert_eq!(s, StatusCode::INTERNAL_SERVER_ERROR, "{bad}");
+    }
+}
+
+#[tokio::test]
 async fn hass_api_shape() {
     let app = test_app();
     let (s, body, _) = get(

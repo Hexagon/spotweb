@@ -991,6 +991,10 @@ pub async fn llms(State(st): State<WebState>, headers: HeaderMap) -> Response {
          - [Yesterday, today and tomorrow]({base}/api/v2/hass?area=SE3&currency=SEK): \
          per-kWh prices with `now`, `avg`, `min`, `max` and the same for tomorrow and yesterday. \
          Optional `extra` (fee per kWh), `multiplier`, `factor` (VAT, e.g. 1.25) and `decimals`.\n\
+         - [Cheapest hours]({base}/api/v2/cheapest?area=SE3&hours=3): the cheapest unbroken \
+         `hours` (or with `consecutive=false` the cheapest separate intervals) from now to the end \
+         of tomorrow, or between optional `from` and `to`. Returns `start`, `end`, average `price` \
+         (currency/MWh), `windows`, the intervals in `data` and `active` (true while one of them is in progress).\n\
          - [Cross-border flows]({base}/api/v2/flows): latest physical flows between zones, MW.\n\
          - [Status]({base}/api/v2/status): data freshness.\n\n\
          ## Bidding zones\n\n\

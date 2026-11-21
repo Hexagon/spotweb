@@ -12,7 +12,10 @@ use serde_json::json;
 use super::{data, WebState};
 use crate::countries::{find_area, interval_for_identifier};
 use crate::price::{convert, process_price, Grouping, IntervalMode, PriceProps};
-use crate::timeutil::{add_days, day_range, js_iso, now_ms, parse_api_date, today};
+use crate::timeutil::{
+    add_days, day_range, js_iso, local_date, now_ms, parse_api_date, parse_api_instant, today,
+    HOUR_MS,
+};
 
 /// Attribution required by the ENTSO-E Transparency Platform terms of use (clause 3.1)
 pub const SOURCE: &str = "ENTSO-E Transparency Platform (https://transparency.entsoe.eu/)";
@@ -327,6 +330,115 @@ pub async fn hass(
         res.headers_mut().insert(header::ETAG, v);
     }
     res
+}
+
+/// Longest time range one `/api/v2/cheapest` request may search
+const CHEAPEST_MAX_SPAN_MS: i64 = 7 * 24 * HOUR_MS;
+
+/// `GET /api/v2/cheapest?area=SE3&hours=3[&consecutive=false][&from=…][&to=…][&currency=SEK][&interval=PT15M]`
+///
+/// The cheapest intervals covering at least `hours` between `from` (default now, the interval in
+/// progress included) and `to` (default the end of tomorrow; intervals must end by then), for
+/// automations. `active` tells whether the interval in progress right now is one of them.
+pub async fn cheapest(
+    State(st): State<WebState>,
+    Query(pairs): Query<Vec<(String, String)>>,
+) -> Response {
+    let q = query_map(pairs);
+    let area = param(&q, "area").unwrap_or("").to_uppercase();
+    let Some((country, area_def)) = find_area(&area) else {
+        return api_error("Unknown area");
+    };
+    let tz = country.timezone();
+    let Some(hours) = param(&q, "hours").and_then(js_parse_float) else {
+        return api_error("Missing/invalid parameters");
+    };
+    let consecutive = match param(&q, "consecutive")
+        .map(str::to_ascii_lowercase)
+        .as_deref()
+    {
+        None | Some("true" | "1" | "yes") => true,
+        Some("false" | "0" | "no") => false,
+        Some(_) => return api_error("Missing/invalid parameters"),
+    };
+    let now = now_ms();
+    let from = match param(&q, "from") {
+        None => Some(now),
+        Some(s) => parse_api_instant(s, &tz, false),
+    };
+    let to = match param(&q, "to") {
+        None => Some(day_range(&tz, add_days(today(&tz), 1)).1 + 1),
+        Some(s) => parse_api_instant(s, &tz, true),
+    };
+    let (Some(from), Some(to)) = (from, to) else {
+        return api_error("Missing/invalid parameters");
+    };
+    if to <= from || to - from > CHEAPEST_MAX_SPAN_MS {
+        return api_error("Time range not valid, max 7 days");
+    }
+    let duration = (hours * HOUR_MS as f64).round() as i64;
+    if !hours.is_finite() || duration <= 0 || duration > to - from {
+        return api_error("Hours not valid, must be more than 0 and fit between from and to");
+    }
+
+    let rate = match param(&q, "currency") {
+        None => 1.0,
+        Some(cur) => match data::exchange_rates(&st.app).await {
+            Ok(er) => match er.rate(cur) {
+                Some(r) => r,
+                None => return api_error("Unknown currency"),
+            },
+            Err(e) => {
+                tracing::error!(error = %e, "exchange rate query failed");
+                return api_error("Query failed");
+            }
+        },
+    };
+    let currency = param(&q, "currency").map_or("EUR".to_string(), str::to_uppercase);
+    let mode = interval_mode(&q, &area);
+    // Whole local days, so the cache key stays the same between requests
+    let fetch_from = day_range(&tz, local_date(&tz, from)).0;
+    let fetch_to = day_range(&tz, local_date(&tz, to - 1)).1;
+    let rows =
+        match data::spot_selected(&st.app, area_def.name, fetch_from, fetch_to, &mode, tz).await {
+            Ok(rows) => rows,
+            Err(e) => {
+                tracing::error!(error = %e, "cheapest query failed");
+                return api_error("Query failed");
+            }
+        };
+    let rows: Vec<(i64, f64, i64)> = rows
+        .iter()
+        .filter(|r| r.0 + r.2 > from && r.0 + r.2 <= to)
+        .map(|r| (r.0, r.1 * rate, r.2))
+        .collect();
+    let picked = crate::price::cheapest(&rows, duration, consecutive).unwrap_or_default();
+    let point = |r: &(i64, f64, i64)| json!({ "time": js_iso(r.0), "price": r.1 });
+    let mut body = json!({
+        "status": "ok",
+        "source": SOURCE,
+        "area": area_def.name,
+        "currency": currency,
+        "hours": hours,
+        "consecutive": consecutive,
+        "from": js_iso(from),
+        "to": js_iso(to),
+        "found": !picked.is_empty(),
+        "active": picked.iter().any(|r| r.0 <= now && now < r.0 + r.2),
+        "start": picked.first().map(|r| js_iso(r.0)),
+        "end": picked.last().map(|r| js_iso(r.0 + r.2)),
+        "price": crate::price::weighted_avg(&picked),
+        "windows": crate::price::runs(&picked).iter().map(|w| json!({
+            "start": js_iso(w[0].0),
+            "end": js_iso(w[w.len() - 1].0 + w[w.len() - 1].2),
+            "price": crate::price::weighted_avg(w),
+        })).collect::<Vec<_>>(),
+        "data": picked.iter().map(point).collect::<Vec<_>>(),
+    });
+    if rate != 1.0 {
+        body["note"] = json!(CONVERSION_NOTE);
+    }
+    json_response(StatusCode::OK, body, 60)
 }
 
 /// Weak ETag from a stable 64-bit FNV-1a hash of the body (weak, because compression

@@ -253,6 +253,87 @@ pub fn infer_interval(rows: &[(i64, f64)]) -> i64 {
         .unwrap_or(crate::timeutil::HOUR_MS)
 }
 
+/// Time weighted average price of `(time, price, duration_ms)` rows
+pub fn weighted_avg(rows: &[(i64, f64, i64)]) -> Option<f64> {
+    let dur: i64 = rows.iter().map(|r| r.2).sum();
+    (dur > 0).then(|| rows.iter().map(|r| r.1 * r.2 as f64).sum::<f64>() / dur as f64)
+}
+
+/// The cheapest intervals covering at least `duration_ms`, for `/api/v2/cheapest`.
+///
+/// `rows` are `(time, price, duration_ms)` sorted by time. With `consecutive` the result is the
+/// unbroken run of intervals with the lowest time weighted average (the earliest one on ties);
+/// otherwise the cheapest single intervals (earliest first on equal prices), sorted by time.
+/// `None` when the rows (or, for `consecutive`, no unbroken run of them) cover `duration_ms`.
+pub fn cheapest(
+    rows: &[(i64, f64, i64)],
+    duration_ms: i64,
+    consecutive: bool,
+) -> Option<Vec<(i64, f64, i64)>> {
+    if duration_ms <= 0 {
+        return None;
+    }
+    if !consecutive {
+        let mut idx: Vec<usize> = (0..rows.len()).collect();
+        idx.sort_by(|a, b| {
+            rows[*a]
+                .1
+                .total_cmp(&rows[*b].1)
+                .then(rows[*a].0.cmp(&rows[*b].0))
+        });
+        let mut covered = 0;
+        let mut picked = vec![];
+        for i in idx {
+            if covered >= duration_ms {
+                break;
+            }
+            covered += rows[i].2;
+            picked.push(rows[i]);
+        }
+        if covered < duration_ms {
+            return None;
+        }
+        picked.sort_by_key(|r| r.0);
+        return Some(picked);
+    }
+    let mut best: Option<(f64, usize, usize)> = None;
+    for i in 0..rows.len() {
+        let (mut covered, mut sum) = (0i64, 0.0);
+        let mut j = i;
+        while j < rows.len() && covered < duration_ms {
+            if j > i && rows[j - 1].0 + rows[j - 1].2 != rows[j].0 {
+                break;
+            }
+            covered += rows[j].2;
+            sum += rows[j].1 * rows[j].2 as f64;
+            j += 1;
+        }
+        if covered < duration_ms {
+            continue;
+        }
+        let avg = sum / covered as f64;
+        if best.is_none_or(|b| avg < b.0) {
+            best = Some((avg, i, j));
+        }
+    }
+    best.map(|(_, i, j)| rows[i..j].to_vec())
+}
+
+/// Split rows sorted by time into unbroken runs
+pub fn runs(rows: &[(i64, f64, i64)]) -> Vec<&[(i64, f64, i64)]> {
+    let mut out = vec![];
+    let mut start = 0;
+    for i in 1..=rows.len() {
+        if i == rows.len() || rows[i - 1].0 + rows[i - 1].2 != rows[i].0 {
+            if i > start {
+                out.push(&rows[start..i]);
+            }
+            start = i;
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -373,5 +454,63 @@ mod tests {
         assert_eq!(infer_interval(&rows), 900_000);
         assert_eq!(price_at(&rows, 900_000, 1_000_000), Some(2.0));
         assert_eq!(price_at(&rows, 900_000, 2_000_000), None);
+    }
+
+    fn q(prices: &[f64]) -> Vec<(i64, f64, i64)> {
+        prices
+            .iter()
+            .enumerate()
+            .map(|(i, p)| (i as i64 * 900_000, *p, 900_000))
+            .collect()
+    }
+
+    #[test]
+    fn cheapest_consecutive() {
+        let rows = q(&[5.0, 1.0, 9.0, 2.0, 2.0, 3.0, 0.0, 8.0]);
+        // 30 minutes: 2+2 (avg 2) beats 1+9, 3+0 (1.5) wins
+        let w = cheapest(&rows, 1_800_000, true).unwrap();
+        assert_eq!(w.iter().map(|r| r.1).collect::<Vec<_>>(), vec![3.0, 0.0]);
+        // A partial interval rounds up to the whole interval
+        let w = cheapest(&rows, 1_000_000, true).unwrap();
+        assert_eq!(w.len(), 2);
+        // Ties go to the earliest window
+        let w = cheapest(&q(&[1.0, 1.0, 1.0]), 900_000, true).unwrap();
+        assert_eq!(w[0].0, 0);
+        assert!(cheapest(&rows, 3 * 3_600_000, true).is_none());
+        assert!(cheapest(&rows, 0, true).is_none());
+    }
+
+    #[test]
+    fn cheapest_consecutive_skips_gaps_and_mixed_resolution() {
+        let mut rows = q(&[1.0, 1.0]);
+        rows.push((3_600_000, 0.0, 900_000)); // after a 30 minute gap
+        assert_eq!(cheapest(&rows, 1_800_000, true).unwrap()[0].0, 0);
+        // An hourly interval next to 15-minute intervals counts with its full length
+        let rows = vec![
+            (0, 10.0, 3_600_000),
+            (3_600_000, 0.0, 900_000),
+            (4_500_000, 0.0, 900_000),
+        ];
+        let w = cheapest(&rows, 3_600_000, true).unwrap();
+        assert_eq!(w.len(), 1);
+        assert_eq!(w[0].1, 10.0);
+        let w = cheapest(&rows, 1_800_000, true).unwrap();
+        assert_eq!(
+            w.iter().map(|r| r.0).collect::<Vec<_>>(),
+            vec![3_600_000, 4_500_000]
+        );
+    }
+
+    #[test]
+    fn cheapest_separate() {
+        let rows = q(&[5.0, 1.0, 9.0, 2.0, 2.0, 3.0, 0.0, 8.0]);
+        let w = cheapest(&rows, 3_600_000, false).unwrap();
+        assert_eq!(
+            w.iter().map(|r| r.1).collect::<Vec<_>>(),
+            vec![1.0, 2.0, 2.0, 0.0]
+        );
+        assert_eq!(runs(&w).len(), 3);
+        assert_eq!(weighted_avg(&w), Some(1.25));
+        assert!(cheapest(&rows, 3 * 3_600_000, false).is_none());
     }
 }
