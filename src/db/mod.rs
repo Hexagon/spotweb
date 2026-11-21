@@ -21,10 +21,11 @@ pub struct Db {
 }
 
 /// Ordered list of schema migrations. Never edit an applied entry, append new ones.
-const MIGRATIONS: &[(i64, &str, &str)] = &[(
-    1,
-    "initial 2.0 schema",
-    r#"
+const MIGRATIONS: &[(i64, &str, &str)] = &[
+    (
+        1,
+        "initial 2.0 schema",
+        r#"
     CREATE TABLE spotprice (
         country   TEXT    NOT NULL,
         area      TEXT    NOT NULL,
@@ -110,7 +111,16 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[(
     );
     CREATE INDEX job_run_job ON job_run (job, started);
     "#,
-)];
+    ),
+    (
+        2,
+        "job_run status and failed areas",
+        r#"
+    ALTER TABLE job_run ADD COLUMN status TEXT;
+    ALTER TABLE job_run ADD COLUMN failures TEXT;
+    "#,
+    ),
+];
 
 fn init_connection(c: &mut Connection) -> rusqlite::Result<()> {
     c.busy_timeout(Duration::from_secs(30))?;

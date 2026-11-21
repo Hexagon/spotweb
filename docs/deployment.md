@@ -117,7 +117,12 @@ Everything except the database can be re-created, and even the database can be r
 
 - `GET /healthz` returns `200 ok` when the process and database are fine.
 - `GET /api/v2/status` lists the newest price/generation/load timestamps and the last run of each job. Alert if
-  `latest_price` is less than ~12 hours ahead of now after 14:00 CET, or if a job keeps reporting `"ok": false`.
+  `latest_price` is less than ~12 hours ahead of now after 14:00 CET, or if a job keeps reporting `"status": "failed"`.
+  Each job run has a `status`: `ok`, `partial` (finished, but some areas failed; they are listed in `failures` with the
+  reason), `failed` or `running`. `ok` stays `true` for `partial` runs, for compatibility with 2.0.0.
+- Each ENTSO-e request is retried twice after 15 s on timeouts, connection errors and 5xx (60 s on 429/503). HTTP 599
+  is logged as "upstream timeout": it is a non-standard code from ENTSO-e's gateway when its backend is slow, not from
+  spotweb. spotweb's own per-request timeout is logged as "spotweb timeout".
 - Logs go to the journal; set `RUST_LOG=spotweb=debug` for detail.
 
 ## Several instances

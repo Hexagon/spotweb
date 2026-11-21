@@ -4,7 +4,7 @@
 use std::io::Read;
 use std::time::Duration;
 
-use anyhow::{bail, Context};
+use anyhow::bail;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, TimeZone, Utc};
 
 use crate::db::queries::NewOutage;
@@ -18,6 +18,102 @@ pub struct Client {
     http: reqwest::Client,
     token: String,
     endpoint: String,
+    timeout: Duration,
+}
+
+/// A failed request to ENTSO-e, classified so the jobs can log it clearly and decide whether to retry.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RequestError {
+    /// No complete response within spotweb's own per-request timeout
+    Timeout(Duration),
+    /// DNS, TCP or TLS failure, or the connection was dropped
+    Connection(String),
+    /// HTTP 599: not a standard status code, the ENTSO-e gateway uses it when its backend times out
+    UpstreamTimeout,
+    /// HTTP 429
+    RateLimited,
+    /// HTTP 401
+    Unauthorized,
+    /// Any other unsuccessful HTTP status
+    Http(u16),
+}
+
+impl std::fmt::Display for RequestError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Timeout(d) => write!(
+                f,
+                "ENTSO-e: no response within {}s (spotweb timeout)",
+                d.as_secs()
+            ),
+            Self::Connection(e) => write!(f, "ENTSO-e: connection failed: {e}"),
+            Self::UpstreamTimeout => write!(
+                f,
+                "ENTSO-e: upstream timeout (HTTP 599 from the ENTSO-e gateway)"
+            ),
+            Self::RateLimited => write!(f, "ENTSO-e: 429 rate limited"),
+            Self::Unauthorized => {
+                write!(f, "ENTSO-e: 401 Unauthorized, missing or invalid API token")
+            }
+            Self::Http(code) => write!(f, "ENTSO-e: HTTP {code}"),
+        }
+    }
+}
+
+impl std::error::Error for RequestError {}
+
+impl RequestError {
+    fn from_status(code: u16) -> Self {
+        match code {
+            401 => Self::Unauthorized,
+            429 => Self::RateLimited,
+            599 => Self::UpstreamTimeout,
+            c => Self::Http(c),
+        }
+    }
+
+    fn from_reqwest(e: reqwest::Error, timeout: Duration) -> Self {
+        if e.is_timeout() {
+            return Self::Timeout(timeout);
+        }
+        // Include the source chain, reqwest's own message is just "error sending request"
+        let mut msg = e.to_string();
+        let mut src = std::error::Error::source(&e);
+        while let Some(s) = src {
+            msg.push_str(": ");
+            msg.push_str(&s.to_string());
+            src = s.source();
+        }
+        Self::Connection(msg)
+    }
+
+    /// Whether the request is worth retrying soon, and after how long (relative to `base`).
+    /// Rate limiting and overload get a longer pause; authentication and client errors are not retried.
+    pub fn retry_delay(&self, base: Duration) -> Option<Duration> {
+        match self {
+            Self::RateLimited | Self::Http(503) => Some(base * 4),
+            Self::Timeout(_) | Self::Connection(_) | Self::UpstreamTimeout => Some(base),
+            Self::Http(c) if *c >= 500 => Some(base),
+            _ => None,
+        }
+    }
+}
+
+/// See [`RequestError::retry_delay`]. Other errors (e.g. unparsable responses) are not retried.
+pub fn retry_delay(e: &anyhow::Error, base: Duration) -> Option<Duration> {
+    e.downcast_ref::<RequestError>()
+        .and_then(|r| r.retry_delay(base))
+}
+
+/// Per-request timeout (`SPOTWEB_ENTSOE_TIMEOUT_SECS`, default 60)
+fn request_timeout() -> Duration {
+    Duration::from_secs(
+        std::env::var("SPOTWEB_ENTSOE_TIMEOUT_SECS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .filter(|v| *v > 0)
+            .unwrap_or(60),
+    )
 }
 
 /// One value at a point in time
@@ -311,17 +407,26 @@ pub fn parse_unavailability(xml_doc: &str) -> anyhow::Result<Vec<NewOutage>> {
 
 impl Client {
     pub fn new(token: String) -> anyhow::Result<Self> {
-        let http = reqwest::Client::builder()
-            .user_agent(concat!("spotweb/", env!("CARGO_PKG_VERSION")))
-            .timeout(Duration::from_secs(120))
-            .connect_timeout(Duration::from_secs(20))
-            .build()?;
         let endpoint =
             std::env::var("SPOTWEB_ENTSOE_ENDPOINT").unwrap_or_else(|_| ENDPOINT.to_string());
+        Self::with_endpoint(token, endpoint, request_timeout())
+    }
+
+    pub fn with_endpoint(
+        token: String,
+        endpoint: String,
+        timeout: Duration,
+    ) -> anyhow::Result<Self> {
+        let http = reqwest::Client::builder()
+            .user_agent(concat!("spotweb/", env!("CARGO_PKG_VERSION")))
+            .timeout(timeout)
+            .connect_timeout(Duration::from_secs(20).min(timeout))
+            .build()?;
         Ok(Self {
             http,
             token,
             endpoint,
+            timeout,
         })
     }
 
@@ -336,19 +441,17 @@ impl Client {
         }
         let mut q: Vec<(&str, String)> = vec![("securityToken", self.token.clone())];
         q.extend(params.iter().cloned());
+        let timeout = self.timeout;
         let res = self
             .http
             .get(&self.endpoint)
             .query(&q)
             .send()
             .await
-            .context("ENTSO-e request")?;
+            .map_err(|e| RequestError::from_reqwest(e, timeout))?;
         let status = res.status();
-        if status == reqwest::StatusCode::UNAUTHORIZED {
-            bail!("ENTSO-e: 401 Unauthorized, missing or invalid API token");
-        }
-        if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
-            bail!("ENTSO-e: 429 rate limited");
+        if matches!(status.as_u16(), 401 | 429 | 599) {
+            return Err(RequestError::from_status(status.as_u16()).into());
         }
         let is_zip = res
             .headers()
@@ -356,7 +459,10 @@ impl Client {
             .and_then(|v| v.to_str().ok())
             .map(|v| v.contains("zip"))
             .unwrap_or(false);
-        let body = res.bytes().await?;
+        let body = res
+            .bytes()
+            .await
+            .map_err(|e| RequestError::from_reqwest(e, timeout))?;
         if is_zip || body.starts_with(b"PK\x03\x04") {
             let mut archive = zip::ZipArchive::new(std::io::Cursor::new(body))?;
             let mut docs = vec![];
@@ -373,7 +479,7 @@ impl Client {
         } else {
             let text = String::from_utf8_lossy(&body).to_string();
             if !status.is_success() && !text.contains("Acknowledgement_MarketDocument") {
-                bail!("ENTSO-e: HTTP {status}");
+                return Err(RequestError::from_status(status.as_u16()).into());
             }
             Ok(vec![text])
         }
