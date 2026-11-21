@@ -226,6 +226,7 @@ pub fn router(app: App) -> Router {
         .route("/api/v2/spot", get(api::spot))
         .route("/api/v2/hass", get(api::hass))
         .route("/api/v2/status", get(api::status))
+        .route("/api/v2/flows", get(api::flows))
         .route("/healthz", get(api::healthz))
         .route("/{country}", get(pages::country))
         .route("/{country}/", get(pages::country))

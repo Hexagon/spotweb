@@ -461,6 +461,297 @@ series:
       return [[new Date(), entity.attributes.avg_tomorrow * 100]]`;
   };
 
+  // ------------------------------------------------------------- start page map
+  // Sequential ramp (one hue, dark = cheap, light = expensive) on the dark surface
+  const RAMP = ["#2b2418", "#5a3d12", "#8f5a0e", "#c47a12", "#eea23a", "#ffd58a"];
+  const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const rampColor = (f) => {
+    const x = Math.max(0, Math.min(1, f)) * (RAMP.length - 1);
+    const i = Math.min(RAMP.length - 2, Math.floor(x));
+    const a = hexRgb(RAMP[i]), b = hexRgb(RAMP[i + 1]), k = x - i;
+    return `rgb(${a.map((v, j) => Math.round(v + (b[j] - v) * k)).join(",")})`;
+  };
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const svgEl = (tag, attrs, parent) => {
+    const el = document.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, v);
+    if (parent) parent.appendChild(el);
+    return el;
+  };
+  const esc = (s) => String(s === null || s === undefined ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  // Where a border arrow sits when the midpoint between the two labels is a poor spot (svg units)
+  const FLOW_AT = {};
+  const NORDIC = ["sv", "no", "fi", "dk"];
+
+  const map = { ready: false, selected: null, view: null };
+  const zoneNow = (name) => {
+    const z = boot.zones[name];
+    const v = boot.upcoming ? nowFromRows(boot.upcoming[name], Date.now()) : null;
+    return v !== null && v !== undefined ? v : z ? z.now : null;
+  };
+  const zoneLabel = (name) => (boot.zones[name] ? `${name} – ${boot.zones[name].long}` : `${name} – ${(boot.neighbours || {})[name] || ""}`);
+
+  const mapSetup = () => {
+    const app = $("#map-app");
+    if (!app || !boot.zones) return false;
+    const svg = $("svg.zone-map", app);
+    map.app = app;
+    map.svg = svg;
+    map.tip = $(".map-tooltip", app);
+    map.anchor = {};
+    $$("[data-x]", svg).forEach((p) => { map.anchor[p.dataset.area || p.dataset.ext] = [Number(p.dataset.x), Number(p.dataset.y)]; });
+    map.full = svg.getAttribute("viewBox").split(" ").map(Number);
+    // Nordic view: bounding box of the Nordic zones plus the Baltic neighbours
+    // Europe view: bounding box of all our zones
+    const bbox = (keep) => {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      $$(".zone", svg).forEach((p) => {
+        const z = boot.zones[p.dataset.area];
+        if (!z || !keep(z)) return;
+        const b = p.getBBox();
+        x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.width); y1 = Math.max(y1, b.y + b.height);
+      });
+      return Number.isFinite(x0) ? [x0, y0, x1 - x0, y1 - y0] : null;
+    };
+    const n = bbox((z) => NORDIC.includes(z.country));
+    const e = bbox(() => true);
+    map.nordic = n ? [n[0] - 70, n[1] - 15, n[2] + 120, n[3] + 75] : map.full;
+    map.europe = e ? [e[0] - 60, e[1] - 15, e[2] + 100, e[3] + 30] : map.full;
+
+    const select = (name, focus) => {
+      if (!boot.zones[name]) return;
+      map.selected = name;
+      store.set("sw_map_area", name);
+      if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+      $("#zone-select").value = name;
+      mapRender();
+      if (focus && window.matchMedia("(max-width: 1000px)").matches) $("#zone-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    map.select = select;
+    $$(".zone", svg).forEach((p) => {
+      p.addEventListener("click", () => select(p.dataset.area, true));
+      p.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(p.dataset.area, true); } });
+    });
+    $("#zone-select").addEventListener("change", (e) => select(e.target.value, false));
+
+    // Tooltip for zones, neighbours and arrows
+    const showTip = (e, html) => {
+      const wrap = map.tip.parentElement.getBoundingClientRect();
+      map.tip.innerHTML = html;
+      map.tip.hidden = false;
+      const w = map.tip.offsetWidth, h = map.tip.offsetHeight;
+      let x = e.clientX - wrap.left + 14, y = e.clientY - wrap.top + 14;
+      if (x + w > wrap.width) x = e.clientX - wrap.left - w - 14;
+      if (y + h > wrap.height) y = e.clientY - wrap.top - h - 14;
+      map.tip.style.transform = `translate(${Math.max(0, x)}px, ${Math.max(0, y)}px)`;
+    };
+    svg.addEventListener("pointermove", (e) => {
+      const target = e.target.closest("[data-area],[data-ext],[data-flow]");
+      if (!target || e.pointerType === "touch") { map.tip.hidden = true; return; }
+      if (target.dataset.flow) {
+        const f = boot.flows.borders[Number(target.dataset.flow)];
+        showTip(e, `<strong>${esc(f.from)} &rarr; ${esc(f.to)}</strong><br>${mw(f.value)} MW`);
+      } else if (target.dataset.area) {
+        const n = target.dataset.area;
+        showTip(e, `<strong>${esc(zoneLabel(n))}</strong><br>${price(zoneNow(n))} ${esc(unit())}`);
+      } else {
+        showTip(e, `<strong>${esc(zoneLabel(target.dataset.ext))}</strong>`);
+      }
+    });
+    svg.addEventListener("pointerleave", () => { map.tip.hidden = true; });
+
+    // View toggle
+    const setView = (v, animate) => {
+      map.view = v;
+      store.set("sw_map_view", v);
+      $$("[data-map-view]", app).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mapView === v)));
+      const to = v === "nordic" ? map.nordic : map.europe;
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const from = svg.getAttribute("viewBox").split(" ").map(Number);
+      map.to = to;
+      scale();
+      if (map.ready) mapRender();
+      if (!animate || reduce) { svg.setAttribute("viewBox", to.join(" ")); return; }
+      const t0 = performance.now(), dur = 450;
+      const step = (now) => {
+        const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        svg.setAttribute("viewBox", from.map((f, i) => (f + (to[i] - f) * e).toFixed(1)).join(" "));
+        if (k < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    };
+    // Text and arrows grow when the map is drawn small (zoomed out or on a phone) so they stay readable
+    const scale = () => {
+      const to = map.to || map.full;
+      const ppu = Math.min(svg.clientWidth / to[2], svg.clientHeight / to[3]) || 1;
+      const k = Math.max(0.9, Math.min(2.4, Math.pow(1 / ppu, 0.8)));
+      const changed = Math.abs(k - (map.k || 0)) > 0.02;
+      map.k = k;
+      svg.style.setProperty("--k", k.toFixed(3));
+      return changed;
+    };
+    let resizeTimer = null;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => { if (scale() && map.ready) safe(mapRender); }, 150);
+    });
+    $$("[data-map-view]", app).forEach((b) => b.addEventListener("click", () => setView(b.dataset.mapView, true)));
+    setView(store.get("sw_map_view") || (NORDIC.includes(lang) ? "nordic" : "europe"), false);
+
+    const fromHash = decodeURIComponent(location.hash.slice(1)).toUpperCase();
+    const initial = [fromHash, store.get("sw_map_area"), app.dataset.defaultArea].find((n) => n && boot.zones[n]);
+    map.selected = initial || Object.keys(boot.zones)[0];
+    $("#zone-select").value = map.selected;
+    window.addEventListener("hashchange", () => { const n = decodeURIComponent(location.hash.slice(1)).toUpperCase(); if (boot.zones[n]) select(n, false); });
+    map.ready = true;
+    return true;
+  };
+
+  const flowArrow = (g, f, i, selected) => {
+    const a = map.anchor[f.from], b = map.anchor[f.to];
+    if (!a || !b) return;
+    const key = [f.from, f.to].sort().join("|");
+    const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len, uy = dy / len, px = -uy, py = ux;
+    const mid = FLOW_AT[key] || [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const touches = selected && (f.from === selected || f.to === selected);
+    const cls = "flow" + (touches ? " active" : selected ? " dim" : "");
+    const grp = svgEl("g", { class: cls, "data-flow": i }, g);
+    if (f.value < 1) {
+      svgEl("circle", { cx: mid[0], cy: mid[1], r: 3, class: "flow-zero" }, grp);
+      return;
+    }
+    const k = map.k || 1;
+    const L = Math.min(34 * k, len * 0.55);
+    const w = Math.min(10, 1.6 + Math.sqrt(f.value) / 7) * k;
+    const hw = w + 4.5 * k, hl = Math.min(12 * k, 6 * k + w * 0.6);
+    const tail = [mid[0] - ux * L / 2, mid[1] - uy * L / 2];
+    const tip = [mid[0] + ux * L / 2, mid[1] + uy * L / 2];
+    const base = [tip[0] - ux * hl, tip[1] - uy * hl];
+    const pt = (p, s) => `${(p[0] + px * s).toFixed(1)},${(p[1] + py * s).toFixed(1)}`;
+    const points = [pt(tail, w / 2), pt(base, w / 2), pt(base, hw / 2), `${tip[0].toFixed(1)},${tip[1].toFixed(1)}`, pt(base, -hw / 2), pt(base, -w / 2), pt(tail, -w / 2)];
+    svgEl("polygon", { points: points.join(" "), class: "flow-arrow" }, grp);
+    // Wider invisible hit target
+    svgEl("line", { x1: tail[0], y1: tail[1], x2: tip[0], y2: tip[1], class: "flow-hit" }, grp);
+    if (touches) {
+      const off = hw / 2 + 9 * k;
+      const side = py > 0 ? -1 : 1;
+      const txt = svgEl("text", { x: (mid[0] + px * off * side).toFixed(1), y: (mid[1] + py * off * side + 4).toFixed(1), class: "flow-label", "text-anchor": "middle" }, grp);
+      txt.setAttribute("y", (mid[1] + py * off * side + 4 * k).toFixed(1));
+      txt.textContent = mw(f.value);
+    }
+  };
+
+  const mapRender = () => {
+    if (!map.ready && !mapSetup()) return;
+    const svg = map.svg;
+    const sel = map.selected;
+    // Colors
+    const prices = Object.keys(boot.zones).map((n) => [n, zoneNow(n)]).filter((x) => x[1] !== null && x[1] !== undefined);
+    const vals = prices.map((x) => x[1]);
+    const lo = vals.length ? Math.min(...vals) : 0, hi = vals.length ? Math.max(...vals) : 1;
+    $$(".zone", svg).forEach((p) => {
+      const v = zoneNow(p.dataset.area);
+      p.style.fill = v === null || v === undefined ? "" : rampColor(hi > lo ? (v - lo) / (hi - lo) : 0.5);
+      p.classList.toggle("no-data", v === null || v === undefined);
+      p.classList.toggle("selected", p.dataset.area === sel);
+      p.setAttribute("aria-label", `${zoneLabel(p.dataset.area)}: ${price(v)} ${unit()}`);
+      p.setAttribute("aria-pressed", String(p.dataset.area === sel));
+    });
+    // Keep the selected outline on top
+    const selPath = $(`.zone[data-area="${sel}"]`, svg);
+    if (selPath) selPath.parentNode.appendChild(selPath);
+    $("[data-legend-min]").textContent = price(lo);
+    $("[data-legend-max]").textContent = price(hi);
+    $(".legend-ramp").style.background = `linear-gradient(90deg, ${RAMP.join(",")})`;
+
+    // Flows
+    const fg = $("g.flows", svg);
+    fg.textContent = "";
+    const borders = (boot.flows && boot.flows.borders) || [];
+    borders.forEach((f, i) => { if (!(sel && (f.from === sel || f.to === sel))) flowArrow(fg, f, i, sel); });
+    borders.forEach((f, i) => { if (sel && (f.from === sel || f.to === sel)) flowArrow(fg, f, i, sel); });
+    const upd = boot.flows && boot.flows.updated;
+    $("[data-flows-updated]").textContent = upd ? `${t("map.flows_updated")} ${dayFmt.format(new Date(upd))} ${hhmm(upd)}` : t("map.no_flows");
+
+    // Labels
+    const lg = $("g.labels", svg);
+    lg.textContent = "";
+    for (const name of Object.keys(boot.zones)) {
+      const a = map.anchor[name];
+      if (!a) continue;
+      const g = svgEl("g", { class: "zone-label" + (name === sel ? " selected" : "") }, lg);
+      const k = map.k || 1;
+      svgEl("text", { x: a[0], y: a[1] - 6 * k, class: "zl-name", "text-anchor": "middle" }, g).textContent = name;
+      svgEl("text", { x: a[0], y: a[1] + 10 * k, class: "zl-price", "text-anchor": "middle" }, g).textContent = price(zoneNow(name));
+    }
+    for (const name of Object.keys(boot.neighbours || {})) {
+      const a = map.anchor[name];
+      if (a) svgEl("text", { x: a[0], y: a[1] + 4, class: "zl-ext", "text-anchor": "middle" }, lg).textContent = name;
+    }
+    zonePanel();
+  };
+
+  const zonePanel = () => {
+    const name = map.selected;
+    const z = boot.zones[name];
+    if (!z) return;
+    const panel = $("#zone-panel");
+    $("[data-zone-title]", panel).textContent = `${z.name} – ${z.long}`;
+    $("[data-zone-sub]", panel).textContent = t("countries." + z.country);
+    $("[data-zone-name]", panel).textContent = z.name;
+    $("[data-zone-link]", panel).href = `/${z.country}/${encodeURIComponent(z.name)}`;
+    $("[data-zone-now]", panel).textContent = price(zoneNow(name));
+    $("[data-zone-avg-today]", panel).textContent = price(z.avg_today);
+    $("[data-zone-span-today]", panel).textContent = z.min_today === null ? "" : `${t("overview.span")} ${price(z.min_today)} – ${price(z.max_today)}`;
+    $("[data-zone-avg-tomorrow]", panel).textContent = z.avg_tomorrow === null ? t("map.not_published") : price(z.avg_tomorrow);
+    $("[data-zone-avg-tomorrow]", panel).classList.toggle("muted", z.avg_tomorrow === null);
+    $("[data-zone-span-tomorrow]", panel).textContent = z.min_tomorrow === null ? "" : `${price(z.min_tomorrow)} – ${price(z.max_tomorrow)}`;
+
+    // Generation and load
+    const gl = z.gl;
+    const row = (k, v, cls) => `<div class="kv-row${cls ? " " + cls : ""}"><dt>${k}</dt><dd>${v}</dd></div>`;
+    let html = "";
+    if (gl) {
+      if (gl.generation !== null) html += row(t("generation.production"), `${mw(gl.generation)} MW`);
+      if (gl.load !== null) html += row(t("generation.consumption"), `${mw(gl.load)} MW`);
+      if (gl.net !== null && gl.load !== null) html += row(gl.net < 0 ? t("generation.deficit") : t("generation.excess"), `${mw(gl.net)} MW`, gl.net < 0 ? "text-danger" : "text-success");
+      if (gl.primary) html += row(t("generation.primary_source"), `${esc(t("generation.psr_" + gl.primary + "_0"))}${gl.primary_share !== null ? ` <span class="muted">(${gl.primary_share} %)</span>` : ""}`);
+    }
+    $("[data-zone-gl]", panel).innerHTML = html || `<div class="muted">-</div>`;
+
+    // Flows touching the zone
+    const list = ((boot.flows && boot.flows.borders) || []).filter((f) => f.from === name || f.to === name)
+      .map((f) => ({ other: f.from === name ? f.to : f.from, value: f.value, import: f.to === name && f.value >= 1 }))
+      .sort((a, b) => b.value - a.value);
+    let net = 0;
+    const max = Math.max(1, ...list.map((f) => f.value));
+    $("[data-zone-flows]", panel).innerHTML = list.length ? list.map((f) => {
+      net += f.import ? -f.value : f.value;
+      const dir = f.value < 1 ? "" : f.import ? t("map.import") : t("map.export");
+      const link = boot.zones[f.other] ? `<a href="#${esc(f.other)}" data-goto="${esc(f.other)}">${esc(f.other)}</a>` : `<span>${esc(f.other)}</span>`;
+      return `<li class="${f.value < 1 ? "" : f.import ? "is-import" : "is-export"}"><span class="flow-dir" aria-hidden="true">${f.value < 1 ? "·" : f.import ? "&larr;" : "&rarr;"}</span>${link}<span class="muted small">${esc(dir)}</span><span class="flow-bar"><span style="width:${(f.value / max) * 100}%"></span></span><span class="num">${mw(f.value)} MW</span></li>`;
+    }).join("") : `<li class="muted">${t("map.no_flows")}</li>`;
+    $("[data-zone-flow-total]", panel).textContent = list.length ? `· ${net < 0 ? t("map.net_import") : t("map.net_export")} ${mw(Math.abs(net))} MW` : "";
+    $$("[data-goto]", panel).forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); map.select(a.dataset.goto, false); }));
+
+    // Today and tomorrow chart
+    const pts = z.today.points.concat(z.tomorrow.points);
+    const o = unitTooltip(baseChart());
+    o.chart.height = 190;
+    o.chart.type = "area";
+    o.series = [{ name: z.name, data: toSeries(pts) }];
+    o.colors = ["#eea23a"];
+    o.fill = { type: "gradient", gradient: { shadeIntensity: 0, opacityFrom: 0.35, opacityTo: 0.02 } };
+    o.stroke = { width: 2, curve: "stepline" };
+    o.legend = { show: false };
+    o.yaxis.min = minY(o.series);
+    o.xaxis.labels.format = "HH:mm";
+    o.tooltip.x.format = "ddd HH:mm";
+    o.annotations = nowAnnotation(currentSlot(z));
+    draw("zone", o);
+  };
+
   // ------------------------------------------------------------ settings UI
   const settingsUi = () => {
     const drawer = $("#settings");
@@ -515,7 +806,7 @@ series:
     renderStatic();
     renderNow();
     [chartAreaToday, () => chartAllAreas("today"), () => chartAllAreas("tomorrow"), chartProduction, chartNet,
-      chartLongTermArea, chartLongTermCountry, chartThirtyDays, priceTable, hass].forEach(safe);
+      chartLongTermArea, chartLongTermCountry, chartThirtyDays, priceTable, hass, mapRender].forEach(safe);
     if (customRun && !$("#custom-result").classList.contains("hidden")) safe(customRun);
     renderStatic();
   };
@@ -535,6 +826,10 @@ series:
     if (boot.area) {
       const s = currentSlot(boot.area);
       if (s !== lastSlot) { lastSlot = s; safe(chartAreaToday); safe(priceTable); }
+    }
+    if (map.ready) {
+      const q = Math.floor(Date.now() / 900000);
+      if (q !== map.slot) { map.slot = q; safe(mapRender); }
     }
   }, 30000);
 

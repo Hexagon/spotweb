@@ -156,6 +156,27 @@
       "priceFactorDescriptionPart3": "(mva). Dette er justert etter dine nåværende innstillinger.",
       "nonPriceFactorDescription": "Elektrisitetsprisen i tabellen representerer den aktuelle spotprisen. Vær oppmerksom på at ytterligere avgifter og mva kan tilkomme. Du kan velge å vise enten spotprisen eller den faktiske prisen gjennom innstillingene på siden.",
       "month": "Måned"
+    },
+    "map": {
+      "title": "Strømpris og kraftflyt akkurat nå",
+      "hint": "Klikk på et prisområde for mer informasjon",
+      "view_nordic": "Norden",
+      "view_europe": "Europa",
+      "cheap": "Billig",
+      "expensive": "Dyrt",
+      "flows": "Kraftflyt",
+      "import": "Import",
+      "export": "Eksport",
+      "net_import": "Nettoimport",
+      "net_export": "Nettoeksport",
+      "flows_updated": "Flyt oppdatert",
+      "no_flows": "Ingen flytdata ennå",
+      "avg_tomorrow": "Snitt i morgen",
+      "not_published": "Ikke publisert ennå",
+      "today_tomorrow": "I dag og i morgen",
+      "note": "Grensene mellom prisområdene er omtrentlige. Pilene viser fysisk nettoflyt (MW) mellom områdene.",
+      "all_areas": "Alle prisområder",
+      "zoom": "Zoomnivå"
     }
   }
 }

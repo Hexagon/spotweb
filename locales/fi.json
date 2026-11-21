@@ -156,6 +156,27 @@
       "priceFactorDescriptionPart3": "(ALV). Tämä on mukautettu nykyisten asetustesi mukaan.",
       "nonPriceFactorDescription": "Taulukon sähkön hinta edustaa nykyistä spot-hintaa. Huomioi, että lisämaksuja ja arvonlisäveroa saattaa lisääntyä. Voit valita, näytetäänkö spot-hinta vai todellinen hinta sivun asetuksista.",
       "month": "Kuukausi"
+    },
+    "map": {
+      "title": "Sähkön hinta ja siirrot nyt",
+      "hint": "Napsauta tarjousaluetta nähdäksesi lisätietoja",
+      "view_nordic": "Pohjoismaat",
+      "view_europe": "Eurooppa",
+      "cheap": "Halpa",
+      "expensive": "Kallis",
+      "flows": "Siirrot",
+      "import": "Tuonti",
+      "export": "Vienti",
+      "net_import": "Nettotuonti",
+      "net_export": "Nettovienti",
+      "flows_updated": "Siirrot päivitetty",
+      "no_flows": "Ei vielä siirtotietoja",
+      "avg_tomorrow": "Keskihinta huomenna",
+      "not_published": "Ei vielä julkaistu",
+      "today_tomorrow": "Tänään ja huomenna",
+      "note": "Tarjousalueiden rajat ovat likimääräisiä. Nuolet näyttävät fyysisen nettosiirron (MW) alueiden välillä.",
+      "all_areas": "Kaikki tarjousalueet",
+      "zoom": "Zoomaus"
     }
   }
 }

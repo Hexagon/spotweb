@@ -156,6 +156,27 @@
       "priceFactorDescriptionPart3": "(moms). Detta är justerat efter dina nuvarande inställningar.",
       "nonPriceFactorDescription": "Elpriset i tabellen representerar det aktuella spotpriset. Tänk på att ytterligare avgifter och moms kan tillkomma. Du kan välja mellan att visa spotpris eller faktiskt pris genom inställningarna på sidan.",
       "month": "Månad"
+    },
+    "map": {
+      "title": "Elpris och överföring just nu",
+      "hint": "Klicka på ett elområde för mer information",
+      "view_nordic": "Norden",
+      "view_europe": "Europa",
+      "cheap": "Billigt",
+      "expensive": "Dyrt",
+      "flows": "Överföring",
+      "import": "Import",
+      "export": "Export",
+      "net_import": "Nettoimport",
+      "net_export": "Nettoexport",
+      "flows_updated": "Flöden uppdaterade",
+      "no_flows": "Inga flödesdata ännu",
+      "avg_tomorrow": "Snitt imorgon",
+      "not_published": "Inte publicerat ännu",
+      "today_tomorrow": "Idag och imorgon",
+      "note": "Gränserna mellan elområdena är ungefärliga. Pilarna visar fysiskt nettoflöde (MW) mellan elområdena.",
+      "all_areas": "Alla elområden",
+      "zoom": "Zoomnivå"
     }
   }
 }

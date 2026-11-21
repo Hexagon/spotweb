@@ -293,6 +293,31 @@ pub fn parse_load(xml_doc: &str) -> anyhow::Result<Vec<Point>> {
     Ok(out)
 }
 
+/// Cross-border physical flows (A11), `quantity` in MW
+pub fn parse_flows(xml_doc: &str) -> anyhow::Result<Vec<Point>> {
+    let root = xml::parse(xml_doc)?;
+    if !check_acknowledgement(&root)? {
+        return Ok(vec![]);
+    }
+    if root.name != "Publication_MarketDocument" {
+        bail!("expected Publication_MarketDocument, got {}", root.name);
+    }
+    let mut out = vec![];
+    for ts in root.children("TimeSeries") {
+        let curve = ts.text_of("curveType");
+        for period in ts.children("Period") {
+            if let Some((res, pts)) = period_points(period, "quantity", curve) {
+                out.extend(pts.into_iter().map(|(t, v)| Point {
+                    start: t,
+                    interval: res.clone(),
+                    value: v,
+                }));
+            }
+        }
+    }
+    Ok(out)
+}
+
 pub fn business_type_description(code: &str) -> &str {
     match code {
         "A53" => "Planned maintenance",
@@ -549,6 +574,27 @@ impl Client {
         Ok(out)
     }
 
+    /// Physical flow from `out_eic` into `in_eic` (A11)
+    pub async fn physical_flows(
+        &self,
+        out_eic: &str,
+        in_eic: &str,
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+    ) -> anyhow::Result<Vec<Point>> {
+        let mut p = vec![
+            ("documentType", "A11".to_string()),
+            ("in_Domain", in_eic.to_string()),
+            ("out_Domain", out_eic.to_string()),
+        ];
+        p.extend(Self::range(start, end));
+        let mut out = vec![];
+        for doc in self.query(&p).await? {
+            out.extend(parse_flows(&doc)?);
+        }
+        Ok(out)
+    }
+
     /// Generation (A80) and production (A77) unavailability, paginated
     pub async fn outages(
         &self,
@@ -618,6 +664,26 @@ mod tests {
         assert_eq!(pts[2].value, 0.0);
         assert_eq!(pts[3].value, 0.0);
         assert_eq!(pts[3].start, start + 3 * 900_000);
+    }
+
+    #[test]
+    fn flows() {
+        let doc = r#"<Publication_MarketDocument xmlns="urn:iec62325.351:tc57wg16:451-3:publicationdocument:7:0">
+          <type>A11</type>
+          <TimeSeries><curveType>A01</curveType>
+            <in_Domain.mRID codingScheme="A01">10YFI-1--------U</in_Domain.mRID>
+            <out_Domain.mRID codingScheme="A01">10Y1001A1001A46L</out_Domain.mRID>
+            <Period><timeInterval><start>2026-11-20T23:00Z</start><end>2026-11-21T01:00Z</end></timeInterval>
+              <resolution>PT60M</resolution>
+              <Point><position>1</position><quantity>1200</quantity></Point>
+              <Point><position>2</position><quantity>0</quantity></Point>
+            </Period></TimeSeries></Publication_MarketDocument>"#;
+        let p = parse_flows(doc).unwrap();
+        assert_eq!(p.len(), 2);
+        assert_eq!(p[0].value, 1200.0);
+        assert_eq!(p[1].value, 0.0);
+        assert_eq!(p[1].start - p[0].start, 3_600_000);
+        assert_eq!(p[0].interval, "PT60M");
     }
 
     #[test]

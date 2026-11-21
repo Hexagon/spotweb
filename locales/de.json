@@ -156,6 +156,27 @@
       "priceFactorDescriptionPart3": "(Steuer). Dies wird entsprechend Ihren aktuellen Einstellungen angepasst.",
       "nonPriceFactorDescription": "Der Strompreis in der Tabelle repräsentiert den aktuellen Spotpreis. Beachten Sie, dass zusätzliche Gebühren und Steuern anfallen können. Sie können über die Einstellungen auf der Seite wählen, ob Sie den Spotpreis oder den tatsächlichen Preis anzeigen möchten.",
       "month": "Monat"
+    },
+    "map": {
+      "title": "Strompreise und Lastflüsse aktuell",
+      "hint": "Klicken Sie auf eine Gebotszone für mehr Informationen",
+      "view_nordic": "Nordeuropa",
+      "view_europe": "Europa",
+      "cheap": "Günstig",
+      "expensive": "Teuer",
+      "flows": "Lastflüsse",
+      "import": "Import",
+      "export": "Export",
+      "net_import": "Nettoimport",
+      "net_export": "Nettoexport",
+      "flows_updated": "Flüsse aktualisiert",
+      "no_flows": "Noch keine Flussdaten",
+      "avg_tomorrow": "Durchschnitt morgen",
+      "not_published": "Noch nicht veröffentlicht",
+      "today_tomorrow": "Heute und morgen",
+      "note": "Die Grenzen der Gebotszonen sind ungefähr. Pfeile zeigen den physikalischen Nettofluss (MW) zwischen den Zonen.",
+      "all_areas": "Alle Gebotszonen",
+      "zoom": "Zoomstufe"
     }
   }
 }

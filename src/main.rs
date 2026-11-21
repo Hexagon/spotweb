@@ -5,6 +5,7 @@ mod countries;
 mod db;
 mod ecb;
 mod entsoe;
+mod flows;
 mod i18n;
 mod jobs;
 mod price;
