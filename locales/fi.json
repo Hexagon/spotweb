@@ -47,6 +47,7 @@
       "currency_fetched_from": "Nykyinen valuuttakurssi haetaan lähteestä",
       "all_values_from": "Kaikki arvot, myös historialliset, muunnetaan euroista nykyisellä kurssilla",
       "disclaimer_and_private_use": "Esitetyt luvut vastaavat todellisuutta, mutta niiden oikeellisuudesta ei anneta takuuta. Sivusto ja siihen liittyvät palvelut tarjotaan yksityiseen käyttöön ja sen käyttö on omalla vastuullasi.",
+      "not_affiliated": "spotweb on itsenäinen projekti, eikä se ole ENTSO-E:n kanssa yhteydessä tai sen hyväksymä. ENTSO-E:n tietoja käytetään Transparency Platformin käyttöehtojen mukaisesti.",
       "open_source_software": "Sivun lähdekoodi on täysin avoin ja saatavilla osoitteessa ",
       "bugs_and_issues": "Virheistä ja ongelmista ilmoitetaan GitHubin 'Issues'-osiossa. Voit myös ottaa yhteyttä sähköpostitse osoitteeseen hexagon{a}56k.guru."
     },

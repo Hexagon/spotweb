@@ -25,7 +25,9 @@
     <label>End date <input type="date" name="endDate" value="{{ form.endDate }}" required></label>
     <button class="btn" type="submit">Fetch</button>
   </form>
-  <p class="muted small">Week, month and year groups are in the local time of the selected area. The end date is inclusive.</p>
+  <p class="muted small">Week, month and year groups are in the local time of the selected area. The end date is inclusive.
+    Raw intervals can be fetched for at most 31 days and days for at most 366 days per request.</p>
+  <p class="small hidden" id="custom-error" role="alert"></p>
 </section>
 
 <section class="card hidden" id="custom-result">
@@ -39,6 +41,7 @@
     </table>
   </div>
   <p class="pad right small"><a id="custom-permalink" href="#">Permalink</a> &middot; <a id="custom-json" href="#">JSON</a> &middot; <a id="custom-csv" href="#" download="spotprice.csv">CSV</a></p>
+  <p class="pad right small muted">Source: ENTSO-E Transparency Platform.</p>
   <div class="table-scroll tall"><table class="table compact" id="custom-table"></table></div>
 </section>
 {% endblock %}

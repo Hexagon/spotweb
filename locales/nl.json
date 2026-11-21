@@ -47,6 +47,7 @@
       "currency_fetched_from": "Huidige wisselkoers opgehaald van",
       "all_values_from": "Alle waarden, inclusief historische waarden, worden omgerekend vanuit EUR tegen de huidige koers.",
       "disclaimer_and_private_use": "De getoonde cijfers zouden correct moeten zijn, maar worden geleverd zonder garanties. De site en aanverwante diensten worden aangeboden voor privégebruik, op eigen risico.",
+      "not_affiliated": "spotweb is een onafhankelijk project, niet verbonden aan of goedgekeurd door ENTSO-E. Gegevens van ENTSO-E worden hergebruikt volgens de gebruiksvoorwaarden van het Transparency Platform.",
       "open_source_software": "De broncode van de pagina is volledig openbaar en is beschikbaar op ",
       "bugs_and_issues": "Bugs en problemen worden gemeld via 'Issues' op GitHub. Contact opnemen kan ook via e-mail naar hexagon{a}56k.guru."
     },

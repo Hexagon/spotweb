@@ -79,7 +79,7 @@ Free and without key. Errors are returned as HTTP 500 with `{"status":"error","d
 `GET /api/v2/spot?period=daily&area=SE3&startDate=2024-01-01&endDate=2024-01-31[&currency=SEK][&interval=PT15M]`
 
 ```json
-{ "status": "ok", "data": [{ "time": 1704063600000, "price": 102.1, "min": 55.3, "max": 160.2 }] }
+{ "status": "ok", "source": "ENTSO-E Transparency Platform (https://transparency.entsoe.eu/)", "data": [{ "time": 1704063600000, "price": 102.1, "min": 55.3, "max": 160.2 }] }
 ```
 
 Prices are per MWh in EUR, or in `currency` (any ECB currency). `period` is `hourly` (raw intervals, as in 1.x), `daily`,
@@ -87,18 +87,26 @@ Prices are per MWh in EUR, or in `currency` (any ECB currency). `period` is `hou
 1.x. Without it (new behaviour) the area's current resolution is preferred and older days fall back to what is available, so
 long ranges cover both hourly and 15-minute history. Averages are time weighted.
 
+One request covers at most 31 days for `hourly`/`minimum` and 366 days for `daily` (new); longer groupings are not limited.
+Responses carry a `source` field, and a `note` when prices were converted from EUR.
+
 `GET /api/v2/hass?area=SE3&currency=SEK[&multiplier=1][&extra=0][&factor=1][&decimals=5][&interval=PT15M]` – Home Assistant
 sensor format, unchanged. `currency=ORE` (öre) is new. See `/homeassistant` for a configuration generator.
 
 `GET /api/v2/flows` – net physical flow per border right now, in MW (new):
 
 ```json
-{ "status": "ok", "updated": "2026-11-21T14:00:00.000Z", "data": [{ "from": "SE3", "to": "FI", "value": 1000.0, "time": "2026-11-21T13:00:00.000Z" }] }
+{ "status": "ok", "source": "ENTSO-E Transparency Platform (https://transparency.entsoe.eu/)", "license": "CC-BY-4.0", "updated": "2026-11-21T14:00:00.000Z", "data": [{ "from": "SE3", "to": "FI", "value": 1000.0, "time": "2026-11-21T13:00:00.000Z" }] }
 ```
 
 `from` is the exporting side. Borders to neighbouring zones without prices on spotweb (EE, LT, NL, GB, CZ, IT, PT) are included.
 
 `GET /api/v2/status` – latest data and last job runs. `GET /healthz` – liveness probe.
+
+Data source: [ENTSO-E Transparency Platform](https://transparency.entsoe.eu/). Re-use is subject to its
+[terms of use](https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions); mention the
+source when re-using the data. Physical flows are open data under CC-BY 4.0; day-ahead prices, load and generation are not on ENTSO-E's
+list of freely re-usable data. spotweb is not affiliated with or endorsed by ENTSO-E.
 
 ## Upgrading from 1.x
 

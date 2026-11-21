@@ -369,3 +369,72 @@ async fn api_v1_compat_edge_cases() {
     assert_eq!(v["now"], "-");
     assert_eq!(v["data"].as_array().unwrap().len(), 0);
 }
+
+#[tokio::test]
+async fn api_attribution_and_range_limits() {
+    let app = test_app();
+    let d = today(&chrono_tz::Europe::Stockholm);
+    let iso = |d: chrono::NaiveDate| d.format("%Y-%m-%d").to_string();
+
+    // Source is always given, the conversion note only when converted
+    let (_, body, _) = get(
+        &app,
+        &format!(
+            "/api/v2/spot?period=total&area=SE1&startDate={0}&endDate={0}",
+            iso(d)
+        ),
+    )
+    .await;
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert!(v["source"].as_str().unwrap().contains("ENTSO-E"));
+    assert!(v.get("note").is_none());
+    let (_, body, _) = get(
+        &app,
+        &format!(
+            "/api/v2/spot?period=total&area=SE1&startDate={0}&endDate={0}&currency=SEK",
+            iso(d)
+        ),
+    )
+    .await;
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert!(v["note"].as_str().unwrap().contains("ECB"));
+    let (_, body, _) = get(&app, "/api/v2/hass?area=SE1&currency=SEK").await;
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert!(v["source"].as_str().unwrap().contains("ENTSO-E"));
+    let (_, body, _) = get(&app, "/api/v2/flows").await;
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["license"], "CC-BY-4.0");
+
+    // Raw intervals: 31 days ok, 32 days refused
+    let ok = format!(
+        "/api/v2/spot?period=hourly&area=SE1&startDate={}&endDate={}",
+        iso(d - chrono::Duration::days(30)),
+        iso(d)
+    );
+    assert_eq!(get(&app, &ok).await.0, StatusCode::OK);
+    let (s, body, _) = get(
+        &app,
+        &format!(
+            "/api/v2/spot?period=hourly&area=SE1&startDate={}&endDate={}",
+            iso(d - chrono::Duration::days(31)),
+            iso(d)
+        ),
+    )
+    .await;
+    assert_eq!(s, StatusCode::INTERNAL_SERVER_ERROR);
+    assert!(body.contains("Date range too long"));
+    // Daily: one year ok, more refused; monthly not limited
+    let span = |p: &str, days: i64| {
+        format!(
+            "/api/v2/spot?period={p}&area=SE1&startDate={}&endDate={}",
+            iso(d - chrono::Duration::days(days)),
+            iso(d)
+        )
+    };
+    assert_eq!(get(&app, &span("daily", 365)).await.0, StatusCode::OK);
+    assert_eq!(
+        get(&app, &span("daily", 366)).await.0,
+        StatusCode::INTERNAL_SERVER_ERROR
+    );
+    assert_eq!(get(&app, &span("monthly", 2000)).await.0, StatusCode::OK);
+}

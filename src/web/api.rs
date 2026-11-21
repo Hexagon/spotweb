@@ -14,6 +14,22 @@ use crate::countries::{find_area, interval_for_identifier};
 use crate::price::{convert, process_price, Grouping, IntervalMode, PriceProps};
 use crate::timeutil::{day_range, js_iso, now_ms, parse_api_date, today};
 
+/// Attribution required by the ENTSO-E Transparency Platform terms of use (clause 3.1)
+pub const SOURCE: &str = "ENTSO-E Transparency Platform (https://transparency.entsoe.eu/)";
+/// Note on changes made to the data, as asked by CC-BY 4.0
+const CONVERSION_NOTE: &str = "Converted from EUR/MWh with ECB reference rates by spotweb";
+
+/// Longest range (in days, end date inclusive) one `/api/v2/spot` request may cover.
+/// Aggregated groupings are not limited; raw and daily data are, to keep the API
+/// from serving bulk copies of the price history.
+pub fn max_span_days(g: Grouping) -> Option<i64> {
+    match g {
+        Grouping::Hourly | Grouping::Minimum => Some(31),
+        Grouping::Daily => Some(366),
+        _ => None,
+    }
+}
+
 fn json_response(status: StatusCode, body: impl Serialize, max_age: u32) -> Response {
     let mut res = (status, axum::Json(body)).into_response();
     let h = res.headers_mut();
@@ -123,6 +139,13 @@ pub async fn spot(
     ) else {
         return api_error("Missing/invalid parameters");
     };
+    if let Some(max) = max_span_days(grouping) {
+        if (end - start).num_days() + 1 > max {
+            return api_error(&format!(
+                "Date range too long, max {max} days for this period"
+            ));
+        }
+    }
     let from = day_range(&tz, start).0;
     let to = day_range(&tz, end).1;
     let mode = interval_mode(&q, &area);
@@ -148,11 +171,11 @@ pub async fn spot(
                 convert(&mut rows, rate);
             }
             let max_age = if to < now_ms() { 3600 } else { 60 };
-            json_response(
-                StatusCode::OK,
-                json!({ "status": "ok", "data": rows }),
-                max_age,
-            )
+            let mut body = json!({ "status": "ok", "source": SOURCE, "data": rows });
+            if rate != 1.0 {
+                body["note"] = json!(CONVERSION_NOTE);
+            }
+            json_response(StatusCode::OK, body, max_age)
         }
         Err(e) => {
             tracing::error!(error = %e, "spot query failed");
@@ -169,6 +192,9 @@ struct HassPoint {
 
 #[derive(Serialize)]
 struct HassResponse {
+    source: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    note: Option<&'static str>,
     updated: String,
     now: String,
     avg: String,
@@ -270,6 +296,8 @@ pub async fn hass(
         .find(|r| r.0 <= now && r.0 + r.2 > now)
         .map(|r| r.1);
     let body = HassResponse {
+        source: SOURCE,
+        note: (rate != 1.0).then_some(CONVERSION_NOTE),
         updated: js_iso(now),
         now: fmt(now_price),
         avg,
@@ -296,6 +324,8 @@ pub async fn hass(
 fn empty_hass() -> HassResponse {
     let d = || "-".to_string();
     HassResponse {
+        source: SOURCE,
+        note: None,
         updated: js_iso(now_ms()),
         now: d(),
         avg: d(),
@@ -348,6 +378,8 @@ pub async fn flows(State(st): State<WebState>) -> Response {
             StatusCode::OK,
             json!({
                 "status": "ok",
+                "source": SOURCE,
+                "license": "CC-BY-4.0",
                 "updated": f.updated.map(js_iso),
                 "data": f.borders.iter().map(|b| json!({
                     "from": b.from,

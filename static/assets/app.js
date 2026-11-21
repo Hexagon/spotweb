@@ -347,6 +347,8 @@
       const params = new URLSearchParams({ area: fd.get("area"), period: fd.get("period"), startDate: fd.get("startDate"), endDate: fd.get("endDate") });
       const res = await fetch(`/api/v2/spot?${params}`).then((r) => r.json());
       const data = res.status === "ok" ? res.data : [];
+      const err = $("#custom-error");
+      if (err) { err.textContent = res.status === "ok" ? "" : res.details || "Error"; err.classList.toggle("hidden", res.status === "ok"); }
       $("#custom-result").classList.remove("hidden");
       $("#custom-permalink").href = `/custom?${params}`;
       $("#custom-json").href = `/api/v2/spot?${params}`;
@@ -359,7 +361,7 @@
       const shown = data.slice(0, 5000);
       for (const r of shown) html += `<tr><td>${fmt(r.time)}</td><td class="num">${price(r.price)}</td><td class="num">${price(r.min)}</td><td class="num">${price(r.max)}</td><td>${unit()}</td></tr>`;
       $("#custom-table").innerHTML = html + "</tbody>";
-      const csv = ["time,price,min,max,unit"].concat(data.map((r) => [r.time === null ? "" : new Date(r.time).toISOString(), price(r.price), price(r.min), price(r.max), unit()].join(","))).join("\n");
+      const csv = [`# Source: ${res.source || "ENTSO-E Transparency Platform (https://transparency.entsoe.eu/)"}. Converted to ${unit()} with ECB reference rates by spotweb`, "time,price,min,max,unit"].concat(data.map((r) => [r.time === null ? "" : new Date(r.time).toISOString(), price(r.price), price(r.min), price(r.max), unit()].join(","))).join("\n");
       $("#custom-csv").href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
       const o = unitTooltip(baseChart());
       o.series = [{ name: fd.get("area"), data: data.filter((r) => r.time !== null).map((r) => ({ x: r.time, y: priceRounded(r.price) })) }];

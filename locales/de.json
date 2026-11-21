@@ -47,6 +47,7 @@
       "currency_fetched_from": "Der aktuelle Wechselkurs stammt von der",
       "all_values_from": "Alle Werte, auch historische, werden zum aktuellen Wechselkurs aus EUR umgerechnet",
       "disclaimer_and_private_use": "Die gezeigten Zahlen sollen der Realität entsprechen, werden aber ohne Gewähr geliefert. Die Website und die damit verbundenen Dienste werden für den privaten Gebrauch auf eigenes Risiko bereitgestellt.",
+      "not_affiliated": "spotweb ist ein unabhängiges Projekt, das weder mit ENTSO-E verbunden ist noch von ENTSO-E unterstützt wird. Daten von ENTSO-E werden gemäß den Nutzungsbedingungen der Transparency Platform weiterverwendet.",
       "open_source_software": "Der Quellcode der Seite ist vollständig offen und verfügbar unter ",
       "bugs_and_issues": "Fehler und Probleme werden über 'Issues' auf GitHub gemeldet. Kontakt kann auch per E-Mail an hexagon{a}56k.guru hergestellt werden."
     },

@@ -78,9 +78,13 @@
   <h2>Open API</h2>
   <p>All data is available as JSON, free of charge and without API key:</p>
   <ul>
-    <li><code>/api/v2/spot?period=daily&amp;area=SE3&amp;startDate=2024-01-01&amp;endDate=2024-01-31&amp;currency=SEK</code> &ndash; prices in currency/MWh grouped by <code>hourly</code> (raw intervals), <code>daily</code>, <code>weekly</code>, <code>monthly</code>, <code>yearly</code> or <code>total</code>. Optional <code>interval=PT15M|PT60M</code> selects an exact resolution.</li>
+    <li><code>/api/v2/spot?period=daily&amp;area=SE3&amp;startDate=2024-01-01&amp;endDate=2024-01-31&amp;currency=SEK</code> &ndash; prices in currency/MWh grouped by <code>hourly</code> (raw intervals), <code>daily</code>, <code>weekly</code>, <code>monthly</code>, <code>yearly</code> or <code>total</code>. Optional <code>interval=PT15M|PT60M</code> selects an exact resolution. One request covers at most 31 days for <code>hourly</code> and 366 days for <code>daily</code>; longer groupings are not limited.</li>
     <li><code>/api/v2/hass?area=SE3&amp;currency=SEK</code> &ndash; yesterday, today and tomorrow, see <a href="/homeassistant">Home Assistant</a>.</li>
     <li><code>/api/v2/status</code> &ndash; data freshness.</li>
   </ul>
+  <p>Source of the data: <a href="https://transparency.entsoe.eu/" rel="noopener">ENTSO-E Transparency Platform</a>, prices converted with ECB reference rates.
+    Please mention the source when you re-use the data. Re-use is subject to the ENTSO-E Transparency Platform
+    <a href="https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions" rel="noopener">terms of use</a>.
+    spotweb is an independent project, not affiliated with or endorsed by ENTSO-E.</p>
 </section>
 {% endblock %}
