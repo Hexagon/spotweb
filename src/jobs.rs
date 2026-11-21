@@ -1128,6 +1128,7 @@ mod tests {
             ga_id: None,
             schedule_tz: stockholm(),
             history_start: today(&stockholm()),
+            csp: crate::web::Csp::Enforce,
         };
         let mut app = App::new(Db::open_memory(), cfg).unwrap();
         let entsoe = crate::entsoe::Client::with_endpoint(

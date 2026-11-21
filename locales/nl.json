@@ -206,6 +206,13 @@
       "max": "Max",
       "copy": "Kopiëren",
       "copied": "Gekopieerd"
+    },
+    "a11y": {
+      "close": "Sluiten",
+      "back": "Terug",
+      "main_nav": "Hoofdmenu",
+      "average": "gemiddelde",
+      "no_data": "Geen gegevens"
     }
   },
   "pages": {

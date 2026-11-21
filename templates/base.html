@@ -18,13 +18,13 @@
   <link rel="apple-touch-icon" href="/icon-192x192.png">
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="/assets/spotweb.css?v={{ version }}">
-  <script async src="https://track.webpulseanalytics.com/client/653eb47258a80dc2c3133ff8" type="module"></script>
+  <script async src="https://track.webpulseanalytics.com/client/653eb47258a80dc2c3133ff8" type="module" nonce="{{ nonce }}"></script>
   {%- if ga_id %}
-  <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_id }}"></script>
-  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ ga_id }}');</script>
+  <script src="/assets/ga.js?v={{ version }}" data-ga-id="{{ ga_id }}" nonce="{{ nonce }}"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_id }}" nonce="{{ nonce }}"></script>
   {%- endif %}
   {%- if adsense %}
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense }}" crossorigin="anonymous"></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense }}" crossorigin="anonymous" nonce="{{ nonce }}"></script>
   {%- endif %}
   <script type="application/ld+json">{{ jsonld_page|safe }}</script>
   {%- if jsonld_price %}
@@ -37,7 +37,7 @@
 
   <main class="container">
     <div class="alert hidden" id="pricefactor-warning" role="alert">
-      <button class="alert-close" type="button" aria-label="Close" data-dismiss-warning>&times;</button>
+      <button class="alert-close" type="button" aria-label="{{ t('a11y.close') }}" data-dismiss-warning>&times;</button>
       <strong>{{ t("warning.actual_price") }}</strong>
       <p>{{ t("warning.actual_price_text") }}</p>
     </div>
@@ -49,8 +49,8 @@
   </footer>
 
   <script id="sw-boot" type="application/json">{{ boot|safe }}</script>
-  <script src="/assets/vendor/apexcharts.min.js?v={{ version }}" defer></script>
-  <script src="/assets/app.js?v={{ version }}" defer></script>
-  <script type="module" src="/initworker.js"></script>
+  <script src="/assets/vendor/apexcharts.min.js?v={{ version }}" defer nonce="{{ nonce }}"></script>
+  <script src="/assets/app.js?v={{ version }}" defer nonce="{{ nonce }}"></script>
+  <script type="module" src="/initworker.js" nonce="{{ nonce }}"></script>
 </body>
 </html>

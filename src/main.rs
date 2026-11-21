@@ -115,6 +115,8 @@ pub struct Config {
     pub schedule_tz: Tz,
     /// First day to back-fill prices from on an empty database (`SPOTWEB_HISTORY_START`)
     pub history_start: NaiveDate,
+    /// Content-Security-Policy for pages (`SPOTWEB_CSP`: `on`, `report-only` or `off`)
+    pub csp: web::Csp,
 }
 
 fn env_opt(name: &str) -> Option<String> {
@@ -135,12 +137,21 @@ impl Config {
                 .context("SPOTWEB_HISTORY_START must be YYYY-MM-DD")?,
             None => NaiveDate::from_ymd_opt(2021, 1, 1).expect("date"),
         };
+        let csp = match env_opt("SPOTWEB_CSP").as_deref() {
+            None | Some("on") | Some("1") | Some("true") => web::Csp::Enforce,
+            Some("report-only") => web::Csp::ReportOnly,
+            Some("off") | Some("0") | Some("false") => web::Csp::Off,
+            Some(other) => {
+                anyhow::bail!("SPOTWEB_CSP must be on, report-only or off, not {other:?}")
+            }
+        };
         Ok(Self {
             public_url: env_opt("SPOTWEB_PUBLIC_URL").map(|u| u.trim_end_matches('/').to_string()),
             adsense: env_opt("SPOTWEB_ADSENSE"),
             ga_id: env_opt("SPOTWEB_GA_ID"),
             schedule_tz,
             history_start,
+            csp,
         })
     }
 }

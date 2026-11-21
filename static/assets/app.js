@@ -144,13 +144,29 @@
     for (const s of series) for (const p of s.data) if (p.y !== null && p.y < m) m = p.y;
     return m;
   };
-  const draw = (id, options) => {
+  // Text alternative for a chart: per series lowest-highest value and average
+  const chartSummary = (el, series, fmt) => {
+    const head = el.closest("section");
+    const title = head && head.querySelector("h1, h2, h3") ? head.querySelector("h1, h2, h3").textContent.trim() : "";
+    const parts = series.map((s) => {
+      const ys = (s.data || []).map((p) => p.y).filter((v) => typeof v === "number" && Number.isFinite(v));
+      if (!ys.length) return "";
+      const avg = ys.reduce((a, v) => a + v, 0) / ys.length;
+      return `${s.name}: ${fmt(Math.min(...ys))} – ${fmt(Math.max(...ys))}, ${t("a11y.average")} ${fmt(avg)}`;
+    }).filter(Boolean);
+    return [title, ...parts].filter(Boolean).join(". ");
+  };
+  const priceFmt = (v) => `${new Intl.NumberFormat(locale, { minimumFractionDigits: prefs.decimals, maximumFractionDigits: prefs.decimals }).format(v)} ${unit()}`;
+  const mwText = (v) => `${mw(v)} MW`;
+  const draw = (id, options, fmt = priceFmt) => {
     const el = $(`[data-chart="${id}"]`);
     if (!el || typeof ApexCharts === "undefined") return;
     if (charts[id]) { charts[id].destroy(); delete charts[id]; }
     el.innerHTML = "";
     const hasData = (options.series || []).some((s) => s.data && s.data.length);
-    if (!hasData) { el.innerHTML = `<div class="chart-empty muted">-</div>`; return; }
+    el.setAttribute("role", "img");
+    if (!hasData) { el.innerHTML = `<div class="chart-empty muted">-</div>`; el.setAttribute("aria-label", t("a11y.no_data")); return; }
+    el.setAttribute("aria-label", chartSummary(el, options.series, fmt));
     charts[id] = new ApexCharts(el, options);
     charts[id].render();
   };
@@ -209,7 +225,7 @@
     o.yaxis = { labels: { formatter: (v) => mw(v) } };
     o.tooltip.y = { formatter: (v) => (mw(v) ? `${mw(v)} MW` : "") };
     o.annotations = { yaxis: [{ y: 0, borderColor: "#ccc", strokeDashArray: 0 }] };
-    draw("production", o);
+    draw("production", o, mwText);
   };
 
   const chartNet = () => {
@@ -222,7 +238,7 @@
     o.yaxis = { labels: { formatter: (v) => mw(v) } };
     o.tooltip.y = { formatter: (v) => (mw(v) ? `${mw(v)} MW` : "") };
     o.legend = { show: false };
-    draw("net", o);
+    draw("net", o, mwText);
   };
 
   // API helpers

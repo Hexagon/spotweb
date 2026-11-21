@@ -29,10 +29,24 @@ fn internal(e: anyhow::Error) -> Response {
         .into_response()
 }
 
-fn render(st: &WebState, name: &str, ctx: Value) -> PageResult {
+fn render(st: &WebState, name: &str, mut ctx: Value) -> PageResult {
+    let nonce = super::new_nonce();
+    if let Value::Object(m) = &mut ctx {
+        m.insert("nonce".into(), json!(nonce));
+    }
     let tpl = st.env.get_template(name).map_err(|e| internal(e.into()))?;
     let html = tpl.render(ctx).map_err(|e| internal(e.into()))?;
     let mut res = Html(html).into_response();
+    let csp_header = match st.app.cfg.csp {
+        super::Csp::Enforce => Some(header::CONTENT_SECURITY_POLICY),
+        super::Csp::ReportOnly => Some(header::CONTENT_SECURITY_POLICY_REPORT_ONLY),
+        super::Csp::Off => None,
+    };
+    if let Some(h) = csp_header {
+        if let Ok(v) = header::HeaderValue::from_str(&super::csp_policy(&nonce)) {
+            res.headers_mut().insert(h, v);
+        }
+    }
     res.headers_mut().insert(
         header::CACHE_CONTROL,
         header::HeaderValue::from_static("no-cache"),

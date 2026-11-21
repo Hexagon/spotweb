@@ -206,6 +206,13 @@
       "max": "Max",
       "copy": "Copier",
       "copied": "Copié"
+    },
+    "a11y": {
+      "close": "Fermer",
+      "back": "Retour",
+      "main_nav": "Menu principal",
+      "average": "moyenne",
+      "no_data": "Aucune donnée"
     }
   },
   "pages": {

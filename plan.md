@@ -55,8 +55,8 @@ Varje punkt är tänkt att bli en egen PR.
     Kvar: actions låsta till SHA i `release.yml` (SHA:erna behöver slås upp i respektive actions-repo).
 16. **Städa releaser och taggar.** Ta bort den tomma releasen v2.0.0 och flytta `v1-final` till `45f9513`.
 17. ✅ ~~**Översätt Custom, Hjälp och Home Assistant**, som i dag är på engelska.~~
-18. **Content-Security-Policy och tillgänglighet.** Ta bort de inline-skript som återstår, sätt en CSP-header och ge
-    diagrammen textalternativ.
+18. ✅ ~~**Content-Security-Policy och tillgänglighet.** Ta bort de inline-skript som återstår, sätt en CSP-header och ge
+    diagrammen textalternativ.~~
 19. ✅ ~~**ETag/304 i API:t.** Det minskar trafiken från Home Assistant-installationer som frågar var tredje minut.~~
 
 24. **Byt chrono/chrono-tz mot jiff.** RustSec markerar båda som ounderhållna (RUSTSEC-2026-0543/0555, inga kända
@@ -127,6 +127,12 @@ Varje punkt är tänkt att bli en egen PR.
 - Punkt 17: Custom, Hjälp och Home Assistant (även sidtitlar, tabellrubriker och kopieringsknappar) på alla nio språk.
   Sidtexterna ligger under `pages` i `locales/*.json` och skickas inte med i sidornas boot-JSON, så sidorna blir inte
   tyngre. Texter med HTML (länkar, `<code>`) renderas som betrodda, eftersom de bara kommer från våra egna filer.
+- Punkt 18: sidorna har en strikt CSP med nonce per svar och `'strict-dynamic'` (Googles rekommendation, som fungerar
+  med AdSense, Analytics och Webpulse utan att lista deras värdar), `object-src 'none'`, `base-uri`, `form-action` och
+  `frame-ancestors 'self'`. Det sista inline-skriptet (Google Analytics) ligger nu i `/assets/ga.js`. `SPOTWEB_CSP`
+  (`on`, `report-only`, `off`). Diagrammen har `role="img"` och en `aria-label` med rubrik, lägsta–högsta värde och
+  medel per serie, och knapparna Stäng/Tillbaka och huvudmenyn har översatta etiketter. Kontrollerat i Chromium utan
+  CSP-fel; tredjepartsskripten kunde inte laddas härifrån, så titta i konsolen efter driftsättning.
 
 - En binär med inbyggd schemaläggare, SQLite med nycklar, import från 1.x
 - Signerade releaser för Linux, macOS och Windows, CI på alla tre plattformarna

@@ -206,6 +206,13 @@
       "max": "Maks",
       "copy": "Kopier",
       "copied": "Kopiert"
+    },
+    "a11y": {
+      "close": "Lukk",
+      "back": "Tilbake",
+      "main_nav": "Hovedmeny",
+      "average": "snitt",
+      "no_data": "Ingen data"
     }
   },
   "pages": {

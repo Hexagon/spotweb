@@ -32,6 +32,30 @@ struct Static;
 #[folder = "templates/"]
 struct Templates;
 
+/// How pages send their Content-Security-Policy
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Csp {
+    Enforce,
+    ReportOnly,
+    Off,
+}
+
+/// A strict, nonce based policy as recommended by Google, so that AdSense, Analytics and the
+/// analytics script keep working without listing their hosts. Scripts need the page's nonce;
+/// scripts they load are trusted (`strict-dynamic`). `https:` and `'unsafe-inline'` are only
+/// fallbacks for browsers without nonce support and are ignored by the others.
+pub fn csp_policy(nonce: &str) -> String {
+    format!(
+        "script-src 'nonce-{nonce}' 'strict-dynamic' https: 'unsafe-inline'; \
+         object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+    )
+}
+
+/// Random nonce for one response
+pub fn new_nonce() -> String {
+    uuid::Uuid::new_v4().simple().to_string()
+}
+
 #[derive(Clone)]
 pub struct WebState {
     pub app: App,

@@ -18,6 +18,7 @@ fn test_app() -> App {
         ga_id: None,
         schedule_tz: chrono_tz::Europe::Stockholm,
         history_start: chrono::NaiveDate::from_ymd_opt(2021, 1, 1).unwrap(),
+        csp: crate::web::Csp::Enforce,
     };
     let app = App::new(db, cfg).unwrap();
     // Seed: SE1 today + tomorrow at 15 minutes, exchange rates
@@ -631,4 +632,40 @@ async fn translated_pages_have_no_missing_keys() {
     assert!(body.contains("<i>Faktiskt timpris"), "{body}");
     let (_, body, _) = get(&app, "/custom?lang=de").await;
     assert!(body.contains("<title>") && body.contains("Eigener Zeitraum"));
+}
+
+#[tokio::test]
+async fn pages_send_nonce_csp() {
+    let app = test_app();
+    let (s, body, headers) = get(&app, "/sv/SE1").await;
+    assert_eq!(s, StatusCode::OK);
+    let csp = headers["content-security-policy"]
+        .to_str()
+        .unwrap()
+        .to_string();
+    let nonce = csp
+        .split("'nonce-")
+        .nth(1)
+        .and_then(|r| r.split('\'').next())
+        .unwrap();
+    assert!(nonce.len() >= 32, "{csp}");
+    assert!(csp.contains("'strict-dynamic'") && csp.contains("object-src 'none'"));
+    // Every executable script carries the nonce; only JSON data blocks are inline
+    for tag in body.split("<script").skip(1) {
+        let tag = tag.split('>').next().unwrap();
+        assert!(
+            tag.contains(&format!("nonce=\"{nonce}\"")) || tag.contains("application/"),
+            "script without nonce: {tag}"
+        );
+    }
+    assert!(!body.contains(" onclick=") && !body.contains(" onload="));
+    // A new nonce per response
+    let (_, _, h2) = get(&app, "/sv/SE1").await;
+    assert_ne!(
+        h2["content-security-policy"],
+        headers["content-security-policy"]
+    );
+    // Not on the API
+    let (_, _, h) = get(&app, "/api/v2/status").await;
+    assert!(h.get("content-security-policy").is_none());
 }

@@ -76,6 +76,11 @@ sudo systemctl daemon-reload && sudo systemctl restart spotweb
 
 spotweb compresses responses (brotli/gzip) and sets cache headers itself; static assets are served with ETags.
 
+Pages are sent with a `Content-Security-Policy` that only runs scripts carrying a fresh nonce (plus what those
+scripts load, `'strict-dynamic'`), so AdSense, Google Analytics and the analytics script work without listing their
+hosts. Don't add a second CSP in the proxy: browsers enforce both. To try it out first, set `SPOTWEB_CSP=report-only`
+and watch the browser console for "Content Security Policy" messages; `SPOTWEB_CSP=off` turns it off.
+
 ## 4. Upgrading from 1.x
 
 ```sh

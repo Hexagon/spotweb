@@ -206,6 +206,13 @@
       "max": "Maks",
       "copy": "Kopiér",
       "copied": "Kopieret"
+    },
+    "a11y": {
+      "close": "Luk",
+      "back": "Tilbage",
+      "main_nav": "Hovedmenu",
+      "average": "gennemsnit",
+      "no_data": "Ingen data"
     }
   },
   "pages": {

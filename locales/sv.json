@@ -206,6 +206,13 @@
       "max": "Max",
       "copy": "Kopiera",
       "copied": "Kopierat"
+    },
+    "a11y": {
+      "close": "Stäng",
+      "back": "Tillbaka",
+      "main_nav": "Huvudmeny",
+      "average": "medel",
+      "no_data": "Ingen data"
     }
   },
   "pages": {

@@ -57,6 +57,7 @@ spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried po
 | `SPOTWEB_REQUEST_DELAY_MS` | `2000`                   | Pause after each ENTSO-e request, per worker                    |
 | `SPOTWEB_ENTSOE_CONCURRENCY` | `3`                    | Areas fetched from ENTSO-e at the same time (1–10)              |
 | `SPOTWEB_ENTSOE_TIMEOUT_SECS` | `60`                   | Timeout per ENTSO-e request                                     |
+| `SPOTWEB_CSP`              | `on`                     | Content-Security-Policy on pages: `on`, `report-only` or `off`   |
 | `SPOTWEB_ACCESS_LOG`       | off                      | `1` logs every request: method, path, status and time           |
 | `SPOTWEB_HTTP_SUMMARY_SECS` | `60`                    | Log HTTP counts, p50/p95 and 4xx/5xx per route this often; `0` is off |
 | `RUST_LOG`                 | `spotweb=info,warn`      | Log filter, `--debug` for verbose logs                          |

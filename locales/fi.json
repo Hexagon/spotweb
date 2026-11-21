@@ -206,6 +206,13 @@
       "max": "Maks",
       "copy": "Kopioi",
       "copied": "Kopioitu"
+    },
+    "a11y": {
+      "close": "Sulje",
+      "back": "Takaisin",
+      "main_nav": "Päävalikko",
+      "average": "keskiarvo",
+      "no_data": "Ei tietoja"
     }
   },
   "pages": {
