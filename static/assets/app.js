@@ -458,6 +458,28 @@
     draw("thirty-days", o);
   };
 
+  // Cheapest unbroken run of at least `hours` among `rows` ([start, price, ms]) that end after
+  // now, like /api/v2/cheapest with consecutive=true
+  const cheapestRun = (rows, hours) => {
+    const now = Date.now();
+    const ahead = rows.filter((r) => r[0] + r[2] > now);
+    const ms = hours * 3600 * 1000;
+    let best = null;
+    for (let i = 0; i < ahead.length; i++) {
+      let sum = 0, dur = 0, j = i;
+      while (j < ahead.length && dur < ms) {
+        if (j > i && ahead[j][0] !== ahead[j - 1][0] + ahead[j - 1][2]) break;
+        sum += ahead[j][1] * ahead[j][2]; dur += ahead[j][2]; j++;
+      }
+      if (dur >= ms && (!best || sum / dur < best.avg)) best = { start: ahead[i][0], end: ahead[i][0] + dur, avg: sum / dur };
+    }
+    return best;
+  };
+  const cheapestHtml = (rows, withUnit = true) => [[1, "overview.cheapest_hour"], [3, "overview.cheapest_3h"]].map(([h, key]) => {
+    const b = cheapestRun(rows, h);
+    return b ? `${t(key)}: <strong>${dayFmt.format(new Date(b.start))} ${hhmm(b.start)}&ndash;${hhmm(b.end)}</strong> (${price(b.avg)}${withUnit ? ` ${unit()}` : ""})` : "";
+  }).filter(Boolean).join("<br>");
+
   /** Today/tomorrow table with bars, plus the cheapest periods ahead */
   const priceTable = () => {
     const a = boot.area;
@@ -483,26 +505,7 @@
     if (curRow && table.parentElement) table.parentElement.scrollTop = Math.max(0, curRow.offsetTop - 60);
 
     const box = $("#cheapest");
-    if (!box) return;
-    const ahead = rows.filter((r) => r[0] + r[2] > now);
-    const cheapest = (hours) => {
-      const ms = hours * 3600 * 1000;
-      let best = null;
-      for (let i = 0; i < ahead.length; i++) {
-        let sum = 0, dur = 0, j = i;
-        while (j < ahead.length && dur < ms) {
-          if (j > i && ahead[j][0] !== ahead[j - 1][0] + ahead[j - 1][2]) break;
-          sum += ahead[j][1] * ahead[j][2]; dur += ahead[j][2]; j++;
-        }
-        if (dur >= ms && (!best || sum / dur < best.avg)) best = { start: ahead[i][0], end: ahead[i][0] + dur, avg: sum / dur };
-      }
-      return best;
-    };
-    const parts = [[1, "overview.cheapest_hour"], [3, "overview.cheapest_3h"]].map(([h, key]) => {
-      const b = cheapest(h);
-      return b ? `${t(key)}: <strong>${dayFmt.format(new Date(b.start))} ${hhmm(b.start)}&ndash;${hhmm(b.end)}</strong> (${price(b.avg)} ${unit()})` : "";
-    }).filter(Boolean);
-    box.innerHTML = parts.join("<br>");
+    if (box) box.innerHTML = cheapestHtml(rows);
   };
 
   // ----------------------------------------------------------- custom page
@@ -640,6 +643,8 @@ series:
     const a = hexRgb(ramp[i]), b = hexRgb(ramp[i + 1]), k = x - i;
     return `rgb(${a.map((v, j) => Math.round(v + (b[j] - v) * k)).join(",")})`;
   };
+  // Smallest price range (EUR/MWh) the map's colour ramp spans
+  const MIN_SPAN = 30;
   const SVG_NS = "http://www.w3.org/2000/svg";
   const svgEl = (tag, attrs, parent) => {
     const el = document.createElementNS(SVG_NS, tag);
@@ -1161,9 +1166,19 @@ series:
     const prices = Object.keys(boot.zones).map((n) => [n, zoneAt(n)]).filter((x) => x[1] !== null && x[1] !== undefined);
     const vals = prices.map((x) => x[1]);
     const lo = vals.length ? Math.min(...vals) : 0, hi = vals.length ? Math.max(...vals) : 1;
+    // Negative prices get a colour of their own; the ramp covers zero or more. It spans at least
+    // MIN_SPAN, so prices a few EUR apart do not look as far apart as cheap and expensive.
+    let slo = Math.max(lo, 0), shi = Math.max(hi, 0);
+    if (shi - slo < MIN_SPAN) {
+      const pad = (MIN_SPAN - (shi - slo)) / 2;
+      slo -= pad; shi += pad;
+      if (slo < 0) { shi -= slo; slo = 0; }
+    }
+    const frac = (v) => (v - slo) / (shi - slo);
+    const negColor = getComputedStyle(svg).getPropertyValue("--map-negative").trim() || "#3b82c4";
     $$(".zone", svg).forEach((p) => {
       const v = zoneAt(p.dataset.area);
-      p.style.fill = v === null || v === undefined ? "" : rampColor(hi > lo ? (v - lo) / (hi - lo) : 0.5);
+      p.style.fill = v === null || v === undefined ? "" : v < 0 ? negColor : rampColor(frac(v));
       p.classList.toggle("no-data", v === null || v === undefined);
       p.classList.toggle("selected", p.dataset.area === sel);
       p.setAttribute("aria-label", `${zoneLabel(p.dataset.area)}: ${price(v)} ${unit()}`);
@@ -1174,7 +1189,13 @@ series:
     if (selPath) selPath.parentNode.appendChild(selPath);
     $("[data-legend-min]").textContent = price(lo);
     $("[data-legend-max]").textContent = price(hi);
-    $(".legend-ramp").style.background = `linear-gradient(90deg, ${theme.ramp.join(",")})`;
+    // The legend shows the part of the ramp that is in use
+    const f0 = frac(Math.max(lo, 0)), f1 = frac(Math.max(hi, 0));
+    const stops = [0, 0.25, 0.5, 0.75, 1].map((x) => rampColor(f0 + (f1 - f0) * x));
+    $(".legend-ramp").style.background = `linear-gradient(90deg, ${stops.join(",")})`;
+    $("[data-legend-negative]").hidden = !(lo < 0);
+    // Coupled market: (nearly) the same price everywhere
+    $("[data-legend-equal]").hidden = !(vals.length > 1 && hi - lo < 0.5);
     // At a chosen time the arrows are that hour's average
     let status = flowsUpdatedText();
     if (map.time !== null && map.time !== undefined) {
@@ -1238,7 +1259,19 @@ series:
     $("[data-zone-link]", panel).href = `/${z.country}/${encodeURIComponent(z.name)}`;
     $("[data-zone-now]", panel).textContent = price(zoneNow(name));
     $("[data-zone-avg-today]", panel).textContent = price(z.avg_today);
-    $("[data-zone-span-today]", panel).textContent = z.min_today === null ? "" : `${t("overview.span")} ${price(z.min_today)} – ${price(z.max_today)}`;
+    $("[data-zone-span-today]", panel).textContent = z.min_today === null ? "" : `${price(z.min_today)} – ${price(z.max_today)}`;
+    // Today's average against yesterday's, in the chosen unit
+    const ch = $("[data-zone-change]", panel);
+    const a0 = priceNum(z.avg_yesterday), a1 = priceNum(z.avg_today);
+    if (a0 !== null && a1 !== null && Math.abs(a0) > 1e-9) {
+      const pct = ((a1 - a0) / Math.abs(a0)) * 100;
+      ch.textContent = `${pct >= 0.5 ? "▲" : pct <= -0.5 ? "▼" : "●"} ${Math.abs(pct).toFixed(0)} % ${t("map.vs_yesterday")}`;
+      ch.className = `small zs-change${pct >= 0.5 ? " up" : pct <= -0.5 ? " down" : ""}`;
+    } else {
+      ch.textContent = "";
+    }
+    const rowsAhead = z.today.points.map((p) => [p[0], p[1], z.today.interval]).concat(z.tomorrow.points.map((p) => [p[0], p[1], z.tomorrow.interval]));
+    $("[data-zone-cheapest]", panel).innerHTML = cheapestHtml(rowsAhead, false);
     $("[data-zone-avg-tomorrow]", panel).textContent = z.avg_tomorrow === null ? t("map.not_published") : price(z.avg_tomorrow);
     $("[data-zone-avg-tomorrow]", panel).classList.toggle("muted", z.avg_tomorrow === null);
     $("[data-zone-span-tomorrow]", panel).textContent = z.min_tomorrow === null ? "" : `${price(z.min_tomorrow)} – ${price(z.max_tomorrow)}`;
@@ -1251,9 +1284,21 @@ series:
       if (gl.generation !== null) html += row(t("generation.production"), `${mw(gl.generation)} MW`);
       if (gl.load !== null) html += row(t("generation.consumption"), `${mw(gl.load)} MW`);
       if (gl.net !== null && gl.load !== null) html += row(gl.net < 0 ? t("generation.deficit") : t("generation.excess"), `${mw(gl.net)} MW`, gl.net < 0 ? "text-danger" : "text-success");
-      if (gl.primary) html += row(t("generation.primary_source"), `${esc(t("generation.psr_" + gl.primary + "_0"))}${gl.primary_share !== null ? ` <span class="muted">(${gl.primary_share} %)</span>` : ""}`);
+      if (gl.primary && !(gl.mix && gl.mix.length)) html += row(t("generation.primary_source"), `${esc(t("generation.psr_" + gl.primary + "_0"))}${gl.primary_share !== null ? ` <span class="muted">(${gl.primary_share} %)</span>` : ""}`);
     }
     $("[data-zone-gl]", panel).innerHTML = html || `<div class="muted">-</div>`;
+    // Production mix as one stacked bar, with the shares in the legend
+    const mixBox = $("[data-zone-mix]", panel);
+    const mix = (gl && gl.mix) || [];
+    const total = mix.reduce((a, m) => a + m[1], 0);
+    mixBox.hidden = !(total > 0);
+    if (total > 0) {
+      const name = (g) => t("generation.psr_" + g + "_0");
+      const color = (g) => PSR_COLORS[g + "_0"] || "#9e9e9e";
+      $("[data-zone-mix-bar]", panel).innerHTML = mix.map(([g, v]) => `<span style="width:${(v / total) * 100}%;background:${color(g)}" title="${esc(name(g))} ${Math.round((v / total) * 100)} %"></span>`).join("");
+      $("[data-zone-mix-legend]", panel).innerHTML = mix.filter(([, v]) => v / total >= 0.02).map(([g, v]) => `<span><i style="background:${color(g)}"></i>${esc(name(g))} ${Math.round((v / total) * 100)} %</span>`).join("");
+      mixBox.setAttribute("aria-label", mix.map(([g, v]) => `${name(g)} ${Math.round((v / total) * 100)} %`).join(", "));
+    }
 
     // Flows touching the zone
     const items = flowItems((z) => z === name, (z) => z);

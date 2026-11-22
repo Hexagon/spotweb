@@ -309,6 +309,9 @@ pub struct GenLoadRow {
     pub generation_total: Option<f64>,
     pub load_total: Option<f64>,
     pub net_generation: Option<f64>,
+    /// Generation per `psr_group` in the same interval, largest first (pumped storage
+    /// consumption and other negative values left out)
+    pub mix: Vec<(String, f64)>,
 }
 
 /// Latest generation and load per area (index page). Port of `sqlCurrentLoadAndGeneration`.
@@ -372,9 +375,25 @@ pub fn current_generation_and_load(c: &Connection, from: i64) -> rusqlite::Resul
             generation_total: r.get(5)?,
             load_total: r.get(6)?,
             net_generation: r.get(7)?,
+            mix: vec![],
         })
     })?;
-    rows.collect()
+    let mut rows: Vec<GenLoadRow> = rows.collect::<rusqlite::Result<_>>()?;
+    // The mix of each area's latest interval, the one the totals above are for
+    let mut mix = c.prepare_cached(
+        "SELECT COALESCE(psr.psr_group, 'other'), SUM(g.value) FROM generation g
+         LEFT JOIN psr ON g.psr = psr.psr
+         WHERE g.area = ?1 AND g.period = ?2 AND g.interval = ?3 AND g.consumption = 0
+         GROUP BY 1 HAVING SUM(g.value) > 0 ORDER BY 2 DESC",
+    )?;
+    for r in &mut rows {
+        r.mix = mix
+            .query_map(params![r.area, r.period, r.interval], |x| {
+                Ok((x.get(0)?, x.get(1)?))
+            })?
+            .collect::<rusqlite::Result<_>>()?;
+    }
+    Ok(rows)
 }
 
 /// Start of the latest stored generation interval of an area (`BZN|SE1`)
@@ -1200,6 +1219,10 @@ mod tests {
         assert_eq!(se.generation_total, Some(450.0));
         assert_eq!(se.primary_psr_group.as_deref(), Some("water"));
         assert_eq!(se.load_total, Some(300.0));
+        assert_eq!(
+            se.mix,
+            vec![("water".to_string(), 300.0), ("nuclear".to_string(), 150.0)]
+        );
         // SE2 has load for period 2000 but generation only up to 1000: the load must
         // match the generation period, not be the newest load row
         let se2 = cur.iter().find(|r| r.area == "BZN|SE2").unwrap();

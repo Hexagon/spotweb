@@ -202,7 +202,10 @@
       "play": "Toista",
       "pause": "Tauko",
       "flows_future": "Siirrot tunnetaan vain tähän hetkeen asti",
-      "net_24h": "Nettovienti viimeiset 24 tuntia"
+      "net_24h": "Nettovienti viimeiset 24 tuntia",
+      "negative": "Negatiivinen hinta",
+      "all_equal": "Sama hinta kaikilla alueilla",
+      "vs_yesterday": "vs. eilen"
     },
     "share": {
       "share": "Jaa",
