@@ -93,19 +93,26 @@ pub fn client_ip(peer: IpAddr, headers: &HeaderMap, trusted: &[IpNet]) -> IpAddr
     if !is_trusted(peer) {
         return peer;
     }
-    let forwarded: Vec<IpAddr> = headers
+    // Entries from the right. Stop at the first one that is not an address: everything to the
+    // left of it was written by someone we do not trust, so it must not be skipped over.
+    let entries: Vec<&str> = headers
         .get_all("x-forwarded-for")
         .iter()
         .filter_map(|v| v.to_str().ok())
         .flat_map(|v| v.split(','))
-        .map_while(|ip| ip.trim().parse::<IpAddr>().ok())
-        .map(|ip| ip.to_canonical())
         .collect();
-    if let Some(ip) = forwarded.iter().rev().find(|ip| !is_trusted(**ip)) {
-        return *ip;
-    }
-    if let Some(ip) = forwarded.first() {
-        return *ip;
+    if !entries.is_empty() {
+        let mut client = peer;
+        for entry in entries.iter().rev() {
+            let Ok(ip) = entry.trim().parse::<IpAddr>() else {
+                break;
+            };
+            client = ip.to_canonical();
+            if !is_trusted(client) {
+                break;
+            }
+        }
+        return client;
     }
     headers
         .get("x-real-ip")
@@ -307,6 +314,20 @@ mod tests {
             client_ip(ip("127.0.0.1"), &h, &nets("127.0.0.1")),
             ip("127.0.0.1")
         );
+    }
+
+    #[test]
+    fn client_ip_ignores_garbage_left_of_proxy_entries() {
+        // nginx appends the peer to what the client sent: "<client junk>, <real client>"
+        let trusted = nets("127.0.0.1");
+        let mut h = HeaderMap::new();
+        h.insert(
+            "x-forwarded-for",
+            "6.6.6.6, unknown, 5.5.5.5".parse().unwrap(),
+        );
+        assert_eq!(client_ip(ip("127.0.0.1"), &h, &trusted), ip("5.5.5.5"));
+        h.insert("x-forwarded-for", "junk, 5.5.5.5".parse().unwrap());
+        assert_eq!(client_ip(ip("127.0.0.1"), &h, &trusted), ip("5.5.5.5"));
     }
 
     #[test]
