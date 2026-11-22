@@ -197,22 +197,51 @@ fn accept_lang(headers: &HeaderMap) -> Option<&'static str> {
     best.map(|b| b.1)
 }
 
+/// Search engine and link preview crawlers, by `User-Agent`
+pub fn is_crawler(headers: &HeaderMap) -> bool {
+    let Some(ua) = headers
+        .get(header::USER_AGENT)
+        .and_then(|v| v.to_str().ok())
+    else {
+        return false;
+    };
+    let ua = ua.to_ascii_lowercase();
+    [
+        "bot",
+        "crawler",
+        "spider",
+        "slurp",
+        "facebookexternalhit",
+        "mediapartners-google",
+        "google-inspectiontool",
+        "bingpreview",
+        "embedly",
+        "lighthouse",
+    ]
+    .iter()
+    .any(|m| ua.contains(m))
+}
+
 /// Language of a page: `?lang=`, then a language picked earlier (cookie), then the
-/// language of the url (`/sv/...`), then `Accept-Language`, falling back to English.
+/// browser language (`Accept-Language`), then the language of the url (`/sv/...`),
+/// falling back to English.
 ///
-/// A url that names a language always serves that language to visitors without a
-/// preference of their own, so crawlers see the same content as the `hreflang` tags claim.
+/// Crawlers get the language of the url before `Accept-Language`, so they see the same
+/// content as the `hreflang` tags claim. Visitors get their own browser language.
 pub fn detect_lang(uri: &Uri, headers: &HeaderMap) -> String {
+    let path = lang_from_path(uri.path());
+    let crawler = is_crawler(headers);
     query_lang(uri)
         .or_else(|| cookie_lang(headers))
-        .or_else(|| lang_from_path(uri.path()))
+        .or_else(|| path.filter(|_| crawler))
         .or_else(|| accept_lang(headers))
+        .or(path)
         .unwrap_or("en")
         .to_string()
 }
 
 /// Remember a language picked with `?lang=` on a page, so links without the parameter
-/// keep it. Crawlers do not keep cookies and always see the language of the url.
+/// keep it. Crawlers do not keep cookies and see the language of the url.
 async fn remember_lang(req: Request, next: axum::middleware::Next) -> Response {
     let lang = if req.uri().path().starts_with("/api/") {
         None

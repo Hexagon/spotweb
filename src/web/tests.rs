@@ -356,11 +356,27 @@ fn lang_detection() {
         "accept-language",
         HeaderValue::from_static("de-DE,de;q=0.9"),
     );
-    // A url with a language serves that language, whatever the browser asks for
-    assert_eq!(lang("/sv/SE1", &h), "sv");
+    // Visitors get their browser language, also on a url with a language
+    assert_eq!(lang("/sv/SE1", &h), "de");
     assert_eq!(lang("/", &h), "de");
     assert_eq!(lang("/pl/PL", &h), "de");
     assert_eq!(lang("/sv/SE1?lang=fi", &h), "fi");
+    // A browser language we do not have falls back to the language of the url
+    let mut pl = HeaderMap::new();
+    pl.insert("accept-language", HeaderValue::from_static("pl-PL"));
+    assert_eq!(lang("/sv/SE1", &pl), "sv");
+    assert_eq!(lang("/", &pl), "en");
+    // Crawlers see the language of the url, whatever they send in Accept-Language
+    let mut bot = h.clone();
+    bot.insert(
+        "user-agent",
+        HeaderValue::from_static(
+            "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+        ),
+    );
+    assert_eq!(lang("/sv/SE1", &bot), "sv");
+    assert_eq!(lang("/", &bot), "de");
+    assert_eq!(lang("/sv/SE1?lang=fi", &bot), "fi");
     // Danish and Norwegian browsers, and q-values
     h.insert(
         "accept-language",
