@@ -382,14 +382,25 @@ pub fn router(app: App) -> Router {
     for file in Static::iter() {
         r = r.route(&format!("/{file}"), get(static_handler));
     }
-    r.fallback(pages::not_found)
-        .layer(axum::middleware::from_fn(api_etag))
+    with_middleware(r.fallback(pages::not_found), state, REQUEST_TIMEOUT)
+}
+
+/// Longest time a request may take before it is answered with `503 Service Unavailable`
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// The middleware stack around every route. A request that takes longer than `timeout` gets
+/// 503: the server, not the client, was too slow, and 408 would invite clients and proxies to
+/// resend at once. 503 rather than 504, because 504 means an upstream gateway timed out, and in
+/// front of spotweb that is what the reverse proxy itself answers. The timeout is inside
+/// `metrics::track`, so it is counted as a 5xx.
+fn with_middleware(r: Router<WebState>, state: WebState, timeout: Duration) -> Router {
+    r.layer(axum::middleware::from_fn(api_etag))
         .layer(axum::middleware::from_fn(remember_lang))
         .layer(axum::middleware::from_fn(security_headers))
         .layer(CompressionLayer::new())
         .layer(TimeoutLayer::with_status_code(
-            StatusCode::REQUEST_TIMEOUT,
-            Duration::from_secs(30),
+            StatusCode::SERVICE_UNAVAILABLE,
+            timeout,
         ))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
