@@ -3,6 +3,11 @@
 (() => {
   "use strict";
 
+  // Only set while the script runs for the first time, so read it before anything else
+  const thisScript = document.currentScript;
+  const apexSrc = thisScript ? thisScript.dataset.apexcharts : "";
+  const apexNonce = thisScript ? thisScript.nonce : "";
+
   const bootEl = document.getElementById("sw-boot");
   if (!bootEl) return;
   const boot = JSON.parse(bootEl.textContent);
@@ -176,17 +181,62 @@
   };
   const priceFmt = (v) => `${new Intl.NumberFormat(locale, { minimumFractionDigits: prefs.decimals, maximumFractionDigits: prefs.decimals }).format(v)} ${unit()}`;
   const mwText = (v) => `${mw(v)} MW`;
-  const draw = (id, options, fmt = priceFmt) => {
-    const el = $(`[data-chart="${id}"]`);
-    if (!el || typeof ApexCharts === "undefined") return;
+  // ApexCharts (about 540 kB) is loaded on demand, when the first chart of the page comes into
+  // view. The page's nonce is passed on for browsers without 'strict-dynamic'.
+  let apexLoading = null;
+  const loadApex = () => {
+    if (typeof ApexCharts !== "undefined") return Promise.resolve();
+    if (!apexLoading) {
+      apexLoading = new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = apexSrc;
+        if (apexNonce) s.nonce = apexNonce;
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => { apexLoading = null; s.remove(); reject(new Error("Could not load ApexCharts")); };
+        document.head.appendChild(s);
+      });
+    }
+    return apexLoading;
+  };
+  // Latest options of charts that are not drawn yet, and the chart elements that have been in view
+  const pending = {};
+  const seen = new WeakSet();
+  const showChart = (id) => loadApex().then(() => {
+    const p = pending[id];
+    if (!p) return;
+    delete pending[id];
+    const [el, options, fmt] = p;
     if (charts[id]) { charts[id].destroy(); delete charts[id]; }
     el.innerHTML = "";
-    const hasData = (options.series || []).some((s) => s.data && s.data.length);
     el.setAttribute("role", "img");
-    if (!hasData) { el.innerHTML = `<div class="chart-empty muted">-</div>`; el.setAttribute("aria-label", t("a11y.no_data")); return; }
     el.setAttribute("aria-label", chartSummary(el, options.series, fmt));
     charts[id] = new ApexCharts(el, options);
     charts[id].render();
+  }).catch((e) => console.error(e));
+  const chartObserver = "IntersectionObserver" in window ? new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      chartObserver.unobserve(e.target);
+      seen.add(e.target);
+      showChart(e.target.dataset.chart);
+    }
+  }, { rootMargin: "200px" }) : null;
+  const draw = (id, options, fmt = priceFmt) => {
+    const el = $(`[data-chart="${id}"]`);
+    if (!el || !apexSrc) return;
+    const hasData = (options.series || []).some((s) => s.data && s.data.length);
+    if (!hasData) {
+      delete pending[id];
+      if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+      el.innerHTML = `<div class="chart-empty muted">-</div>`;
+      el.setAttribute("role", "img");
+      el.setAttribute("aria-label", t("a11y.no_data"));
+      return;
+    }
+    pending[id] = [el, options, fmt];
+    if (seen.has(el) || !chartObserver) showChart(id);
+    else chartObserver.observe(el);
   };
   const toSeries = (points, shift = 0) => points.map((p) => ({ x: p[0] + shift, y: priceRounded(p[1]) }));
   const unitTooltip = (o) => { o.tooltip.y = { formatter: (v) => (v === null || v === undefined ? "-" : `${Number(v).toFixed(prefs.decimals)} ${unit()}`) }; return o; };
@@ -264,7 +314,13 @@
   const apiCache = {};
   const fetchSpot = (area, period, start, end) => {
     const url = `/api/v2/spot?${new URLSearchParams({ area, period, startDate: start, endDate: end })}`;
-    if (!apiCache[url]) apiCache[url] = fetch(url).then((r) => r.json()).then((j) => (j.status === "ok" ? j.data : []));
+    if (!apiCache[url]) {
+      // A failed request is forgotten, so the next draw tries again
+      apiCache[url] = fetch(url)
+        .then((r) => { if (r.status >= 500) throw new Error(`${url}: HTTP ${r.status}`); return r.json(); })
+        .then((j) => (j.status === "ok" ? j.data : []))
+        .catch((e) => { delete apiCache[url]; throw e; });
+    }
     return apiCache[url];
   };
   const tomorrowIso = () => { const d = new Date(); d.setDate(d.getDate() + 1); return isoDate(d); };
