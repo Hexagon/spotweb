@@ -69,6 +69,77 @@ Varje punkt är tänkt att bli en egen PR.
 22. ✅ ~~**Ljust tema** som följer `prefers-color-scheme`.~~
 23. **Docker-image i GHCR**, signerad med cosign.
 
+## Nya punkter efter 2.2.0 (genomgång 21 nov 2026)
+
+Bygget, clippy och de 72 testerna är gröna. Punkterna nedan kommer från en genomgång av koden.
+
+### P1 – Fel och risker
+
+25. **Webpulse-skriptet är hårdkodat för alla installationer.** `templates/base.html` laddar alltid
+    `track.webpulseanalytics.com/client/653eb4…`, oavsett konfiguration. Den som kör en egen spotweb skickar alltså
+    besöksdata till spot.56k.gurus konto. Åtgärd: `SPOTWEB_WEBPULSE_ID` som `SPOTWEB_GA_ID`, utan skriptet när den
+    saknas. Dokumentera variabeln i `deploy/spotweb.env.example`.
+26. **Avbrutna jobb står som `running`.** Körningarna startas med `tokio::spawn` och avbryts när processen stängs
+    (omstart, driftsättning). Raden i `job_run` får aldrig `finished`, och `/api/v2/status` visar `running` tills
+    jobbet körs nästa gång. För avbrottsjobbet (08:05) kan det dröja ett dygn. Åtgärd: markera rader utan `finished`
+    som `interrupted` när servern startar, och låt avstängningen vänta en kort stund på pågående jobb.
+27. **Avbrott: återkallade dokument och flera TimeSeries.** `parse_unavailability` läser inte `docStatus`, så avbrott
+    som ENTSO-e har återkallat (A13) eller avbokat (A09) kan visas som pågående. Dessutom får varje TimeSeries i ett
+    dokument samma `mrid`. `replace_outages` hoppar därför över alla utom den första, eftersom revisionen redan är
+    sparad. Sidbläddringen slutar också tyst efter 10 sidor (2 000 dokument). Åtgärd: filtrera eller markera på
+    `docStatus`, lägg till TimeSeries-index i nyckeln (ny migration), och logga en varning när sidgränsen nås.
+28. **Gamla avbrott rensas aldrig.** `outage` och `outage_availability` växer för alltid, medan `job_run` rensas
+    efter 30 dagar. Åtgärd: ta bort avbrott som slutade för mer än cirka 90 dagar sedan, i samma transaktion som
+    `replace_outages`.
+29. **`panic = "abort"` i release.** En panik i en enda request (t.ex. en `expect` i `pages.rs` eller ett oväntat
+    kantfall i jiff/minijinja) tar ner hela processen, med pågående jobb. Systemd startar om, men det ger avbrott och
+    leder till punkt 26. Åtgärd: byt till `unwind` (binären blir lite större). Tokio och axum fångar då paniken per
+    request och task.
+
+### P2 – Prestanda och drift
+
+30. **Ingen gemensam laddning i cachen.** `Cache::get_or_load` släpper låset medan frågan körs. När en nyckel går ut
+    kör därför alla samtidiga anrop samma fråga (t.ex. när många flikar laddas om på hel timme). Dessutom tömmer
+    `MAX_ENTRIES_PER_REALM` hela realmen när den är full, så en crawler med många olika datumintervall tömmer cachen
+    för alla. Åtgärd: en delad laddning per nyckel (`tokio::sync::OnceCell` eller en `Shared`-future), och ta bort de
+    äldsta posterna i stället för att tömma allt.
+31. **Ingen begränsning av anrop till API:t.** Varken spotweb eller exemplen för nginx och Caddy begränsar antalet anrop
+    per klient. Åtgärd: `limit_req` i `deploy/nginx/spotweb.conf` och `rate_limit` (plugin) eller en kommentar i
+    Caddyfile. Alternativt en enkel token bucket per IP i spotweb för `/api/`, som svarar 429.
+32. **ApexCharts (540 kB, cirka 150 kB komprimerat) laddas på varje sida**, även där inga diagram ritas (Hjälp,
+    Home Assistant, 404). Version 3.54.1 är vendrad och följs inte av Dependabot. Åtgärd: ladda biblioteket bara på
+    sidor med diagram, gärna först när diagrammet syns. Lägg till en notering eller ett skript för att uppdatera det.
+33. **Statiska filer cachas med `?v={version}`.** Två driftsättningar med samma version ger gammal `app.js` och
+    `spotweb.css` i upp till en vecka (`max-age=604800`). Åtgärd: använd filens hash (finns redan i rust-embed för
+    ETag) som `?v=`, och sätt `immutable` på `/assets/`.
+34. **musl-binärerna använder musl:s malloc**, som är känd för att vara långsam med många trådar. Det gäller både
+    release och Docker-imagen. Åtgärd: mimalloc som global allokator, åtminstone för musl-målen. Mät minne och
+    svarstider före och efter.
+35. **Backupen kontrolleras inte.** `backup_to` skriver en kopia men läser den aldrig. Åtgärd: kör
+    `PRAGMA quick_check` på den okomprimerade kopian innan den komprimeras eller döps om, och låt tjänsten misslyckas
+    om kontrollen inte går igenom. Lägg gärna till ett återläsningstest i dokumentationen.
+36. **Varning när `SPOTWEB_PUBLIC_URL` saknas.** Då byggs canonical, Open Graph, sitemap och robots från
+    `Host` och `X-Forwarded-Proto` i anropet. Det är escapat, men en felkonfigurerad proxy ger fel adresser i
+    sökmotorerna. Åtgärd: logga en varning vid start, som för `API_TOKEN`.
+37. **Docker-bygget cachar inte beroenden.** `COPY . .` före `cargo build` gör att varje kodändring bygger om alla
+    crates. Åtgärd: bygg beroendena i ett eget lager, eller använd `--mount=type=cache` för `~/.cargo` och `target`.
+    Hör ihop med punkt 23.
+
+### P3 – Kvalitet och små förbättringar
+
+38. **Misslyckade API-anrop i klienten cachas för alltid.** `fetchSpot` i `app.js` sparar promisen, även när den
+    misslyckas. Ett tillfälligt nätverksfel ger tomma diagram tills sidan laddas om. Åtgärd: ta bort posten ur
+    `apiCache` när anropet misslyckas.
+39. **Okänt elområde i `/api/v2/spot` svarar `ok` med tom data.** Ett stavfel (`area=SE5`) går inte att skilja från
+    data som saknas. Åtgärd: svara `"Unknown area"` som för okänd valuta. Kontrollera först att 1.x inte accepterade
+    andra namn.
+40. **Odokumenterade variabler.** `SPOTWEB_NO_SCHEDULER`, `SPOTWEB_ENTSOE_ENDPOINT`, `SPOTWEB_ECB_ENDPOINT` och
+    `SPOTWEB_API_TOKEN` (alias för `API_TOKEN`) nämns inte i README eller `docs/deployment.md`.
+41. **Timeout-svaret är 408.** `TimeoutLayer` svarar `408 Request Timeout` när servern är långsam, men 408 betyder att
+    klienten var för långsam. Proxyer och klienter kan då göra om anropet automatiskt. Åtgärd: 503 eller 504.
+42. **Timvis omladdning av hela sidan.** Klienten laddar om sidan varje hel timme för att få ny data. Det ger ny
+    sidvisning, laddar om annonserna och ritar om allt. Åtgärd (större): hämta bara ny boot-data som JSON och rita om.
+
 ## Ny startsida
 
 - ✅ Startsidan är en karta över elområdena med pris just nu (färgskala billigt–dyrt) och pilar för fysiskt nettoflöde
