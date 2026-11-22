@@ -204,8 +204,19 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now spotweb spotweb-backup.timer
 ```
 
-Put Caddy (`deploy/caddy/Caddyfile`) or nginx (`deploy/nginx/spotweb.conf`) in front for TLS. A `Dockerfile` and
-`docker-compose.yml` are included as an alternative.
+Put Caddy (`deploy/caddy/Caddyfile`) or nginx (`deploy/nginx/spotweb.conf`) in front for TLS.
+
+### Docker
+
+A signed multi-arch image (amd64, arm64) is published to GHCR with each release after 2.2.0. Verify it with cosign and
+run it (details and `docker-compose.yml` in [docs/deployment.md](docs/deployment.md#docker)):
+
+```sh
+cosign verify ghcr.io/hexagon/spotweb:2.3.0 \
+  --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+docker run -d -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.3.0
+```
 
 ## Development
 
