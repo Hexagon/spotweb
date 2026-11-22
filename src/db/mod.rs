@@ -142,6 +142,49 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
     CREATE INDEX load_period ON load (period);
     "#,
     ),
+    (
+        5,
+        "outage time series index and document status",
+        // One unavailability document can hold several TimeSeries, so the key becomes
+        // (mrid, ts). Stored revisions are cleared so every document is written again,
+        // with all its TimeSeries, the next time it is fetched.
+        r#"
+    CREATE TABLE outage_new (
+        mrid                   TEXT    NOT NULL,
+        ts                     INTEGER NOT NULL DEFAULT 0,
+        revision               INTEGER,
+        doc_status             TEXT,
+        business_type          TEXT,
+        document_type          TEXT,
+        start_date             INTEGER,
+        end_date               INTEGER,
+        resource_name          TEXT,
+        location               TEXT,
+        country                TEXT,
+        psr_name               TEXT,
+        psr_nominal_power_unit TEXT,
+        psr_nominal_power      REAL,
+        psr_type               TEXT,
+        reason_code            TEXT,
+        reason_text            TEXT,
+        PRIMARY KEY (mrid, ts)
+    );
+    INSERT INTO outage_new (mrid, ts, revision, business_type, document_type, start_date, end_date,
+        resource_name, location, country, psr_name, psr_nominal_power_unit, psr_nominal_power, psr_type,
+        reason_code, reason_text)
+    SELECT mrid, 0, NULL, business_type, document_type, start_date, end_date,
+        resource_name, location, country, psr_name, psr_nominal_power_unit, psr_nominal_power, psr_type,
+        reason_code, reason_text
+    FROM outage;
+    DROP TABLE outage;
+    ALTER TABLE outage_new RENAME TO outage;
+    CREATE INDEX outage_country_dates ON outage (country, start_date, end_date);
+
+    ALTER TABLE outage_availability ADD COLUMN ts INTEGER NOT NULL DEFAULT 0;
+    DROP INDEX outage_availability_mrid;
+    CREATE INDEX outage_availability_mrid ON outage_availability (mrid, ts);
+    "#,
+    ),
 ];
 
 /// See [`Db::optimize`]

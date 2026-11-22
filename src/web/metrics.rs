@@ -1,4 +1,4 @@
-//! HTTP request statistics: count, response time (p50/p95) and 4xx/5xx per route.
+//! HTTP request statistics: count, response time (p50/p95), 4xx/5xx and 429 per route.
 //!
 //! Kept in memory, since start and for the last whole minute. A summary is logged once a minute
 //! (`SPOTWEB_HTTP_SUMMARY_SECS`, `0` turns it off) and every request can be logged as well
@@ -40,6 +40,8 @@ pub struct RouteStats {
     pub requests: u64,
     pub client_errors: u64,
     pub server_errors: u64,
+    /// `429 Too Many Requests` (also counted in `client_errors`)
+    pub rate_limited: u64,
     buckets: [u64; BUCKETS_MS.len()],
 }
 
@@ -47,6 +49,10 @@ impl RouteStats {
     fn record(&mut self, status: u16, elapsed: Duration) {
         self.requests += 1;
         match status {
+            429 => {
+                self.client_errors += 1;
+                self.rate_limited += 1;
+            }
             400..=499 => self.client_errors += 1,
             500..=599 => self.server_errors += 1,
             _ => {}
@@ -63,6 +69,7 @@ impl RouteStats {
         self.requests += other.requests;
         self.client_errors += other.client_errors;
         self.server_errors += other.server_errors;
+        self.rate_limited += other.rate_limited;
         for (a, b) in self.buckets.iter_mut().zip(other.buckets.iter()) {
             *a += b;
         }
@@ -92,6 +99,7 @@ impl RouteStats {
             "p95_ms": self.quantile_ms(0.95),
             "4xx": self.client_errors,
             "5xx": self.server_errors,
+            "429": self.rate_limited,
         })
     }
 }
@@ -216,18 +224,26 @@ pub fn summary_line(routes: &Routes) -> Option<String> {
             if v.server_errors > 0 {
                 s.push_str(&format!(", {} 5xx", v.server_errors));
             }
+            if v.rate_limited > 0 {
+                s.push_str(&format!(", {} 429", v.rate_limited));
+            }
             s.push(')');
             s
         })
         .collect::<Vec<_>>()
         .join(", ");
     Some(format!(
-        "{} requests, p50 {} ms, p95 {} ms, {} 4xx, {} 5xx; {top}",
+        "{} requests, p50 {} ms, p95 {} ms, {} 4xx, {} 5xx{}; {top}",
         t.requests,
         ms(t.quantile_ms(0.5)),
         ms(t.quantile_ms(0.95)),
         t.client_errors,
         t.server_errors,
+        if t.rate_limited > 0 {
+            format!(" ({} 429)", t.rate_limited)
+        } else {
+            String::new()
+        },
     ))
 }
 
@@ -298,8 +314,10 @@ mod tests {
         assert_eq!(r.quantile_ms(0.95), Some(500));
         r.record(404, Duration::from_secs(40));
         r.record(503, Duration::from_millis(1));
-        assert_eq!(r.requests, 12);
-        assert_eq!((r.client_errors, r.server_errors), (1, 1));
+        r.record(429, Duration::from_millis(1));
+        assert_eq!(r.requests, 13);
+        assert_eq!((r.client_errors, r.server_errors), (2, 1));
+        assert_eq!(r.rate_limited, 1);
         assert_eq!(r.quantile_ms(1.0), None);
     }
 

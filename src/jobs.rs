@@ -195,11 +195,11 @@ pub async fn run(app: &App, job: Job, scheduled: bool) -> anyhow::Result<String>
             .await?;
         tracing::info!(job = job.name(), attempt, "job started");
         let t0 = Instant::now();
-        let result = match tokio::time::timeout(job.timeout(), run_inner(app, job, scheduled)).await
-        {
-            Ok(r) => r,
-            Err(_) => Err(anyhow::anyhow!("timed out after {:?}", job.timeout())),
-        };
+        let app2 = app.clone();
+        let result = isolated(job.timeout(), async move {
+            run_inner(&app2, job, scheduled).await
+        })
+        .await;
         // A failed run may have written part of its data before failing
         let changed = result.as_ref().map(|o| o.changed).unwrap_or(true);
         if changed {
@@ -252,6 +252,50 @@ pub async fn run(app: &App, job: Job, scheduled: bool) -> anyhow::Result<String>
         }
     }
     Err(last_err.unwrap_or_else(|| anyhow::anyhow!("job failed")))
+}
+
+/// Aborts the task when dropped: on a timeout, and when the run itself is cancelled
+struct AbortOnDrop<T>(tokio::task::JoinHandle<T>);
+
+impl<T> Drop for AbortOnDrop<T> {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
+}
+
+/// Run `work` in its own task with a timeout, so a panic fails the run instead of leaving it
+/// `running` (and taking the caller down with it)
+async fn isolated<T: Send + 'static>(
+    limit: Duration,
+    work: impl Future<Output = anyhow::Result<T>> + Send + 'static,
+) -> anyhow::Result<T> {
+    let mut task = AbortOnDrop(tokio::spawn(work));
+    match tokio::time::timeout(limit, &mut task.0).await {
+        Ok(Ok(r)) => r,
+        Ok(Err(e)) if e.is_panic() => Err(anyhow::anyhow!(
+            "panicked: {}",
+            panic_message(e.into_panic().as_ref())
+        )),
+        Ok(Err(e)) => Err(anyhow::anyhow!("aborted: {e}")),
+        Err(_) => Err(anyhow::anyhow!("timed out after {limit:?}")),
+    }
+}
+
+fn panic_message(p: &(dyn std::any::Any + Send)) -> &str {
+    p.downcast_ref::<&str>()
+        .copied()
+        .or_else(|| p.downcast_ref::<String>().map(String::as_str))
+        .unwrap_or("unknown panic")
+}
+
+/// Wait until no job is running, at most `limit`. Returns `false` if some job was still running.
+pub async fn wait_until_idle(app: &App, limit: Duration) -> bool {
+    let all = async {
+        for lock in app.job_locks.0.values() {
+            let _ = lock.lock().await;
+        }
+    };
+    tokio::time::timeout(limit, all).await.is_ok()
 }
 
 async fn run_inner(app: &App, job: Job, scheduled: bool) -> anyhow::Result<Outcome> {
@@ -891,7 +935,7 @@ async fn update_outages(app: &App) -> anyhow::Result<Outcome> {
             let cid = country.id;
             let n = app
                 .db
-                .run(move |c| Ok(queries::replace_outages(c, cid, &outages)?))
+                .run(move |c| Ok(queries::replace_outages(c, cid, &outages, now_ms())?))
                 .await?;
             Ok(Rows(n, "outage"))
         }
@@ -1087,8 +1131,11 @@ pub async fn start_scheduler(app: App) -> anyhow::Result<Scheduler> {
     let app3 = app.clone();
     tasks.spawn(async move {
         tokio::time::sleep(Duration::from_secs(5)).await;
-        let _ = run(&app3, Job::Currency, false).await;
-        let _ = run(&app3, Job::Prices, false).await;
+        // Detached like the scheduled runs, so stopping the scheduler does not cancel it mid-run
+        tokio::spawn(async move {
+            let _ = run(&app3, Job::Currency, false).await;
+            let _ = run(&app3, Job::Prices, false).await;
+        });
     });
     Ok(Scheduler { tasks })
 }
@@ -1285,6 +1332,23 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn isolated_catches_panic_and_timeout() {
+        let r = isolated(Duration::from_secs(5), async { Ok(1) }).await;
+        assert_eq!(r.unwrap(), 1);
+        let r: anyhow::Result<()> = isolated(Duration::from_secs(5), async {
+            panic!("boom {}", 42);
+        })
+        .await;
+        assert_eq!(r.unwrap_err().to_string(), "panicked: boom 42");
+        let r: anyhow::Result<()> = isolated(Duration::from_millis(10), async {
+            tokio::time::sleep(Duration::from_secs(60)).await;
+            Ok(())
+        })
+        .await;
+        assert!(r.unwrap_err().to_string().starts_with("timed out"));
+    }
+
     #[test]
     fn retry_policy() {
         use crate::entsoe::RequestError as E;
@@ -1390,6 +1454,8 @@ mod tests {
             schedule_tz: stockholm(),
             history_start: today(&stockholm()),
             csp: crate::web::Csp::Enforce,
+            api_rate_limit: None,
+            trusted_proxies: vec![],
         };
         let mut app = App::new(Db::open_memory(), cfg).unwrap();
         let entsoe = crate::entsoe::Client::with_endpoint(

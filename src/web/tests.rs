@@ -20,6 +20,8 @@ fn test_app() -> App {
         schedule_tz: crate::timeutil::stockholm(),
         history_start: jiff::civil::date(2021, 1, 1),
         csp: crate::web::Csp::Enforce,
+        api_rate_limit: None,
+        trusted_proxies: vec![],
     };
     let app = App::new(db, cfg).unwrap();
     // Seed: SE1 today + tomorrow at 15 minutes, exchange rates
@@ -307,6 +309,39 @@ async fn redirects_static_and_404() {
     assert_eq!(s, StatusCode::SERVICE_UNAVAILABLE);
     assert!(body.contains("no generation data"));
     assert_eq!(h["cache-control"], "no-store");
+}
+
+#[tokio::test]
+async fn assets_are_versioned_by_content_hash() {
+    let app = test_app();
+    let url = super::asset_url("assets/app.js");
+    let (path, hash) = url.split_once("?v=").unwrap();
+    assert_eq!(path, "/assets/app.js");
+    assert_eq!(hash.len(), 24);
+    // Pages link assets by hash; ApexCharts is only named for app.js to load on demand
+    let (_, body, _) = get(&app, "/help").await;
+    assert!(body.contains(&format!(r#"<script src="{url}""#)));
+    assert!(body.contains(&format!(
+        r#"href="{}""#,
+        super::asset_url("assets/spotweb.css")
+    )));
+    assert!(body.contains(&format!(
+        r#"data-apexcharts="{}""#,
+        super::asset_url("assets/vendor/apexcharts.min.js")
+    )));
+    assert!(!body.contains(r#"<script src="/assets/vendor/apexcharts"#));
+    // The current hash is immutable, anything else is cached for a week
+    let (s, _, h) = get(&app, &url).await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(h["cache-control"], "public, max-age=31536000, immutable");
+    assert_eq!(h["etag"], format!("\"{hash}\""));
+    let (_, _, h) = get(&app, "/assets/app.js?v=2.2.0").await;
+    assert_eq!(h["cache-control"], "public, max-age=604800");
+    let (_, _, h) = get(&app, "/assets/app.js").await;
+    assert_eq!(h["cache-control"], "public, max-age=604800");
+    // Outside /assets/ the hash changes nothing
+    let (_, _, h) = get(&app, &super::asset_url("manifest.json")).await;
+    assert_eq!(h["cache-control"], "public, max-age=3600");
 }
 
 #[test]
@@ -926,4 +961,92 @@ async fn webpulse_script_only_when_configured() {
          type=\"module\" nonce=\"{nonce}\">"
     );
     assert!(body.contains(&tag), "{body}");
+}
+
+#[tokio::test]
+async fn api_rate_limit_answers_429_and_is_counted() {
+    use axum::extract::ConnectInfo;
+    use std::net::SocketAddr;
+
+    let mut app = test_app();
+    let inner = std::sync::Arc::get_mut(&mut app.0).unwrap();
+    inner.api_rate_limiter = Some(super::ratelimit::RateLimiter::new(
+        2,
+        super::ratelimit::parse_trusted_proxies("127.0.0.1").unwrap(),
+    ));
+    let send = |peer: &str, uri: &str, xff: Option<&str>| {
+        let mut req = Request::builder().uri(uri);
+        if let Some(x) = xff {
+            req = req.header("x-forwarded-for", x);
+        }
+        let mut req = req.body(Body::empty()).unwrap();
+        req.extensions_mut()
+            .insert(ConnectInfo(peer.parse::<SocketAddr>().unwrap()));
+        super::router(app.clone()).oneshot(req)
+    };
+    for _ in 0..2 {
+        let res = send("192.0.2.1:1000", "/api/v2/status", None)
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+    let res = send("192.0.2.1:1001", "/api/v2/status", None)
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(res.headers()["retry-after"], "30");
+    assert_eq!(res.headers()["x-content-type-options"], "nosniff");
+    let body = res.into_body().collect().await.unwrap().to_bytes();
+    let v: Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(v["status"], "error");
+    // Pages are not limited
+    let res = send("192.0.2.1:1002", "/robots.txt", None).await.unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    // X-Forwarded-For from an untrusted peer is ignored
+    let res = send("192.0.2.1:1003", "/api/v2/status", Some("198.51.100.7"))
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::TOO_MANY_REQUESTS);
+    // Behind the trusted proxy every client has its own bucket
+    for client in ["198.51.100.7", "198.51.100.7", "198.51.100.8"] {
+        let res = send("127.0.0.1:2000", "/api/v2/status", Some(client))
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK, "{client}");
+    }
+    let res = send("127.0.0.1:2000", "/api/v2/status", Some("198.51.100.7"))
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::TOO_MANY_REQUESTS);
+
+    let stats = app.http_stats.to_json();
+    let status = &stats["routes"]["/api/v2/status"];
+    assert_eq!(status["requests"], 8, "{stats}");
+    assert_eq!(status["4xx"], 3, "{stats}");
+    assert_eq!(status["429"], 3, "{stats}");
+}
+
+#[tokio::test]
+async fn panicking_handler_answers_500() {
+    let app = test_app();
+    let state = super::WebState {
+        env: std::sync::Arc::new(super::template_env(&app)),
+        app,
+    };
+    let r = axum::Router::new().route(
+        "/boom",
+        axum::routing::get(|| async {
+            if true {
+                panic!("boom");
+            }
+            "unreachable"
+        }),
+    );
+    let res = super::layers(r, state)
+        .oneshot(Request::builder().uri("/boom").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    // The usual headers are still there
+    assert!(res.headers().contains_key("x-content-type-options"));
 }

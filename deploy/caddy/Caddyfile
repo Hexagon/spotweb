@@ -2,4 +2,21 @@
 spot.example.com {
 	reverse_proxy 127.0.0.1:6000
 	header Strict-Transport-Security "max-age=31536000"
+
+	# Caddy has no rate limiting built in. Either let spotweb do it (SPOTWEB_API_RATE_LIMIT=60 and
+	# SPOTWEB_TRUSTED_PROXIES=127.0.0.1,::1 in spotweb.env), or build Caddy with the rate_limit
+	# plugin (xcaddy build --with github.com/mholt/caddy-ratelimit), put `order rate_limit before
+	# reverse_proxy` in the global options block and uncomment this (60 API requests per minute
+	# and client, answered with 429 and Retry-After over that):
+	#
+	# rate_limit {
+	# 	zone spotweb_api {
+	# 		match {
+	# 			path /api/*
+	# 		}
+	# 		key {remote_host}
+	# 		events 60
+	# 		window 1m
+	# 	}
+	# }
 }
