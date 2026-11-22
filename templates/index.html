@@ -23,6 +23,16 @@
       </div>
       <div class="map-zoom-hint" hidden>{{ t("map.zoom_hint") }}</div>
     </div>
+    <div class="map-time" data-map-time hidden>
+      <button type="button" class="map-play" data-map-play aria-label="{{ t('map.play') }}" title="{{ t('map.play') }}">&#9654;</button>
+      <div class="map-slider">
+        <input type="range" min="0" max="191" step="1" value="0" data-map-slider aria-label="{{ t('map.time') }}">
+        <span class="map-now-tick" data-map-now-tick aria-hidden="true"></span>
+        <div class="map-slider-days muted small" aria-hidden="true"><span>{{ t("chart.today") }}</span><span>{{ t("chart.tomorrow") }}</span></div>
+      </div>
+      <output class="map-time-label" data-map-time-label></output>
+      <button type="button" class="map-live" data-map-live>{{ t("chart.now") }}</button>
+    </div>
     <footer class="map-foot">
       <div class="map-legend" aria-hidden="true">
         <span class="muted small">{{ t("map.cheap") }}</span>
@@ -78,6 +88,10 @@
     <div class="zone-section">
       <h3>{{ t("map.flows") }} <span class="muted small" data-zone-flow-total></span></h3>
       <ul class="flow-list" data-zone-flows></ul>
+      <div class="flow-spark" data-zone-spark hidden>
+        <div class="muted small" data-zone-spark-title>{{ t("map.net_24h") }}</div>
+        <svg viewBox="0 0 240 40" preserveAspectRatio="none" role="img" data-zone-spark-svg></svg>
+      </div>
     </div>
     <a class="card-foot" data-zone-link href="/">{{ t("overview.more_about") }} <span data-zone-name></span> &rsaquo;</a>
   </aside>

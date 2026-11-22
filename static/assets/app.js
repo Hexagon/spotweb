@@ -656,6 +656,33 @@ series:
     const v = boot.upcoming ? nowFromRows(boot.upcoming[name], Date.now()) : null;
     return v !== null && v !== undefined ? v : z ? z.now : null;
   };
+  // Price of a zone at the time chosen on the slider (`map.time`), or right now
+  const zoneAt = (name) => {
+    if (map.time === null || map.time === undefined) return zoneNow(name);
+    const z = boot.zones[name];
+    if (!z) return null;
+    for (const d of [z.today, z.tomorrow]) {
+      const p = d && d.points.find((x) => x[0] <= map.time && map.time < x[0] + d.interval);
+      if (p) return p[1];
+    }
+    return null;
+  };
+  // Net flow per border at the chosen time: the latest values when live, otherwise the hourly
+  // average of that hour. There are no flows for the future.
+  const HOUR = 3600000;
+  const mapBorders = () => {
+    if (map.time === null || map.time === undefined) return (boot.flows && boot.flows.borders) || [];
+    const fh = boot.flow_hours;
+    const i = fh ? fh.times.indexOf(map.time - (((map.time % HOUR) + HOUR) % HOUR)) : -1;
+    if (i < 0) return [];
+    const out = [];
+    for (const b of fh.borders) {
+      const v = b.values[i];
+      if (v === null || v === undefined) continue;
+      out.push(v >= 0 ? { from: b.a, to: b.b, value: v } : { from: b.b, to: b.a, value: -v });
+    }
+    return out;
+  };
   const zoneLabel = (name) => (boot.zones[name] ? `${name} – ${boot.zones[name].long}` : `${name} – ${(boot.neighbours || {})[name] || ""}`);
 
   const mapSetup = () => {
@@ -722,10 +749,10 @@ series:
       const target = e.target.closest("[data-area],[data-ext],[data-flow]");
       if (!target || e.pointerType === "touch" || drag) { map.tip.hidden = true; return; }
       if (target.dataset.flow) {
-        showTip(e, flowTip(boot.flows.borders[Number(target.dataset.flow)]));
+        showTip(e, flowTip(map.borders[Number(target.dataset.flow)]));
       } else if (target.dataset.area) {
         const n = target.dataset.area;
-        showTip(e, `<strong>${esc(zoneLabel(n))}</strong><br>${price(zoneNow(n))} ${esc(unit())}`);
+        showTip(e, `<strong>${esc(zoneLabel(n))}</strong><br>${price(zoneAt(n))} ${esc(unit())}`);
       } else {
         showTip(e, `<strong>${esc(zoneLabel(target.dataset.ext))}</strong>`);
       }
@@ -909,8 +936,73 @@ series:
     map.selected = initial || Object.keys(boot.zones)[0];
     $("#zone-select").value = map.selected;
     window.addEventListener("hashchange", () => { const n = decodeURIComponent(location.hash.slice(1)).toUpperCase(); if (boot.zones[n]) select(n, false); });
+    mapTimeSetup(app);
     map.ready = true;
     return true;
+  };
+
+  // ------------------------------------------------------------ time slider
+  // Today 00:00 to tomorrow 24:00 (the visitor's time) in quarters. The map shows prices for the
+  // chosen time, and flows up to now. `map.time` is null when following the clock.
+  map.time = null;
+  const QUARTER = 900000;
+  const sliderStart = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const nowStep = () => Math.floor((Date.now() - sliderStart()) / QUARTER);
+  let playTimer = 0;
+  const mapTimeSetup = (app) => {
+    const box = $("[data-map-time]", app);
+    if (!box) return;
+    box.hidden = false;
+    const slider = $("[data-map-slider]", box);
+    const play = $("[data-map-play]", box);
+    const setTime = (step) => {
+      const st = Math.max(0, Math.min(Number(slider.max), step));
+      map.time = st === nowStep() ? null : sliderStart() + st * QUARTER;
+      mapColors();
+      mapOverlay();
+      mapTimeUi();
+    };
+    const stop = () => {
+      clearInterval(playTimer);
+      playTimer = 0;
+      play.innerHTML = "&#9654;";
+      play.setAttribute("aria-label", t("map.play"));
+      play.title = t("map.play");
+    };
+    map.stopPlay = stop;
+    slider.addEventListener("input", () => { stop(); setTime(Number(slider.value)); });
+    $("[data-map-live]", box).addEventListener("click", () => { stop(); setTime(nowStep()); });
+    // Plays an hour at a time from the chosen time (from the start at the end) to the end
+    play.addEventListener("click", () => {
+      if (playTimer) { stop(); return; }
+      let st = Number(slider.value);
+      if (st >= Number(slider.max) - 4) st = 0;
+      st -= st % 4;
+      setTime(st);
+      play.innerHTML = "&#10073;&#10073;";
+      play.setAttribute("aria-label", t("map.pause"));
+      play.title = t("map.pause");
+      playTimer = setInterval(() => {
+        st += 4;
+        if (st > Number(slider.max)) { stop(); return; }
+        setTime(st);
+      }, 650);
+    });
+  };
+  const mapTimeUi = () => {
+    const box = $("[data-map-time]");
+    if (!box || box.hidden) return;
+    const slider = $("[data-map-slider]", box);
+    const step = map.time === null ? nowStep() : Math.round((map.time - sliderStart()) / QUARTER);
+    slider.value = String(step);
+    const t0 = map.time === null ? Date.now() : map.time;
+    const day = Math.floor((t0 - sliderStart()) / (24 * HOUR)) === 0 ? t("chart.today") : t("chart.tomorrow");
+    const time = map.time === null ? t("chart.now") : `${day} ${hhmm(t0)}`;
+    $("[data-map-time-label]", box).textContent = time;
+    slider.setAttribute("aria-valuetext", map.time === null ? `${t("chart.now")} ${hhmm(t0)}` : time);
+    $("[data-map-live]", box).setAttribute("aria-pressed", String(map.time === null));
+    const tick = $("[data-map-now-tick]", box);
+    tick.style.left = `${(nowStep() / Number(slider.max)) * 100}%`;
   };
 
   // Labels and arrows sit in groups placed at their spot and scaled by `map.k`
@@ -991,11 +1083,11 @@ series:
   // where a border is congested ("SE3 4.1 → SE4 9.8 öre/kWh (+5.7)")
   const flowTip = (f) => {
     let html = `<strong>${esc(f.from)} &rarr; ${esc(f.to)}</strong><br>${mw(f.value)} MW`;
-    const pa = priceNum(zoneNow(f.from)), pb = priceNum(zoneNow(f.to));
+    const pa = priceNum(zoneAt(f.from)), pb = priceNum(zoneAt(f.to));
     if (pa !== null && pb !== null) {
       const d = pb - pa;
       const ds = (d > 0 ? "+" : d < 0 ? "−" : "±") + Math.abs(d).toFixed(prefs.decimals);
-      html += `<br><span class="muted">${esc(f.from)} ${price(zoneNow(f.from))} &rarr; ${esc(f.to)} ${price(zoneNow(f.to))} ${esc(unit())} (${ds})</span>`;
+      html += `<br><span class="muted">${esc(f.from)} ${price(zoneAt(f.from))} &rarr; ${esc(f.to)} ${price(zoneAt(f.to))} ${esc(unit())} (${ds})</span>`;
     }
     return html;
   };
@@ -1018,7 +1110,7 @@ series:
     const plan = {};
     for (const n of names) {
       const s = size(n);
-      const pw = price(zoneNow(n)).length * (n === sel ? 8 : 7.2);
+      const pw = price(zoneAt(n)).length * (n === sel ? 8 : 7.2);
       const full = rect(n, Math.max(n.length * 6, pw), -13, 13);
       const short = rect(n, n.length * 6, -4, 5);
       if (n === sel || (s >= ZL_FULL && fits(full))) { plan[n] = "full"; taken.push(full); }
@@ -1036,7 +1128,8 @@ series:
     const fg = $("g.flows", svg);
     fg.textContent = "";
     const allLabels = (map.ppu || 0) >= 3;
-    const borders = (boot.flows && boot.flows.borders) || [];
+    const borders = mapBorders();
+    map.borders = borders;
     borders.forEach((f, i) => { if (!(sel && (f.from === sel || f.to === sel))) flowArrow(fg, f, i, sel, allLabels); });
     borders.forEach((f, i) => { if (sel && (f.from === sel || f.to === sel)) flowArrow(fg, f, i, sel, allLabels); });
 
@@ -1049,7 +1142,7 @@ series:
       const g = placed(lg, a[0], a[1], { class: "zone-label" + (name === sel ? " selected" : "") });
       if (level === "full") {
         svgEl("text", { x: 0, y: -6, class: "zl-name", "text-anchor": "middle" }, g).textContent = name;
-        svgEl("text", { x: 0, y: 10, class: "zl-price", "text-anchor": "middle" }, g).textContent = price(zoneNow(name));
+        svgEl("text", { x: 0, y: 10, class: "zl-price", "text-anchor": "middle" }, g).textContent = price(zoneAt(name));
       } else {
         svgEl("text", { x: 0, y: 4, class: "zl-name", "text-anchor": "middle" }, g).textContent = name;
       }
@@ -1061,16 +1154,15 @@ series:
     }
   };
 
-  const mapRender = () => {
-    if (!map.ready && !mapSetup()) return;
+  // Zone colours, legend and flow status for the chosen time
+  const mapColors = () => {
     const svg = map.svg;
     const sel = map.selected;
-    // Colors
-    const prices = Object.keys(boot.zones).map((n) => [n, zoneNow(n)]).filter((x) => x[1] !== null && x[1] !== undefined);
+    const prices = Object.keys(boot.zones).map((n) => [n, zoneAt(n)]).filter((x) => x[1] !== null && x[1] !== undefined);
     const vals = prices.map((x) => x[1]);
     const lo = vals.length ? Math.min(...vals) : 0, hi = vals.length ? Math.max(...vals) : 1;
     $$(".zone", svg).forEach((p) => {
-      const v = zoneNow(p.dataset.area);
+      const v = zoneAt(p.dataset.area);
       p.style.fill = v === null || v === undefined ? "" : rampColor(hi > lo ? (v - lo) / (hi - lo) : 0.5);
       p.classList.toggle("no-data", v === null || v === undefined);
       p.classList.toggle("selected", p.dataset.area === sel);
@@ -1083,9 +1175,56 @@ series:
     $("[data-legend-min]").textContent = price(lo);
     $("[data-legend-max]").textContent = price(hi);
     $(".legend-ramp").style.background = `linear-gradient(90deg, ${theme.ramp.join(",")})`;
-    $("[data-flows-updated]").textContent = flowsUpdatedText();
+    // At a chosen time the arrows are that hour's average
+    let status = flowsUpdatedText();
+    if (map.time !== null && map.time !== undefined) {
+      const h = map.time - (((map.time % HOUR) + HOUR) % HOUR);
+      if (mapBorders().length) status = `${t("map.flows")} ${hhmm(h)}–${hhmm(h + HOUR)}`;
+      else if (map.time > Date.now() - HOUR) status = t("map.flows_future");
+    }
+    $("[data-flows-updated]").textContent = status;
+  };
+
+  const mapRender = () => {
+    if (!map.ready && !mapSetup()) return;
+    mapColors();
     mapOverlay();
+    mapTimeUi();
     zonePanel();
+  };
+
+  // Net export of a zone per hour for the last 24 hours, as bars above (export) and below
+  // (import) a zero line
+  const zoneSpark = (name, panel) => {
+    const box = $("[data-zone-spark]", panel);
+    const fh = boot.flow_hours;
+    if (!box || !fh) return;
+    const from = Date.now() - 24 * HOUR;
+    const idx = fh.times.map((t0, i) => [t0, i]).filter(([t0]) => t0 >= from - HOUR);
+    const net = idx.map(([, i]) => {
+      let v = null;
+      for (const b of fh.borders) {
+        const x = b.values[i];
+        if (x === null || x === undefined || (b.a !== name && b.b !== name)) continue;
+        v = (v || 0) + (b.a === name ? x : -x);
+      }
+      return v;
+    });
+    const known = net.filter((v) => v !== null);
+    box.hidden = known.length < 2;
+    if (box.hidden) return;
+    const svg = $("[data-zone-spark-svg]", box);
+    const max = Math.max(1, ...known.map(Math.abs));
+    const w = 240 / net.length, mid = 20;
+    svg.textContent = "";
+    net.forEach((v, i) => {
+      if (v === null) return;
+      const h = (Math.abs(v) / max) * 19;
+      svgEl("rect", { x: (i * w + 0.5).toFixed(1), y: (v >= 0 ? mid - h : mid).toFixed(1), width: Math.max(1, w - 1).toFixed(1), height: Math.max(0.5, h).toFixed(1), class: v >= 0 ? "spark-exp" : "spark-imp" }, svg);
+    });
+    svgEl("line", { x1: 0, y1: mid, x2: 240, y2: mid, class: "spark-zero" }, svg);
+    const last = known[known.length - 1];
+    svg.setAttribute("aria-label", `${t("map.net_24h")}: ${t("a11y.average")} ${mw(known.reduce((a, v) => a + v, 0) / known.length)} MW, ${last < 0 ? t("map.net_import") : t("map.net_export")} ${mw(Math.abs(last))} MW`);
   };
 
   const zonePanel = () => {
@@ -1120,6 +1259,7 @@ series:
     const items = flowItems((z) => z === name, (z) => z);
     $("[data-zone-flows]", panel).innerHTML = flowListHtml(items, (n) => (boot.zones[n] ? `<a href="#${esc(n)}" data-goto="${esc(n)}">${esc(n)}</a>` : `<span>${esc(n)}</span>`));
     $("[data-zone-flow-total]", panel).textContent = flowNetText(items);
+    zoneSpark(name, panel);
     $$("[data-goto]", panel).forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); map.select(a.dataset.goto, false); }));
 
     // Today and tomorrow chart
@@ -1351,7 +1491,7 @@ series:
     }
     if (map.ready) {
       const q = Math.floor(Date.now() / 900000);
-      if (q !== map.slot) { map.slot = q; safe(mapRender); }
+      if (q !== map.slot) { map.slot = q; safe(mapRender); } else safe(mapTimeUi);
     }
   }, 30000);
 

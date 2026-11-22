@@ -612,6 +612,15 @@ pub async fn index(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> 
     boot.insert("upcoming".into(), json!(now.upcoming));
     boot.insert("zones".into(), Value::Object(zones));
     boot.insert("flows".into(), json!(&*flows));
+    // Flows per hour from yesterday until now, for the time slider and the panel's sparkline
+    let tz = crate::timeutil::market_tz();
+    let (from, _) = day_range(&tz, add_days(today(&tz), -1));
+    // Up to the end of the current quarter, so the cache key changes four times an hour
+    let to = now_ms() - now_ms().rem_euclid(900_000) + 900_000;
+    let hours = data::border_flows(&st.app, from, to)
+        .await
+        .map_err(internal)?;
+    boot.insert("flow_hours".into(), json!(&*hours));
     boot.insert("neighbours".into(), Value::Object(neighbours));
     boot.insert("default_area".into(), json!(default_map_area(&lang)));
     render(&st, "index.html", finish(ctx, boot))

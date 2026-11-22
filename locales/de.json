@@ -197,7 +197,12 @@
       "zoom_out": "Verkleinern",
       "zoom_reset": "Ansicht zurücksetzen",
       "zoom_hint": "Strg (⌘ auf dem Mac) gedrückt halten und scrollen, um zu zoomen",
-      "zoom_help": "Karte. Zoomen mit + und −, verschieben mit den Pfeiltasten, 0 setzt die Ansicht zurück."
+      "zoom_help": "Karte. Zoomen mit + und −, verschieben mit den Pfeiltasten, 0 setzt die Ansicht zurück.",
+      "time": "Zeitpunkt",
+      "play": "Abspielen",
+      "pause": "Pause",
+      "flows_future": "Flüsse sind nur bis jetzt bekannt",
+      "net_24h": "Nettoexport der letzten 24 Stunden"
     },
     "share": {
       "share": "Teilen",

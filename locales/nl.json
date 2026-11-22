@@ -197,7 +197,12 @@
       "zoom_out": "Uitzoomen",
       "zoom_reset": "Weergave herstellen",
       "zoom_hint": "Houd Ctrl (⌘ op Mac) ingedrukt en scroll om te zoomen",
-      "zoom_help": "Kaart. Zoom met + en −, verschuif met de pijltjestoetsen, 0 herstelt de weergave."
+      "zoom_help": "Kaart. Zoom met + en −, verschuif met de pijltjestoetsen, 0 herstelt de weergave.",
+      "time": "Tijdstip",
+      "play": "Afspelen",
+      "pause": "Pauze",
+      "flows_future": "Stromen zijn alleen tot nu bekend",
+      "net_24h": "Netto-export afgelopen 24 uur"
     },
     "share": {
       "share": "Delen",

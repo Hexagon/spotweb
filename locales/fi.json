@@ -197,7 +197,12 @@
       "zoom_out": "Loitonna",
       "zoom_reset": "Palauta näkymä",
       "zoom_hint": "Zoomaa pitämällä Ctrl (Macissa ⌘) pohjassa ja vierittämällä",
-      "zoom_help": "Kartta. Zoomaa + ja − -näppäimillä, siirrä nuolinäppäimillä, 0 palauttaa näkymän."
+      "zoom_help": "Kartta. Zoomaa + ja − -näppäimillä, siirrä nuolinäppäimillä, 0 palauttaa näkymän.",
+      "time": "Ajankohta",
+      "play": "Toista",
+      "pause": "Tauko",
+      "flows_future": "Siirrot tunnetaan vain tähän hetkeen asti",
+      "net_24h": "Nettovienti viimeiset 24 tuntia"
     },
     "share": {
       "share": "Jaa",

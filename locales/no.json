@@ -197,7 +197,12 @@
       "zoom_out": "Zoom ut",
       "zoom_reset": "Tilbakestill visningen",
       "zoom_hint": "Hold inne Ctrl (⌘ på Mac) og rull for å zoome",
-      "zoom_help": "Kart. Zoom med + og −, flytt med piltastene, 0 tilbakestiller visningen."
+      "zoom_help": "Kart. Zoom med + og −, flytt med piltastene, 0 tilbakestiller visningen.",
+      "time": "Tidspunkt",
+      "play": "Spill av",
+      "pause": "Pause",
+      "flows_future": "Flyt er bare kjent frem til nå",
+      "net_24h": "Nettoeksport siste 24 timer"
     },
     "share": {
       "share": "Del",

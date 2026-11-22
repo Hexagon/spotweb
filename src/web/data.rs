@@ -477,3 +477,30 @@ pub async fn area_flows(
         )
         .await
 }
+
+/// Hourly net flow per border for the hours in `[from, to)`, for the time slider on the map
+pub async fn border_flows(
+    app: &App,
+    from: i64,
+    to: i64,
+) -> anyhow::Result<Arc<crate::flows::BorderSeries>> {
+    let ttl = if to < now_ms() - HOUR_MS {
+        3600
+    } else {
+        15 * MIN
+    };
+    let db = app.db.clone();
+    app.cache
+        .get_or_load(
+            "flow",
+            format!("borders:{from}:{to}"),
+            Duration::from_secs(ttl),
+            || async move {
+                let rows = db
+                    .run(move |c| Ok(queries::flow_rows(c, from - HOUR_MS, to)?))
+                    .await?;
+                Ok(crate::flows::border_series(&rows, from, to))
+            },
+        )
+        .await
+}

@@ -289,6 +289,51 @@ pub fn area_series(
     AreaFlows { times, series, net }
 }
 
+/// Hourly net flow per border, see [`border_series`]
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct BorderSeries {
+    /// Start of each hour (ms)
+    pub times: Vec<i64>,
+    /// Borders with data, in [`BORDERS`] order
+    pub borders: Vec<BorderHours>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct BorderHours {
+    pub a: String,
+    pub b: String,
+    /// Average net MW from `a` to `b` per hour (negative is `b` to `a`), `None` without data
+    pub values: Vec<Option<f64>>,
+}
+
+/// Hourly average net flow over every border for the hours starting in `[from, to)`
+pub fn border_series(rows: &[FlowRow], from: i64, to: i64) -> BorderSeries {
+    let idx = index(rows);
+    let start = from - from.rem_euclid(HOUR_MS);
+    let times: Vec<i64> = (start..to).step_by(HOUR_MS as usize).collect();
+    let borders = BORDERS
+        .iter()
+        .filter_map(|&(a, b)| {
+            let (ab, ba) = (idx.get(&(a, b)), idx.get(&(b, a)));
+            let values: Vec<Option<f64>> = times
+                .iter()
+                .map(|&h| {
+                    let s: Vec<f64> = (0..4)
+                        .filter_map(|q| net_at(ab, ba, h + q * QUARTER_MS))
+                        .collect();
+                    (!s.is_empty()).then(|| (s.iter().sum::<f64>() / s.len() as f64).round())
+                })
+                .collect();
+            values.iter().any(Option::is_some).then(|| BorderHours {
+                a: a.into(),
+                b: b.into(),
+                values,
+            })
+        })
+        .collect();
+    BorderSeries { times, borders }
+}
+
 /// The country id of one of our zones, or the zone name for a neighbour that is not ours
 pub fn country_of(zone: &str) -> String {
     COUNTRIES
@@ -401,5 +446,30 @@ mod tests {
         assert_eq!(sv.net, vec![Some(500.0), Some(250.0)]);
         assert_eq!(country_of("GB"), "GB");
         assert_eq!(country_of("DE-LU"), "de");
+    }
+
+    #[test]
+    fn hourly_series_per_border() {
+        const H: i64 = 3_600_000;
+        let r =
+            |f: &str, t: &str, p: i64, iv: i64, v: f64| (f.to_string(), t.to_string(), p, iv, v);
+        let rows = vec![
+            r("SE3", "FI", 0, H, 800.0),
+            r("FI", "SE3", H, H, 300.0),
+            r("NO1", "SE3", H, H, 100.0),
+        ];
+        let f = border_series(&rows, 0, 3 * H);
+        assert_eq!(f.times, vec![0, H, 2 * H]);
+        assert_eq!(f.borders.len(), 2);
+        let fi = f.borders.iter().find(|x| x.b == "FI").unwrap();
+        assert_eq!(
+            (fi.a.as_str(), fi.values.clone()),
+            ("SE3", vec![Some(800.0), Some(-300.0), None])
+        );
+        let no = f.borders.iter().find(|x| x.b == "NO1").unwrap();
+        assert_eq!(
+            (no.a.as_str(), no.values.clone()),
+            ("SE3", vec![None, Some(-100.0), None])
+        );
     }
 }

@@ -152,7 +152,7 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
 
 ### P1 – Snabba vinster med data som redan finns
 
-43. ✅ **Import/export på elområdessidan och landssidan.** (Sparklinen i kartpanelen återstår.) Kartpanelen visar flöde per granne, men inte `/sv/SE3`. Tabellen
+43. ✅ **Import/export på elområdessidan och landssidan.** Kartpanelen visar flöde per granne, men inte `/sv/SE3`. Tabellen
     `flow` sparar redan historik per gräns och riktning, men bara det senaste värdet används (`flows::latest`).
     Åtgärd:
     - Gör om panelens lista (`zonePanel` i `app.js`) till en delad funktion och visa den som kort på områdessidan:
@@ -188,7 +188,7 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
       en som redan är ritad. Den valda zonens etikett visas alltid.
     - Fel att rätta samtidigt: grannetiketterna (GB, IT) skalas inte med `k` (`y: a[1] + 4` och fast teckenstorlek).
     - Tillgänglighet: `+`/`-`-knappar och piltangenter när kartan har fokus.
-46. **Tidsreglage på kartan.** Priserna för idag och imorgon finns redan i boot-datan (`z.today`, `z.tomorrow`), så kartan
+46. ✅ **Tidsreglage på kartan.** Sidopanelen visar fortfarande läget just nu, och omladdningen varje timme (punkt 42) är kvar. Priserna för idag och imorgon finns redan i boot-datan (`z.today`, `z.tomorrow`), så kartan
     kan visa valfri kvart eller timme utan nya anrop. Åtgärd: ett reglage under kartan (idag 00 till imorgon 24) med
     uppspelningsknapp. Färger, etiketter och färgskala följer vald tidpunkt, och "nu" markeras. Flöden finns bara bakåt i
     tiden: visa flödet för vald tidpunkt upp till nu (kräver `flows` per timme i boot eller ett anrop), och dölj pilarna

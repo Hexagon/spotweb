@@ -197,7 +197,12 @@
       "zoom_out": "Zoom arrière",
       "zoom_reset": "Réinitialiser la vue",
       "zoom_hint": "Maintenez Ctrl (⌘ sur Mac) et faites défiler pour zoomer",
-      "zoom_help": "Carte. Zoomez avec + et −, déplacez avec les flèches, 0 réinitialise la vue."
+      "zoom_help": "Carte. Zoomez avec + et −, déplacez avec les flèches, 0 réinitialise la vue.",
+      "time": "Moment",
+      "play": "Lecture",
+      "pause": "Pause",
+      "flows_future": "Les flux ne sont connus que jusqu'à maintenant",
+      "net_24h": "Export net sur 24 heures"
     },
     "share": {
       "share": "Partager",

@@ -197,7 +197,12 @@
       "zoom_out": "Zoom ud",
       "zoom_reset": "Nulstil visningen",
       "zoom_hint": "Hold Ctrl (⌘ på Mac) nede og rul for at zoome",
-      "zoom_help": "Kort. Zoom med + og −, flyt med piletasterne, 0 nulstiller visningen."
+      "zoom_help": "Kort. Zoom med + og −, flyt med piletasterne, 0 nulstiller visningen.",
+      "time": "Tidspunkt",
+      "play": "Afspil",
+      "pause": "Pause",
+      "flows_future": "Flow kendes kun frem til nu",
+      "net_24h": "Nettoeksport seneste 24 timer"
     },
     "share": {
       "share": "Del",

@@ -443,6 +443,32 @@ async fn start_page_map_and_flows_api() {
     );
     assert!(boot["zones"]["SE1"]["now"].is_number());
     assert_eq!(boot["flows"]["borders"].as_array().unwrap().len(), 2);
+    // Hourly flows per border for the time slider, oriented as in BORDERS
+    let fh = &boot["flow_hours"];
+    let i = fh["times"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .position(|t| t == hour)
+        .unwrap();
+    let se3 = fh["borders"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|b| b["a"] == "SE3" && b["b"] == "FI")
+        .unwrap();
+    assert_eq!(se3["values"][i], 1000.0);
+    let nl = fh["borders"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|b| b["b"] == "NL")
+        .unwrap();
+    assert_eq!(
+        (nl["a"].as_str(), nl["values"][i].as_f64()),
+        (Some("NO2"), Some(-700.0))
+    );
+    assert!(body.contains("data-map-slider"));
     assert_eq!(boot["neighbours"]["GB"], "Great Britain");
     assert!(boot["neighbours"].get("NL").is_none());
     assert_eq!(boot["default_area"], "SE3");
