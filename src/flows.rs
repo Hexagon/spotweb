@@ -175,6 +175,128 @@ pub fn latest(rows: &[FlowRow]) -> Flows {
     out
 }
 
+/// Net flow out of a zone or country per hour and neighbour, see [`area_series`]
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct AreaFlows {
+    /// Start of each hour (ms)
+    pub times: Vec<i64>,
+    /// Per neighbour (a zone, or a country id for countries), the average net export in MW
+    /// for each hour in `times`: positive is export, negative import, `None` without data
+    pub series: Vec<NeighbourSeries>,
+    /// Sum over the neighbours with data, `None` when none has data
+    pub net: Vec<Option<f64>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct NeighbourSeries {
+    pub name: String,
+    pub values: Vec<Option<f64>>,
+}
+
+/// Stored values of one direction, by interval length and then start
+type DirIndex = BTreeMap<i64, BTreeMap<i64, f64>>;
+
+fn index(rows: &[FlowRow]) -> BTreeMap<(&str, &str), DirIndex> {
+    let mut out: BTreeMap<(&str, &str), DirIndex> = BTreeMap::new();
+    for r in rows {
+        out.entry((r.0.as_str(), r.1.as_str()))
+            .or_default()
+            .entry(r.3)
+            .or_default()
+            .insert(r.2, r.4);
+    }
+    out
+}
+
+/// Like [`value_at`] on an index: the finest stored interval covering `t`
+fn indexed_at(dir: Option<&DirIndex>, t: i64) -> Option<f64> {
+    dir?.iter().find_map(|(iv, by_start)| {
+        by_start
+            .range(..=t)
+            .next_back()
+            .filter(|(start, _)| t < *start + iv)
+            .map(|(_, v)| *v)
+    })
+}
+
+/// Net flow from `a` to `b` at `t`. A missing direction counts as 0 as long as the other
+/// direction has a value (see [`latest`]).
+fn net_at(ab: Option<&DirIndex>, ba: Option<&DirIndex>, t: i64) -> Option<f64> {
+    match (indexed_at(ab, t), indexed_at(ba, t)) {
+        (None, None) => None,
+        (x, y) => Some(x.unwrap_or(0.0) - y.unwrap_or(0.0)),
+    }
+}
+
+const QUARTER_MS: i64 = 900_000;
+const HOUR_MS: i64 = 3_600_000;
+
+/// Hourly average net export from the zones `inside` to every border neighbour outside, for
+/// the hours starting in `[from, to)`. `group` names the neighbour a zone outside belongs to
+/// (the zone itself on an area page, its country on a country page); borders to the same
+/// group are added up. Hours are sampled every 15 minutes, so 15 and 60 minute data mix.
+pub fn area_series(
+    rows: &[FlowRow],
+    inside: impl Fn(&str) -> bool,
+    group: impl Fn(&str) -> String,
+    from: i64,
+    to: i64,
+) -> AreaFlows {
+    let idx = index(rows);
+    let start = from - from.rem_euclid(HOUR_MS);
+    let times: Vec<i64> = (start..to).step_by(HOUR_MS as usize).collect();
+    // Neighbour -> borders as (inside zone, outside zone)
+    let mut groups: BTreeMap<String, Vec<(&str, &str)>> = BTreeMap::new();
+    for &(a, b) in BORDERS {
+        match (inside(a), inside(b)) {
+            (true, false) => groups.entry(group(b)).or_default().push((a, b)),
+            (false, true) => groups.entry(group(a)).or_default().push((b, a)),
+            _ => {}
+        }
+    }
+    let mut net = vec![None; times.len()];
+    let mut series = vec![];
+    for (name, borders) in groups {
+        let values: Vec<Option<f64>> = times
+            .iter()
+            .map(|&h| {
+                let mut sum = 0.0;
+                let mut any = false;
+                for &(a, b) in &borders {
+                    let ab = idx.get(&(a, b));
+                    let ba = idx.get(&(b, a));
+                    let samples: Vec<f64> = (0..4)
+                        .filter_map(|q| net_at(ab, ba, h + q * QUARTER_MS))
+                        .collect();
+                    if !samples.is_empty() {
+                        any = true;
+                        sum += samples.iter().sum::<f64>() / samples.len() as f64;
+                    }
+                }
+                any.then(|| sum.round())
+            })
+            .collect();
+        if values.iter().all(Option::is_none) {
+            continue;
+        }
+        for (n, v) in net.iter_mut().zip(&values) {
+            if let Some(v) = v {
+                *n = Some(n.unwrap_or(0.0) + v);
+            }
+        }
+        series.push(NeighbourSeries { name, values });
+    }
+    AreaFlows { times, series, net }
+}
+
+/// The country id of one of our zones, or the zone name for a neighbour that is not ours
+pub fn country_of(zone: &str) -> String {
+    COUNTRIES
+        .iter()
+        .find(|c| c.areas.iter().any(|a| a.name == zone))
+        .map_or_else(|| zone.to_string(), |c| c.id.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -236,5 +358,48 @@ mod tests {
         assert_eq!(f.borders.len(), 3);
         assert_eq!(f.updated, Some(2 * H));
         assert!(latest(&[]).updated.is_none());
+    }
+
+    #[test]
+    fn hourly_series_per_neighbour() {
+        const H: i64 = 3_600_000;
+        const Q: i64 = 900_000;
+        let r =
+            |f: &str, t: &str, p: i64, iv: i64, v: f64| (f.to_string(), t.to_string(), p, iv, v);
+        let mut rows = vec![
+            // SE3 -> FI hourly in hour 0, at 15 minutes in hour 1
+            r("SE3", "FI", 0, H, 800.0),
+            r("FI", "SE3", 0, H, 0.0),
+            // NO1 -> SE3 in hour 0 only
+            r("NO1", "SE3", 0, H, 300.0),
+            // Inside SE: not a neighbour of the country
+            r("SE3", "SE4", 0, H, 1000.0),
+        ];
+        for (q, v) in [100.0, 200.0, 300.0, 400.0].iter().enumerate() {
+            rows.push(r("SE3", "FI", H + q as i64 * Q, Q, *v));
+        }
+        let f = area_series(&rows, |z| z == "SE3", str::to_string, 0, 2 * H);
+        assert_eq!(f.times, vec![0, H]);
+        let get = |n: &str| {
+            f.series
+                .iter()
+                .find(|s| s.name == n)
+                .unwrap()
+                .values
+                .clone()
+        };
+        assert_eq!(get("FI"), vec![Some(800.0), Some(250.0)]);
+        assert_eq!(get("NO1"), vec![Some(-300.0), None]);
+        assert_eq!(get("SE4"), vec![Some(1000.0), None]);
+        assert_eq!(f.net, vec![Some(1500.0), Some(250.0)]);
+        // Borders without data are left out
+        assert!(f.series.iter().all(|s| s.name != "DK1"));
+
+        let sv = area_series(&rows, |z| country_of(z) == "sv", country_of, 0, 2 * H);
+        let names: Vec<_> = sv.series.iter().map(|s| s.name.as_str()).collect();
+        assert_eq!(names, vec!["fi", "no"]);
+        assert_eq!(sv.net, vec![Some(500.0), Some(250.0)]);
+        assert_eq!(country_of("GB"), "GB");
+        assert_eq!(country_of("DE-LU"), "de");
     }
 }

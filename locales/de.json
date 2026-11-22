@@ -111,7 +111,8 @@
       "yesterday_and_today": "Gestern und heute",
       "now": "Jetzt",
       "time": "Zeit",
-      "price": "Preis"
+      "price": "Preis",
+      "net_flow": "Import und Export je Nachbar"
     },
     "generation": {
       "current_production": "Produktion und Verbrauch",
@@ -189,7 +190,9 @@
       "today_tomorrow": "Heute und morgen",
       "note": "Die Grenzen der Gebotszonen sind ungefähr. Pfeile zeigen den physikalischen Nettofluss (MW) zwischen den Zonen.",
       "all_areas": "Alle Gebotszonen",
-      "zoom": "Zoomstufe"
+      "zoom": "Zoomstufe",
+      "flow_chart_hint": "Über null: Export, unter null: Import",
+      "flow_sum": "Netto"
     },
     "share": {
       "share": "Teilen",

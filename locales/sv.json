@@ -111,7 +111,8 @@
       "yesterday_and_today": "Igår och idag",
       "now": "Nu",
       "time": "Tid",
-      "price": "Pris"
+      "price": "Pris",
+      "net_flow": "Import och export per granne"
     },
     "generation": {
       "current_production": "Produktion och förbrukning",
@@ -189,7 +190,9 @@
       "today_tomorrow": "Idag och imorgon",
       "note": "Gränserna mellan elområdena är ungefärliga. Pilarna visar fysiskt nettoflöde (MW) mellan elområdena.",
       "all_areas": "Alla elområden",
-      "zoom": "Zoomnivå"
+      "zoom": "Zoomnivå",
+      "flow_chart_hint": "Över noll: export, under noll: import",
+      "flow_sum": "Netto"
     },
     "share": {
       "share": "Dela",

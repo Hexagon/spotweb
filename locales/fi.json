@@ -111,7 +111,8 @@
       "yesterday_and_today": "Eilen ja tänään",
       "now": "Nyt",
       "time": "Aika",
-      "price": "Hinta"
+      "price": "Hinta",
+      "net_flow": "Tuonti ja vienti naapureittain"
     },
     "generation": {
       "current_production": "Tuotanto ja kulutus",
@@ -189,7 +190,9 @@
       "today_tomorrow": "Tänään ja huomenna",
       "note": "Tarjousalueiden rajat ovat likimääräisiä. Nuolet näyttävät fyysisen nettosiirron (MW) alueiden välillä.",
       "all_areas": "Kaikki tarjousalueet",
-      "zoom": "Zoomaus"
+      "zoom": "Zoomaus",
+      "flow_chart_hint": "Nollan yläpuolella: vienti, alapuolella: tuonti",
+      "flow_sum": "Netto"
     },
     "share": {
       "share": "Jaa",

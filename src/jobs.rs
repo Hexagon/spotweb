@@ -944,6 +944,9 @@ async fn update_outages(app: &App) -> anyhow::Result<Outcome> {
     summarize(&results, |r| r.0, "outage")
 }
 
+/// Flows older than this are kept as hourly averages only (see [`queries::compact_flows`])
+const FLOW_FULL_RESOLUTION_DAYS: i64 = 90;
+
 /// Scheduled flow runs fetch every other border, alternating by hour, so each border is fetched
 /// every second hour and the requests are spread evenly over the hourly runs.
 const FLOW_GROUPS: usize = 2;
@@ -1036,6 +1039,17 @@ async fn update_flows(app: &App, scheduled: bool) -> anyhow::Result<Outcome> {
     let mut message = format!("stored {total} flow rows");
     if !failures.is_empty() {
         message.push_str(&format!(", {} directions failed", failures.len()));
+    }
+    // Once a day: keep full resolution for FLOW_FULL_RESOLUTION_DAYS, hourly averages after that
+    if full {
+        let before = now.as_millisecond() - FLOW_FULL_RESOLUTION_DAYS * 24 * 3_600_000;
+        let removed = app
+            .db
+            .run(move |c| Ok(queries::compact_flows(c, before)?))
+            .await?;
+        if removed > 0 {
+            message.push_str(&format!(", compacted {removed} old rows to hours"));
+        }
     }
     Ok(Outcome {
         message,

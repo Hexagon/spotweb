@@ -146,6 +146,18 @@ When the prices do not cover `hours` yet, `found` is `false` and `start`, `end` 
 
 `from` is the exporting side. Borders to neighbouring zones without prices on spotweb (GB and northern Italy) are included.
 
+`GET /api/v2/flows?area=SE3[&start=2026-11-21][&end=2026-11-22]` or `?country=sv` – net export per neighbour and hour, in MW
+(negative is import), with the sum in `net`:
+
+```json
+{ "status": "ok", "source": "…", "license": "CC-BY-4.0", "area": "SE3", "unit": "MW", "interval": "PT60M", "neighbours": ["DK1", "FI", "NO1", "SE2", "SE4"],
+  "data": [{ "time": "2026-11-21T23:00:00.000Z", "net": 3463.0, "flows": { "DK1": 779.0, "FI": 834.0, "NO1": 1560.0, "SE2": -1293.0, "SE4": 1583.0 } }] }
+```
+
+Neighbours are zones for `area` and countries for `country` (borders inside the country are left out; GB and IT keep
+their zone name). `start` and `end` are dates in the zone's time zone, by default yesterday and today, at most 31 days.
+Hours without data are left out. Flows are kept at full resolution for 90 days and as hourly averages after that.
+
 `GET /api/v2/status` – latest data, last job runs, `healthy`/`problems` and HTTP statistics (`http`). `GET /healthz` – liveness probe.
 `GET /healthz/data` – `200` when prices are complete for today (and tomorrow after 14:00 CET) and load and generation are
 current, else `503`.

@@ -111,7 +111,8 @@
       "yesterday_and_today": "Ayer y hoy",
       "now": "Ahora",
       "time": "Hora",
-      "price": "Precio"
+      "price": "Precio",
+      "net_flow": "Importación y exportación por vecino"
     },
     "generation": {
       "current_production": "Producción y consumo",
@@ -189,7 +190,9 @@
       "today_tomorrow": "Hoy y mañana",
       "note": "Los límites de las zonas son aproximados. Las flechas muestran el flujo físico neto (MW) entre zonas.",
       "all_areas": "Todas las zonas",
-      "zoom": "Nivel de zoom"
+      "zoom": "Nivel de zoom",
+      "flow_chart_hint": "Por encima de cero: exportación, por debajo: importación",
+      "flow_sum": "Neto"
     },
     "share": {
       "share": "Compartir",

@@ -111,7 +111,8 @@
       "yesterday_and_today": "Yesterday and today",
       "now": "Now",
       "time": "Time",
-      "price": "Price"
+      "price": "Price",
+      "net_flow": "Import and export per neighbour"
     },
     "generation": {
       "current_production": "Production and consumption",
@@ -189,7 +190,9 @@
       "today_tomorrow": "Today and tomorrow",
       "note": "Bidding zone borders are approximate. Arrows show the net physical flow (MW) between zones.",
       "all_areas": "All bidding zones",
-      "zoom": "Zoom level"
+      "zoom": "Zoom level",
+      "flow_chart_hint": "Above zero: export, below zero: import",
+      "flow_sum": "Net"
     },
     "share": {
       "share": "Share",

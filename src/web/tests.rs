@@ -451,6 +451,83 @@ async fn start_page_map_and_flows_api() {
     assert!(body.contains(r#"<option value="DE-LU" selected>"#));
 }
 
+#[tokio::test]
+async fn flows_per_area_and_country() {
+    let app = test_app();
+    let now = crate::timeutil::now_ms();
+    let hour = now - now.rem_euclid(3_600_000) - 3_600_000;
+    {
+        let mut c = app.db.conn().unwrap();
+        queries::upsert_flows(&mut c, "SE3", "FI", &[(hour, "PT60M".into(), 1200.0)]).unwrap();
+        queries::upsert_flows(&mut c, "FI", "SE3", &[(hour, "PT60M".into(), 200.0)]).unwrap();
+        queries::upsert_flows(&mut c, "SE3", "SE4", &[(hour, "PT60M".into(), 900.0)]).unwrap();
+        queries::upsert_flows(&mut c, "NO1", "SE3", &[(hour, "PT60M".into(), 300.0)]).unwrap();
+    }
+    let iso = crate::timeutil::js_iso(hour);
+
+    let (s, body, _) = get(&app, "/api/v2/flows?area=se3").await;
+    assert_eq!(s, StatusCode::OK, "{body}");
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["area"], "SE3");
+    assert_eq!(v["unit"], "MW");
+    assert_eq!(v["neighbours"], serde_json::json!(["FI", "NO1", "SE4"]));
+    let row = v["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["time"] == iso.as_str())
+        .unwrap();
+    assert_eq!(row["flows"]["FI"], 1000.0);
+    assert_eq!(row["flows"]["NO1"], -300.0);
+    assert_eq!(row["flows"]["SE4"], 900.0);
+    assert_eq!(row["net"], 1600.0);
+
+    // Per country, borders inside the country left out
+    let (s, body, _) = get(&app, "/api/v2/flows?country=sv").await;
+    assert_eq!(s, StatusCode::OK, "{body}");
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["neighbours"], serde_json::json!(["fi", "no"]));
+    let row = v["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["time"] == iso.as_str())
+        .unwrap();
+    assert_eq!(row["net"], 700.0);
+
+    for bad in [
+        "/api/v2/flows?area=XX",
+        "/api/v2/flows?country=xx",
+        "/api/v2/flows?area=SE3&start=2026-01-01&end=2026-03-01",
+        "/api/v2/flows?area=SE3&start=2026-01-02&end=2026-01-01",
+        "/api/v2/flows?area=SE3&start=nope",
+    ] {
+        let (s, _, _) = get(&app, bad).await;
+        assert_eq!(s, StatusCode::INTERNAL_SERVER_ERROR, "{bad}");
+    }
+
+    // Area and country pages carry the series and the list
+    for page in ["/sv/SE3?lang=sv", "/sv?lang=sv"] {
+        let (s, body, _) = get(&app, page).await;
+        assert_eq!(s, StatusCode::OK, "{page}");
+        assert!(body.contains("data-flows-list"), "{page}");
+        assert!(body.contains(r#"data-chart="flows""#), "{page}");
+        let boot = body
+            .split(r#"<script id="sw-boot" type="application/json">"#)
+            .nth(1)
+            .unwrap();
+        let boot: Value = serde_json::from_str(boot.split("</script>").next().unwrap()).unwrap();
+        // Yesterday and today: 48 hours, 47 or 49 around DST changes
+        let hours = boot["area_flows"]["times"].as_array().unwrap().len();
+        assert!((46..=50).contains(&hours), "{page}: {hours}");
+        assert!(
+            !boot["area_flows"]["series"].as_array().unwrap().is_empty(),
+            "{page}"
+        );
+        assert!(boot["flows"]["borders"].is_array(), "{page}");
+    }
+}
+
 async fn get_if_none_match(
     app: &App,
     uri: &str,

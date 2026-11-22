@@ -150,6 +150,7 @@ footer.container { padding-bottom: 40px; }
 .right { text-align: right; }
 .center { text-align: center; }
 .pad { padding: 12px 16px; }
+.chart-note { margin: 0; padding-top: 0; }
 .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .big { font-size: 1.5rem; font-variant-numeric: tabular-nums; }
 .text-danger { color: var(--danger); }
@@ -390,6 +391,8 @@ body.currency-eur .hide-eur { display: none; }
 .flow-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .flow-list li { display: grid; grid-template-columns: 16px 52px 56px 1fr 76px; align-items: center; gap: 6px; }
 .flow-list .num { text-align: right; white-space: nowrap; }
+.flow-list-wide li { grid-template-columns: 16px minmax(90px, 1.2fr) 56px 2fr 84px; }
+.flows-updated { margin: 10px 0 0; }
 .flow-list .flow-dir { color: var(--muted); text-align: center; }
 .flow-list .is-import .flow-dir { color: var(--import); }
 .flow-list .is-export .flow-dir { color: var(--export); }

@@ -309,6 +309,83 @@
     draw("net", o, mwText);
   };
 
+  // Power flows of an area or country: net export per neighbour (negative is import)
+  const zoneCountry = {};
+  for (const c of boot.countries || []) for (const a of c.areas || []) zoneCountry[a.name] = c.id;
+  const flowItems = (inside, group) => {
+    const by = {};
+    for (const f of (boot.flows && boot.flows.borders) || []) {
+      const fi = inside(f.from), ti = inside(f.to);
+      if (fi === ti) continue;
+      const other = group(fi ? f.to : f.from);
+      by[other] = (by[other] || 0) + (fi ? f.value : -f.value);
+    }
+    return Object.entries(by).map(([name, value]) => ({ name, value })).sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+  };
+  // `label(name)` gives the HTML for the neighbour, usually a link
+  const flowListHtml = (items, label) => {
+    if (!items.length) return `<li class="muted">${t("map.no_flows")}</li>`;
+    const max = Math.max(1, ...items.map((f) => Math.abs(f.value)));
+    return items.map((f) => {
+      const v = Math.abs(f.value), none = v < 1, imp = !none && f.value < 0;
+      const dir = none ? "" : imp ? t("map.import") : t("map.export");
+      return `<li class="${none ? "" : imp ? "is-import" : "is-export"}"><span class="flow-dir" aria-hidden="true">${none ? "·" : imp ? "&larr;" : "&rarr;"}</span>${label(f.name)}<span class="muted small">${esc(dir)}</span><span class="flow-bar"><span style="width:${(v / max) * 50}%"></span></span><span class="num">${mw(v)} MW</span></li>`;
+    }).join("");
+  };
+  const flowNetText = (items) => {
+    if (!items.length) return "";
+    const net = items.reduce((a, f) => a + f.value, 0);
+    return `· ${net < 0 ? t("map.net_import") : t("map.net_export")} ${mw(Math.abs(net))} MW`;
+  };
+  const flowsUpdatedText = () => {
+    const upd = boot.flows && boot.flows.updated;
+    return upd ? `${t("map.flows_updated")} ${dayFmt.format(new Date(upd))} ${hhmm(upd)}` : t("map.no_flows");
+  };
+  // Neighbours on a country page are countries, or a zone that is not ours (GB, IT)
+  const zoneCountryIds = new Set(Object.values(zoneCountry));
+  const neighbourName = (n) => (boot.area || !zoneCountryIds.has(n) ? n : t("countries." + n));
+  const neighbourHref = (n) => {
+    if (!boot.area) return zoneCountryIds.has(n) ? `/${n}` : null;
+    return zoneCountry[n] ? `/${zoneCountry[n]}/${encodeURIComponent(n)}` : null;
+  };
+
+  const flowCard = () => {
+    const el = $("[data-flows-list]");
+    if (!el || !boot.flows) return;
+    const inside = boot.area ? (z) => z === boot.area.name : (z) => zoneCountry[z] === boot.country.id;
+    const group = boot.area ? (z) => z : (z) => zoneCountry[z] || z;
+    const items = flowItems(inside, group);
+    el.innerHTML = flowListHtml(items, (n) => {
+      const href = neighbourHref(n);
+      return href ? `<a href="${esc(href)}">${esc(neighbourName(n))}</a>` : `<span>${esc(neighbourName(n))}</span>`;
+    });
+    $("[data-flows-total]").textContent = flowNetText(items);
+    $("[data-flows-updated]").textContent = flowsUpdatedText();
+  };
+
+  const FLOW_COLORS = ["#4e79a7", "#f28e2b", "#59a14f", "#e15759", "#76b7b2", "#edc948", "#b07aa1", "#ff9da7", "#9c755f", "#bab0ac"];
+  const chartFlows = () => {
+    const f = boot.area_flows;
+    if (!f || !f.series) return;
+    const o = baseChart();
+    o.chart.type = "line";
+    o.chart.stacked = true;
+    o.chart.stackOnlyBar = true;
+    o.plotOptions = { bar: { columnWidth: "95%" } };
+    const pts = (vals) => vals.map((v, i) => ({ x: f.times[i], y: v }));
+    o.series = f.series.map((s) => ({ name: neighbourName(s.name), type: "bar", data: pts(s.values) }));
+    if (o.series.length) o.series.push({ name: t("map.flow_sum"), type: "line", data: pts(f.net) });
+    o.colors = f.series.map((_s, i) => FLOW_COLORS[i % FLOW_COLORS.length]).concat([theme.text]);
+    o.stroke = { width: f.series.map(() => 0).concat([2]), curve: "stepline" };
+    o.fill = { opacity: f.series.map(() => 0.85).concat([1]) };
+    o.yaxis = { labels: { formatter: (v) => mw(v) } };
+    o.tooltip.shared = true;
+    o.tooltip.intersect = false;
+    o.tooltip.y = { formatter: (v) => (v === null || v === undefined ? "" : `${mw(v)} MW`) };
+    o.annotations = { yaxis: [{ y: 0, borderColor: theme.zero, strokeDashArray: 0 }] };
+    draw("flows", o, mwText);
+  };
+
   // API helpers
   const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const apiCache = {};
@@ -801,8 +878,7 @@ series:
     const borders = (boot.flows && boot.flows.borders) || [];
     borders.forEach((f, i) => { if (!(sel && (f.from === sel || f.to === sel))) flowArrow(fg, f, i, sel); });
     borders.forEach((f, i) => { if (sel && (f.from === sel || f.to === sel)) flowArrow(fg, f, i, sel); });
-    const upd = boot.flows && boot.flows.updated;
-    $("[data-flows-updated]").textContent = upd ? `${t("map.flows_updated")} ${dayFmt.format(new Date(upd))} ${hhmm(upd)}` : t("map.no_flows");
+    $("[data-flows-updated]").textContent = flowsUpdatedText();
 
     // Labels
     const lg = $("g.labels", svg);
@@ -851,18 +927,9 @@ series:
     $("[data-zone-gl]", panel).innerHTML = html || `<div class="muted">-</div>`;
 
     // Flows touching the zone
-    const list = ((boot.flows && boot.flows.borders) || []).filter((f) => f.from === name || f.to === name)
-      .map((f) => ({ other: f.from === name ? f.to : f.from, value: f.value, import: f.to === name && f.value >= 1 }))
-      .sort((a, b) => b.value - a.value);
-    let net = 0;
-    const max = Math.max(1, ...list.map((f) => f.value));
-    $("[data-zone-flows]", panel).innerHTML = list.length ? list.map((f) => {
-      net += f.import ? -f.value : f.value;
-      const dir = f.value < 1 ? "" : f.import ? t("map.import") : t("map.export");
-      const link = boot.zones[f.other] ? `<a href="#${esc(f.other)}" data-goto="${esc(f.other)}">${esc(f.other)}</a>` : `<span>${esc(f.other)}</span>`;
-      return `<li class="${f.value < 1 ? "" : f.import ? "is-import" : "is-export"}"><span class="flow-dir" aria-hidden="true">${f.value < 1 ? "·" : f.import ? "&larr;" : "&rarr;"}</span>${link}<span class="muted small">${esc(dir)}</span><span class="flow-bar"><span style="width:${(f.value / max) * 50}%"></span></span><span class="num">${mw(f.value)} MW</span></li>`;
-    }).join("") : `<li class="muted">${t("map.no_flows")}</li>`;
-    $("[data-zone-flow-total]", panel).textContent = list.length ? `· ${net < 0 ? t("map.net_import") : t("map.net_export")} ${mw(Math.abs(net))} MW` : "";
+    const items = flowItems((z) => z === name, (z) => z);
+    $("[data-zone-flows]", panel).innerHTML = flowListHtml(items, (n) => (boot.zones[n] ? `<a href="#${esc(n)}" data-goto="${esc(n)}">${esc(n)}</a>` : `<span>${esc(n)}</span>`));
+    $("[data-zone-flow-total]", panel).textContent = flowNetText(items);
     $$("[data-goto]", panel).forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); map.select(a.dataset.goto, false); }));
 
     // Today and tomorrow chart
@@ -1062,7 +1129,7 @@ series:
   const rerender = () => {
     renderStatic();
     renderNow();
-    [chartAreaToday, () => chartAllAreas("today"), () => chartAllAreas("tomorrow"), chartProduction, chartNet,
+    [chartAreaToday, () => chartAllAreas("today"), () => chartAllAreas("tomorrow"), chartProduction, chartNet, chartFlows, flowCard,
       chartLongTermArea, chartLongTermCountry, chartThirtyDays, priceTable, hass, mapRender].forEach(safe);
     if (customRun && !$("#custom-result").classList.contains("hidden")) safe(customRun);
     renderStatic();

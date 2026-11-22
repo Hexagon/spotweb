@@ -861,6 +861,28 @@ pub fn upsert_flows(
     Ok(changed)
 }
 
+/// Replace flow rows finer than an hour that start before `before` with hourly averages
+/// (hours in UTC, which are whole hours in every time zone we use). An hour that already has
+/// an hourly row keeps it. Returns the number of rows removed.
+pub fn compact_flows(c: &mut Connection, before: i64) -> rusqlite::Result<usize> {
+    let before = before - before.rem_euclid(3_600_000);
+    let tx = c.transaction()?;
+    tx.execute(
+        "INSERT INTO flow (from_area, to_area, period, interval, value)
+         SELECT from_area, to_area, period - (period % 3600000) AS hour, 'PT60M', AVG(value)
+         FROM flow WHERE period < ?1 AND interval <> 'PT60M'
+         GROUP BY from_area, to_area, hour
+         ON CONFLICT (from_area, to_area, period, interval) DO NOTHING",
+        params![before],
+    )?;
+    let removed = tx.execute(
+        "DELETE FROM flow WHERE period < ?1 AND interval <> 'PT60M'",
+        params![before],
+    )?;
+    tx.commit()?;
+    Ok(removed)
+}
+
 /// Flow rows in `[from, to)`
 pub fn flow_rows(
     c: &Connection,
@@ -1036,6 +1058,44 @@ mod tests {
         assert_eq!(replace_outages(&mut c, "sv", &doc, now).unwrap(), 2);
         assert_eq!(count(&c, "outage"), 2);
         assert_eq!(count(&c, "outage_availability"), 2);
+    }
+
+    #[test]
+    fn old_flows_are_compacted_to_hours() {
+        const H: i64 = 3_600_000;
+        const Q: i64 = 900_000;
+        let db = Db::open_memory();
+        let mut c = db.conn().unwrap();
+        let q = |p: i64, v: f64| (p, "PT15M".to_string(), v);
+        // Hour 0 at 15 minutes, hour 1 has an hourly row too, hour 3 is recent
+        let rows = [
+            q(0, 100.0),
+            q(Q, 200.0),
+            q(2 * Q, 300.0),
+            q(3 * Q, 400.0),
+            q(H, 10.0),
+            (H, "PT60M".to_string(), 50.0),
+            q(3 * H, 7.0),
+        ];
+        upsert_flows(&mut c, "SE3", "FI", &rows).unwrap();
+        // The cut-off is rounded down to a whole hour
+        assert_eq!(compact_flows(&mut c, 2 * H + Q).unwrap(), 5);
+        let left: Vec<(i64, String, f64)> = c
+            .prepare("SELECT period, interval, value FROM flow ORDER BY period, interval")
+            .unwrap()
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(
+            left,
+            vec![
+                (0, "PT60M".into(), 250.0),
+                (H, "PT60M".into(), 50.0),
+                (3 * H, "PT15M".into(), 7.0),
+            ]
+        );
+        assert_eq!(compact_flows(&mut c, 2 * H).unwrap(), 0);
     }
 
     #[test]

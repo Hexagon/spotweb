@@ -508,8 +508,20 @@ pub async fn status(State(st): State<WebState>) -> Response {
     }
 }
 
-/// `GET /api/v2/flows` - net physical flow per border right now (MW)
-pub async fn flows(State(st): State<WebState>) -> Response {
+/// Longest range (days, end date inclusive) of `/api/v2/flows?area=…`
+const FLOW_MAX_DAYS: i64 = 31;
+
+/// `GET /api/v2/flows` - net physical flow per border right now (MW).
+/// With `area=SE3` or `country=sv`: hourly net export per neighbour from `start` to `end`
+/// (dates in the zone's time zone, default yesterday and today), see [`area_flows`].
+pub async fn flows(
+    State(st): State<WebState>,
+    Query(pairs): Query<Vec<(String, String)>>,
+) -> Response {
+    let q = query_map(pairs);
+    if param(&q, "area").is_some() || param(&q, "country").is_some() {
+        return area_flows(&st, &q).await;
+    }
     match data::current_flows(&st.app).await {
         Ok(f) => json_response(
             StatusCode::OK,
@@ -527,6 +539,86 @@ pub async fn flows(State(st): State<WebState>) -> Response {
             }),
             300,
         ),
+        Err(e) => {
+            tracing::error!(error = %format!("{e:#}"), "flows query failed");
+            api_error("Query failed")
+        }
+    }
+}
+
+/// `GET /api/v2/flows?area=SE3[&start=2026-11-21][&end=2026-11-22]` or `?country=sv`.
+/// One row per hour with the net export to each neighbour (MW, negative is import) and the
+/// sum. Neighbours are zones for an area and countries for a country (borders inside the
+/// country are left out).
+async fn area_flows(st: &WebState, q: &HashMap<String, String>) -> Response {
+    let (scope, tz, label) = if let Some(a) = param(q, "area") {
+        let Some((c, a)) = find_area(&a.to_uppercase()) else {
+            return api_error("Unknown area");
+        };
+        (
+            data::FlowScope::Area(a.name),
+            c.timezone(),
+            ("area", a.name),
+        )
+    } else {
+        let id = param(q, "country").unwrap_or("").to_lowercase();
+        let Some(c) = crate::countries::COUNTRIES.iter().find(|c| c.id == id) else {
+            return api_error("Unknown country");
+        };
+        (
+            data::FlowScope::Country(c.id),
+            c.timezone(),
+            ("country", c.id),
+        )
+    };
+    let t = today(&tz);
+    let date = |k: &str, d| match param(q, k) {
+        None => Some(d),
+        Some(s) => parse_api_date(s, &tz),
+    };
+    let (Some(start), Some(end)) = (date("start", add_days(t, -1)), date("end", t)) else {
+        return api_error("Missing/invalid parameters");
+    };
+    let days = i64::from((end - start).get_days()) + 1;
+    if days < 1 {
+        return api_error("Missing/invalid parameters");
+    }
+    if days > FLOW_MAX_DAYS {
+        return api_error(&format!("Date range too long, max {FLOW_MAX_DAYS} days"));
+    }
+    let from = day_range(&tz, start).0;
+    let to = day_range(&tz, end).1;
+    match data::area_flows(&st.app, scope, from, to).await {
+        Ok(f) => {
+            let rows: Vec<_> = f
+                .times
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| f.net[*i].is_some())
+                .map(|(i, t)| {
+                    let flows: serde_json::Map<String, serde_json::Value> = f
+                        .series
+                        .iter()
+                        .filter_map(|s| s.values[i].map(|v| (s.name.clone(), json!(v))))
+                        .collect();
+                    json!({ "time": js_iso(*t), "net": f.net[i], "flows": flows })
+                })
+                .collect();
+            json_response(
+                StatusCode::OK,
+                json!({
+                    "status": "ok",
+                    "source": SOURCE,
+                    "license": "CC-BY-4.0",
+                    label.0: label.1,
+                    "unit": "MW",
+                    "interval": "PT60M",
+                    "neighbours": f.series.iter().map(|s| &s.name).collect::<Vec<_>>(),
+                    "data": rows,
+                }),
+                if to < now_ms() { 3600 } else { 300 },
+            )
+        }
         Err(e) => {
             tracing::error!(error = %format!("{e:#}"), "flows query failed");
             api_error("Query failed")

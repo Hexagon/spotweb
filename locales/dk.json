@@ -111,7 +111,8 @@
       "yesterday_and_today": "I går og i dag",
       "now": "Nu",
       "time": "Tid",
-      "price": "Pris"
+      "price": "Pris",
+      "net_flow": "Import og eksport pr. nabo"
     },
     "generation": {
       "current_production": "Produktion og forbrug",
@@ -189,7 +190,9 @@
       "today_tomorrow": "I dag og i morgen",
       "note": "Grænserne mellem prisområderne er omtrentlige. Pilene viser fysisk nettoflow (MW) mellem områderne.",
       "all_areas": "Alle prisområder",
-      "zoom": "Zoomniveau"
+      "zoom": "Zoomniveau",
+      "flow_chart_hint": "Over nul: eksport, under nul: import",
+      "flow_sum": "Netto"
     },
     "share": {
       "share": "Del",

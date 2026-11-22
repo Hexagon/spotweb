@@ -152,7 +152,7 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
 
 ### P1 – Snabba vinster med data som redan finns
 
-43. **Import/export på elområdessidan och landssidan.** Kartpanelen visar flöde per granne, men inte `/sv/SE3`. Tabellen
+43. ✅ **Import/export på elområdessidan och landssidan.** (Sparklinen i kartpanelen återstår.) Kartpanelen visar flöde per granne, men inte `/sv/SE3`. Tabellen
     `flow` sparar redan historik per gräns och riktning, men bara det senaste värdet används (`flows::latest`).
     Åtgärd:
     - Gör om panelens lista (`zonePanel` i `app.js`) till en delad funktion och visa den som kort på områdessidan:
@@ -233,7 +233,7 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
 
 ### P3 – Drift och mindre
 
-55. **`flow` växer utan gräns.** Cirka 104 riktningar × 24–96 punkter per dygn. Bestäm hur länge historiken ska sparas
+55. ✅ **`flow` växer utan gräns.** Löst med full upplösning i 90 dagar och timmedel därefter. Cirka 104 riktningar × 24–96 punkter per dygn. Bestäm hur länge historiken ska sparas
     innan punkt 43 och 46 börjar använda den: t.ex. full upplösning i 90 dagar och timmedel därefter, eller rensning som
     för avbrotten (punkt 28).
 56. **Obalanspriser (A85) och reglerkraft**, för den som vill fördjupa sig. Nischat, men lätt att lägga till som eget

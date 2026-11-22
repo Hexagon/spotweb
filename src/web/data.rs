@@ -431,3 +431,49 @@ pub async fn current_flows(app: &App) -> anyhow::Result<Arc<crate::flows::Flows>
         )
         .await
 }
+
+/// Who a flow series is for: one zone, or every zone of a country
+#[derive(Debug, Clone, Copy)]
+pub enum FlowScope<'a> {
+    Area(&'a str),
+    Country(&'a str),
+}
+
+/// Hourly net export per neighbour for an area (per zone) or a country (per country), for
+/// the hours in `[from, to)`. See [`crate::flows::area_series`].
+pub async fn area_flows(
+    app: &App,
+    scope: FlowScope<'_>,
+    from: i64,
+    to: i64,
+) -> anyhow::Result<Arc<crate::flows::AreaFlows>> {
+    let (key, name) = match scope {
+        FlowScope::Area(a) => ("a", a.to_string()),
+        FlowScope::Country(c) => ("c", c.to_string()),
+    };
+    let ttl = if to < now_ms() - HOUR_MS {
+        3600
+    } else {
+        15 * MIN
+    };
+    let db = app.db.clone();
+    app.cache
+        .get_or_load(
+            "flow",
+            format!("series:{key}:{name}:{from}:{to}"),
+            Duration::from_secs(ttl),
+            || async move {
+                // Rows that start up to an hour earlier can cover the first hour
+                let rows = db
+                    .run(move |c| Ok(queries::flow_rows(c, from - HOUR_MS, to)?))
+                    .await?;
+                Ok(if key == "a" {
+                    crate::flows::area_series(&rows, |z| z == name, str::to_string, from, to)
+                } else {
+                    let of = crate::flows::country_of;
+                    crate::flows::area_series(&rows, |z| of(z) == name, of, from, to)
+                })
+            },
+        )
+        .await
+}
