@@ -173,6 +173,7 @@
     },
     "map": {
       "title": "Strømpris og kraftflyt akkurat nå",
+      "title_short": "Strømpris nå",
       "hint": "Klikk på et prisområde for mer informasjon",
       "view_nordic": "Norden",
       "view_europe": "Europa",
@@ -237,6 +238,7 @@
     },
     "a11y": {
       "close": "Lukk",
+      "menu": "Meny",
       "back": "Tilbake",
       "main_nav": "Hovedmeny",
       "average": "snitt",

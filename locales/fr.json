@@ -173,6 +173,7 @@
     },
     "map": {
       "title": "Prix de l'électricité et flux en ce moment",
+      "title_short": "Prix actuel",
       "hint": "Cliquez sur une zone de prix pour plus d'informations",
       "view_nordic": "Pays nordiques",
       "view_europe": "Europe",
@@ -237,6 +238,7 @@
     },
     "a11y": {
       "close": "Fermer",
+      "menu": "Menu",
       "back": "Retour",
       "main_nav": "Menu principal",
       "average": "moyenne",

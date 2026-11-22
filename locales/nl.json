@@ -173,6 +173,7 @@
     },
     "map": {
       "title": "Stroomprijzen en elektriciteitsstromen nu",
+      "title_short": "Stroomprijs nu",
       "hint": "Klik op een biedzone voor meer informatie",
       "view_nordic": "Noordse landen",
       "view_europe": "Europa",
@@ -237,6 +238,7 @@
     },
     "a11y": {
       "close": "Sluiten",
+      "menu": "Menu",
       "back": "Terug",
       "main_nav": "Hoofdmenu",
       "average": "gemiddelde",
