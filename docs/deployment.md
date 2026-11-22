@@ -54,6 +54,22 @@ sudo systemctl enable --now spotweb spotweb-backup.timer
 journalctl -u spotweb -f
 ```
 
+All variables are listed in the README (*Configuration*). The ones most installations touch:
+
+- `API_TOKEN` (or its alias `SPOTWEB_API_TOKEN`, used when `API_TOKEN` is unset): the ENTSO-e token. Without it only
+  exchange rates are updated, and a warning is logged at startup.
+- `SPOTWEB_PUBLIC_URL`: the public base url. Without it canonical links, Open Graph tags, `sitemap.xml` and
+  `robots.txt` are built from the request's `Host` and `X-Forwarded-Proto` headers, which gives wrong urls behind a
+  misconfigured proxy; a warning is logged at startup.
+- `SPOTWEB_GA_ID`, `SPOTWEB_WEBPULSE_ID`, `SPOTWEB_ADSENSE`: Google Analytics, Webpulse Analytics and AdSense. Each
+  script is only included when its variable is set, so a fresh installation sends no visitor data anywhere.
+- `SPOTWEB_NO_SCHEDULER=1` (`true`, `yes` and `on` work too): same as `spotweb serve --no-scheduler`, no scheduled data
+  updates (see *Several instances*).
+- `SPOTWEB_ENTSOE_ENDPOINT` and `SPOTWEB_ECB_ENDPOINT`: replace the ENTSO-e API url
+  (`https://web-api.tp.entsoe.eu/api`) and the ECB rates url
+  (`https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml`), e.g. for an outgoing proxy or a mock server.
+  Rarely needed.
+
 The unit runs with a strict sandbox (`ProtectSystem=strict`, no capabilities, syscall filter, only `/var/lib/spotweb`
 writable). `systemd-analyze security spotweb` should report a low exposure score.
 
@@ -77,7 +93,7 @@ sudo systemctl daemon-reload && sudo systemctl restart spotweb
 spotweb compresses responses (brotli/gzip) and sets cache headers itself; static assets are served with ETags.
 
 Pages are sent with a `Content-Security-Policy` that only runs scripts carrying a fresh nonce (plus what those
-scripts load, `'strict-dynamic'`), so AdSense, Google Analytics and the analytics script work without listing their
+scripts load, `'strict-dynamic'`), so AdSense, Google Analytics and Webpulse Analytics work without listing their
 hosts. Don't add a second CSP in the proxy: browsers enforce both. To try it out first, set `SPOTWEB_CSP=report-only`
 and watch the browser console for "Content Security Policy" messages; `SPOTWEB_CSP=off` turns it off.
 
@@ -201,7 +217,7 @@ Everything except the database can be re-created, and even the database can be r
 ## Several instances
 
 SQLite is local, so scale up rather than out; one instance handles thousands of requests per second from cache. If you
-still want a second node, run it with `--no-scheduler` on a periodically copied database.
+still want a second node, run it with `--no-scheduler` (or `SPOTWEB_NO_SCHEDULER=1`) on a periodically copied database.
 
 ## Docker
 

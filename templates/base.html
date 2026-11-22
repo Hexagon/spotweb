@@ -34,7 +34,9 @@
   <link rel="apple-touch-icon" href="/icon-192x192.png">
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="{{ asset('assets/spotweb.css') }}">
-  <script async src="https://track.webpulseanalytics.com/client/653eb47258a80dc2c3133ff8" type="module" nonce="{{ nonce }}"></script>
+  {%- if webpulse_id %}
+  <script async src="https://track.webpulseanalytics.com/client/{{ webpulse_id }}" type="module" nonce="{{ nonce }}"></script>
+  {%- endif %}
   {%- if ga_id %}
   <script src="{{ asset('assets/ga.js') }}" data-ga-id="{{ ga_id }}" nonce="{{ nonce }}"></script>
   <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_id }}" nonce="{{ nonce }}"></script>

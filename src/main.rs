@@ -97,7 +97,12 @@ struct ServeArgs {
     #[arg(long, env = "SPOTWEB_BIND", default_value = "0.0.0.0")]
     bind: String,
     /// Do not run scheduled data updates (useful for development or a read-only replica)
-    #[arg(long, alias = "no-schedules", env = "SPOTWEB_NO_SCHEDULER")]
+    #[arg(
+        long,
+        alias = "no-schedules",
+        env = "SPOTWEB_NO_SCHEDULER",
+        value_parser = clap::builder::BoolishValueParser::new()
+    )]
     no_scheduler: bool,
 }
 
@@ -109,9 +114,7 @@ impl Default for ServeArgs {
                 .and_then(|p| p.parse().ok())
                 .unwrap_or(6000),
             bind: std::env::var("SPOTWEB_BIND").unwrap_or_else(|_| "0.0.0.0".into()),
-            no_scheduler: std::env::var("SPOTWEB_NO_SCHEDULER")
-                .map(|v| v == "1" || v == "true")
-                .unwrap_or(false),
+            no_scheduler: env_opt("SPOTWEB_NO_SCHEDULER").is_some_and(|v| is_truthy(&v)),
         }
     }
 }
@@ -125,6 +128,8 @@ pub struct Config {
     pub adsense: Option<String>,
     /// Google Analytics measurement id (`SPOTWEB_GA_ID`)
     pub ga_id: Option<String>,
+    /// Webpulse Analytics site id (`SPOTWEB_WEBPULSE_ID`), no tracking script when unset
+    pub webpulse_id: Option<String>,
     /// Time zone for cron expressions (`SPOTWEB_SCHEDULE_TZ`)
     pub schedule_tz: TimeZone,
     /// First day to back-fill prices from on an empty database (`SPOTWEB_HISTORY_START`)
@@ -142,6 +147,15 @@ fn env_opt(name: &str) -> Option<String> {
         .ok()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
+}
+
+/// Same values as clap's `BoolishValueParser` treats as true, so that `SPOTWEB_NO_SCHEDULER`
+/// means the same with and without the `serve` subcommand
+fn is_truthy(v: &str) -> bool {
+    matches!(
+        v.to_ascii_lowercase().as_str(),
+        "1" | "y" | "yes" | "t" | "true" | "on"
+    )
 }
 
 impl Config {
@@ -181,6 +195,7 @@ impl Config {
             public_url: env_opt("SPOTWEB_PUBLIC_URL").map(|u| u.trim_end_matches('/').to_string()),
             adsense: env_opt("SPOTWEB_ADSENSE"),
             ga_id: env_opt("SPOTWEB_GA_ID"),
+            webpulse_id: env_opt("SPOTWEB_WEBPULSE_ID"),
             schedule_tz,
             history_start,
             csp,
@@ -289,6 +304,11 @@ async fn serve(app: App, args: ServeArgs) -> anyhow::Result<()> {
     if !app.entsoe.has_token() {
         tracing::warn!(
             "API_TOKEN not set, ENTSO-e data will not be updated (exchange rates still are)"
+        );
+    }
+    if app.cfg.public_url.is_none() {
+        tracing::warn!(
+            "SPOTWEB_PUBLIC_URL not set, canonical links, sitemap.xml and robots.txt use the request's Host header"
         );
     }
     // No run of this process is in progress yet: rows without `finished` were cut off by a
@@ -408,5 +428,29 @@ async fn main() -> anyhow::Result<()> {
             println!("backup written");
             Ok(())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn truthy_matches_clap_boolish() {
+        let parser = clap::builder::BoolishValueParser::new();
+        let cmd = clap::Command::new("t");
+        for v in [
+            "1", "0", "yes", "no", "TRUE", "false", "on", "off", "y", "n", "t", "f",
+        ] {
+            let clap_value = clap::builder::TypedValueParser::parse_ref(
+                &parser,
+                &cmd,
+                None,
+                std::ffi::OsStr::new(v),
+            )
+            .unwrap();
+            assert_eq!(is_truthy(v), clap_value, "{v}");
+        }
+        assert!(!is_truthy("maybe"));
     }
 }
