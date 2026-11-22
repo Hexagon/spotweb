@@ -192,7 +192,7 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
     kan visa valfri kvart eller timme utan nya anrop. Åtgärd: ett reglage under kartan (idag 00 till imorgon 24) med
     uppspelningsknapp. Färger, etiketter och färgskala följer vald tidpunkt, och "nu" markeras. Flöden finns bara bakåt i
     tiden: visa flödet för vald tidpunkt upp till nu (kräver `flows` per timme i boot eller ett anrop), och dölj pilarna
-    för framtiden tills punkt 49 finns. Gör att man ser hur prisskillnaderna rör sig över dygnet, t.ex. kvällstopp i
+    för framtiden tills punkt 52 finns. Gör att man ser hur prisskillnaderna rör sig över dygnet, t.ex. kvällstopp i
     söder och jämna priser i norr. Hör ihop med punkt 42: när reglaget finns kan klienten hämta ny JSON varje timme i
     stället för att ladda om sidan.
 
