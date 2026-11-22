@@ -216,7 +216,9 @@ cargo fmt && cargo clippy --all-targets
 ```
 
 The front end is plain HTML templates (`templates/`, [minijinja](https://github.com/mitsuhiko/minijinja)) and one script
-(`static/assets/app.js`) using [ApexCharts](https://apexcharts.com/) (vendored, MIT).
+(`static/assets/app.js`) using [ApexCharts](https://apexcharts.com/) (vendored, MIT). ApexCharts is only loaded on pages with
+charts, when the first chart comes into view. Dependabot does not track it; update it with `scripts/update-apexcharts.sh <version>`.
+Asset urls carry the file's content hash (`?v=`), so they are served as `immutable`.
 
 The start page map (`templates/partials/map.svg`) is generated from [Natural Earth](https://www.naturalearthdata.com/) 1:10m data
 (public domain) by `scripts/build_map.py`; see the script for how to rebuild it. Swedish, Norwegian and Danish bidding zones are

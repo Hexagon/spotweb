@@ -33,10 +33,10 @@
   <link rel="icon" type="image/png" href="/icon-192x192.png">
   <link rel="apple-touch-icon" href="/icon-192x192.png">
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/assets/spotweb.css?v={{ version }}">
+  <link rel="stylesheet" href="{{ asset('assets/spotweb.css') }}">
   <script async src="https://track.webpulseanalytics.com/client/653eb47258a80dc2c3133ff8" type="module" nonce="{{ nonce }}"></script>
   {%- if ga_id %}
-  <script src="/assets/ga.js?v={{ version }}" data-ga-id="{{ ga_id }}" nonce="{{ nonce }}"></script>
+  <script src="{{ asset('assets/ga.js') }}" data-ga-id="{{ ga_id }}" nonce="{{ nonce }}"></script>
   <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_id }}" nonce="{{ nonce }}"></script>
   {%- endif %}
   {%- if adsense %}
@@ -64,8 +64,7 @@
   </footer>
 
   <script id="sw-boot" type="application/json">{{ boot|safe }}</script>
-  <script src="/assets/vendor/apexcharts.min.js?v={{ version }}" defer nonce="{{ nonce }}"></script>
-  <script src="/assets/app.js?v={{ version }}" defer nonce="{{ nonce }}"></script>
+  <script src="{{ asset('assets/app.js') }}" data-apexcharts="{{ asset('assets/vendor/apexcharts.min.js') }}" defer nonce="{{ nonce }}"></script>
   <script type="module" src="/initworker.js" nonce="{{ nonce }}"></script>
 </body>
 </html>

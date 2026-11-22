@@ -136,6 +136,10 @@ fn template_env(app: &App) -> Environment<'static> {
     });
     // Urls in attributes (canonical, hreflang, og:url) without escaping `/`
     env.add_filter("attr", |s: String| Value::from_safe_string(attr_escape(&s)));
+    // Asset url with its content hash, for `src` and `href`
+    env.add_function("asset", |path: String| {
+        Value::from_safe_string(attr_escape(&asset_url(&path)))
+    });
     env.add_function("mw", |state: &TplState, v: Option<f64>| -> String {
         let lang = state
             .lookup("lang")
@@ -245,19 +249,33 @@ fn attr_escape(s: &str) -> String {
     out
 }
 
-/// Serve an embedded static file
-pub fn static_file(path: &str, headers: &HeaderMap) -> Option<Response> {
+/// Short content hash of an embedded static file, used as ETag and as `?v=` in asset urls
+fn file_hash(file: &rust_embed::EmbeddedFile) -> String {
+    file.metadata
+        .sha256_hash()
+        .iter()
+        .take(12)
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
+
+/// Url of an embedded static file with its content hash as `?v=`, so a changed file gets a new
+/// url even when the version number stays the same
+pub fn asset_url(path: &str) -> String {
+    let path = path.trim_start_matches('/');
+    match Static::get(path) {
+        Some(file) => format!("/{path}?v={}", file_hash(&file)),
+        None => format!("/{path}"),
+    }
+}
+
+/// Serve an embedded static file. `query` is the query string of the request: assets requested
+/// with their current content hash (`?v=`) never change and can be cached for good.
+pub fn static_file(path: &str, query: Option<&str>, headers: &HeaderMap) -> Option<Response> {
     let path = path.trim_start_matches('/');
     let file = Static::get(path)?;
-    let etag = format!(
-        "\"{}\"",
-        file.metadata
-            .sha256_hash()
-            .iter()
-            .take(12)
-            .map(|b| format!("{b:02x}"))
-            .collect::<String>()
-    );
+    let hash = file_hash(&file);
+    let etag = format!("\"{hash}\"");
     if headers
         .get(header::IF_NONE_MATCH)
         .and_then(|v| v.to_str().ok())
@@ -265,7 +283,13 @@ pub fn static_file(path: &str, headers: &HeaderMap) -> Option<Response> {
     {
         return Some(StatusCode::NOT_MODIFIED.into_response());
     }
-    let cache = if path.starts_with("assets/") {
+    let versioned = query
+        .unwrap_or("")
+        .split('&')
+        .any(|pair| pair.strip_prefix("v=") == Some(hash.as_str()));
+    let cache = if path.starts_with("assets/") && versioned {
+        "public, max-age=31536000, immutable"
+    } else if path.starts_with("assets/") {
         "public, max-age=604800"
     } else if path == "worker.js" || path == "initworker.js" {
         "no-cache"
@@ -289,7 +313,7 @@ pub fn is_static(path: &str) -> bool {
 }
 
 async fn static_handler(req: Request) -> Response {
-    static_file(req.uri().path(), req.headers())
+    static_file(req.uri().path(), req.uri().query(), req.headers())
         .unwrap_or_else(|| StatusCode::NOT_FOUND.into_response())
 }
 
