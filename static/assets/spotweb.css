@@ -343,9 +343,20 @@ body.currency-eur .hide-eur { display: none; }
 .zone-map .zone:focus-visible { stroke: var(--primary); stroke-width: 2.4; }
 .zone-map .zone.selected { stroke: var(--map-selected); stroke-width: 2.2; }
 .zone-map .flow { cursor: default; transition: opacity .2s; }
-.zone-map .flow-arrow { fill: var(--map-arrow); stroke: var(--map-halo); stroke-width: 1; stroke-linejoin: round; }
+.zone-map .flow-arrow { stroke: var(--map-halo); stroke-width: 1; stroke-linejoin: round; }
+/* Each arrow fades in from tail to tip; colours of the selected zone's arrows follow the flow list */
+.zone-map .flow-stop-tail { stop-color: var(--map-arrow); stop-opacity: .2; }
+.zone-map .flow-stop-tip { stop-color: var(--map-arrow); stop-opacity: 1; }
 .zone-map .flow.dim { opacity: .35; }
-.zone-map .flow.active .flow-arrow { fill: var(--map-ink); }
+.zone-map .flow.active stop { stop-color: var(--map-ink); }
+.zone-map .flow.active .flow-stop-tail { stop-opacity: .25; }
+.zone-map .flow.is-import stop { stop-color: var(--import); }
+.zone-map .flow.is-export stop { stop-color: var(--export); }
+.zone-map .flow-dash { stroke: #fff; stroke-opacity: .8; stroke-linecap: round; pointer-events: none; animation: flow-dash linear infinite; }
+.zone-map.paused .flow-dash { animation-play-state: paused; }
+@keyframes flow-dash { from { stroke-dashoffset: var(--p, 10); } to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .zone-map .flow-dash { display: none; } }
+@media print { .zone-map .flow-dash { display: none; } }
 .zone-map .flow-zero { fill: var(--map-arrow-zero); }
 .zone-map .flow-hit { stroke: transparent; stroke-width: 16; }
 .zone-map .flow-label { font-size: calc(11px * var(--k, 1)); font-weight: 600; fill: var(--map-ink); paint-order: stroke; stroke: var(--map-halo); stroke-width: calc(3.5px * var(--k, 1)); stroke-linejoin: round; font-variant-numeric: tabular-nums; }

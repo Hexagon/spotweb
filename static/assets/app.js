@@ -641,8 +641,7 @@ series:
       const target = e.target.closest("[data-area],[data-ext],[data-flow]");
       if (!target || e.pointerType === "touch") { map.tip.hidden = true; return; }
       if (target.dataset.flow) {
-        const f = boot.flows.borders[Number(target.dataset.flow)];
-        showTip(e, `<strong>${esc(f.from)} &rarr; ${esc(f.to)}</strong><br>${mw(f.value)} MW`);
+        showTip(e, flowTip(boot.flows.borders[Number(target.dataset.flow)]));
       } else if (target.dataset.area) {
         const n = target.dataset.area;
         showTip(e, `<strong>${esc(zoneLabel(n))}</strong><br>${price(zoneNow(n))} ${esc(unit())}`);
@@ -651,6 +650,8 @@ series:
       }
     });
     svg.addEventListener("pointerleave", () => { map.tip.hidden = true; });
+    // Moving dashes on the arrows stop while the tab is hidden
+    document.addEventListener("visibilitychange", () => svg.classList.toggle("paused", document.hidden));
 
     // View toggle
     const setView = (v, animate) => {
@@ -699,6 +700,9 @@ series:
     return true;
   };
 
+  // One arrow per border. Each arrow has its own gradient from tail to tip, so the direction shows
+  // even where the head is small. Arrows of the selected zone are coloured as import (into the
+  // zone) or export, and get a few light dashes that move from tail to tip, faster for more MW.
   const flowArrow = (g, f, i, selected) => {
     const a = map.anchor[f.from], b = map.anchor[f.to];
     if (!a || !b) return;
@@ -712,7 +716,8 @@ series:
     }
     const px = -uy, py = ux;
     const touches = selected && (f.from === selected || f.to === selected);
-    const cls = "flow" + (touches ? " active" : selected ? " dim" : "");
+    const dir = !touches || f.value < 1 ? "" : f.to === selected ? " is-import" : " is-export";
+    const cls = "flow" + (touches ? " active" : selected ? " dim" : "") + dir;
     const grp = svgEl("g", { class: cls, "data-flow": i }, g);
     if (f.value < 1) {
       svgEl("circle", { cx: mid[0], cy: mid[1], r: 3, class: "flow-zero" }, grp);
@@ -725,18 +730,46 @@ series:
     const tail = [mid[0] - ux * L / 2, mid[1] - uy * L / 2];
     const tip = [mid[0] + ux * L / 2, mid[1] + uy * L / 2];
     const base = [tip[0] - ux * hl, tip[1] - uy * hl];
-    const pt = (p, s) => `${(p[0] + px * s).toFixed(1)},${(p[1] + py * s).toFixed(1)}`;
-    const points = [pt(tail, w / 2), pt(base, w / 2), pt(base, hw / 2), `${tip[0].toFixed(1)},${tip[1].toFixed(1)}`, pt(base, -hw / 2), pt(base, -w / 2), pt(tail, -w / 2)];
-    svgEl("polygon", { points: points.join(" "), class: "flow-arrow" }, grp);
+    const f1 = (v) => v.toFixed(1);
+    const pt = (p, s) => `${f1(p[0] + px * s)},${f1(p[1] + py * s)}`;
+    const points = [pt(tail, w / 2), pt(base, w / 2), pt(base, hw / 2), `${f1(tip[0])},${f1(tip[1])}`, pt(base, -hw / 2), pt(base, -w / 2), pt(tail, -w / 2)];
+    const gid = `flow-grad-${i}`;
+    const grad = svgEl("linearGradient", { id: gid, gradientUnits: "userSpaceOnUse", x1: f1(tail[0]), y1: f1(tail[1]), x2: f1(tip[0]), y2: f1(tip[1]) }, grp);
+    svgEl("stop", { offset: "0", class: "flow-stop-tail" }, grad);
+    svgEl("stop", { offset: "0.75", class: "flow-stop-tip" }, grad);
+    svgEl("polygon", { points: points.join(" "), class: "flow-arrow", fill: `url(#${gid})` }, grp);
+    if (touches) {
+      // Dash period about a third of the shaft, so two or three dashes are visible at a time
+      const shaft = Math.max(1, L - hl);
+      const period = shaft / 2.5, dash = Math.min(period * 0.45, 5 * k);
+      const dur = 3 - 2.2 * Math.min(1, Math.sqrt(f.value / 2000));
+      svgEl("line", {
+        x1: f1(tail[0]), y1: f1(tail[1]), x2: f1(base[0]), y2: f1(base[1]), class: "flow-dash",
+        "stroke-width": f1(Math.max(1.2, w * 0.45)), "stroke-dasharray": `${f1(dash)} ${f1(period - dash)}`,
+        style: `--p:${f1(period)};animation-duration:${dur.toFixed(2)}s`,
+      }, grp);
+    }
     // Wider invisible hit target
-    svgEl("line", { x1: tail[0], y1: tail[1], x2: tip[0], y2: tip[1], class: "flow-hit" }, grp);
+    svgEl("line", { x1: f1(tail[0]), y1: f1(tail[1]), x2: f1(tip[0]), y2: f1(tip[1]), class: "flow-hit" }, grp);
     if (touches) {
       const off = hw / 2 + 9 * k;
       const side = py > 0 ? -1 : 1;
-      const txt = svgEl("text", { x: (mid[0] + px * off * side).toFixed(1), y: (mid[1] + py * off * side + 4).toFixed(1), class: "flow-label", "text-anchor": "middle" }, grp);
-      txt.setAttribute("y", (mid[1] + py * off * side + 4 * k).toFixed(1));
+      const txt = svgEl("text", { x: f1(mid[0] + px * off * side), y: f1(mid[1] + py * off * side + 4 * k), class: "flow-label", "text-anchor": "middle" }, grp);
       txt.textContent = mw(f.value);
     }
+  };
+
+  // Tooltip for an arrow: MW, and the price on both sides with the difference, which shows
+  // where a border is congested ("SE3 4.1 → SE4 9.8 öre/kWh (+5.7)")
+  const flowTip = (f) => {
+    let html = `<strong>${esc(f.from)} &rarr; ${esc(f.to)}</strong><br>${mw(f.value)} MW`;
+    const pa = priceNum(zoneNow(f.from)), pb = priceNum(zoneNow(f.to));
+    if (pa !== null && pb !== null) {
+      const d = pb - pa;
+      const ds = (d > 0 ? "+" : d < 0 ? "\u2212" : "\u00b1") + Math.abs(d).toFixed(prefs.decimals);
+      html += `<br><span class="muted">${esc(f.from)} ${price(zoneNow(f.from))} &rarr; ${esc(f.to)} ${price(zoneNow(f.to))} ${esc(unit())} (${ds})</span>`;
+    }
+    return html;
   };
 
   const mapRender = () => {

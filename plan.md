@@ -163,7 +163,7 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
     - På landssidan: flöden mot andra länder (gränser inom landet räknas inte), t.ex. Sveriges nettoexport till FI, NO,
       DK, DE, PL och LT.
     - Gärna en sparkline för nettoimporten de senaste 24 timmarna i kartpanelen.
-44. **Tydligare riktning på pilarna.** I dag är alla pilar likadana och grå, och riktningen syns bara på spetsen. Åtgärd,
+44. ✅ **Tydligare riktning på pilarna.** I dag är alla pilar likadana och grå, och riktningen syns bara på spetsen. Åtgärd,
     i den här ordningen:
     - (a) *Övertoning.* En `linearGradient` per pil (`gradientUnits="userSpaceOnUse"`, från svans till spets) från cirka
       15 % till 100 % täckning, så att pilen "tonar in" i flödesriktningen. Den är statisk, billig och fungerar i alla
