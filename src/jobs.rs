@@ -935,7 +935,7 @@ async fn update_outages(app: &App) -> anyhow::Result<Outcome> {
             let cid = country.id;
             let n = app
                 .db
-                .run(move |c| Ok(queries::replace_outages(c, cid, &outages)?))
+                .run(move |c| Ok(queries::replace_outages(c, cid, &outages, now_ms())?))
                 .await?;
             Ok(Rows(n, "outage"))
         }
