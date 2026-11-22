@@ -200,13 +200,13 @@ sha256sum --ignore-missing -c SHA256SUMS
 
 # Signature: proves the archive was built by this repository's release workflow
 cosign verify-blob \
-  --bundle spotweb-v2.4.2-x86_64-unknown-linux-musl.tar.gz.sigstore.json \
+  --bundle spotweb-v2.4.3-x86_64-unknown-linux-musl.tar.gz.sigstore.json \
   --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  spotweb-v2.4.2-x86_64-unknown-linux-musl.tar.gz
+  spotweb-v2.4.3-x86_64-unknown-linux-musl.tar.gz
 
 # Or with the GitHub CLI (build provenance attestation)
-gh attestation verify spotweb-v2.4.2-x86_64-unknown-linux-musl.tar.gz --repo Hexagon/spotweb
+gh attestation verify spotweb-v2.4.3-x86_64-unknown-linux-musl.tar.gz --repo Hexagon/spotweb
 ```
 
 ### Recommended setup (Linux, systemd)
@@ -232,10 +232,10 @@ A signed multi-arch image (amd64, arm64) is published to GHCR with each release 
 run it (details and `docker-compose.yml` in [docs/deployment.md](docs/deployment.md#docker)):
 
 ```sh
-cosign verify ghcr.io/hexagon/spotweb:2.4.2 \
+cosign verify ghcr.io/hexagon/spotweb:2.4.3 \
   --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
-docker run -d -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.4.2
+docker run -d -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.4.3
 ```
 
 ## Development

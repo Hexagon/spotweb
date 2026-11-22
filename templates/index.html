@@ -39,6 +39,7 @@
         <span class="legend-ramp"></span>
         <span class="muted small">{{ t("map.expensive") }}</span>
         <span class="legend-range small"><span data-legend-min>-</span> &ndash; <span data-legend-max>-</span> {{ m.unit() }}</span>
+        {{ m.price_kind() }}
         <span class="legend-negative small" data-legend-negative hidden><i></i>{{ t("map.negative") }}</span>
         <span class="legend-equal small muted" data-legend-equal hidden>{{ t("map.all_equal") }}</span>
       </div>
@@ -70,6 +71,7 @@
         <h3>{{ t("overview.right_now")|capitalize }}</h3>
         <div class="price-mid" data-zone-now>-</div>
         <div class="muted small">{{ m.unit() }}</div>
+        <div>{{ m.price_kind() }}</div>
       </div>
       <div>
         <h3>{{ t("overview.average_today") }}</h3>
@@ -106,7 +108,7 @@
 
 {{ m.ad(adsense) }}
 <section class="card">
-  <header class="card-head"><h2>{{ t("map.all_areas") }}</h2></header>
+  <header class="card-head"><h2>{{ t("map.all_areas") }}</h2>{{ m.price_kind() }}</header>
   <div class="table-scroll">
   <table class="table overview-table">
     <thead>

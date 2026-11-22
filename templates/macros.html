@@ -1,5 +1,8 @@
 {% macro unit() %}<span data-unit>{{ currency }}/kWh</span>{% endmacro %}
 
+{# Whether prices are plain spot prices or include the visitor's fees and factors (filled in by app.js) #}
+{% macro price_kind() %}<span class="price-kind" data-price-kind>{{ t("price_kind.spot") }}</span>{% endmacro %}
+
 {# Share button. `url` is the permalink path; without it the script works it out (shareUi in app.js). #}
 {% macro share(url="", title="", attrs="") %}
 <button type="button" class="icon-btn share-btn" data-share{% if url %} data-share-url="{{ url }}"{% endif %}{% if title %} data-share-title="{{ title }}"{% endif %} {{ attrs|safe }} aria-label="{{ t('share.share') }}" title="{{ t('share.share') }}" aria-haspopup="menu" aria-expanded="false">
@@ -17,6 +20,7 @@
   <div class="now-box">
     <div class="price-big" data-now-area="{{ a.name }}">{{ price(a.now) }}</div>
     <div class="muted">{{ unit() }} {{ t("overview.right_now") }}</div>
+    <div>{{ price_kind() }}</div>
   </div>
   <div class="stats">
     <div>

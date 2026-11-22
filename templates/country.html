@@ -14,8 +14,8 @@
 </div>
 
 <div class="grid grid-2">
-  {{ m.chart_card(t("overview.all_areas_today"), "all-today") }}
-  {{ m.chart_card(t("overview.all_areas_tomorrow"), "all-tomorrow") }}
+  {{ m.chart_card(t("overview.all_areas_today"), "all-today", m.price_kind()) }}
+  {{ m.chart_card(t("overview.all_areas_tomorrow"), "all-tomorrow", m.price_kind()) }}
 </div>
 
 <div class="grid grid-2">
@@ -30,7 +30,7 @@
 
 <div class="grid grid-2">
   <section class="card">
-    <header class="card-head"><h2>{{ t("longtermchart.title") }}{{ t("countries." ~ country.id) }}</h2></header>
+    <header class="card-head"><h2>{{ t("longtermchart.title") }}{{ t("countries." ~ country.id) }}</h2>{{ m.price_kind() }}</header>
     <div class="chart" data-chart="longterm-country"><div class="chart-empty muted">&hellip;</div></div>
     <div class="pad">
       <p>{{ t("longtermchart.countryDescriptionPart1") }} {{ t("countries." ~ country.id) }}{{ t("longtermchart.countryDescriptionPart2") }}</p>

@@ -68,6 +68,8 @@
     return p === null ? null : Number(p.toFixed(prefs.decimals));
   };
   const unit = () => prefs.currency + "/kWh";
+  /** "Spot price" or "Custom price", depending on whether fees and factors are applied */
+  const priceKind = () => t(prefs.pricefactor ? "price_kind.custom" : "price_kind.spot");
   const mwFmt = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
   const mw = (v) => (v === null || v === undefined || Number.isNaN(v) ? "" : mwFmt.format(v));
   const timeFmt = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" });
@@ -81,6 +83,12 @@
     $$("[data-unit-currency]").forEach((el) => { el.textContent = prefs.currency === "öre" ? "SEK" : prefs.currency; });
     $$("[data-er-rate]").forEach((el) => { const r = rate(prefs.currency); el.textContent = Number.isFinite(r) ? r : "-"; });
     $$("[data-pref-show]").forEach((el) => { el.textContent = prefs[el.dataset.prefShow]; });
+    const hint = t(prefs.pricefactor ? "price_kind.custom_hint" : "price_kind.spot_hint");
+    $$("[data-price-kind]").forEach((el) => {
+      el.textContent = priceKind();
+      el.classList.toggle("is-custom", prefs.pricefactor);
+      el.title = hint;
+    });
     document.body.classList.toggle("pricefactor", prefs.pricefactor);
     document.body.classList.toggle("currency-eur", prefs.currency === "EUR");
     const warn = $("#pricefactor-warning");
@@ -490,7 +498,7 @@
     const vals = rows.map((r) => r[1]);
     const lo = Math.min(...vals), hi = Math.max(...vals);
     const now = Date.now();
-    let html = `<thead><tr><th>${t("chart.time")}</th><th class="num">${t("chart.price")} <small>(${unit()})</small></th><th></th></tr></thead><tbody>`;
+    let html = `<thead><tr><th>${t("chart.time")}</th><th class="num">${priceKind()} <small>(${unit()})</small></th><th></th></tr></thead><tbody>`;
     let lastDay = "";
     for (const r of rows) {
       const day = dayFmt.format(new Date(r[0]));
@@ -527,11 +535,13 @@
       $("#custom-min").textContent = `${price(data.length ? Math.min(...data.map((r) => r.min)) : null)} ${unit()}`;
       $("#custom-max").textContent = `${price(data.length ? Math.max(...data.map((r) => r.max)) : null)} ${unit()}`;
       const fmt = (ms) => (ms === null ? t("custom.total") : new Date(ms).toLocaleString(locale));
-      let html = `<thead><tr><th>${t("custom.datetime")}</th><th class="num">${t("chart.price")}</th><th class="num">${t("custom.min")}</th><th class="num">${t("custom.max")}</th><th>${t("customize.unit")}</th></tr></thead><tbody>`;
+      let html = `<thead><tr><th>${t("custom.datetime")}</th><th class="num">${priceKind()}</th><th class="num">${t("custom.min")}</th><th class="num">${t("custom.max")}</th><th>${t("customize.unit")}</th></tr></thead><tbody>`;
       const shown = data.slice(0, 5000);
       for (const r of shown) html += `<tr><td>${fmt(r.time)}</td><td class="num">${price(r.price)}</td><td class="num">${price(r.min)}</td><td class="num">${price(r.max)}</td><td>${unit()}</td></tr>`;
       $("#custom-table").innerHTML = html + "</tbody>";
-      const csv = [`# Source: ${res.source || "ENTSO-E Transparency Platform (https://transparency.entsoe.eu/)"}. Converted to ${unit()} with ECB reference rates by spotweb`, "time,price,min,max,unit"].concat(data.map((r) => [r.time === null ? "" : new Date(r.time).toISOString(), price(r.price), price(r.min), price(r.max), unit()].join(","))).join("\n");
+      const csv = [`# Source: ${res.source || "ENTSO-E Transparency Platform (https://transparency.entsoe.eu/)"}. Converted to ${unit()} with ECB reference rates by spotweb`, prefs.pricefactor
+        ? `# Custom price: ((spot * ${prefs.multiplier}) + ${prefs.extra}) * ${prefs.factor}`
+        : "# Spot price, without fees or taxes", "time,price,min,max,unit"].concat(data.map((r) => [r.time === null ? "" : new Date(r.time).toISOString(), price(r.price), price(r.min), price(r.max), unit()].join(","))).join("\n");
       $("#custom-csv").href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
       const o = unitTooltip(baseChart());
       o.series = [{ name: fd.get("area"), data: data.filter((r) => r.time !== null).map((r) => ({ x: r.time, y: priceRounded(r.price) })) }];
