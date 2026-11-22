@@ -1,6 +1,6 @@
 services:
   spotweb:
-    # Signed release image (see docs/deployment.md); pin a version such as :2.4.0 in production.
+    # Signed release image (see docs/deployment.md); pin a version such as :2.4.1 in production.
     # `docker compose up -d --build` builds from the Dockerfile instead.
     image: ghcr.io/hexagon/spotweb:latest
     build: .

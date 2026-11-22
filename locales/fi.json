@@ -173,6 +173,7 @@
     },
     "map": {
       "title": "Sähkön hinta ja siirrot nyt",
+      "title_short": "Sähkön hinta nyt",
       "hint": "Napsauta tarjousaluetta nähdäksesi lisätietoja",
       "view_nordic": "Pohjoismaat",
       "view_europe": "Eurooppa",
@@ -237,6 +238,7 @@
     },
     "a11y": {
       "close": "Sulje",
+      "menu": "Valikko",
       "back": "Takaisin",
       "main_nav": "Päävalikko",
       "average": "keskiarvo",

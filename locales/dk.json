@@ -173,6 +173,7 @@
     },
     "map": {
       "title": "Elpris og elflow lige nu",
+      "title_short": "Elpris lige nu",
       "hint": "Klik på et prisområde for mere information",
       "view_nordic": "Norden",
       "view_europe": "Europa",
@@ -237,6 +238,7 @@
     },
     "a11y": {
       "close": "Luk",
+      "menu": "Menu",
       "back": "Tilbage",
       "main_nav": "Hovedmenu",
       "average": "gennemsnit",

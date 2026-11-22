@@ -1461,6 +1461,14 @@ series:
     $$("[data-close-settings]").forEach((b) => b.addEventListener("click", close));
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !drawer.hidden) close(); });
 
+    // Close the nav dropdowns (country, menu) on outside click or Escape
+    const closeDropdowns = (except) => $$("details.dropdown[open]").forEach((d) => { if (d !== except) d.open = false; });
+    document.addEventListener("click", (e) => { const s = e.target.closest("summary"); closeDropdowns(s && s.parentElement); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDropdowns(null); });
+    // On narrow screens the area links can scroll sideways: keep the current area in view
+    const areas = $(".nav-areas"), current = areas && $(".area-link.active", areas);
+    if (current && areas.scrollWidth > areas.clientWidth) areas.scrollLeft = current.offsetLeft - areas.offsetLeft - (areas.clientWidth - current.offsetWidth) / 2;
+
     const fill = () => {
       $("#pref-pricefactor").checked = prefs.pricefactor;
       $("#pref-currency").value = prefs.currency;

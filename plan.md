@@ -239,6 +239,10 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
 56. **Obalanspriser (A85) och reglerkraft**, för den som vill fördjupa sig. Nischat, men lätt att lägga till som eget
     kort när jobbinfrastrukturen ändå byggs ut för punkt 50.
 57. **Spara kartan som bild**, för delning (PNG från SVG:n i klienten, med teckenförklaring och tidpunkt).
+58. ✅ **Kompaktare huvud på mobil.** Under 800 px ligger Home Assistant, Tabell, Hjälp och Inställningar i en meny (⋯),
+    så att toppraden blir en rad även på områdessidorna (kortare knappar, områdena rullar i sidled om de inte får plats).
+    Kartans rubrik blir kortare ("Elpris just nu") och delar rad med Norden/Europa. Menyerna stängs vid klick utanför
+    och med Escape.
 
 **Förslag till ordning:** 44 (liten, syns direkt) → 43 → 45 → 46 → 47/48 → 53 → 50 → 51 → 52 → 54 → 49. Punkt 55 bör
 avgöras innan 43 slås samman.

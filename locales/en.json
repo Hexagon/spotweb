@@ -173,6 +173,7 @@
     },
     "map": {
       "title": "Electricity prices and power flows right now",
+      "title_short": "Prices now",
       "hint": "Click a bidding zone for more information",
       "view_nordic": "Nordics",
       "view_europe": "Europe",
@@ -237,6 +238,7 @@
     },
     "a11y": {
       "close": "Close",
+      "menu": "Menu",
       "back": "Back",
       "main_nav": "Main menu",
       "average": "average",

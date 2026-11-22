@@ -173,6 +173,7 @@
     },
     "map": {
       "title": "Precio de la electricidad y flujos ahora",
+      "title_short": "Precio ahora",
       "hint": "Haz clic en una zona de oferta para más información",
       "view_nordic": "Países nórdicos",
       "view_europe": "Europa",
@@ -237,6 +238,7 @@
     },
     "a11y": {
       "close": "Cerrar",
+      "menu": "Menú",
       "back": "Atrás",
       "main_nav": "Menú principal",
       "average": "media",

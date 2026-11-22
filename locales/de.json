@@ -173,6 +173,7 @@
     },
     "map": {
       "title": "Strompreise und Lastflüsse aktuell",
+      "title_short": "Strompreis jetzt",
       "hint": "Klicken Sie auf eine Gebotszone für mehr Informationen",
       "view_nordic": "Nordeuropa",
       "view_europe": "Europa",
@@ -237,6 +238,7 @@
     },
     "a11y": {
       "close": "Schließen",
+      "menu": "Menü",
       "back": "Zurück",
       "main_nav": "Hauptmenü",
       "average": "Durchschnitt",
