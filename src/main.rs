@@ -131,6 +131,10 @@ pub struct Config {
     pub history_start: Date,
     /// Content-Security-Policy for pages (`SPOTWEB_CSP`: `on`, `report-only` or `off`)
     pub csp: web::Csp,
+    /// Requests per minute and client IP to `/api/` (`SPOTWEB_API_RATE_LIMIT`, default off)
+    pub api_rate_limit: Option<u32>,
+    /// Proxies whose `X-Forwarded-For`/`X-Real-IP` are believed (`SPOTWEB_TRUSTED_PROXIES`)
+    pub trusted_proxies: Vec<web::ratelimit::IpNet>,
 }
 
 fn env_opt(name: &str) -> Option<String> {
@@ -159,6 +163,20 @@ impl Config {
                 anyhow::bail!("SPOTWEB_CSP must be on, report-only or off, not {other:?}")
             }
         };
+        let api_rate_limit = match env_opt("SPOTWEB_API_RATE_LIMIT") {
+            None => None,
+            Some(s) => match s.parse::<u32>() {
+                Ok(0) => None,
+                Ok(n) => Some(n),
+                Err(_) => anyhow::bail!(
+                    "SPOTWEB_API_RATE_LIMIT must be a number of requests per minute, not {s:?}"
+                ),
+            },
+        };
+        let trusted_proxies = web::ratelimit::parse_trusted_proxies(
+            &env_opt("SPOTWEB_TRUSTED_PROXIES").unwrap_or_default(),
+        )
+        .map_err(|e| anyhow::anyhow!("SPOTWEB_TRUSTED_PROXIES: {e}"))?;
         Ok(Self {
             public_url: env_opt("SPOTWEB_PUBLIC_URL").map(|u| u.trim_end_matches('/').to_string()),
             adsense: env_opt("SPOTWEB_ADSENSE"),
@@ -166,6 +184,8 @@ impl Config {
             schedule_tz,
             history_start,
             csp,
+            api_rate_limit,
+            trusted_proxies,
         })
     }
 }
@@ -182,6 +202,7 @@ pub struct AppInner {
     pub job_locks: jobs::JobLocks,
     pub i18n: i18n::I18n,
     pub http_stats: web::metrics::HttpStats,
+    pub api_rate_limiter: Option<web::ratelimit::RateLimiter>,
 }
 
 impl std::ops::Deref for App {
@@ -196,6 +217,9 @@ impl App {
         let token = env_opt("API_TOKEN")
             .or_else(|| env_opt("SPOTWEB_API_TOKEN"))
             .unwrap_or_default();
+        let api_rate_limiter = cfg
+            .api_rate_limit
+            .map(|n| web::ratelimit::RateLimiter::new(n, cfg.trusted_proxies.clone()));
         Ok(Self(Arc::new(AppInner {
             db,
             cache: cache::Cache::new(),
@@ -204,6 +228,7 @@ impl App {
             job_locks: jobs::JobLocks::new(),
             i18n: i18n::I18n::load()?,
             http_stats: web::metrics::HttpStats::from_env(),
+            api_rate_limiter,
         })))
     }
 }
@@ -297,10 +322,20 @@ async fn serve(app: App, args: ServeArgs) -> anyhow::Result<()> {
         .await
         .with_context(|| format!("binding {addr}"))?;
     web::metrics::spawn_summary(app.clone());
+    if let Some(n) = app.cfg.api_rate_limit {
+        tracing::info!(
+            per_minute = n,
+            trusted_proxies = app.cfg.trusted_proxies.len(),
+            "rate limiting /api/ per client IP"
+        );
+    }
     tracing::info!(%addr, db = %app.db.path().display(), version = env!("CARGO_PKG_VERSION"), "spotweb listening");
-    axum::serve(listener, web::router(app.clone()))
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(
+        listener,
+        web::router(app.clone()).into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
     if let Some(s) = scheduler {
         s.shutdown().await;
     }

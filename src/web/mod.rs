@@ -4,6 +4,7 @@ mod api;
 pub mod data;
 pub mod metrics;
 mod pages;
+pub mod ratelimit;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -426,6 +427,10 @@ fn layers(r: Router<WebState>, state: WebState) -> Router {
         // A panicking handler answers 500 (with the usual headers) instead of dropping the connection
         .layer(CatchPanicLayer::custom(panic_response))
         .layer(axum::middleware::from_fn(api_etag))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            ratelimit::limit,
+        ))
         .layer(axum::middleware::from_fn(remember_lang))
         .layer(axum::middleware::from_fn(security_headers))
         .layer(CompressionLayer::new())
