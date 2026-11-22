@@ -243,6 +243,12 @@
       "main_nav": "Main menu",
       "average": "average",
       "no_data": "No data"
+    },
+    "price_kind": {
+      "spot": "Spot price",
+      "custom": "Custom price",
+      "spot_hint": "Showing the spot price without fees. Click to customize.",
+      "custom_hint": "Showing the spot price with your fees and factors. Click to change."
     }
   },
   "pages": {

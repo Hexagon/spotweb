@@ -243,6 +243,12 @@
       "main_nav": "Huvudmeny",
       "average": "medel",
       "no_data": "Ingen data"
+    },
+    "price_kind": {
+      "spot": "Spotpris",
+      "custom": "Anpassat pris",
+      "spot_hint": "Visar spotpris utan avgifter. Klicka för att anpassa.",
+      "custom_hint": "Visar spotpris med dina avgifter och faktorer. Klicka för att ändra."
     }
   },
   "pages": {

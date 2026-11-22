@@ -243,6 +243,12 @@
       "main_nav": "Menú principal",
       "average": "media",
       "no_data": "Sin datos"
+    },
+    "price_kind": {
+      "spot": "Precio spot",
+      "custom": "Precio personalizado",
+      "spot_hint": "Se muestra el precio spot sin tasas. Haz clic para personalizar.",
+      "custom_hint": "Se muestra el precio spot con tus tasas y factores. Haz clic para cambiar."
     }
   },
   "pages": {

@@ -243,6 +243,12 @@
       "main_nav": "Hoofdmenu",
       "average": "gemiddelde",
       "no_data": "Geen gegevens"
+    },
+    "price_kind": {
+      "spot": "Spotprijs",
+      "custom": "Aangepaste prijs",
+      "spot_hint": "Spotprijs zonder kosten. Klik om aan te passen.",
+      "custom_hint": "Spotprijs met jouw kosten en factoren. Klik om te wijzigen."
     }
   },
   "pages": {

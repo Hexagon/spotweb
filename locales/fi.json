@@ -243,6 +243,12 @@
       "main_nav": "Päävalikko",
       "average": "keskiarvo",
       "no_data": "Ei tietoja"
+    },
+    "price_kind": {
+      "spot": "Spot-hinta",
+      "custom": "Mukautettu hinta",
+      "spot_hint": "Näytetään spot-hinta ilman maksuja. Napsauta mukauttaaksesi.",
+      "custom_hint": "Näytetään spot-hinta omilla maksuillasi ja kertoimillasi. Napsauta muuttaaksesi."
     }
   },
   "pages": {

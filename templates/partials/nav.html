@@ -30,6 +30,7 @@
       {%- endif %}
       <a href="/custom" class="nav-link hide-sm{% if page == 'custom' %} active{% endif %}">{{ t("nav.table") }}</a>
       <a href="/help" class="nav-link hide-sm{% if page == 'help' %} active{% endif %}">{{ t("nav.help") }}</a>
+      <button type="button" class="price-kind price-kind-chip hide-sm" data-price-kind data-open-settings aria-controls="settings" title="{{ t('price_kind.spot_hint') }}">{{ t("price_kind.spot") }}</button>
       <details class="dropdown nav-more show-sm">
         <summary class="icon-btn" aria-label="{{ t('a11y.menu') }}" title="{{ t('a11y.menu') }}"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg></summary>
         <div class="dropdown-menu dropdown-menu-right">

@@ -243,6 +243,12 @@
       "main_nav": "Hauptmenü",
       "average": "Durchschnitt",
       "no_data": "Keine Daten"
+    },
+    "price_kind": {
+      "spot": "Spotpreis",
+      "custom": "Angepasster Preis",
+      "spot_hint": "Spotpreis ohne Gebühren. Klicken zum Anpassen.",
+      "custom_hint": "Spotpreis mit Ihren Gebühren und Faktoren. Klicken zum Ändern."
     }
   },
   "pages": {

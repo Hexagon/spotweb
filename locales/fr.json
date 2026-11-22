@@ -243,6 +243,12 @@
       "main_nav": "Menu principal",
       "average": "moyenne",
       "no_data": "Aucune donnée"
+    },
+    "price_kind": {
+      "spot": "Prix spot",
+      "custom": "Prix personnalisé",
+      "spot_hint": "Prix spot affiché sans frais. Cliquez pour personnaliser.",
+      "custom_hint": "Prix spot affiché avec vos frais et facteurs. Cliquez pour modifier."
     }
   },
   "pages": {

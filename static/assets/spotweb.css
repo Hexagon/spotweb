@@ -328,6 +328,14 @@ details summary { cursor: pointer; color: var(--primary); margin: 6px 0; }
 /* Price factor dependent text */
 body:not(.pricefactor) .show-pricefactor { display: none; }
 body.pricefactor .hide-pricefactor { display: none; }
+/* Spot price or custom price (fees and factors from the settings) */
+.price-kind { display: inline-block; flex: none; padding: 1px 8px; border: 1px solid var(--border); border-radius: 999px; font-size: .72rem; font-weight: 600; line-height: 1.5; color: var(--muted); white-space: nowrap; vertical-align: middle; }
+.price-kind.is-custom { color: var(--warning); border-color: rgba(246, 195, 68, .55); background: rgba(246, 195, 68, .1); }
+.card-head .price-kind { margin-left: auto; }
+.now-box .price-kind, .zs-now .price-kind { margin-top: 4px; }
+button.price-kind-chip { background: none; cursor: pointer; font-family: inherit; }
+button.price-kind-chip:hover { border-color: var(--muted); }
+button.price-kind-chip.is-custom:hover { border-color: var(--warning); }
 body.currency-eur .hide-eur { display: none; }
 
 /* ApexCharts dark tweaks */

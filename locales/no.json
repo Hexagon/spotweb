@@ -243,6 +243,12 @@
       "main_nav": "Hovedmeny",
       "average": "snitt",
       "no_data": "Ingen data"
+    },
+    "price_kind": {
+      "spot": "Spotpris",
+      "custom": "Tilpasset pris",
+      "spot_hint": "Viser spotprisen uten avgifter. Klikk for å tilpasse.",
+      "custom_hint": "Viser spotprisen med dine avgifter og faktorer. Klikk for å endre."
     }
   },
   "pages": {
