@@ -629,6 +629,8 @@ pub fn replace_outages(
             tx.prepare_cached("SELECT MAX(revision) FROM outage WHERE mrid = ?1 GROUP BY mrid")?;
         // Documents handled in this call: replaced (true) or skipped (false)
         let mut handled: HashMap<&str, bool> = HashMap::new();
+        // TimeSeries written in this call: paging can return the same document twice
+        let mut written: std::collections::HashSet<(&str, i64)> = Default::default();
         for o in outages {
             let revision = latest[o.mrid.as_str()];
             if o.revision != revision {
@@ -652,7 +654,7 @@ pub fn replace_outages(
                     replace
                 }
             };
-            if !replace {
+            if !replace || !written.insert((o.mrid.as_str(), o.ts)) {
                 continue;
             }
             changed += 1;
@@ -1017,6 +1019,23 @@ mod tests {
         // An older revision fetched later does not bring it back
         assert_eq!(replace_outages(&mut c, "sv", &rev2, now).unwrap(), 0);
         assert!(current_outages(&c, "sv", now).unwrap().is_empty());
+    }
+
+    #[test]
+    fn duplicate_document_in_batch_is_written_once() {
+        // Paging with offsets can return the same document twice when the result set shifts
+        let db = Db::open_memory();
+        let mut c = db.conn().unwrap();
+        let now = 1000 * DAY;
+        let doc = [
+            outage("A", 0, 1, Some("A05"), now - DAY, now + DAY),
+            outage("A", 1, 1, Some("A05"), now - DAY, now + DAY),
+            outage("A", 0, 1, Some("A05"), now - DAY, now + DAY),
+            outage("A", 1, 1, Some("A05"), now - DAY, now + DAY),
+        ];
+        assert_eq!(replace_outages(&mut c, "sv", &doc, now).unwrap(), 2);
+        assert_eq!(count(&c, "outage"), 2);
+        assert_eq!(count(&c, "outage_availability"), 2);
     }
 
     #[test]
