@@ -202,7 +202,10 @@
       "play": "Abspielen",
       "pause": "Pause",
       "flows_future": "Flüsse sind nur bis jetzt bekannt",
-      "net_24h": "Nettoexport der letzten 24 Stunden"
+      "net_24h": "Nettoexport der letzten 24 Stunden",
+      "negative": "Negativer Preis",
+      "all_equal": "Gleicher Preis in allen Zonen",
+      "vs_yesterday": "ggü. gestern"
     },
     "share": {
       "share": "Teilen",

@@ -568,6 +568,7 @@ pub async fn index(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> 
                 "load": r.load_total,
                 "net": r.net_generation,
                 "primary": r.primary_psr_group,
+                "mix": r.mix,
                 "primary_share": match (r.primary_psr_group_generation, r.generation_total) {
                     (Some(p), Some(t)) if t != 0.0 => Some((p / t * 100.0).round()),
                     _ => None,
@@ -596,7 +597,13 @@ pub async fn index(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> 
     for c in COUNTRIES {
         for a in c.areas {
             let mut z = area_overview(&st, c, a, false).await?;
+            // Yesterday's average, for the change shown in the panel
+            let tz = c.timezone();
+            let y = data::day_series(&st.app, c, a.name, add_days(today(&tz), -1))
+                .await
+                .map_err(internal)?;
             let o = z.as_object_mut().expect("object");
+            o.insert("avg_yesterday".into(), json!(y.stats().map(|s| s.0)));
             o.insert("country".into(), json!(c.id));
             o.insert("gl".into(), json!(gl(a.id)));
             zones.insert(a.name.into(), z);

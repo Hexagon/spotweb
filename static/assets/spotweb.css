@@ -46,6 +46,7 @@
   --map-halo: rgba(10, 12, 18, .9);
   --map-arrow: rgba(230, 233, 239, .78);
   --map-arrow-zero: rgba(230, 233, 239, .5);
+  --map-negative: #3f8fd6;
   /* Price ramp of the map, cheap to expensive (read by app.js) */
   --ramp: #2b2418, #5a3d12, #8f5a0e, #c47a12, #eea23a, #ffd58a;
   /* Charts (read by app.js) */
@@ -107,6 +108,7 @@
     --map-halo: rgba(255, 255, 255, .9);
     --map-arrow: rgba(27, 32, 48, .75);
     --map-arrow-zero: rgba(27, 32, 48, .45);
+    --map-negative: #2f7ec7;
     --ramp: #fbefd6, #f7d79a, #f0b45a, #d98a1f, #a85f0c, #6b3a06;
     --chart-text: #3d4456;
     --chart-grid: #dde1e9;
@@ -398,12 +400,31 @@ body.currency-eur .hide-eur { display: none; }
 .map-legend { display: flex; align-items: center; gap: 8px; }
 .legend-ramp { display: inline-block; width: 120px; height: 10px; border-radius: 5px; border: 1px solid var(--border); }
 .legend-range { color: var(--text); font-variant-numeric: tabular-nums; margin-left: 4px; }
+.legend-negative i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; background: var(--map-negative); }
+.map-legend { flex-wrap: wrap; }
 .map-note { margin: 6px 2px var(--gap); }
 .zone-panel { position: sticky; top: 70px; scroll-margin-top: 110px; }
 .zone-panel-head { flex-direction: column; align-items: stretch; gap: 8px; }
 .zone-panel-head h2 { font-size: 1.1rem; }
 .zone-panel .compact-select { max-width: none; width: 100%; }
-.zone-panel .price-big { color: var(--price-accent); }
+/* Price now, today and tomorrow on one row */
+.zone-stats { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 10px; padding: 12px 16px; background: var(--card-2); align-items: start; }
+.zone-stats h3 { font-size: .8rem; color: var(--muted); font-weight: 500; margin: 0 0 2px; white-space: nowrap; }
+.zone-stats .big { font-size: 1.25rem; line-height: 1.2; }
+.zone-stats .right { text-align: right; }
+.zone-stats .muted, .zs-change { white-space: nowrap; }
+.zs-change { font-size: .78rem; }
+@media (max-width: 480px) { .zone-stats { gap: 8px; padding: 10px 12px; } .zone-stats h3, .zone-stats .muted, .zs-change { white-space: normal; } .price-mid { font-size: 1.7rem; } .zone-stats .big { font-size: 1.05rem; } }
+.price-mid { font-size: 2.1rem; line-height: 1.05; font-weight: 400; color: var(--price-accent); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.zs-change.up { color: var(--import); }
+.zs-change.down { color: var(--export); }
+.zone-cheapest { padding: 2px 16px 10px; line-height: 1.45; }
+.zone-cheapest strong { color: var(--text); font-weight: 600; }
+.mix { margin-bottom: 8px; }
+.mix-bar { display: flex; height: 12px; border-radius: 4px; overflow: hidden; background: var(--card-2); }
+.mix-bar span { display: block; height: 100%; min-width: 2px; }
+.mix-legend { display: flex; flex-wrap: wrap; gap: 2px 10px; margin-top: 4px; color: var(--muted); }
+.mix-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: baseline; }
 .zone-chart-head { padding: 0 16px; }
 .chart.chart-small { min-height: 190px; padding: 0 4px; }
 .chart.chart-small .chart-empty { height: 180px; }

@@ -39,6 +39,8 @@
         <span class="legend-ramp"></span>
         <span class="muted small">{{ t("map.expensive") }}</span>
         <span class="legend-range small"><span data-legend-min>-</span> &ndash; <span data-legend-max>-</span> {{ m.unit() }}</span>
+        <span class="legend-negative small" data-legend-negative hidden><i></i>{{ t("map.negative") }}</span>
+        <span class="legend-equal small muted" data-legend-equal hidden>{{ t("map.all_equal") }}</span>
       </div>
       <div class="muted small" data-flows-updated></div>
     </footer>
@@ -63,26 +65,30 @@
       {{ m.share(attrs="data-share-zone") }}
       </div>
     </header>
-    <div class="now-box">
-      <div class="price-big" data-zone-now>-</div>
-      <div class="muted">{{ m.unit() }} {{ t("overview.right_now") }}</div>
-    </div>
-    <div class="stats">
+    <div class="zone-stats">
+      <div class="zs-now">
+        <h3>{{ t("overview.right_now")|capitalize }}</h3>
+        <div class="price-mid" data-zone-now>-</div>
+        <div class="muted small">{{ m.unit() }}</div>
+      </div>
       <div>
         <h3>{{ t("overview.average_today") }}</h3>
         <div class="big" data-zone-avg-today>-</div>
-        <div class="muted" data-zone-span-today></div>
+        <div class="muted small" data-zone-span-today></div>
+        <div class="small zs-change" data-zone-change></div>
       </div>
       <div class="right">
         <h3>{{ t("map.avg_tomorrow") }}</h3>
         <div class="big" data-zone-avg-tomorrow>-</div>
-        <div class="muted" data-zone-span-tomorrow></div>
+        <div class="muted small" data-zone-span-tomorrow></div>
       </div>
     </div>
     <div class="zone-chart-head muted small">{{ t("map.today_tomorrow") }}</div>
     <div class="chart chart-small" data-chart="zone"><div class="chart-empty muted">&hellip;</div></div>
+    <div class="zone-cheapest small muted" data-zone-cheapest></div>
     <div class="zone-section">
       <h3>{{ t("generation.current_production") }}</h3>
+      <div class="mix" data-zone-mix hidden><div class="mix-bar" data-zone-mix-bar></div><div class="mix-legend small" data-zone-mix-legend></div></div>
       <dl class="kv" data-zone-gl></dl>
     </div>
     <div class="zone-section">

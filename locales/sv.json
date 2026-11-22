@@ -202,7 +202,10 @@
       "play": "Spela upp",
       "pause": "Pausa",
       "flows_future": "Flöden finns bara fram till nu",
-      "net_24h": "Nettoexport senaste 24 timmarna"
+      "net_24h": "Nettoexport senaste 24 timmarna",
+      "negative": "Negativt pris",
+      "all_equal": "Samma pris i alla elområden",
+      "vs_yesterday": "mot igår"
     },
     "share": {
       "share": "Dela",

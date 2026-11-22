@@ -202,7 +202,10 @@
       "play": "Afspil",
       "pause": "Pause",
       "flows_future": "Flow kendes kun frem til nu",
-      "net_24h": "Nettoeksport seneste 24 timer"
+      "net_24h": "Nettoeksport seneste 24 timer",
+      "negative": "Negativ pris",
+      "all_equal": "Samme pris i alle prisområder",
+      "vs_yesterday": "ift. i går"
     },
     "share": {
       "share": "Del",

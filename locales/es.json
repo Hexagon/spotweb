@@ -202,7 +202,10 @@
       "play": "Reproducir",
       "pause": "Pausa",
       "flows_future": "Los flujos solo se conocen hasta ahora",
-      "net_24h": "Exportación neta, últimas 24 horas"
+      "net_24h": "Exportación neta, últimas 24 horas",
+      "negative": "Precio negativo",
+      "all_equal": "Mismo precio en todas las zonas",
+      "vs_yesterday": "vs. ayer"
     },
     "share": {
       "share": "Compartir",

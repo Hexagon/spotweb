@@ -202,7 +202,10 @@
       "play": "Afspelen",
       "pause": "Pauze",
       "flows_future": "Stromen zijn alleen tot nu bekend",
-      "net_24h": "Netto-export afgelopen 24 uur"
+      "net_24h": "Netto-export afgelopen 24 uur",
+      "negative": "Negatieve prijs",
+      "all_equal": "Zelfde prijs in alle zones",
+      "vs_yesterday": "t.o.v. gisteren"
     },
     "share": {
       "share": "Delen",

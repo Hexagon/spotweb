@@ -198,11 +198,11 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
 
 ### P2 – Bättre visning
 
-47. **Färgskalan överdriver små skillnader.** Skalan går från lägsta till högsta pris just nu. När alla områden ligger
+47. ✅ **Färgskalan överdriver små skillnader.** Löst med minsta spännvidd (30 EUR/MWh), ingen valbar fast skala. Skalan går från lägsta till högsta pris just nu. När alla områden ligger
     mellan 30 och 33 öre ser kartan lika dramatisk ut som vid 5–300 öre. Åtgärd: en minsta spännvidd (eller en fast
     skala per valuta, som går att välja i inställningarna), egen färg för negativa priser, och en text i
     teckenförklaringen när alla priser är lika ("alla områden kopplade").
-48. **Mer i kartpanelen.** Nu visas bara huvudkällan för produktionen. Åtgärd: produktionsmixen som en liten staplad
+48. ✅ **Mer i kartpanelen.** Panelen är också kompaktare: pris nu, snitt idag och imorgon på en rad. Nu visas bara huvudkällan för produktionen. Åtgärd: produktionsmixen som en liten staplad
     stapel (vatten, kärnkraft, vind, sol, fossilt), den billigaste perioden idag och imorgon (samma logik som
     `/api/v2/cheapest`), och skillnaden mot igår eller samma dag förra veckan.
 49. **Notiser om ovanliga priser.** En rad överst på startsidan och områdessidan när morgondagen har negativa priser,

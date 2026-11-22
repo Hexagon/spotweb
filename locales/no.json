@@ -202,7 +202,10 @@
       "play": "Spill av",
       "pause": "Pause",
       "flows_future": "Flyt er bare kjent frem til nå",
-      "net_24h": "Nettoeksport siste 24 timer"
+      "net_24h": "Nettoeksport siste 24 timer",
+      "negative": "Negativ pris",
+      "all_equal": "Samme pris i alle prisområder",
+      "vs_yesterday": "mot i går"
     },
     "share": {
       "share": "Del",

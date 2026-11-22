@@ -442,6 +442,9 @@ async fn start_page_map_and_flows_api() {
             >= 92
     );
     assert!(boot["zones"]["SE1"]["now"].is_number());
+    // Seeded yesterday: 50 + 0, 1, 2 … per quarter, about 97.5 (other on DST days)
+    let y = boot["zones"]["SE1"]["avg_yesterday"].as_f64().unwrap();
+    assert!((94.0..=101.0).contains(&y), "{y}");
     assert_eq!(boot["flows"]["borders"].as_array().unwrap().len(), 2);
     // Hourly flows per border for the time slider, oriented as in BORDERS
     let fh = &boot["flow_hours"];
