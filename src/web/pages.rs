@@ -132,6 +132,7 @@ async fn base(
     ctx.insert("version".into(), json!(env!("CARGO_PKG_VERSION")));
     ctx.insert("adsense".into(), json!(st.app.cfg.adsense));
     ctx.insert("ga_id".into(), json!(st.app.cfg.ga_id));
+    ctx.insert("webpulse_id".into(), json!(st.app.cfg.webpulse_id));
     ctx.insert("countries".into(), json!(COUNTRIES));
     ctx.insert("currency".into(), json!(currency));
     ctx.insert("rate".into(), json!(er.rate(currency).unwrap_or(1.0)));

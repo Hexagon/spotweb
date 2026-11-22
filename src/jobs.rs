@@ -1386,6 +1386,7 @@ mod tests {
             public_url: None,
             adsense: None,
             ga_id: None,
+            webpulse_id: None,
             schedule_tz: stockholm(),
             history_start: today(&stockholm()),
             csp: crate::web::Csp::Enforce,

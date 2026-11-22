@@ -16,6 +16,7 @@ fn test_app() -> App {
         public_url: Some("https://example.test".into()),
         adsense: None,
         ga_id: None,
+        webpulse_id: None,
         schedule_tz: crate::timeutil::stockholm(),
         history_start: jiff::civil::date(2021, 1, 1),
         csp: crate::web::Csp::Enforce,
@@ -896,4 +897,33 @@ async fn search_engine_metadata() {
     assert!(body.contains("https://example.test/api/v2/spot?period=daily&area=SE3"));
     assert!(body.contains("(https://example.test/sv/SE1)"));
     assert!(body.contains("(https://example.test/pt/PT)"));
+}
+
+#[tokio::test]
+async fn webpulse_script_only_when_configured() {
+    let app = test_app();
+    let (_, body, _) = get(&app, "/sv/SE1").await;
+    assert!(!body.contains("webpulseanalytics"), "{body}");
+
+    let mut cfg = app.cfg.clone();
+    cfg.webpulse_id = Some("abc123".into());
+    let app = App::new(Db::open_memory(), cfg).unwrap();
+    let mut er = BTreeMap::new();
+    er.insert("SEK".to_string(), 10.0);
+    queries::insert_exchange_rates(&mut app.db.conn().unwrap(), "2024-01-01", 1, &er).unwrap();
+    let (s, body, headers) = get(&app, "/sv/SE1").await;
+    assert_eq!(s, StatusCode::OK);
+    let nonce = headers["content-security-policy"]
+        .to_str()
+        .unwrap()
+        .split("'nonce-")
+        .nth(1)
+        .and_then(|r| r.split('\'').next())
+        .unwrap()
+        .to_string();
+    let tag = format!(
+        "<script async src=\"https://track.webpulseanalytics.com/client/abc123\" \
+         type=\"module\" nonce=\"{nonce}\">"
+    );
+    assert!(body.contains(&tag), "{body}");
 }

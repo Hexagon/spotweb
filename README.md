@@ -47,12 +47,14 @@ spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried po
 | Variable                   | Default                  | Description                                                     |
 | -------------------------- | ------------------------ | --------------------------------------------------------------- |
 | `API_TOKEN`                | –                        | ENTSO-e API token (same as 1.x). Without it only ECB rates update. |
+| `SPOTWEB_API_TOKEN`        | –                        | Alias for `API_TOKEN`, used when `API_TOKEN` is unset           |
 | `SPOTWEB_PORT`             | `6000`                   | Listen port (same as 1.x)                                       |
 | `SPOTWEB_BIND`             | `0.0.0.0`                | Listen address. Use `127.0.0.1` behind a reverse proxy.        |
 | `SPOTWEB_DB`               | `db/spotweb.db`          | Database file                                                   |
-| `SPOTWEB_PUBLIC_URL`       | from `Host` header       | Public base url for sitemap, robots.txt and examples            |
+| `SPOTWEB_PUBLIC_URL`       | from `Host` header       | Public base url for canonical links, sitemap, robots.txt and examples. A warning is logged at startup when unset. |
 | `SPOTWEB_ADSENSE`          | –                        | AdSense client id (same as 1.x)                                 |
 | `SPOTWEB_GA_ID`            | –                        | Google Analytics measurement id                                 |
+| `SPOTWEB_WEBPULSE_ID`      | –                        | Webpulse Analytics site id; no tracking script when unset       |
 | `SPOTWEB_SCHEDULE_TZ`      | `Europe/Stockholm`       | Time zone of the job schedule                                   |
 | `SPOTWEB_HISTORY_START`    | `2021-01-01`             | First day to back-fill on an empty database                     |
 | `SPOTWEB_REQUEST_DELAY_MS` | `2000`                   | Pause after each ENTSO-e request, per worker                    |
@@ -61,6 +63,9 @@ spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried po
 | `SPOTWEB_CSP`              | `on`                     | Content-Security-Policy on pages: `on`, `report-only` or `off`   |
 | `SPOTWEB_ACCESS_LOG`       | off                      | `1` logs every request: method, path, status and time           |
 | `SPOTWEB_HTTP_SUMMARY_SECS` | `60`                    | Log HTTP counts, p50/p95 and 4xx/5xx per route this often; `0` is off |
+| `SPOTWEB_NO_SCHEDULER`     | off                      | `1`/`true`/`yes`/`on` is the same as `--no-scheduler`: no scheduled data updates |
+| `SPOTWEB_ENTSOE_ENDPOINT`  | `https://web-api.tp.entsoe.eu/api` | ENTSO-e API url, for a proxy or a mock in tests       |
+| `SPOTWEB_ECB_ENDPOINT`     | `https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml` | ECB exchange rate url, for a mirror or a mock in tests |
 | `RUST_LOG`                 | `spotweb=info,warn`      | Log filter, `--debug` for verbose logs                          |
 
 ### Schedule
