@@ -63,6 +63,7 @@ spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried po
 | `SPOTWEB_HTTP_SUMMARY_SECS` | `60`                    | Log HTTP counts, p50/p95 and 4xx/5xx per route this often; `0` is off |
 | `SPOTWEB_API_RATE_LIMIT`   | off                      | Requests per minute and client IP to `/api/`; over that `429` with `Retry-After` (see [deployment](docs/deployment.md#rate-limiting)) |
 | `SPOTWEB_TRUSTED_PROXIES`  | –                        | Proxies (IPs or CIDRs, comma separated) whose `X-Forwarded-For`/`X-Real-IP` give the client IP, e.g. `127.0.0.1,::1` |
+| `SPOTWEB_SHUTDOWN_GRACE_SECS` | `15`                 | On shutdown, wait this long for running jobs before interrupting them |
 | `RUST_LOG`                 | `spotweb=info,warn`      | Log filter, `--debug` for verbose logs                          |
 
 ### Schedule
@@ -206,8 +207,19 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now spotweb spotweb-backup.timer
 ```
 
-Put Caddy (`deploy/caddy/Caddyfile`) or nginx (`deploy/nginx/spotweb.conf`) in front for TLS. A `Dockerfile` and
-`docker-compose.yml` are included as an alternative.
+Put Caddy (`deploy/caddy/Caddyfile`) or nginx (`deploy/nginx/spotweb.conf`) in front for TLS.
+
+### Docker
+
+A signed multi-arch image (amd64, arm64) is published to GHCR with each release after 2.2.0. Verify it with cosign and
+run it (details and `docker-compose.yml` in [docs/deployment.md](docs/deployment.md#docker)):
+
+```sh
+cosign verify ghcr.io/hexagon/spotweb:2.3.0 \
+  --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+docker run -d -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.3.0
+```
 
 ## Development
 
@@ -218,7 +230,9 @@ cargo fmt && cargo clippy --all-targets
 ```
 
 The front end is plain HTML templates (`templates/`, [minijinja](https://github.com/mitsuhiko/minijinja)) and one script
-(`static/assets/app.js`) using [ApexCharts](https://apexcharts.com/) (vendored, MIT).
+(`static/assets/app.js`) using [ApexCharts](https://apexcharts.com/) (vendored, MIT). ApexCharts is only loaded on pages with
+charts, when the first chart comes into view. Dependabot does not track it; update it with `scripts/update-apexcharts.sh <version>`.
+Asset urls carry the file's content hash (`?v=`), so they are served as `immutable`.
 
 The start page map (`templates/partials/map.svg`) is generated from [Natural Earth](https://www.naturalearthdata.com/) 1:10m data
 (public domain) by `scripts/build_map.py`; see the script for how to rebuild it. Swedish, Norwegian and Danish bidding zones are

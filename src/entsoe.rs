@@ -375,13 +375,16 @@ pub fn parse_unavailability(xml_doc: &str) -> anyhow::Result<Vec<NewOutage>> {
     }
     let mrid = root.text_of("mRID").unwrap_or_default().to_string();
     let revision = root.text_of("revisionNumber").and_then(|r| r.parse().ok());
+    // A05 active, A09 cancelled, A13 withdrawn. Inactive revisions are kept so they replace
+    // the stored active revision; the outage queries hide them.
+    let doc_status = root.path(&["docStatus", "value"]).map(str::to_string);
     let doc_type = root.text_of("type").map(|t| match t {
         "A80" => "Generation unavailability".to_string(),
         "A77" => "Production unavailability".to_string(),
         o => o.to_string(),
     });
     let mut out = vec![];
-    for ts in root.children("TimeSeries") {
+    for (index, ts) in root.children("TimeSeries").enumerate() {
         const RES: &str = "production_RegisteredResource";
         let nominal = ts.child(&format!("{RES}.pSRType.powerSystemResources.nominalP"));
         let curve = ts.text_of("curveType");
@@ -400,7 +403,9 @@ pub fn parse_unavailability(xml_doc: &str) -> anyhow::Result<Vec<NewOutage>> {
         }
         out.push(NewOutage {
             mrid: mrid.clone(),
+            ts: index as i64,
             revision,
+            doc_status: doc_status.clone(),
             business_type: ts
                 .text_of("businessType")
                 .map(|b| business_type_description(b).to_string()),
@@ -594,13 +599,15 @@ impl Client {
         start: Timestamp,
         end: Timestamp,
     ) -> anyhow::Result<Vec<NewOutage>> {
+        const PAGE_SIZE: usize = 200;
+        const MAX_PAGES: usize = 10;
         let mut out = vec![];
         for doc_type in ["A80", "A77"] {
-            for page in 0..10 {
+            for page in 0..MAX_PAGES {
                 let mut p = vec![
                     ("documentType", doc_type.to_string()),
                     ("biddingZone_Domain", eic.to_string()),
-                    ("offset", (page * 200).to_string()),
+                    ("offset", (page * PAGE_SIZE).to_string()),
                 ];
                 p.extend(Self::range(start, end));
                 let docs = self.query(&p).await?;
@@ -608,7 +615,16 @@ impl Client {
                 for doc in docs {
                     out.extend(parse_unavailability(&doc)?);
                 }
-                if n < 200 {
+                if n < PAGE_SIZE {
+                    break;
+                }
+                if page + 1 == MAX_PAGES {
+                    tracing::warn!(
+                        eic,
+                        doc_type,
+                        documents = MAX_PAGES * PAGE_SIZE,
+                        "outage page limit reached, remaining documents are not fetched"
+                    );
                     break;
                 }
                 tokio::time::sleep(Duration::from_secs(2)).await;
@@ -776,5 +792,38 @@ mod tests {
         // Three forward filled hours merged into one availability block
         assert_eq!(o.availability.len(), 1);
         assert_eq!(o.availability[0].1 - o.availability[0].0, 3 * 3_600_000);
+    }
+
+    #[test]
+    fn unavailability_doc_status_and_time_series() {
+        let ts = |name: &str| {
+            format!(
+                "<TimeSeries><businessType>A54</businessType>
+                  <start_DateAndOrTime.date>2024-01-01</start_DateAndOrTime.date>
+                  <end_DateAndOrTime.date>2024-01-02</end_DateAndOrTime.date>
+                  <production_RegisteredResource.name>{name}</production_RegisteredResource.name>
+                </TimeSeries>"
+            )
+        };
+        let doc = format!(
+            "<Unavailability_MarketDocument>
+              <mRID>OUT2</mRID><revisionNumber>3</revisionNumber><type>A77</type>
+              <docStatus><value>A13</value></docStatus>
+              {}{}
+            </Unavailability_MarketDocument>",
+            ts("G1"),
+            ts("G2")
+        );
+        let o = parse_unavailability(&doc).unwrap();
+        assert_eq!(o.len(), 2);
+        assert!(o.iter().all(|o| o.mrid == "OUT2" && o.revision == Some(3)));
+        assert!(o.iter().all(|o| o.doc_status.as_deref() == Some("A13")));
+        assert_eq!((o[0].ts, o[1].ts), (0, 1));
+        assert_eq!(o[1].resource_name.as_deref(), Some("G2"));
+        assert_eq!(o[0].business_type.as_deref(), Some("Unplanned outage"));
+        // Without docStatus the status is unknown (treated as active)
+        let o = parse_unavailability(&doc.replace("<docStatus><value>A13</value></docStatus>", ""))
+            .unwrap();
+        assert!(o.iter().all(|o| o.doc_status.is_none()));
     }
 }

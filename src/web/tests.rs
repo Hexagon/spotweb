@@ -310,6 +310,39 @@ async fn redirects_static_and_404() {
     assert_eq!(h["cache-control"], "no-store");
 }
 
+#[tokio::test]
+async fn assets_are_versioned_by_content_hash() {
+    let app = test_app();
+    let url = super::asset_url("assets/app.js");
+    let (path, hash) = url.split_once("?v=").unwrap();
+    assert_eq!(path, "/assets/app.js");
+    assert_eq!(hash.len(), 24);
+    // Pages link assets by hash; ApexCharts is only named for app.js to load on demand
+    let (_, body, _) = get(&app, "/help").await;
+    assert!(body.contains(&format!(r#"<script src="{url}""#)));
+    assert!(body.contains(&format!(
+        r#"href="{}""#,
+        super::asset_url("assets/spotweb.css")
+    )));
+    assert!(body.contains(&format!(
+        r#"data-apexcharts="{}""#,
+        super::asset_url("assets/vendor/apexcharts.min.js")
+    )));
+    assert!(!body.contains(r#"<script src="/assets/vendor/apexcharts"#));
+    // The current hash is immutable, anything else is cached for a week
+    let (s, _, h) = get(&app, &url).await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(h["cache-control"], "public, max-age=31536000, immutable");
+    assert_eq!(h["etag"], format!("\"{hash}\""));
+    let (_, _, h) = get(&app, "/assets/app.js?v=2.2.0").await;
+    assert_eq!(h["cache-control"], "public, max-age=604800");
+    let (_, _, h) = get(&app, "/assets/app.js").await;
+    assert_eq!(h["cache-control"], "public, max-age=604800");
+    // Outside /assets/ the hash changes nothing
+    let (_, _, h) = get(&app, &super::asset_url("manifest.json")).await;
+    assert_eq!(h["cache-control"], "public, max-age=3600");
+}
+
 #[test]
 fn lang_detection() {
     use axum::http::{HeaderMap, HeaderValue, Uri};
@@ -961,4 +994,29 @@ async fn api_rate_limit_answers_429_and_is_counted() {
     assert_eq!(status["requests"], 8, "{stats}");
     assert_eq!(status["4xx"], 3, "{stats}");
     assert_eq!(status["429"], 3, "{stats}");
+}
+
+#[tokio::test]
+async fn panicking_handler_answers_500() {
+    let app = test_app();
+    let state = super::WebState {
+        env: std::sync::Arc::new(super::template_env(&app)),
+        app,
+    };
+    let r = axum::Router::new().route(
+        "/boom",
+        axum::routing::get(|| async {
+            if true {
+                panic!("boom");
+            }
+            "unreachable"
+        }),
+    );
+    let res = super::layers(r, state)
+        .oneshot(Request::builder().uri("/boom").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    // The usual headers are still there
+    assert!(res.headers().contains_key("x-content-type-options"));
 }

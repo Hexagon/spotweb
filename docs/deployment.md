@@ -184,7 +184,10 @@ Everything except the database can be re-created, and even the database can be r
 - `GET /api/v2/status` has the same verdict as `healthy` and `problems`, the newest price/generation/load timestamps and
   the last run of each job. Also alert if a job keeps reporting `"status": "failed"`.
   Each job run has a `status`: `ok`, `partial` (finished, but some areas failed; they are listed in `failures` with the
-  reason), `failed` or `running`. `ok` stays `true` for `partial` runs, for compatibility with 2.0.0.
+  reason), `failed`, `running` or `interrupted` (the server stopped or restarted during the run; it runs again at the
+  next scheduled time). `ok` stays `true` for `partial` runs, for compatibility with 2.0.0, and is `false` for
+  `interrupted` runs. On shutdown spotweb waits up to `SPOTWEB_SHUTDOWN_GRACE_SECS` (15) for running jobs; keep
+  systemd's `TimeoutStopSec` above that. A run that panics is recorded as `failed`.
 - Each ENTSO-e request is retried twice after 15 s on timeouts, connection errors and 5xx (60 s on 429/503). HTTP 599
   is logged as "upstream timeout": it is a non-standard code from ENTSO-e's gateway when its backend is slow, not from
   spotweb. spotweb's own per-request timeout is logged as "spotweb timeout".
@@ -202,7 +205,33 @@ still want a second node, run it with `--no-scheduler` on a periodically copied 
 
 ## Docker
 
+Each release (from the first one after 2.2.0) publishes a multi-arch image (`linux/amd64`, `linux/arm64`) to
+`ghcr.io/hexagon/spotweb`, tagged with the version (`2.3.0`), the minor version (`2.3`) and `latest`. It contains the
+same static musl binary as the release archive, is signed with Sigstore (keyless, by the release workflow) and has a
+GitHub build provenance attestation.
+
 ```sh
-docker compose up -d --build      # uses Dockerfile, data in the spotweb-data volume
+docker pull ghcr.io/hexagon/spotweb:2.3.0
+
+# Signature: proves the image was built by this repository's release workflow
+cosign verify ghcr.io/hexagon/spotweb:2.3.0 \
+  --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+# Or with the GitHub CLI (build provenance attestation)
+gh attestation verify oci://ghcr.io/hexagon/spotweb:2.3.0 --repo Hexagon/spotweb
+
+docker run -d --name spotweb -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.3.0
+```
+
+`docker-compose.yml` uses the image (set a fixed version instead of `latest` in production), or builds it from the
+`Dockerfile` with `--build`:
+
+```sh
+docker compose up -d              # pulls ghcr.io/hexagon/spotweb, data in the spotweb-data volume
+docker compose up -d --build      # builds from source instead
 docker compose exec spotweb spotweb import-v1 /data/main.db   # after copying the 1.x db into the volume
 ```
+
+The `Dockerfile` builds the dependencies in a separate layer, so after a code change only spotweb itself is
+recompiled.

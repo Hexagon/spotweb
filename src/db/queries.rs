@@ -1,7 +1,7 @@
 //! Read and write queries. Read queries are ported from spotweb 1.x
 //! (`backend/db/sql/index.ts`) and return the same shapes.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::Serialize;
@@ -539,6 +539,9 @@ fn outage_from_row(r: &rusqlite::Row) -> rusqlite::Result<OutageRow> {
 const OUTAGE_COLUMNS: &str = "o.start_date, o.end_date, o.resource_name, o.business_type, o.location, o.country,
     o.psr_name, o.psr_nominal_power, o.psr_nominal_power_unit, o.psr_type, o.reason_code, o.reason_text";
 
+/// Hides outages whose document ENTSO-e has cancelled (A09) or withdrawn (A13)
+const OUTAGE_ACTIVE: &str = "COALESCE(o.doc_status, '') NOT IN ('A09', 'A13')";
+
 pub fn current_outages(
     c: &Connection,
     country: &str,
@@ -547,9 +550,9 @@ pub fn current_outages(
     let mut st = c.prepare_cached(&format!(
         "SELECT {OUTAGE_COLUMNS},
             (SELECT a.quantity FROM outage_availability a
-             WHERE a.mrid = o.mrid AND a.start_date <= ?2 AND a.end_date > ?2 LIMIT 1)
+             WHERE a.mrid = o.mrid AND a.ts = o.ts AND a.start_date <= ?2 AND a.end_date > ?2 LIMIT 1)
          FROM outage o
-         WHERE o.country = ?1 AND o.start_date < ?2 AND o.end_date > ?2
+         WHERE o.country = ?1 AND o.start_date < ?2 AND o.end_date > ?2 AND {OUTAGE_ACTIVE}
          ORDER BY o.start_date DESC"
     ))?;
     let rows = st.query_map(params![country, now], outage_from_row)?;
@@ -558,7 +561,7 @@ pub fn current_outages(
 
 pub fn future_outages(c: &Connection, country: &str, now: i64) -> rusqlite::Result<Vec<OutageRow>> {
     let mut st = c.prepare_cached(&format!(
-        "SELECT {OUTAGE_COLUMNS}, NULL FROM outage o WHERE o.country = ?1 AND o.start_date > ?2 ORDER BY o.start_date ASC"
+        "SELECT {OUTAGE_COLUMNS}, NULL FROM outage o WHERE o.country = ?1 AND o.start_date > ?2 AND {OUTAGE_ACTIVE} ORDER BY o.start_date ASC"
     ))?;
     let rows = st.query_map(params![country, now], outage_from_row)?;
     rows.collect()
@@ -566,8 +569,13 @@ pub fn future_outages(c: &Connection, country: &str, now: i64) -> rusqlite::Resu
 
 #[derive(Debug, Clone, Default)]
 pub struct NewOutage {
+    /// Document mRID, shared by all TimeSeries of the document
     pub mrid: String,
+    /// Index of the TimeSeries within the document
+    pub ts: i64,
     pub revision: Option<i64>,
+    /// `docStatus` of the document: A05 active, A09 cancelled, A13 withdrawn
+    pub doc_status: Option<String>,
     pub business_type: Option<String>,
     pub document_type: Option<String>,
     pub start_date: Option<i64>,
@@ -584,38 +592,75 @@ pub struct NewOutage {
     pub availability: Vec<(i64, i64, f64)>,
 }
 
-/// Store outages, replacing older revisions. Returns the number of outages written;
-/// an outage whose revision is already stored is skipped.
+/// Outages that ended longer ago than this are deleted by [`replace_outages`]
+const OUTAGE_RETENTION_MS: i64 = 90 * 24 * 3_600_000;
+
+/// Store outages, replacing older revisions, and prune outages of `country` that ended more
+/// than 90 days before `now`. Returns the number of outages written.
+///
+/// A document (mRID) is replaced as a whole: all its TimeSeries are written when a newer
+/// revision arrives, and a document whose revision is already stored (or newer) is skipped.
+/// Cancelled and withdrawn revisions are stored too, so they hide the earlier active one.
 pub fn replace_outages(
     c: &mut Connection,
     country: &str,
     outages: &[NewOutage],
+    now: i64,
 ) -> rusqlite::Result<usize> {
+    // Latest revision of each document in the batch; older revisions are ignored
+    let mut latest: HashMap<&str, Option<i64>> = HashMap::new();
+    for o in outages {
+        let r = latest.entry(o.mrid.as_str()).or_insert(o.revision);
+        *r = (*r).max(o.revision);
+    }
     let tx = c.transaction()?;
     let mut changed = 0;
     {
         let mut del = tx.prepare_cached("DELETE FROM outage WHERE mrid = ?1")?;
         let mut del_a = tx.prepare_cached("DELETE FROM outage_availability WHERE mrid = ?1")?;
         let mut ins = tx.prepare_cached(
-            "INSERT INTO outage (mrid, revision, business_type, document_type, start_date, end_date, resource_name,
-                location, country, psr_name, psr_nominal_power_unit, psr_nominal_power, psr_type, reason_code, reason_text)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+            "INSERT INTO outage (mrid, ts, revision, doc_status, business_type, document_type, start_date, end_date,
+                resource_name, location, country, psr_name, psr_nominal_power_unit, psr_nominal_power, psr_type,
+                reason_code, reason_text)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
         )?;
-        let mut ins_a = tx.prepare_cached("INSERT INTO outage_availability (mrid, start_date, end_date, quantity) VALUES (?1, ?2, ?3, ?4)")?;
-        let mut stored = tx.prepare_cached("SELECT revision FROM outage WHERE mrid = ?1")?;
+        let mut ins_a = tx.prepare_cached("INSERT INTO outage_availability (mrid, ts, start_date, end_date, quantity) VALUES (?1, ?2, ?3, ?4, ?5)")?;
+        let mut stored =
+            tx.prepare_cached("SELECT MAX(revision) FROM outage WHERE mrid = ?1 GROUP BY mrid")?;
+        // Documents handled in this call: replaced (true) or skipped (false)
+        let mut handled: HashMap<&str, bool> = HashMap::new();
         for o in outages {
-            let revision: Option<Option<i64>> =
-                stored.query_row(params![o.mrid], |r| r.get(0)).optional()?;
-            if o.revision.is_some() && revision == Some(o.revision) {
-                // Same revision as stored, ENTSO-e publishes changes as a new revision
+            let revision = latest[o.mrid.as_str()];
+            if o.revision != revision {
+                continue;
+            }
+            let replace = match handled.get(o.mrid.as_str()) {
+                Some(&replace) => replace,
+                None => {
+                    let current: Option<Option<i64>> =
+                        stored.query_row(params![o.mrid], |r| r.get(0)).optional()?;
+                    // ENTSO-e publishes changes as a new revision
+                    let replace = match (current, revision) {
+                        (Some(Some(cur)), Some(new)) => new > cur,
+                        _ => true,
+                    };
+                    if replace {
+                        del.execute(params![o.mrid])?;
+                        del_a.execute(params![o.mrid])?;
+                    }
+                    handled.insert(o.mrid.as_str(), replace);
+                    replace
+                }
+            };
+            if !replace {
                 continue;
             }
             changed += 1;
-            del.execute(params![o.mrid])?;
-            del_a.execute(params![o.mrid])?;
             ins.execute(params![
                 o.mrid,
+                o.ts,
                 o.revision,
+                o.doc_status,
                 o.business_type,
                 o.document_type,
                 o.start_date,
@@ -631,10 +676,21 @@ pub fn replace_outages(
                 o.reason_text
             ])?;
             for (s, e, q) in &o.availability {
-                ins_a.execute(params![o.mrid, s, e, q])?;
+                ins_a.execute(params![o.mrid, o.ts, s, e, q])?;
             }
         }
     }
+    // Keep the tables small
+    let cutoff = now - OUTAGE_RETENTION_MS;
+    tx.execute(
+        "DELETE FROM outage_availability WHERE (mrid, ts) IN
+            (SELECT mrid, ts FROM outage WHERE country = ?1 AND end_date < ?2)",
+        params![country, cutoff],
+    )?;
+    tx.execute(
+        "DELETE FROM outage WHERE country = ?1 AND end_date < ?2",
+        params![country, cutoff],
+    )?;
     tx.commit()?;
     Ok(changed)
 }
@@ -660,6 +716,8 @@ pub enum RunStatus {
     /// Finished, but some areas failed
     Partial,
     Failed,
+    /// Stopped before it finished: the server shut down or restarted during the run
+    Interrupted,
 }
 
 impl RunStatus {
@@ -669,6 +727,7 @@ impl RunStatus {
             Self::Ok => "ok",
             Self::Partial => "partial",
             Self::Failed => "failed",
+            Self::Interrupted => "interrupted",
         }
     }
 }
@@ -698,7 +757,7 @@ pub fn job_finished(
         params![
             id,
             now,
-            status != RunStatus::Failed,
+            matches!(status, RunStatus::Ok | RunStatus::Partial),
             message,
             status.as_str(),
             failures
@@ -710,6 +769,15 @@ pub fn job_finished(
         params![now - 30 * 24 * 3_600_000_i64],
     )?;
     Ok(())
+}
+
+/// Mark every run without `finished` as interrupted. Called when the server starts, when no run
+/// of this process can be in progress, and at shutdown for runs that did not finish in time.
+pub fn job_mark_interrupted(c: &Connection, now: i64, message: &str) -> rusqlite::Result<usize> {
+    c.execute(
+        "UPDATE job_run SET finished = ?1, ok = 0, message = ?2, status = ?3 WHERE finished IS NULL",
+        params![now, message, RunStatus::Interrupted.as_str()],
+    )
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -734,6 +802,7 @@ pub fn latest_job_runs(c: &Connection) -> rusqlite::Result<Vec<JobStatus>> {
         let ok: Option<bool> = r.get(3)?;
         let status = match (r.get::<_, Option<String>>(5)?.as_deref(), ok) {
             (Some("partial"), _) => RunStatus::Partial,
+            (Some("interrupted"), _) => RunStatus::Interrupted,
             (Some("failed"), _) | (None, Some(false)) => RunStatus::Failed,
             (Some("ok"), _) | (None, Some(true)) => RunStatus::Ok,
             _ => RunStatus::Running,
@@ -874,6 +943,122 @@ mod tests {
     use super::*;
     use crate::db::Db;
 
+    const DAY: i64 = 24 * 3_600_000;
+
+    fn outage(
+        mrid: &str,
+        ts: i64,
+        revision: i64,
+        status: Option<&str>,
+        start: i64,
+        end: i64,
+    ) -> NewOutage {
+        NewOutage {
+            mrid: mrid.into(),
+            ts,
+            revision: Some(revision),
+            doc_status: status.map(str::to_string),
+            start_date: Some(start),
+            end_date: Some(end),
+            resource_name: Some(format!("{mrid}-{ts}")),
+            availability: vec![(start, end, 10.0 + ts as f64)],
+            ..Default::default()
+        }
+    }
+
+    fn count(c: &Connection, table: &str) -> i64 {
+        c.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |r| r.get(0))
+            .unwrap()
+    }
+
+    #[test]
+    fn outages_time_series_and_doc_status() {
+        let db = Db::open_memory();
+        let mut c = db.conn().unwrap();
+        let now = 1000 * DAY;
+        let names = |rows: Vec<OutageRow>| {
+            let mut v: Vec<_> = rows.into_iter().filter_map(|o| o.resource_name).collect();
+            v.sort();
+            v
+        };
+        // Both TimeSeries of a document are stored
+        let doc = [
+            outage("A", 0, 1, Some("A05"), now - DAY, now + DAY),
+            outage("A", 1, 1, Some("A05"), now - DAY, now + DAY),
+            outage("B", 0, 1, None, now + DAY, now + 2 * DAY),
+        ];
+        assert_eq!(replace_outages(&mut c, "sv", &doc, now).unwrap(), 3);
+        let current = current_outages(&c, "sv", now).unwrap();
+        assert_eq!(names(current.clone()), ["A-0", "A-1"]);
+        assert_eq!(
+            current.iter().filter_map(|o| o.available).sum::<f64>(),
+            21.0
+        );
+        assert_eq!(names(future_outages(&c, "sv", now).unwrap()), ["B-0"]);
+        // Same revision again: nothing written
+        assert_eq!(replace_outages(&mut c, "sv", &doc, now).unwrap(), 0);
+
+        // A later revision with fewer TimeSeries replaces the whole document
+        let rev2 = [outage("A", 0, 2, Some("A05"), now - DAY, now + DAY)];
+        assert_eq!(replace_outages(&mut c, "sv", &rev2, now).unwrap(), 1);
+        assert_eq!(names(current_outages(&c, "sv", now).unwrap()), ["A-0"]);
+        assert_eq!(count(&c, "outage_availability"), 2);
+
+        // Withdrawn (A13) and cancelled (A09) revisions hide the earlier active ones, also when
+        // the older revision comes in the same batch
+        let withdrawn = [
+            outage("A", 0, 2, Some("A05"), now - DAY, now + DAY),
+            outage("A", 0, 3, Some("A13"), now - DAY, now + DAY),
+            outage("B", 0, 2, Some("A09"), now + DAY, now + 2 * DAY),
+        ];
+        assert_eq!(replace_outages(&mut c, "sv", &withdrawn, now).unwrap(), 2);
+        assert!(current_outages(&c, "sv", now).unwrap().is_empty());
+        assert!(future_outages(&c, "sv", now).unwrap().is_empty());
+        // An older revision fetched later does not bring it back
+        assert_eq!(replace_outages(&mut c, "sv", &rev2, now).unwrap(), 0);
+        assert!(current_outages(&c, "sv", now).unwrap().is_empty());
+    }
+
+    #[test]
+    fn old_outages_are_pruned() {
+        let db = Db::open_memory();
+        let mut c = db.conn().unwrap();
+        let now = 1000 * DAY;
+        let rows = [
+            outage("OLD", 0, 1, None, now - 100 * DAY, now - 91 * DAY),
+            outage("OLD", 1, 1, None, now - 100 * DAY, now - 91 * DAY),
+            outage("RECENT", 0, 1, None, now - 100 * DAY, now - 89 * DAY),
+        ];
+        replace_outages(&mut c, "sv", &rows, now - 200 * DAY).unwrap();
+        let fi = [outage(
+            "OLD-FI",
+            0,
+            1,
+            None,
+            now - 100 * DAY,
+            now - 91 * DAY,
+        )];
+        replace_outages(&mut c, "fi", &fi, now - 200 * DAY).unwrap();
+        assert_eq!(count(&c, "outage"), 4);
+        // Pruning runs with every replace, for that country, even when nothing new is written
+        assert_eq!(replace_outages(&mut c, "sv", &[], now).unwrap(), 0);
+        let left: Vec<(String, String)> = c
+            .prepare("SELECT mrid, country FROM outage ORDER BY mrid")
+            .unwrap()
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(
+            left,
+            [
+                ("OLD-FI".to_string(), "fi".to_string()),
+                ("RECENT".into(), "sv".into())
+            ]
+        );
+        assert_eq!(count(&c, "outage_availability"), 2);
+    }
+
     #[test]
     fn spot_roundtrip_and_upsert() {
         let db = Db::open_memory();
@@ -984,6 +1169,33 @@ mod tests {
         assert_eq!(get("prices").ok, Some(true));
         assert_eq!(get("prices").failures, f);
         assert_eq!(get("outages").status, RunStatus::Running);
+    }
+
+    #[test]
+    fn job_status_interrupted() {
+        let db = Db::open_memory();
+        let c = db.conn().unwrap();
+        let done = job_started(&c, "load", 1).unwrap();
+        job_finished(&c, done, 2, RunStatus::Ok, "stored 1 rows", &[]).unwrap();
+        job_started(&c, "outages", 3).unwrap();
+        assert_eq!(job_mark_interrupted(&c, 4, "server restarted").unwrap(), 1);
+        // Nothing left to mark
+        assert_eq!(job_mark_interrupted(&c, 5, "server restarted").unwrap(), 0);
+        let runs = latest_job_runs(&c).unwrap();
+        let get = |j: &str| runs.iter().find(|r| r.job == j).unwrap();
+        assert_eq!(get("load").status, RunStatus::Ok);
+        let o = get("outages");
+        assert_eq!(o.status, RunStatus::Interrupted);
+        assert_eq!(o.ok, Some(false));
+        assert_eq!(
+            o.finished.as_deref(),
+            Some(crate::timeutil::js_iso(4).as_str())
+        );
+        assert_eq!(o.message.as_deref(), Some("server restarted"));
+        assert_eq!(
+            serde_json::to_value(o.status).unwrap(),
+            serde_json::json!("interrupted")
+        );
     }
 
     #[test]
