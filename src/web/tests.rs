@@ -897,3 +897,28 @@ async fn search_engine_metadata() {
     assert!(body.contains("(https://example.test/sv/SE1)"));
     assert!(body.contains("(https://example.test/pt/PT)"));
 }
+
+#[tokio::test]
+async fn panicking_handler_answers_500() {
+    let app = test_app();
+    let state = super::WebState {
+        env: std::sync::Arc::new(super::template_env(&app)),
+        app,
+    };
+    let r = axum::Router::new().route(
+        "/boom",
+        axum::routing::get(|| async {
+            if true {
+                panic!("boom");
+            }
+            "unreachable"
+        }),
+    );
+    let res = super::layers(r, state)
+        .oneshot(Request::builder().uri("/boom").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    // The usual headers are still there
+    assert!(res.headers().contains_key("x-content-type-options"));
+}

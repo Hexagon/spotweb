@@ -660,6 +660,8 @@ pub enum RunStatus {
     /// Finished, but some areas failed
     Partial,
     Failed,
+    /// Stopped before it finished: the server shut down or restarted during the run
+    Interrupted,
 }
 
 impl RunStatus {
@@ -669,6 +671,7 @@ impl RunStatus {
             Self::Ok => "ok",
             Self::Partial => "partial",
             Self::Failed => "failed",
+            Self::Interrupted => "interrupted",
         }
     }
 }
@@ -698,7 +701,7 @@ pub fn job_finished(
         params![
             id,
             now,
-            status != RunStatus::Failed,
+            matches!(status, RunStatus::Ok | RunStatus::Partial),
             message,
             status.as_str(),
             failures
@@ -710,6 +713,15 @@ pub fn job_finished(
         params![now - 30 * 24 * 3_600_000_i64],
     )?;
     Ok(())
+}
+
+/// Mark every run without `finished` as interrupted. Called when the server starts, when no run
+/// of this process can be in progress, and at shutdown for runs that did not finish in time.
+pub fn job_mark_interrupted(c: &Connection, now: i64, message: &str) -> rusqlite::Result<usize> {
+    c.execute(
+        "UPDATE job_run SET finished = ?1, ok = 0, message = ?2, status = ?3 WHERE finished IS NULL",
+        params![now, message, RunStatus::Interrupted.as_str()],
+    )
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -734,6 +746,7 @@ pub fn latest_job_runs(c: &Connection) -> rusqlite::Result<Vec<JobStatus>> {
         let ok: Option<bool> = r.get(3)?;
         let status = match (r.get::<_, Option<String>>(5)?.as_deref(), ok) {
             (Some("partial"), _) => RunStatus::Partial,
+            (Some("interrupted"), _) => RunStatus::Interrupted,
             (Some("failed"), _) | (None, Some(false)) => RunStatus::Failed,
             (Some("ok"), _) | (None, Some(true)) => RunStatus::Ok,
             _ => RunStatus::Running,
@@ -984,6 +997,33 @@ mod tests {
         assert_eq!(get("prices").ok, Some(true));
         assert_eq!(get("prices").failures, f);
         assert_eq!(get("outages").status, RunStatus::Running);
+    }
+
+    #[test]
+    fn job_status_interrupted() {
+        let db = Db::open_memory();
+        let c = db.conn().unwrap();
+        let done = job_started(&c, "load", 1).unwrap();
+        job_finished(&c, done, 2, RunStatus::Ok, "stored 1 rows", &[]).unwrap();
+        job_started(&c, "outages", 3).unwrap();
+        assert_eq!(job_mark_interrupted(&c, 4, "server restarted").unwrap(), 1);
+        // Nothing left to mark
+        assert_eq!(job_mark_interrupted(&c, 5, "server restarted").unwrap(), 0);
+        let runs = latest_job_runs(&c).unwrap();
+        let get = |j: &str| runs.iter().find(|r| r.job == j).unwrap();
+        assert_eq!(get("load").status, RunStatus::Ok);
+        let o = get("outages");
+        assert_eq!(o.status, RunStatus::Interrupted);
+        assert_eq!(o.ok, Some(false));
+        assert_eq!(
+            o.finished.as_deref(),
+            Some(crate::timeutil::js_iso(4).as_str())
+        );
+        assert_eq!(o.message.as_deref(), Some("server restarted"));
+        assert_eq!(
+            serde_json::to_value(o.status).unwrap(),
+            serde_json::json!("interrupted")
+        );
     }
 
     #[test]
