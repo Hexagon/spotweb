@@ -54,7 +54,7 @@ fn render(st: &WebState, name: &str, mut ctx: Value) -> PageResult {
     );
     res.headers_mut().insert(
         header::VARY,
-        header::HeaderValue::from_static("Accept-Language, Cookie"),
+        header::HeaderValue::from_static("Accept-Language, Cookie, User-Agent"),
     );
     Ok(res)
 }
