@@ -4,6 +4,7 @@ mod api;
 pub mod data;
 pub mod metrics;
 mod pages;
+pub mod ratelimit;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -384,6 +385,10 @@ pub fn router(app: App) -> Router {
     }
     r.fallback(pages::not_found)
         .layer(axum::middleware::from_fn(api_etag))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            ratelimit::limit,
+        ))
         .layer(axum::middleware::from_fn(remember_lang))
         .layer(axum::middleware::from_fn(security_headers))
         .layer(CompressionLayer::new())

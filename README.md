@@ -61,6 +61,8 @@ spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried po
 | `SPOTWEB_CSP`              | `on`                     | Content-Security-Policy on pages: `on`, `report-only` or `off`   |
 | `SPOTWEB_ACCESS_LOG`       | off                      | `1` logs every request: method, path, status and time           |
 | `SPOTWEB_HTTP_SUMMARY_SECS` | `60`                    | Log HTTP counts, p50/p95 and 4xx/5xx per route this often; `0` is off |
+| `SPOTWEB_API_RATE_LIMIT`   | off                      | Requests per minute and client IP to `/api/`; over that `429` with `Retry-After` (see [deployment](docs/deployment.md#rate-limiting)) |
+| `SPOTWEB_TRUSTED_PROXIES`  | –                        | Proxies (IPs or CIDRs, comma separated) whose `X-Forwarded-For`/`X-Real-IP` give the client IP, e.g. `127.0.0.1,::1` |
 | `RUST_LOG`                 | `spotweb=info,warn`      | Log filter, `--debug` for verbose logs                          |
 
 ### Schedule

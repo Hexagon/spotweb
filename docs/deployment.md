@@ -81,6 +81,27 @@ scripts load, `'strict-dynamic'`), so AdSense, Google Analytics and the analytic
 hosts. Don't add a second CSP in the proxy: browsers enforce both. To try it out first, set `SPOTWEB_CSP=report-only`
 and watch the browser console for "Content Security Policy" messages; `SPOTWEB_CSP=off` turns it off.
 
+### Rate limiting
+
+The nginx example limits `/api/` to 60 requests per minute and client IP, with bursts of 60 served at once, and
+answers `429` over that. Caddy needs the `rate_limit` plugin for this; the Caddyfile has a commented example.
+
+spotweb can also do it itself, which works with any proxy and without one: `SPOTWEB_API_RATE_LIMIT=60` gives each
+client a bucket of 60 requests that refills by one per second. Requests to `/api/` over the limit get `429 Too Many
+Requests` with `Retry-After` (seconds) and a JSON error. Pages, static files and `/healthz` are never limited. It is
+off by default: with a proxy in front, spotweb sees every visitor as the proxy unless told to trust it, and one shared
+bucket would block everyone at once. Normal use is far below any sensible limit: Home Assistant polls about every 3
+minutes, and a page view makes a few API requests. Keep the limit at 30 or more so that someone clicking around the
+site never sees an error.
+
+The client IP is the address of the connection. `X-Forwarded-For` (the rightmost address that is not a trusted proxy)
+or `X-Real-IP` is only used when the connection comes from `SPOTWEB_TRUSTED_PROXIES`, e.g. `127.0.0.1,::1` for a
+proxy on the same host or `172.16.0.0/12` for a Docker network. Never trust addresses that clients can connect from
+directly: they could then pick any IP. IPv6 clients are counted per /64. Idle clients are forgotten after a minute,
+and at most 100 000 are tracked at once.
+
+Rejected requests are counted in `4xx` and in `429` per route in `/api/v2/status` (`http`) and in the log summary.
+
 ## 4. Upgrading from 1.x
 
 ```sh
@@ -169,7 +190,7 @@ Everything except the database can be re-created, and even the database can be r
   spotweb. spotweb's own per-request timeout is logged as "spotweb timeout".
 - Logs go to the journal; set `RUST_LOG=spotweb=debug` for detail.
 - `http` in `/api/v2/status` counts requests per route since start and for the last summary period: `requests`,
-  `p50_ms`/`p95_ms` (upper bound of the bucket: 1, 2, 5, 10, 20, 50 ms … 30 s; `null` above that) and `4xx`/`5xx`.
+  `p50_ms`/`p95_ms` (upper bound of the bucket: 1, 2, 5, 10, 20, 50 ms … 30 s; `null` above that), `4xx`/`5xx` and `429` (rate limited, also in `4xx`).
   Bad parameters to `/api/v2/spot` and `/api/v2/hass` are answered with 500 as in 1.x and count as `5xx`. Embedded
   files are grouped as `static`, unknown paths as `not found`. The same numbers are logged once a minute
   (`SPOTWEB_HTTP_SUMMARY_SECS`), and `SPOTWEB_ACCESS_LOG=1` logs each request (no IP addresses or query strings).
