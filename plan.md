@@ -51,8 +51,8 @@ Varje punkt är tänkt att bli en egen PR.
     (p50/p95) och 4xx/5xx per route. Kan också visas i `/api/v2/status`.~~
 14. ✅ ~~**Backup till en annan maskin.** Dokumentera ett exempel med restic eller rclone i `docs/deployment.md`, och lägg
     gärna till ett `ExecStartPost` i backuptjänsten.~~
-15. [PR #65] Delvis klart: ~~**Beroenden och leveranskedja.** Dependabot (cargo och actions), `cargo audit`/`cargo deny` i CI~~.
-    Kvar: actions låsta till SHA i `release.yml` (SHA:erna behöver slås upp i respektive actions-repo).
+15. ✅ ~~**Beroenden och leveranskedja.** Dependabot (cargo och actions), `cargo audit`/`cargo deny` i CI, actions låsta
+    till SHA i `release.yml`.~~ (#65)
 16. ✅ ~~**Städa releaser och taggar.** Ta bort den tomma releasen v2.0.0 och flytta `v1-final` till `45f9513`.~~ Klart: v2.0.0 och
     `v1-final` är borttagna.
 17. ✅ ~~**Översätt Custom, Hjälp och Home Assistant**, som i dag är på engelska.~~
@@ -68,82 +68,180 @@ Varje punkt är tänkt att bli en egen PR.
 20. ✅ ~~**`/api/v2/cheapest?area=SE3&hours=3`** för automationer.~~
 21. ✅ ~~**Fler elområden:** Nederländerna (finns redan som språk) och Baltikum (EE, LV, LT).~~ Klart i #47.
 22. ✅ ~~**Ljust tema** som följer `prefers-color-scheme`.~~
-23. [PR #65] **Docker-image i GHCR**, signerad med cosign.
+23. ✅ ~~**Docker-image i GHCR**, signerad med cosign.~~ (#65)
 
 ## Nya punkter efter 2.2.0 (genomgång 21 nov 2026)
 
-Punkter markerade [PR #nn] har en öppen PR (22 nov). Kvar utan PR: 11 (kräver riktiga svar från produktionen) och
-42 (större ändring). #60, #61 och #63 ändrar samma filer (`main.rs`, `web/mod.rs`, `Config`, README) och #60/#64
-båda `base.html`, så de behöver troligen rebasas i tur och ordning.
+Alla punkter med PR (#58–#65) är sammanslagna (22 nov). Kvar: 11 (kräver riktiga svar från produktionen) och 42
+(större ändring, se även punkt 46).
 
 Bygget, clippy och de 72 testerna är gröna. Punkterna nedan kommer från en genomgång av koden.
 
 ### P1 – Fel och risker
 
-25. [PR #60] **Webpulse-skriptet är hårdkodat för alla installationer.** `templates/base.html` laddar alltid
+25. ✅ (#60) **Webpulse-skriptet är hårdkodat för alla installationer.** `templates/base.html` laddar alltid
     `track.webpulseanalytics.com/client/653eb4…`, oavsett konfiguration. Den som kör en egen spotweb skickar alltså
     besöksdata till spot.56k.gurus konto. Åtgärd: `SPOTWEB_WEBPULSE_ID` som `SPOTWEB_GA_ID`, utan skriptet när den
     saknas. Dokumentera variabeln i `deploy/spotweb.env.example`.
-26. [PR #63] **Avbrutna jobb står som `running`.** Körningarna startas med `tokio::spawn` och avbryts när processen stängs
+26. ✅ (#63) **Avbrutna jobb står som `running`.** Körningarna startas med `tokio::spawn` och avbryts när processen stängs
     (omstart, driftsättning). Raden i `job_run` får aldrig `finished`, och `/api/v2/status` visar `running` tills
     jobbet körs nästa gång. För avbrottsjobbet (08:05) kan det dröja ett dygn. Åtgärd: markera rader utan `finished`
     som `interrupted` när servern startar, och låt avstängningen vänta en kort stund på pågående jobb.
-27. [PR #62] **Avbrott: återkallade dokument och flera TimeSeries.** `parse_unavailability` läser inte `docStatus`, så avbrott
+27. ✅ (#62) **Avbrott: återkallade dokument och flera TimeSeries.** `parse_unavailability` läser inte `docStatus`, så avbrott
     som ENTSO-e har återkallat (A13) eller avbokat (A09) kan visas som pågående. Dessutom får varje TimeSeries i ett
     dokument samma `mrid`. `replace_outages` hoppar därför över alla utom den första, eftersom revisionen redan är
     sparad. Sidbläddringen slutar också tyst efter 10 sidor (2 000 dokument). Åtgärd: filtrera eller markera på
     `docStatus`, lägg till TimeSeries-index i nyckeln (ny migration), och logga en varning när sidgränsen nås.
-28. [PR #62] **Gamla avbrott rensas aldrig.** `outage` och `outage_availability` växer för alltid, medan `job_run` rensas
+28. ✅ (#62) **Gamla avbrott rensas aldrig.** `outage` och `outage_availability` växer för alltid, medan `job_run` rensas
     efter 30 dagar. Åtgärd: ta bort avbrott som slutade för mer än cirka 90 dagar sedan, i samma transaktion som
     `replace_outages`.
-29. [PR #63] **`panic = "abort"` i release.** En panik i en enda request (t.ex. en `expect` i `pages.rs` eller ett oväntat
+29. ✅ (#63) **`panic = "abort"` i release.** En panik i en enda request (t.ex. en `expect` i `pages.rs` eller ett oväntat
     kantfall i jiff/minijinja) tar ner hela processen, med pågående jobb. Systemd startar om, men det ger avbrott och
     leder till punkt 26. Åtgärd: byt till `unwind` (binären blir lite större). Tokio och axum fångar då paniken per
     request och task.
 
 ### P2 – Prestanda och drift
 
-30. [PR #58] **Ingen gemensam laddning i cachen.** `Cache::get_or_load` släpper låset medan frågan körs. När en nyckel går ut
+30. ✅ (#58) **Ingen gemensam laddning i cachen.** `Cache::get_or_load` släpper låset medan frågan körs. När en nyckel går ut
     kör därför alla samtidiga anrop samma fråga (t.ex. när många flikar laddas om på hel timme). Dessutom tömmer
     `MAX_ENTRIES_PER_REALM` hela realmen när den är full, så en crawler med många olika datumintervall tömmer cachen
     för alla. Åtgärd: en delad laddning per nyckel (`tokio::sync::OnceCell` eller en `Shared`-future), och ta bort de
     äldsta posterna i stället för att tömma allt.
-31. [PR #61] **Ingen begränsning av anrop till API:t.** Varken spotweb eller exemplen för nginx och Caddy begränsar antalet anrop
+31. ✅ (#61) **Ingen begränsning av anrop till API:t.** Varken spotweb eller exemplen för nginx och Caddy begränsar antalet anrop
     per klient. Åtgärd: `limit_req` i `deploy/nginx/spotweb.conf` och `rate_limit` (plugin) eller en kommentar i
     Caddyfile. Alternativt en enkel token bucket per IP i spotweb för `/api/`, som svarar 429.
-32. [PR #64] **ApexCharts (540 kB, cirka 150 kB komprimerat) laddas på varje sida**, även där inga diagram ritas (Hjälp,
+32. ✅ (#64) **ApexCharts (540 kB, cirka 150 kB komprimerat) laddas på varje sida**, även där inga diagram ritas (Hjälp,
     Home Assistant, 404). Version 3.54.1 är vendrad och följs inte av Dependabot. Åtgärd: ladda biblioteket bara på
     sidor med diagram, gärna först när diagrammet syns. Lägg till en notering eller ett skript för att uppdatera det.
-33. [PR #64] **Statiska filer cachas med `?v={version}`.** Två driftsättningar med samma version ger gammal `app.js` och
+33. ✅ (#64) **Statiska filer cachas med `?v={version}`.** Två driftsättningar med samma version ger gammal `app.js` och
     `spotweb.css` i upp till en vecka (`max-age=604800`). Åtgärd: använd filens hash (finns redan i rust-embed för
     ETag) som `?v=`, och sätt `immutable` på `/assets/`.
-34. [PR #65] **musl-binärerna använder musl:s malloc**, som är känd för att vara långsam med många trådar. Det gäller både
+34. ✅ (#65) **musl-binärerna använder musl:s malloc**, som är känd för att vara långsam med många trådar. Det gäller både
     release och Docker-imagen. Åtgärd: mimalloc som global allokator, åtminstone för musl-målen. Mät minne och
     svarstider före och efter.
-35. [PR #59] **Backupen kontrolleras inte.** `backup_to` skriver en kopia men läser den aldrig. Åtgärd: kör
+35. ✅ (#59) **Backupen kontrolleras inte.** `backup_to` skriver en kopia men läser den aldrig. Åtgärd: kör
     `PRAGMA quick_check` på den okomprimerade kopian innan den komprimeras eller döps om, och låt tjänsten misslyckas
     om kontrollen inte går igenom. Lägg gärna till ett återläsningstest i dokumentationen.
-36. [PR #60] **Varning när `SPOTWEB_PUBLIC_URL` saknas.** Då byggs canonical, Open Graph, sitemap och robots från
+36. ✅ (#60) **Varning när `SPOTWEB_PUBLIC_URL` saknas.** Då byggs canonical, Open Graph, sitemap och robots från
     `Host` och `X-Forwarded-Proto` i anropet. Det är escapat, men en felkonfigurerad proxy ger fel adresser i
     sökmotorerna. Åtgärd: logga en varning vid start, som för `API_TOKEN`.
-37. [PR #65] **Docker-bygget cachar inte beroenden.** `COPY . .` före `cargo build` gör att varje kodändring bygger om alla
+37. ✅ (#65) **Docker-bygget cachar inte beroenden.** `COPY . .` före `cargo build` gör att varje kodändring bygger om alla
     crates. Åtgärd: bygg beroendena i ett eget lager, eller använd `--mount=type=cache` för `~/.cargo` och `target`.
     Hör ihop med punkt 23.
 
 ### P3 – Kvalitet och små förbättringar
 
-38. [PR #64] **Misslyckade API-anrop i klienten cachas för alltid.** `fetchSpot` i `app.js` sparar promisen, även när den
+38. ✅ (#64) **Misslyckade API-anrop i klienten cachas för alltid.** `fetchSpot` i `app.js` sparar promisen, även när den
     misslyckas. Ett tillfälligt nätverksfel ger tomma diagram tills sidan laddas om. Åtgärd: ta bort posten ur
     `apiCache` när anropet misslyckas.
-39. [PR #59] **Okänt elområde i `/api/v2/spot` svarar `ok` med tom data.** Ett stavfel (`area=SE5`) går inte att skilja från
+39. ✅ (#59) **Okänt elområde i `/api/v2/spot` svarar `ok` med tom data.** Ett stavfel (`area=SE5`) går inte att skilja från
     data som saknas. Åtgärd: svara `"Unknown area"` som för okänd valuta. Kontrollera först att 1.x inte accepterade
     andra namn.
-40. [PR #60] **Odokumenterade variabler.** `SPOTWEB_NO_SCHEDULER`, `SPOTWEB_ENTSOE_ENDPOINT`, `SPOTWEB_ECB_ENDPOINT` och
+40. ✅ (#60) **Odokumenterade variabler.** `SPOTWEB_NO_SCHEDULER`, `SPOTWEB_ENTSOE_ENDPOINT`, `SPOTWEB_ECB_ENDPOINT` och
     `SPOTWEB_API_TOKEN` (alias för `API_TOKEN`) nämns inte i README eller `docs/deployment.md`.
-41. [PR #59] **Timeout-svaret är 408.** `TimeoutLayer` svarar `408 Request Timeout` när servern är långsam, men 408 betyder att
+41. ✅ (#59) **Timeout-svaret är 408.** `TimeoutLayer` svarar `408 Request Timeout` när servern är långsam, men 408 betyder att
     klienten var för långsam. Proxyer och klienter kan då göra om anropet automatiskt. Åtgärd: 503 eller 504.
 42. **Timvis omladdning av hela sidan.** Klienten laddar om sidan varje hel timme för att få ny data. Det ger ny
     sidvisning, laddar om annonserna och ritar om allt. Åtgärd (större): hämta bara ny boot-data som JSON och rita om.
+
+## Nya punkter: karta, elområdessidan och mer data (genomgång 22 nov 2026)
+
+Genomgången gällde vad besökare kan tycka är intressant men inte ser, vad som kan visas bättre, och vad som saknas från
+ENTSO-e. I dag hämtas priser (A44), faktisk produktion (A75), faktisk förbrukning (A65/A16), fysiska flöden (A11) och
+avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Punkt 43–46 bygger på data som redan finns.
+
+### P1 – Snabba vinster med data som redan finns
+
+43. **Import/export på elområdessidan och landssidan.** Kartpanelen visar flöde per granne, men inte `/sv/SE3`. Tabellen
+    `flow` sparar redan historik per gräns och riktning, men bara det senaste värdet används (`flows::latest`).
+    Åtgärd:
+    - Gör om panelens lista (`zonePanel` i `app.js`) till en delad funktion och visa den som kort på områdessidan:
+      granne, riktning, MW och nettoimport.
+    - Lägg till ett diagram för igår och idag, likt produktion och nettoproduktion: nettoflöde per granne som staplade
+      ytor, med import under nollan och export över, plus en linje för summan.
+    - Ny datafunktion `area_flows(area, from, to)` och `/api/v2/flows?area=SE3&start=…&end=…`, cachad som de andra.
+    - På landssidan: flöden mot andra länder (gränser inom landet räknas inte), t.ex. Sveriges nettoexport till FI, NO,
+      DK, DE, PL och LT.
+    - Gärna en sparkline för nettoimporten de senaste 24 timmarna i kartpanelen.
+44. **Tydligare riktning på pilarna.** I dag är alla pilar likadana och grå, och riktningen syns bara på spetsen. Åtgärd,
+    i den här ordningen:
+    - (a) *Övertoning.* En `linearGradient` per pil (`gradientUnits="userSpaceOnUse"`, från svans till spets) från cirka
+      15 % till 100 % täckning, så att pilen "tonar in" i flödesriktningen. Den är statisk, billig och fungerar i alla
+      webbläsare och för utskrift.
+    - (b) *Diskret rörelse.* 2–3 korta ljusa streck som glider från svans till spets (`stroke-dasharray` och en CSS-animation
+      av `stroke-dashoffset`), med fart efter MW, t.ex. 0,8–3 s per varv. För att det inte ska bli rörigt: animera bara
+      pilarna för valt område och låt de andra vara statiska. Stäng av vid `prefers-reduced-motion` och när fliken är dold
+      (`visibilitychange`). Ungefär 60 element, så det är inget prestandaproblem.
+    - (c) *Färg efter valt område.* Import och export får samma färger som listan i panelen (`is-import`/`is-export`).
+    - Tooltip på en pil: pris på båda sidor och skillnaden ("SE3 41 → SE4 98 öre, +57"). Det förklarar flaskhalsar,
+      vilket ofta efterfrågas.
+45. **Fri zoom, och etiketter som anpassar sig.** Kartan har två fasta vyer (Norden/Europa). `--k` räknas bara om när
+    vyn byts eller fönstret ändrar storlek, och etiketterna ritas om helt. Åtgärd:
+    - Zooma med hjulet (med Ctrl/⌘, eller när kartan har fokus, så att sidan fortfarande scrollar), med två fingrar
+      på mobil och med dubbelklick, och panorera genom att dra. Begränsa till `map.full`. En knapp för att återställa
+      vyn. Norden och Europa blir förinställningar som animeras som i dag.
+    - Lägg varje etikett och pil i en `<g transform="translate(x y) scale(k)">`, så att bara `k` uppdateras per bildruta
+      (rAF) i stället för att `mapRender` körs om.
+    - Detaljnivå efter skärmytan per zon: utzoomat visas bara namnet, eller inget för små zoner (DK2, NO1/NO5,
+      Baltikum, NL). Inzoomat visas namn och pris, och på riktigt nära håll även flödets MW på alla pilar. Enkel
+      kollisionskontroll: rita etiketterna i ordning efter zonens storlek och hoppa över en etikett som skulle överlappa
+      en som redan är ritad. Den valda zonens etikett visas alltid.
+    - Fel att rätta samtidigt: grannetiketterna (GB, IT) skalas inte med `k` (`y: a[1] + 4` och fast teckenstorlek).
+    - Tillgänglighet: `+`/`-`-knappar och piltangenter när kartan har fokus.
+46. **Tidsreglage på kartan.** Priserna för idag och imorgon finns redan i boot-datan (`z.today`, `z.tomorrow`), så kartan
+    kan visa valfri kvart eller timme utan nya anrop. Åtgärd: ett reglage under kartan (idag 00 till imorgon 24) med
+    uppspelningsknapp. Färger, etiketter och färgskala följer vald tidpunkt, och "nu" markeras. Flöden finns bara bakåt i
+    tiden: visa flödet för vald tidpunkt upp till nu (kräver `flows` per timme i boot eller ett anrop), och dölj pilarna
+    för framtiden tills punkt 49 finns. Gör att man ser hur prisskillnaderna rör sig över dygnet, t.ex. kvällstopp i
+    söder och jämna priser i norr. Hör ihop med punkt 42: när reglaget finns kan klienten hämta ny JSON varje timme i
+    stället för att ladda om sidan.
+
+### P2 – Bättre visning
+
+47. **Färgskalan överdriver små skillnader.** Skalan går från lägsta till högsta pris just nu. När alla områden ligger
+    mellan 30 och 33 öre ser kartan lika dramatisk ut som vid 5–300 öre. Åtgärd: en minsta spännvidd (eller en fast
+    skala per valuta, som går att välja i inställningarna), egen färg för negativa priser, och en text i
+    teckenförklaringen när alla priser är lika ("alla områden kopplade").
+48. **Mer i kartpanelen.** Nu visas bara huvudkällan för produktionen. Åtgärd: produktionsmixen som en liten staplad
+    stapel (vatten, kärnkraft, vind, sol, fossilt), den billigaste perioden idag och imorgon (samma logik som
+    `/api/v2/cheapest`), och skillnaden mot igår eller samma dag förra veckan.
+49. **Notiser om ovanliga priser.** En rad överst på startsidan och områdessidan när morgondagen har negativa priser,
+    ovanligt höga toppar eller ett nytt rekord för månaden ("Negativa priser imorgon 11–15 i SE3"). Allt beräknas ur
+    data som redan finns.
+
+### P2 – Ny data från ENTSO-e
+
+50. **Prognoser för imorgon:** förbrukningsprognos day-ahead (A65, processType A01) och vind- och solprognos (A69,
+    processType A01), eventuellt även den totala produktionsprognosen (A71). Det är det som förklarar morgondagens
+    priser: lite vind och hög förbrukning ger dyrt. Åtgärd: nytt jobb efter publiceringen (cirka 18:00 CET), nya
+    tabeller, och ett diagram på områdessidan med morgondagens pris mot prognosen för vind+sol och förbrukning
+    (residuallast). Ungefär 2–3 anrop per område och dygn.
+51. **Vattenmagasin (A72, veckovis)** för SE, NO och FI, per elområde där det finns: fyllnadsgrad mot samma vecka
+    tidigare år (min, max, median). Det är troligen det mest efterfrågade i Norden när priserna stiger på hösten. Få
+    anrop (en gång i veckan), liten tabell. Ett kort på lands- och områdessidan.
+52. **Planerade flöden och kapacitet.** Kommersiella flöden day-ahead (A09) visar planerad import och export imorgon. Då
+    fungerar import/export-vyn (punkt 43) och tidsreglaget (punkt 46) även framåt i tiden. Kapacitet per gräns (A61
+    eller flödesbaserade parametrar där det gäller) visar om en gräns är full, alltså varför priserna skiljer sig.
+    Kontrollera först vad som finns för Norden efter införandet av flödesbaserad kapacitetsberäkning (oktober 2024),
+    eftersom NTC-dokumenten inte längre finns för alla gränser där.
+53. **Härledda mått utan nya anrop:** andel förnybart och fossilfritt per område, och uppskattad CO₂-intensitet (g/kWh)
+    med fasta emissionsfaktorer per `psr_group`. Visa tydligt att det gäller produktionen i området, inte förbrukningen
+    med import. Det blir ett kartlager: pris, förnybart, CO₂ eller nettobalans (val i kartans huvud).
+54. **Installerad effekt (A68, årligen) och kärnkraft tillgänglig.** Med installerad effekt kan utnyttjandet visas (t.ex.
+    "vind 3,1 av 16 GW"). Avbrotten som redan hämtas räcker för en sammanfattning: "Kärnkraft: 5,9 av 7,0 GW
+    tillgänglig, Forsmark 3 i revision".
+
+### P3 – Drift och mindre
+
+55. **`flow` växer utan gräns.** Cirka 104 riktningar × 24–96 punkter per dygn. Bestäm hur länge historiken ska sparas
+    innan punkt 43 och 46 börjar använda den: t.ex. full upplösning i 90 dagar och timmedel därefter, eller rensning som
+    för avbrotten (punkt 28).
+56. **Obalanspriser (A85) och reglerkraft**, för den som vill fördjupa sig. Nischat, men lätt att lägga till som eget
+    kort när jobbinfrastrukturen ändå byggs ut för punkt 50.
+57. **Spara kartan som bild**, för delning (PNG från SVG:n i klienten, med teckenförklaring och tidpunkt).
+
+**Förslag till ordning:** 44 (liten, syns direkt) → 43 → 45 → 46 → 47/48 → 53 → 50 → 51 → 52 → 54 → 49. Punkt 55 bör
+avgöras innan 43 slås samman.
 
 ## Ny startsida
 
