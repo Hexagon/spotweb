@@ -23,12 +23,16 @@ rust-embed = { version = "8", features = ["mime-guess"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "time", "sync", "net"] }
-tower-http = { version = "0.7", features = ["compression-gzip", "compression-br", "trace", "timeout"] }
+tower-http = { version = "0.7", features = ["catch-panic", "compression-gzip", "compression-br", "trace", "timeout"] }
 tracing = "0.1"
 uuid = { version = "1", features = ["v4"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 zip = { version = "9", default-features = false, features = ["deflate"] }
 zstd = { version = "0.14", features = ["zstdmt", "experimental"] }
+
+# musl's malloc is slow with many threads, so the static Linux builds (release archives and Docker) use mimalloc
+[target.'cfg(target_env = "musl")'.dependencies]
+mimalloc = { version = "0.1", default-features = false }
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
@@ -38,4 +42,5 @@ http-body-util = "0.1"
 lto = "thin"
 codegen-units = 1
 strip = true
-panic = "abort"
+# A panic in one request or job is caught (500 / failed run) instead of killing the process
+panic = "unwind"

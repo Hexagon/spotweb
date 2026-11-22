@@ -24,6 +24,11 @@ use jiff::civil::Date;
 use jiff::tz::TimeZone;
 use tracing_subscriber::EnvFilter;
 
+// musl's allocator is slow under contention; the static Linux builds use mimalloc instead
+#[cfg(target_env = "musl")]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[derive(Parser)]
 #[command(
     name = "spotweb",
@@ -92,7 +97,12 @@ struct ServeArgs {
     #[arg(long, env = "SPOTWEB_BIND", default_value = "0.0.0.0")]
     bind: String,
     /// Do not run scheduled data updates (useful for development or a read-only replica)
-    #[arg(long, alias = "no-schedules", env = "SPOTWEB_NO_SCHEDULER")]
+    #[arg(
+        long,
+        alias = "no-schedules",
+        env = "SPOTWEB_NO_SCHEDULER",
+        value_parser = clap::builder::BoolishValueParser::new()
+    )]
     no_scheduler: bool,
 }
 
@@ -104,9 +114,7 @@ impl Default for ServeArgs {
                 .and_then(|p| p.parse().ok())
                 .unwrap_or(6000),
             bind: std::env::var("SPOTWEB_BIND").unwrap_or_else(|_| "0.0.0.0".into()),
-            no_scheduler: std::env::var("SPOTWEB_NO_SCHEDULER")
-                .map(|v| v == "1" || v == "true")
-                .unwrap_or(false),
+            no_scheduler: env_opt("SPOTWEB_NO_SCHEDULER").is_some_and(|v| is_truthy(&v)),
         }
     }
 }
@@ -120,12 +128,18 @@ pub struct Config {
     pub adsense: Option<String>,
     /// Google Analytics measurement id (`SPOTWEB_GA_ID`)
     pub ga_id: Option<String>,
+    /// Webpulse Analytics site id (`SPOTWEB_WEBPULSE_ID`), no tracking script when unset
+    pub webpulse_id: Option<String>,
     /// Time zone for cron expressions (`SPOTWEB_SCHEDULE_TZ`)
     pub schedule_tz: TimeZone,
     /// First day to back-fill prices from on an empty database (`SPOTWEB_HISTORY_START`)
     pub history_start: Date,
     /// Content-Security-Policy for pages (`SPOTWEB_CSP`: `on`, `report-only` or `off`)
     pub csp: web::Csp,
+    /// Requests per minute and client IP to `/api/` (`SPOTWEB_API_RATE_LIMIT`, default off)
+    pub api_rate_limit: Option<u32>,
+    /// Proxies whose `X-Forwarded-For`/`X-Real-IP` are believed (`SPOTWEB_TRUSTED_PROXIES`)
+    pub trusted_proxies: Vec<web::ratelimit::IpNet>,
 }
 
 fn env_opt(name: &str) -> Option<String> {
@@ -133,6 +147,15 @@ fn env_opt(name: &str) -> Option<String> {
         .ok()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
+}
+
+/// Same values as clap's `BoolishValueParser` treats as true, so that `SPOTWEB_NO_SCHEDULER`
+/// means the same with and without the `serve` subcommand
+fn is_truthy(v: &str) -> bool {
+    matches!(
+        v.to_ascii_lowercase().as_str(),
+        "1" | "y" | "yes" | "t" | "true" | "on"
+    )
 }
 
 impl Config {
@@ -154,13 +177,30 @@ impl Config {
                 anyhow::bail!("SPOTWEB_CSP must be on, report-only or off, not {other:?}")
             }
         };
+        let api_rate_limit = match env_opt("SPOTWEB_API_RATE_LIMIT") {
+            None => None,
+            Some(s) => match s.parse::<u32>() {
+                Ok(0) => None,
+                Ok(n) => Some(n),
+                Err(_) => anyhow::bail!(
+                    "SPOTWEB_API_RATE_LIMIT must be a number of requests per minute, not {s:?}"
+                ),
+            },
+        };
+        let trusted_proxies = web::ratelimit::parse_trusted_proxies(
+            &env_opt("SPOTWEB_TRUSTED_PROXIES").unwrap_or_default(),
+        )
+        .map_err(|e| anyhow::anyhow!("SPOTWEB_TRUSTED_PROXIES: {e}"))?;
         Ok(Self {
             public_url: env_opt("SPOTWEB_PUBLIC_URL").map(|u| u.trim_end_matches('/').to_string()),
             adsense: env_opt("SPOTWEB_ADSENSE"),
             ga_id: env_opt("SPOTWEB_GA_ID"),
+            webpulse_id: env_opt("SPOTWEB_WEBPULSE_ID"),
             schedule_tz,
             history_start,
             csp,
+            api_rate_limit,
+            trusted_proxies,
         })
     }
 }
@@ -177,6 +217,7 @@ pub struct AppInner {
     pub job_locks: jobs::JobLocks,
     pub i18n: i18n::I18n,
     pub http_stats: web::metrics::HttpStats,
+    pub api_rate_limiter: Option<web::ratelimit::RateLimiter>,
 }
 
 impl std::ops::Deref for App {
@@ -191,6 +232,9 @@ impl App {
         let token = env_opt("API_TOKEN")
             .or_else(|| env_opt("SPOTWEB_API_TOKEN"))
             .unwrap_or_default();
+        let api_rate_limiter = cfg
+            .api_rate_limit
+            .map(|n| web::ratelimit::RateLimiter::new(n, cfg.trusted_proxies.clone()));
         Ok(Self(Arc::new(AppInner {
             db,
             cache: cache::Cache::new(),
@@ -199,6 +243,7 @@ impl App {
             job_locks: jobs::JobLocks::new(),
             i18n: i18n::I18n::load()?,
             http_stats: web::metrics::HttpStats::from_env(),
+            api_rate_limiter,
         })))
     }
 }
@@ -247,11 +292,41 @@ async fn shutdown_signal() {
     tracing::info!("shutting down");
 }
 
+/// How long shutdown waits for running jobs (`SPOTWEB_SHUTDOWN_GRACE_SECS`, default 15)
+fn shutdown_grace() -> std::time::Duration {
+    let secs = env_opt("SPOTWEB_SHUTDOWN_GRACE_SECS")
+        .and_then(|v| v.trim().parse().ok())
+        .unwrap_or(15);
+    std::time::Duration::from_secs(secs)
+}
+
 async fn serve(app: App, args: ServeArgs) -> anyhow::Result<()> {
     if !app.entsoe.has_token() {
         tracing::warn!(
             "API_TOKEN not set, ENTSO-e data will not be updated (exchange rates still are)"
         );
+    }
+    if app.cfg.public_url.is_none() {
+        tracing::warn!(
+            "SPOTWEB_PUBLIC_URL not set, canonical links, sitemap.xml and robots.txt use the request's Host header"
+        );
+    }
+    // No run of this process is in progress yet: rows without `finished` were cut off by a
+    // shutdown or crash. `run-job` from the command line at the same moment would be marked too.
+    match app
+        .db
+        .run(|c| {
+            Ok(db::queries::job_mark_interrupted(
+                c,
+                timeutil::now_ms(),
+                "interrupted, the server stopped during the run",
+            )?)
+        })
+        .await
+    {
+        Ok(0) => {}
+        Ok(n) => tracing::warn!(runs = n, "marked unfinished job runs as interrupted"),
+        Err(e) => tracing::warn!(error = %format!("{e:#}"), "marking unfinished job runs failed"),
     }
     let scheduler = if args.no_scheduler {
         tracing::info!("scheduler disabled");
@@ -267,12 +342,40 @@ async fn serve(app: App, args: ServeArgs) -> anyhow::Result<()> {
         .await
         .with_context(|| format!("binding {addr}"))?;
     web::metrics::spawn_summary(app.clone());
+    if let Some(n) = app.cfg.api_rate_limit {
+        tracing::info!(
+            per_minute = n,
+            trusted_proxies = app.cfg.trusted_proxies.len(),
+            "rate limiting /api/ per client IP"
+        );
+    }
     tracing::info!(%addr, db = %app.db.path().display(), version = env!("CARGO_PKG_VERSION"), "spotweb listening");
-    axum::serve(listener, web::router(app))
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    axum::serve(
+        listener,
+        web::router(app.clone()).into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
     if let Some(s) = scheduler {
-        let _ = s.shutdown().await;
+        s.shutdown().await;
+    }
+    // Let running jobs finish their bookkeeping, for a short while
+    let grace = shutdown_grace();
+    if !jobs::wait_until_idle(&app, grace).await {
+        tracing::warn!(
+            secs = grace.as_secs(),
+            "jobs still running at shutdown, interrupting"
+        );
+        let _ = app
+            .db
+            .run(|c| {
+                Ok(db::queries::job_mark_interrupted(
+                    c,
+                    timeutil::now_ms(),
+                    "interrupted, the server was stopped",
+                )?)
+            })
+            .await;
     }
     Ok(())
 }
@@ -325,5 +428,29 @@ async fn main() -> anyhow::Result<()> {
             println!("backup written");
             Ok(())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn truthy_matches_clap_boolish() {
+        let parser = clap::builder::BoolishValueParser::new();
+        let cmd = clap::Command::new("t");
+        for v in [
+            "1", "0", "yes", "no", "TRUE", "false", "on", "off", "y", "n", "t", "f",
+        ] {
+            let clap_value = clap::builder::TypedValueParser::parse_ref(
+                &parser,
+                &cmd,
+                None,
+                std::ffi::OsStr::new(v),
+            )
+            .unwrap();
+            assert_eq!(is_truthy(v), clap_value, "{v}");
+        }
+        assert!(!is_truthy("maybe"));
     }
 }

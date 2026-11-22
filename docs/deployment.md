@@ -54,6 +54,22 @@ sudo systemctl enable --now spotweb spotweb-backup.timer
 journalctl -u spotweb -f
 ```
 
+All variables are listed in the README (*Configuration*). The ones most installations touch:
+
+- `API_TOKEN` (or its alias `SPOTWEB_API_TOKEN`, used when `API_TOKEN` is unset): the ENTSO-e token. Without it only
+  exchange rates are updated, and a warning is logged at startup.
+- `SPOTWEB_PUBLIC_URL`: the public base url. Without it canonical links, Open Graph tags, `sitemap.xml` and
+  `robots.txt` are built from the request's `Host` and `X-Forwarded-Proto` headers, which gives wrong urls behind a
+  misconfigured proxy; a warning is logged at startup.
+- `SPOTWEB_GA_ID`, `SPOTWEB_WEBPULSE_ID`, `SPOTWEB_ADSENSE`: Google Analytics, Webpulse Analytics and AdSense. Each
+  script is only included when its variable is set, so a fresh installation sends no visitor data anywhere.
+- `SPOTWEB_NO_SCHEDULER=1` (`true`, `yes` and `on` work too): same as `spotweb serve --no-scheduler`, no scheduled data
+  updates (see *Several instances*).
+- `SPOTWEB_ENTSOE_ENDPOINT` and `SPOTWEB_ECB_ENDPOINT`: replace the ENTSO-e API url
+  (`https://web-api.tp.entsoe.eu/api`) and the ECB rates url
+  (`https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml`), e.g. for an outgoing proxy or a mock server.
+  Rarely needed.
+
 The unit runs with a strict sandbox (`ProtectSystem=strict`, no capabilities, syscall filter, only `/var/lib/spotweb`
 writable). `systemd-analyze security spotweb` should report a low exposure score.
 
@@ -77,9 +93,30 @@ sudo systemctl daemon-reload && sudo systemctl restart spotweb
 spotweb compresses responses (brotli/gzip) and sets cache headers itself; static assets are served with ETags.
 
 Pages are sent with a `Content-Security-Policy` that only runs scripts carrying a fresh nonce (plus what those
-scripts load, `'strict-dynamic'`), so AdSense, Google Analytics and the analytics script work without listing their
+scripts load, `'strict-dynamic'`), so AdSense, Google Analytics and Webpulse Analytics work without listing their
 hosts. Don't add a second CSP in the proxy: browsers enforce both. To try it out first, set `SPOTWEB_CSP=report-only`
 and watch the browser console for "Content Security Policy" messages; `SPOTWEB_CSP=off` turns it off.
+
+### Rate limiting
+
+The nginx example limits `/api/` to 60 requests per minute and client IP, with bursts of 60 served at once, and
+answers `429` over that. Caddy needs the `rate_limit` plugin for this; the Caddyfile has a commented example.
+
+spotweb can also do it itself, which works with any proxy and without one: `SPOTWEB_API_RATE_LIMIT=60` gives each
+client a bucket of 60 requests that refills by one per second. Requests to `/api/` over the limit get `429 Too Many
+Requests` with `Retry-After` (seconds) and a JSON error. Pages, static files and `/healthz` are never limited. It is
+off by default: with a proxy in front, spotweb sees every visitor as the proxy unless told to trust it, and one shared
+bucket would block everyone at once. Normal use is far below any sensible limit: Home Assistant polls about every 3
+minutes, and a page view makes a few API requests. Keep the limit at 30 or more so that someone clicking around the
+site never sees an error.
+
+The client IP is the address of the connection. `X-Forwarded-For` (the rightmost address that is not a trusted proxy)
+or `X-Real-IP` is only used when the connection comes from `SPOTWEB_TRUSTED_PROXIES`, e.g. `127.0.0.1,::1` for a
+proxy on the same host or `172.16.0.0/12` for a Docker network. Never trust addresses that clients can connect from
+directly: they could then pick any IP. IPv6 clients are counted per /64. Idle clients are forgotten after a minute,
+and at most 100 000 are tracked at once.
+
+Rejected requests are counted in `4xx` and in `429` per route in `/api/v2/status` (`http`) and in the log summary.
 
 ## 4. Upgrading from 1.x
 
@@ -183,13 +220,16 @@ Everything except the database can be re-created, and even the database can be r
 - `GET /api/v2/status` has the same verdict as `healthy` and `problems`, the newest price/generation/load timestamps and
   the last run of each job. Also alert if a job keeps reporting `"status": "failed"`.
   Each job run has a `status`: `ok`, `partial` (finished, but some areas failed; they are listed in `failures` with the
-  reason), `failed` or `running`. `ok` stays `true` for `partial` runs, for compatibility with 2.0.0.
+  reason), `failed`, `running` or `interrupted` (the server stopped or restarted during the run; it runs again at the
+  next scheduled time). `ok` stays `true` for `partial` runs, for compatibility with 2.0.0, and is `false` for
+  `interrupted` runs. On shutdown spotweb waits up to `SPOTWEB_SHUTDOWN_GRACE_SECS` (15) for running jobs; keep
+  systemd's `TimeoutStopSec` above that. A run that panics is recorded as `failed`.
 - Each ENTSO-e request is retried twice after 15 s on timeouts, connection errors and 5xx (60 s on 429/503). HTTP 599
   is logged as "upstream timeout": it is a non-standard code from ENTSO-e's gateway when its backend is slow, not from
   spotweb. spotweb's own per-request timeout is logged as "spotweb timeout".
 - Logs go to the journal; set `RUST_LOG=spotweb=debug` for detail.
 - `http` in `/api/v2/status` counts requests per route since start and for the last summary period: `requests`,
-  `p50_ms`/`p95_ms` (upper bound of the bucket: 1, 2, 5, 10, 20, 50 ms … 30 s; `null` above that) and `4xx`/`5xx`.
+  `p50_ms`/`p95_ms` (upper bound of the bucket: 1, 2, 5, 10, 20, 50 ms … 30 s; `null` above that), `4xx`/`5xx` and `429` (rate limited, also in `4xx`).
   Bad parameters to `/api/v2/spot` and `/api/v2/hass` are answered with 500 as in 1.x and count as `5xx`. Embedded
   files are grouped as `static`, unknown paths as `not found`. The same numbers are logged once a minute
   (`SPOTWEB_HTTP_SUMMARY_SECS`), and `SPOTWEB_ACCESS_LOG=1` logs each request (no IP addresses or query strings).
@@ -197,11 +237,37 @@ Everything except the database can be re-created, and even the database can be r
 ## Several instances
 
 SQLite is local, so scale up rather than out; one instance handles thousands of requests per second from cache. If you
-still want a second node, run it with `--no-scheduler` on a periodically copied database.
+still want a second node, run it with `--no-scheduler` (or `SPOTWEB_NO_SCHEDULER=1`) on a periodically copied database.
 
 ## Docker
 
+Each release (from the first one after 2.2.0) publishes a multi-arch image (`linux/amd64`, `linux/arm64`) to
+`ghcr.io/hexagon/spotweb`, tagged with the version (`2.3.0`), the minor version (`2.3`) and `latest`. It contains the
+same static musl binary as the release archive, is signed with Sigstore (keyless, by the release workflow) and has a
+GitHub build provenance attestation.
+
 ```sh
-docker compose up -d --build      # uses Dockerfile, data in the spotweb-data volume
+docker pull ghcr.io/hexagon/spotweb:2.3.0
+
+# Signature: proves the image was built by this repository's release workflow
+cosign verify ghcr.io/hexagon/spotweb:2.3.0 \
+  --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+# Or with the GitHub CLI (build provenance attestation)
+gh attestation verify oci://ghcr.io/hexagon/spotweb:2.3.0 --repo Hexagon/spotweb
+
+docker run -d --name spotweb -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.3.0
+```
+
+`docker-compose.yml` uses the image (set a fixed version instead of `latest` in production), or builds it from the
+`Dockerfile` with `--build`:
+
+```sh
+docker compose up -d              # pulls ghcr.io/hexagon/spotweb, data in the spotweb-data volume
+docker compose up -d --build      # builds from source instead
 docker compose exec spotweb spotweb import-v1 /data/main.db   # after copying the 1.x db into the volume
 ```
+
+The `Dockerfile` builds the dependencies in a separate layer, so after a code change only spotweb itself is
+recompiled.
