@@ -335,7 +335,17 @@ body.currency-eur .hide-eur { display: none; }
 .segmented button { background: none; border: 0; color: var(--muted); padding: 5px 12px; border-radius: 7px; cursor: pointer; font-size: .88rem; }
 .segmented button[aria-pressed="true"] { background: var(--card); color: var(--text); box-shadow: 0 1px 3px var(--shadow); }
 .map-wrap { position: relative; background: radial-gradient(ellipse at 60% 30%, var(--map-glow) 0%, var(--bg) 75%); }
-.zone-map { display: block; width: 100%; height: clamp(420px, calc(100vh - 190px), 960px); user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.zone-map { display: block; width: 100%; height: clamp(420px, calc(100vh - 190px), 960px); user-select: none; -webkit-user-select: none; touch-action: pan-x pan-y; cursor: grab; }
+.zone-map.dragging { cursor: grabbing; }
+.map-wrap:focus { outline: none; }
+.map-wrap:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.map-zoom { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--card); box-shadow: 0 4px 14px var(--shadow-lg); z-index: 4; }
+.map-zoom button { width: 34px; height: 32px; border: 0; background: none; color: var(--text); font-size: 1.1rem; line-height: 1; cursor: pointer; }
+.map-zoom button + button { border-top: 1px solid var(--border); }
+.map-zoom button:hover { background: var(--card-2); }
+.map-zoom-hint { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--tooltip-bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: .9rem; pointer-events: none; z-index: 5; box-shadow: 0 8px 24px var(--shadow-lg); }
+/* Borders keep their width in pixels at every zoom */
+.zone-map .land, .zone-map .neighbour, .zone-map .zone { vector-effect: non-scaling-stroke; }
 .zone-map .land { fill: var(--map-land); stroke: var(--map-land-edge); stroke-width: .6; }
 .zone-map .neighbour { fill: var(--map-neighbour); stroke: var(--map-neighbour-edge); stroke-width: .6; }
 .zone-map .zone { fill: var(--map-zone); stroke: var(--bg); stroke-width: 1.1; stroke-linejoin: round; cursor: pointer; transition: fill .35s ease, filter .15s; outline: none; }
@@ -360,13 +370,14 @@ body.currency-eur .hide-eur { display: none; }
 @media print { .zone-map .flow-dash { display: none; } }
 .zone-map .flow-zero { fill: var(--map-arrow-zero); }
 .zone-map .flow-hit { stroke: transparent; stroke-width: 16; }
-.zone-map .flow-label { font-size: calc(11px * var(--k, 1)); font-weight: 600; fill: var(--map-ink); paint-order: stroke; stroke: var(--map-halo); stroke-width: calc(3.5px * var(--k, 1)); stroke-linejoin: round; font-variant-numeric: tabular-nums; }
+.zone-map .flow-label { font-size: 11px; font-weight: 600; fill: var(--map-ink); paint-order: stroke; stroke: var(--map-halo); stroke-width: 3.5px; stroke-linejoin: round; font-variant-numeric: tabular-nums; }
+.zone-map .flow-label.minor { font-size: 9.5px; fill: var(--map-ink-2); font-weight: 500; }
 .zone-map .labels { pointer-events: none; }
-.zone-map .zone-label text { paint-order: stroke; stroke: var(--map-halo); stroke-width: calc(3px * var(--k, 1)); stroke-linejoin: round; }
-.zone-map .zl-name { font-size: calc(10px * var(--k, 1)); fill: var(--map-ink-2); font-weight: 600; letter-spacing: .02em; }
-.zone-map .zl-price { font-size: calc(13.5px * var(--k, 1)); fill: var(--map-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
-.zone-map .zone-label.selected .zl-price { font-size: calc(15px * var(--k, 1)); }
-.zone-map .zl-ext { font-size: calc(10px * var(--k, 1)); fill: var(--map-ink-3); font-weight: 600; paint-order: stroke; stroke: var(--map-halo); stroke-width: 2.5px; }
+.zone-map .zone-label text { paint-order: stroke; stroke: var(--map-halo); stroke-width: 3px; stroke-linejoin: round; }
+.zone-map .zl-name { font-size: 10px; fill: var(--map-ink-2); font-weight: 600; letter-spacing: .02em; }
+.zone-map .zl-price { font-size: 13.5px; fill: var(--map-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.zone-map .zone-label.selected .zl-price { font-size: 15px; }
+.zone-map .zl-ext { font-size: 10px; fill: var(--map-ink-3); font-weight: 600; paint-order: stroke; stroke: var(--map-halo); stroke-width: 2.5px; }
 .map-tooltip { position: absolute; top: 0; left: 0; pointer-events: none; background: var(--tooltip-bg); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: .85rem; box-shadow: 0 8px 24px var(--shadow-lg); white-space: nowrap; z-index: 5; }
 .map-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; padding: 8px 16px; border-top: 1px solid var(--border); background: var(--card-2); }
 .map-legend { display: flex; align-items: center; gap: 8px; }

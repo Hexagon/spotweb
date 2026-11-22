@@ -192,7 +192,12 @@
       "all_areas": "Alla elområden",
       "zoom": "Zoomnivå",
       "flow_chart_hint": "Över noll: export, under noll: import",
-      "flow_sum": "Netto"
+      "flow_sum": "Netto",
+      "zoom_in": "Zooma in",
+      "zoom_out": "Zooma ut",
+      "zoom_reset": "Återställ vyn",
+      "zoom_hint": "Håll ned Ctrl (⌘ på Mac) och scrolla för att zooma",
+      "zoom_help": "Karta. Zooma med + och −, flytta med piltangenterna, 0 återställer vyn."
     },
     "share": {
       "share": "Dela",

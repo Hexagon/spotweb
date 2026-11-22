@@ -13,9 +13,15 @@
         <button type="button" data-map-view="europe" aria-pressed="false">{{ t("map.view_europe") }}</button>
       </div>
     </header>
-    <div class="map-wrap">
+    <div class="map-wrap" tabindex="0" aria-label="{{ t('map.zoom_help') }}">
       {% include "partials/map.svg" %}
       <div class="map-tooltip" role="tooltip" hidden></div>
+      <div class="map-zoom" role="group" aria-label="{{ t('map.zoom') }}">
+        <button type="button" data-map-zoom="in" aria-label="{{ t('map.zoom_in') }}" title="{{ t('map.zoom_in') }}">+</button>
+        <button type="button" data-map-zoom="out" aria-label="{{ t('map.zoom_out') }}" title="{{ t('map.zoom_out') }}">&minus;</button>
+        <button type="button" data-map-zoom="reset" aria-label="{{ t('map.zoom_reset') }}" title="{{ t('map.zoom_reset') }}">&#x27F2;</button>
+      </div>
+      <div class="map-zoom-hint" hidden>{{ t("map.zoom_hint") }}</div>
     </div>
     <footer class="map-foot">
       <div class="map-legend" aria-hidden="true">

@@ -664,22 +664,26 @@ series:
     const svg = $("svg.zone-map", app);
     map.app = app;
     map.svg = svg;
+    map.wrap = $(".map-wrap", app);
     map.tip = $(".map-tooltip", app);
     map.anchor = {};
     $$("[data-x]", svg).forEach((p) => { map.anchor[p.dataset.area || p.dataset.ext] = [Number(p.dataset.x), Number(p.dataset.y)]; });
     // Arrow spot and direction per border, from scripts/build_map.py: {"A|B": [x, y, ux, uy]} pointing A -> B
     try { map.flowAt = JSON.parse($("g.flows", svg).dataset.at || "{}"); } catch (_) { map.flowAt = {}; }
     map.full = svg.getAttribute("viewBox").split(" ").map(Number);
+    map.vb = map.full.slice();
+    // Size of each zone, for the level of detail of its label
+    map.box = {};
+    $$(".zone", svg).forEach((p) => { const b = p.getBBox(); map.box[p.dataset.area] = [b.x, b.y, b.width, b.height]; });
     // Nordic view: bounding box of the Nordic zones, padded to show the Baltic zones
     // Europe view: bounding box of all our zones
     const bbox = (keep) => {
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-      $$(".zone", svg).forEach((p) => {
-        const z = boot.zones[p.dataset.area];
-        if (!z || !keep(z)) return;
-        const b = p.getBBox();
-        x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.width); y1 = Math.max(y1, b.y + b.height);
-      });
+      for (const [name, b] of Object.entries(map.box)) {
+        const z = boot.zones[name];
+        if (!z || !keep(z)) continue;
+        x0 = Math.min(x0, b[0]); y0 = Math.min(y0, b[1]); x1 = Math.max(x1, b[0] + b[2]); y1 = Math.max(y1, b[1] + b[3]);
+      }
       return Number.isFinite(x0) ? [x0, y0, x1 - x0, y1 - y0] : null;
     };
     const n = bbox((z) => NORDIC.includes(z.country));
@@ -716,7 +720,7 @@ series:
     };
     svg.addEventListener("pointermove", (e) => {
       const target = e.target.closest("[data-area],[data-ext],[data-flow]");
-      if (!target || e.pointerType === "touch") { map.tip.hidden = true; return; }
+      if (!target || e.pointerType === "touch" || drag) { map.tip.hidden = true; return; }
       if (target.dataset.flow) {
         showTip(e, flowTip(boot.flows.borders[Number(target.dataset.flow)]));
       } else if (target.dataset.area) {
@@ -730,40 +734,172 @@ series:
     // Moving dashes on the arrows stop while the tab is hidden
     document.addEventListener("visibilitychange", () => svg.classList.toggle("paused", document.hidden));
 
-    // View toggle
+    // ------------------------------------------------------------ zoom and pan
+    const reduce = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const minW = Math.min(120, map.full[2]);
+    // Keep the zoom between the whole map and about 20 times closer
+    const clamp = (vb) => {
+      let [x, y, w, h] = vb;
+      const f = Math.max(minW / w, Math.min(1, map.full[2] / w, map.full[3] / h));
+      if (f !== 1) { x += (w - w * f) / 2; y += (h - h * f) / 2; w *= f; h *= f; }
+      // Inside the map's edges, centred on an axis where the view is wider than the map
+      const [fx, fy, fw, fh] = map.full;
+      x = w >= fw ? fx + (fw - w) / 2 : Math.max(fx, Math.min(fx + fw - w, x));
+      y = h >= fh ? fy + (fh - h) / 2 : Math.max(fy, Math.min(fy + fh - h, y));
+      return [x, y, w, h];
+    };
+    let settle = null;
+    // Per frame only the viewBox and the scale of labels and arrows change; the overlay is
+    // drawn again (level of detail, arrow lengths) once the view has been still for a moment
+    const setVB = (vb, settleMs = 140) => {
+      map.vb = clamp(vb);
+      svg.setAttribute("viewBox", map.vb.map((v) => v.toFixed(1)).join(" "));
+      if (scale()) applyScale();
+      if (!map.ready) return;
+      clearTimeout(settle);
+      settle = setTimeout(() => safe(mapOverlay), settleMs);
+    };
+    let anim = 0;
+    const animateTo = (to) => {
+      cancelAnimationFrame(anim);
+      const from = map.vb.slice();
+      if (reduce()) { setVB(to, 0); return; }
+      const t0 = performance.now(), dur = 450;
+      const step = (now) => {
+        const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        setVB(from.map((f, i) => f + (to[i] - f) * e), k < 1 ? 140 : 0);
+        if (k < 1) anim = requestAnimationFrame(step);
+      };
+      anim = requestAnimationFrame(step);
+    };
+    // Map units under a point on the screen
+    const toMap = (cx, cy) => {
+      const m = svg.getScreenCTM();
+      if (!m) return [map.vb[0] + map.vb[2] / 2, map.vb[1] + map.vb[3] / 2];
+      const p = new DOMPoint(cx, cy).matrixTransform(m.inverse());
+      return [p.x, p.y];
+    };
+    // Zoom by `f` (below 1 is closer) keeping the map point under (cx, cy) in place
+    const zoomAt = (cx, cy, f, animate) => {
+      const [px, py] = toMap(cx, cy);
+      const [x, y, w, h] = map.vb;
+      const to = [px - (px - x) * f, py - (py - y) * f, w * f, h * f];
+      customView();
+      if (animate) animateTo(clamp(to)); else { cancelAnimationFrame(anim); setVB(to); }
+    };
+    const centre = () => { const r = svg.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+    const panBy = (dx, dy) => {
+      const s = (svg.getScreenCTM() || { a: 1 }).a || 1;
+      cancelAnimationFrame(anim);
+      customView();
+      setVB([map.vb[0] - dx / s, map.vb[1] - dy / s, map.vb[2], map.vb[3]]);
+    };
+    // After zooming or panning by hand neither preset button is pressed
+    const customView = () => $$("[data-map-view]", app).forEach((b) => b.setAttribute("aria-pressed", "false"));
+
+    // Wheel zooms with Ctrl/⌘ (also a pinch on a touchpad) or while the map has focus, so the
+    // page still scrolls past the map
+    let hintTimer = 0;
+    const hint = $(".map-zoom-hint", app);
+    svg.addEventListener("wheel", (e) => {
+      if (!(e.ctrlKey || e.metaKey || map.wrap.contains(document.activeElement))) {
+        if (hint) { hint.hidden = false; clearTimeout(hintTimer); hintTimer = setTimeout(() => { hint.hidden = true; }, 1400); }
+        return;
+      }
+      e.preventDefault();
+      const d = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1);
+      zoomAt(e.clientX, e.clientY, Math.exp(Math.max(-1, Math.min(1, d * 0.0022))), false);
+    }, { passive: false });
+    svg.addEventListener("dblclick", (e) => { e.preventDefault(); zoomAt(e.clientX, e.clientY, e.shiftKey ? 2 : 0.5, true); });
+
+    // Drag to pan (mouse and pen). A drag is not a click on a zone.
+    let drag = null;
+    svg.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "touch" || e.button !== 0) return;
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false };
+    });
+    svg.addEventListener("pointermove", (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (!drag.moved && Math.hypot(dx, dy) < 5) return;
+      if (!drag.moved) { drag.moved = true; svg.setPointerCapture(e.pointerId); svg.classList.add("dragging"); }
+      drag.x = e.clientX; drag.y = e.clientY;
+      panBy(dx, dy);
+    });
+    const endDrag = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      if (drag.moved) {
+        svg.classList.remove("dragging");
+        // Swallow the click that follows the drag
+        svg.addEventListener("click", (c) => { c.stopPropagation(); c.preventDefault(); }, { capture: true, once: true });
+        setTimeout(() => { drag = null; }, 0);
+      } else {
+        drag = null;
+      }
+    };
+    svg.addEventListener("pointerup", endDrag);
+    svg.addEventListener("pointercancel", endDrag);
+
+    // Two fingers zoom and pan on touch screens; one finger still scrolls the page
+    let pinch = null;
+    const touchState = (ts) => {
+      const [a, b] = [ts[0], ts[1]];
+      return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2, d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1 };
+    };
+    svg.addEventListener("touchstart", (e) => { if (e.touches.length === 2) pinch = touchState(e.touches); }, { passive: true });
+    svg.addEventListener("touchmove", (e) => {
+      if (e.touches.length !== 2 || !pinch) return;
+      e.preventDefault();
+      const s = touchState(e.touches);
+      panBy(s.x - pinch.x, s.y - pinch.y);
+      zoomAt(s.x, s.y, pinch.d / s.d, false);
+      pinch = s;
+    }, { passive: false });
+    svg.addEventListener("touchend", (e) => { if (e.touches.length < 2) pinch = null; });
+
+    // Buttons and keys: + and - zoom, arrows pan, 0 goes back to the chosen view
+    const reset = () => setView(map.view, true);
+    $$("[data-map-zoom]", app).forEach((b) => b.addEventListener("click", () => {
+      const z = b.dataset.mapZoom;
+      if (z === "reset") reset(); else zoomAt(...centre(), z === "in" ? 0.6 : 1 / 0.6, true);
+    }));
+    map.wrap.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const step = 80;
+      const keys = {
+        "+": () => zoomAt(...centre(), 0.6, true), "=": () => zoomAt(...centre(), 0.6, true),
+        "-": () => zoomAt(...centre(), 1 / 0.6, true), "0": reset,
+        ArrowLeft: () => panBy(step, 0), ArrowRight: () => panBy(-step, 0),
+        ArrowUp: () => panBy(0, step), ArrowDown: () => panBy(0, -step),
+      };
+      if (!keys[e.key]) return;
+      e.preventDefault();
+      keys[e.key]();
+    });
+
+    // View presets
     const setView = (v, animate) => {
       map.view = v;
       store.set("sw_map_view", v);
       $$("[data-map-view]", app).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mapView === v)));
       const to = v === "nordic" ? map.nordic : map.europe;
-      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const from = svg.getAttribute("viewBox").split(" ").map(Number);
-      map.to = to;
-      scale();
-      if (map.ready) mapRender();
-      if (!animate || reduce) { svg.setAttribute("viewBox", to.join(" ")); return; }
-      const t0 = performance.now(), dur = 450;
-      const step = (now) => {
-        const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-        svg.setAttribute("viewBox", from.map((f, i) => (f + (to[i] - f) * e).toFixed(1)).join(" "));
-        if (k < 1) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
+      if (animate) animateTo(to); else setVB(to, 0);
     };
-    // Text and arrows grow when the map is drawn small (zoomed out or on a phone) so they stay readable
+    // Text and arrows are drawn larger when the map is drawn small (zoomed out or on a phone) so
+    // they stay readable, and do not grow without end when zoomed in
     const scale = () => {
-      const to = map.to || map.full;
-      const ppu = Math.min(svg.clientWidth / to[2], svg.clientHeight / to[3]) || 1;
-      const k = Math.max(0.9, Math.min(2.4, Math.pow(1 / ppu, 0.8)));
-      const changed = Math.abs(k - (map.k || 0)) > 0.02;
+      const m = svg.getScreenCTM();
+      const ppu = (m && m.a) || Math.min(svg.clientWidth / map.vb[2], svg.clientHeight / map.vb[3]) || 1;
+      const k = Math.min(2.4, Math.max(Math.pow(ppu, -0.8), Math.min(0.9, 1.35 / ppu)));
+      map.ppu = ppu;
+      const changed = Math.abs(k - (map.k || 0)) > 0.001;
       map.k = k;
-      svg.style.setProperty("--k", k.toFixed(3));
       return changed;
     };
     let resizeTimer = null;
     window.addEventListener("resize", () => {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => { if (scale() && map.ready) safe(mapRender); }, 150);
+      resizeTimer = setTimeout(() => { scale(); applyScale(); if (map.ready) safe(mapOverlay); }, 150);
     });
     $$("[data-map-view]", app).forEach((b) => b.addEventListener("click", () => setView(b.dataset.mapView, true)));
     setView(store.get("sw_map_view") || (NORDIC.includes(lang) ? "nordic" : "europe"), false);
@@ -777,10 +913,24 @@ series:
     return true;
   };
 
+  // Labels and arrows sit in groups placed at their spot and scaled by `map.k`
+  map.scaled = [];
+  const placed = (parent, x, y, attrs) => {
+    const g = svgEl("g", attrs, parent);
+    map.scaled.push([g, x, y]);
+    g.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${(map.k || 1).toFixed(3)})`);
+    return g;
+  };
+  const applyScale = () => {
+    const k = (map.k || 1).toFixed(3);
+    for (const [g, x, y] of map.scaled) g.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${k})`);
+  };
+
   // One arrow per border. Each arrow has its own gradient from tail to tip, so the direction shows
   // even where the head is small. Arrows of the selected zone are coloured as import (into the
   // zone) or export, and get a few light dashes that move from tail to tip, faster for more MW.
-  const flowArrow = (g, f, i, selected) => {
+  // Drawn around (0, 0) at scale 1; the group places and scales it.
+  const flowArrow = (g, f, i, selected, allLabels) => {
     const a = map.anchor[f.from], b = map.anchor[f.to];
     if (!a || !b) return;
     const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1;
@@ -795,17 +945,18 @@ series:
     const touches = selected && (f.from === selected || f.to === selected);
     const dir = !touches || f.value < 1 ? "" : f.to === selected ? " is-import" : " is-export";
     const cls = "flow" + (touches ? " active" : selected ? " dim" : "") + dir;
-    const grp = svgEl("g", { class: cls, "data-flow": i }, g);
+    const grp = placed(g, mid[0], mid[1], { class: cls, "data-flow": i });
     if (f.value < 1) {
-      svgEl("circle", { cx: mid[0], cy: mid[1], r: 3, class: "flow-zero" }, grp);
+      svgEl("circle", { cx: 0, cy: 0, r: 3, class: "flow-zero" }, grp);
       return;
     }
     const k = map.k || 1;
-    const L = Math.min(34 * k, len * 0.55);
-    const w = Math.min(10, 1.6 + Math.sqrt(f.value) / 7) * k;
-    const hw = w + 4.5 * k, hl = Math.min(12 * k, 6 * k + w * 0.6);
-    const tail = [mid[0] - ux * L / 2, mid[1] - uy * L / 2];
-    const tip = [mid[0] + ux * L / 2, mid[1] + uy * L / 2];
+    // Not longer than about half the distance between the labels it connects
+    const L = Math.min(34, (len * 0.55) / k);
+    const w = Math.min(10, 1.6 + Math.sqrt(f.value) / 7);
+    const hw = w + 4.5, hl = Math.min(12, 6 + w * 0.6);
+    const tail = [-ux * L / 2, -uy * L / 2];
+    const tip = [ux * L / 2, uy * L / 2];
     const base = [tip[0] - ux * hl, tip[1] - uy * hl];
     const f1 = (v) => v.toFixed(1);
     const pt = (p, s) => `${f1(p[0] + px * s)},${f1(p[1] + py * s)}`;
@@ -818,7 +969,7 @@ series:
     if (touches) {
       // Dash period about a third of the shaft, so two or three dashes are visible at a time
       const shaft = Math.max(1, L - hl);
-      const period = shaft / 2.5, dash = Math.min(period * 0.45, 5 * k);
+      const period = shaft / 2.5, dash = Math.min(period * 0.45, 5);
       const dur = 3 - 2.2 * Math.min(1, Math.sqrt(f.value / 2000));
       svgEl("line", {
         x1: f1(tail[0]), y1: f1(tail[1]), x2: f1(base[0]), y2: f1(base[1]), class: "flow-dash",
@@ -828,10 +979,10 @@ series:
     }
     // Wider invisible hit target
     svgEl("line", { x1: f1(tail[0]), y1: f1(tail[1]), x2: f1(tip[0]), y2: f1(tip[1]), class: "flow-hit" }, grp);
-    if (touches) {
-      const off = hw / 2 + 9 * k;
+    if (touches || allLabels) {
+      const off = hw / 2 + 9;
       const side = py > 0 ? -1 : 1;
-      const txt = svgEl("text", { x: f1(mid[0] + px * off * side), y: f1(mid[1] + py * off * side + 4 * k), class: "flow-label", "text-anchor": "middle" }, grp);
+      const txt = svgEl("text", { x: f1(px * off * side), y: f1(py * off * side + 4), class: "flow-label" + (touches ? "" : " minor"), "text-anchor": "middle" }, grp);
       txt.textContent = mw(f.value);
     }
   };
@@ -843,10 +994,71 @@ series:
     const pa = priceNum(zoneNow(f.from)), pb = priceNum(zoneNow(f.to));
     if (pa !== null && pb !== null) {
       const d = pb - pa;
-      const ds = (d > 0 ? "+" : d < 0 ? "\u2212" : "\u00b1") + Math.abs(d).toFixed(prefs.decimals);
+      const ds = (d > 0 ? "+" : d < 0 ? "−" : "±") + Math.abs(d).toFixed(prefs.decimals);
       html += `<br><span class="muted">${esc(f.from)} ${price(zoneNow(f.from))} &rarr; ${esc(f.to)} ${price(zoneNow(f.to))} ${esc(unit())} (${ds})</span>`;
     }
     return html;
+  };
+
+  // Level of detail per zone label from the zone's size on screen: name and price, only the
+  // name, or nothing. Labels are placed largest zone first (the selected zone before all) and a
+  // label that would overlap one already placed is made smaller or left out.
+  const ZL_FULL = 34, ZL_NAME = 16; // px, the larger side of the zone on screen
+  const labelPlan = (sel) => {
+    const k = map.k || 1, ppu = map.ppu || 1;
+    const names = Object.keys(boot.zones).filter((n) => map.anchor[n]);
+    const size = (n) => { const b = map.box[n]; return b ? Math.max(b[2], b[3]) * ppu : 0; };
+    const area = (n) => { const b = map.box[n]; return b ? b[2] * b[3] : 0; };
+    names.sort((a, b) => (a === sel ? -1 : b === sel ? 1 : area(b) - area(a)));
+    const taken = [];
+    const fits = (r) => !taken.some((o) => r[0] < o[2] && o[0] < r[2] && r[1] < o[3] && o[1] < r[3]);
+    // Box around the text in map units, [x0, y0, x1, y1], from its extent at scale 1. The halo
+    // around the text may overlap.
+    const rect = (n, w, y0, y1) => { const a = map.anchor[n]; return [a[0] - (w / 2) * k, a[1] + y0 * k, a[0] + (w / 2) * k, a[1] + y1 * k]; };
+    const plan = {};
+    for (const n of names) {
+      const s = size(n);
+      const pw = price(zoneNow(n)).length * (n === sel ? 8 : 7.2);
+      const full = rect(n, Math.max(n.length * 6, pw), -13, 13);
+      const short = rect(n, n.length * 6, -4, 5);
+      if (n === sel || (s >= ZL_FULL && fits(full))) { plan[n] = "full"; taken.push(full); }
+      else if (s >= ZL_NAME && fits(short)) { plan[n] = "name"; taken.push(short); }
+    }
+    return plan;
+  };
+
+  // Arrows and labels, drawn again when the selection or the zoom changes
+  const mapOverlay = () => {
+    const svg = map.svg;
+    const sel = map.selected;
+    map.scaled = [];
+    // Flows. Close up every arrow shows its MW.
+    const fg = $("g.flows", svg);
+    fg.textContent = "";
+    const allLabels = (map.ppu || 0) >= 3;
+    const borders = (boot.flows && boot.flows.borders) || [];
+    borders.forEach((f, i) => { if (!(sel && (f.from === sel || f.to === sel))) flowArrow(fg, f, i, sel, allLabels); });
+    borders.forEach((f, i) => { if (sel && (f.from === sel || f.to === sel)) flowArrow(fg, f, i, sel, allLabels); });
+
+    // Labels
+    const lg = $("g.labels", svg);
+    lg.textContent = "";
+    const plan = labelPlan(sel);
+    for (const [name, level] of Object.entries(plan)) {
+      const a = map.anchor[name];
+      const g = placed(lg, a[0], a[1], { class: "zone-label" + (name === sel ? " selected" : "") });
+      if (level === "full") {
+        svgEl("text", { x: 0, y: -6, class: "zl-name", "text-anchor": "middle" }, g).textContent = name;
+        svgEl("text", { x: 0, y: 10, class: "zl-price", "text-anchor": "middle" }, g).textContent = price(zoneNow(name));
+      } else {
+        svgEl("text", { x: 0, y: 4, class: "zl-name", "text-anchor": "middle" }, g).textContent = name;
+      }
+    }
+    for (const name of Object.keys(boot.neighbours || {})) {
+      const a = map.anchor[name];
+      if (!a) continue;
+      svgEl("text", { x: 0, y: 4, class: "zl-ext", "text-anchor": "middle" }, placed(lg, a[0], a[1])).textContent = name;
+    }
   };
 
   const mapRender = () => {
@@ -871,30 +1083,8 @@ series:
     $("[data-legend-min]").textContent = price(lo);
     $("[data-legend-max]").textContent = price(hi);
     $(".legend-ramp").style.background = `linear-gradient(90deg, ${theme.ramp.join(",")})`;
-
-    // Flows
-    const fg = $("g.flows", svg);
-    fg.textContent = "";
-    const borders = (boot.flows && boot.flows.borders) || [];
-    borders.forEach((f, i) => { if (!(sel && (f.from === sel || f.to === sel))) flowArrow(fg, f, i, sel); });
-    borders.forEach((f, i) => { if (sel && (f.from === sel || f.to === sel)) flowArrow(fg, f, i, sel); });
     $("[data-flows-updated]").textContent = flowsUpdatedText();
-
-    // Labels
-    const lg = $("g.labels", svg);
-    lg.textContent = "";
-    for (const name of Object.keys(boot.zones)) {
-      const a = map.anchor[name];
-      if (!a) continue;
-      const g = svgEl("g", { class: "zone-label" + (name === sel ? " selected" : "") }, lg);
-      const k = map.k || 1;
-      svgEl("text", { x: a[0], y: a[1] - 6 * k, class: "zl-name", "text-anchor": "middle" }, g).textContent = name;
-      svgEl("text", { x: a[0], y: a[1] + 10 * k, class: "zl-price", "text-anchor": "middle" }, g).textContent = price(zoneNow(name));
-    }
-    for (const name of Object.keys(boot.neighbours || {})) {
-      const a = map.anchor[name];
-      if (a) svgEl("text", { x: a[0], y: a[1] + 4, class: "zl-ext", "text-anchor": "middle" }, lg).textContent = name;
-    }
+    mapOverlay();
     zonePanel();
   };
 

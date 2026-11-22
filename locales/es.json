@@ -192,7 +192,12 @@
       "all_areas": "Todas las zonas",
       "zoom": "Nivel de zoom",
       "flow_chart_hint": "Por encima de cero: exportación, por debajo: importación",
-      "flow_sum": "Neto"
+      "flow_sum": "Neto",
+      "zoom_in": "Acercar",
+      "zoom_out": "Alejar",
+      "zoom_reset": "Restablecer la vista",
+      "zoom_hint": "Mantén pulsado Ctrl (⌘ en Mac) y desplázate para hacer zoom",
+      "zoom_help": "Mapa. Acerca y aleja con + y −, desplázate con las flechas, 0 restablece la vista."
     },
     "share": {
       "share": "Compartir",

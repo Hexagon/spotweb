@@ -192,7 +192,12 @@
       "all_areas": "Alle prisområder",
       "zoom": "Zoomnivå",
       "flow_chart_hint": "Over null: eksport, under null: import",
-      "flow_sum": "Netto"
+      "flow_sum": "Netto",
+      "zoom_in": "Zoom inn",
+      "zoom_out": "Zoom ut",
+      "zoom_reset": "Tilbakestill visningen",
+      "zoom_hint": "Hold inne Ctrl (⌘ på Mac) og rull for å zoome",
+      "zoom_help": "Kart. Zoom med + og −, flytt med piltastene, 0 tilbakestiller visningen."
     },
     "share": {
       "share": "Del",

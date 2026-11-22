@@ -192,7 +192,12 @@
       "all_areas": "Alle biedzones",
       "zoom": "Zoomniveau",
       "flow_chart_hint": "Boven nul: export, onder nul: import",
-      "flow_sum": "Netto"
+      "flow_sum": "Netto",
+      "zoom_in": "Inzoomen",
+      "zoom_out": "Uitzoomen",
+      "zoom_reset": "Weergave herstellen",
+      "zoom_hint": "Houd Ctrl (⌘ op Mac) ingedrukt en scroll om te zoomen",
+      "zoom_help": "Kaart. Zoom met + en −, verschuif met de pijltjestoetsen, 0 herstelt de weergave."
     },
     "share": {
       "share": "Delen",

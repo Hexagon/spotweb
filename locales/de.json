@@ -192,7 +192,12 @@
       "all_areas": "Alle Gebotszonen",
       "zoom": "Zoomstufe",
       "flow_chart_hint": "Über null: Export, unter null: Import",
-      "flow_sum": "Netto"
+      "flow_sum": "Netto",
+      "zoom_in": "Vergrößern",
+      "zoom_out": "Verkleinern",
+      "zoom_reset": "Ansicht zurücksetzen",
+      "zoom_hint": "Strg (⌘ auf dem Mac) gedrückt halten und scrollen, um zu zoomen",
+      "zoom_help": "Karte. Zoomen mit + und −, verschieben mit den Pfeiltasten, 0 setzt die Ansicht zurück."
     },
     "share": {
       "share": "Teilen",

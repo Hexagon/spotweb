@@ -175,7 +175,7 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
     - (c) *Färg efter valt område.* Import och export får samma färger som listan i panelen (`is-import`/`is-export`).
     - Tooltip på en pil: pris på båda sidor och skillnaden ("SE3 41 → SE4 98 öre, +57"). Det förklarar flaskhalsar,
       vilket ofta efterfrågas.
-45. **Fri zoom, och etiketter som anpassar sig.** Kartan har två fasta vyer (Norden/Europa). `--k` räknas bara om när
+45. ✅ **Fri zoom, och etiketter som anpassar sig.** Kartan har två fasta vyer (Norden/Europa). `--k` räknas bara om när
     vyn byts eller fönstret ändrar storlek, och etiketterna ritas om helt. Åtgärd:
     - Zooma med hjulet (med Ctrl/⌘, eller när kartan har fokus, så att sidan fortfarande scrollar), med två fingrar
       på mobil och med dubbelklick, och panorera genom att dra. Begränsa till `map.full`. En knapp för att återställa
