@@ -587,14 +587,26 @@ async fn api_v1_compat_edge_cases() {
     .await;
     assert_eq!(json(&body)["data"][0]["price"], 50.0);
 
-    // Unknown area: ok with empty data
-    let (s, body, _) = get(
-        &app,
-        &format!("/api/v2/spot?period=hourly&area=XX&startDate={d}&endDate={d}"),
-    )
-    .await;
-    assert_eq!(s, StatusCode::OK);
-    assert_eq!(json(&body)["data"].as_array().unwrap().len(), 0);
+    // Unknown or missing area: an error like an unknown currency, not empty data
+    for area in ["area=SE5&", "area=XX&", "area=&", ""] {
+        let (s, body, _) = get(
+            &app,
+            &format!("/api/v2/spot?period=hourly&{area}startDate={d}&endDate={d}"),
+        )
+        .await;
+        assert_eq!(s, StatusCode::INTERNAL_SERVER_ERROR, "{area}");
+        assert_eq!(json(&body)["status"], "error");
+        assert_eq!(json(&body)["details"], "Unknown area");
+    }
+    // Every area name stored by 1.x is still accepted, in any case
+    for area in ["de-lu", "No5", "SE4", "dk1"] {
+        let (s, body, _) = get(
+            &app,
+            &format!("/api/v2/spot?period=hourly&area={area}&startDate={d}&endDate={d}"),
+        )
+        .await;
+        assert_eq!(s, StatusCode::OK, "{area}: {body}");
+    }
 
     // hass: toFixed accepted up to 100 decimals
     let (s, body, _) = get(&app, "/api/v2/hass?area=SE1&currency=EUR&decimals=25").await;
@@ -630,12 +642,10 @@ async fn api_v1_compat_edge_cases() {
     let (_, body, _) = get(&app, "/api/v2/hass?area=SE1&currency=%C3%B6re&decimals=1").await;
     assert_eq!(json(&body)["min"], "50.0");
 
-    // hass: unknown area answers with empty data, not an error
-    let (s, body, _) = get(&app, "/api/v2/hass?area=XX&currency=SEK").await;
-    assert_eq!(s, StatusCode::OK);
-    let v = json(&body);
-    assert_eq!(v["now"], "-");
-    assert_eq!(v["data"].as_array().unwrap().len(), 0);
+    // hass: unknown area is an error, not empty data
+    let (s, body, _) = get(&app, "/api/v2/hass?area=SE5&currency=SEK").await;
+    assert_eq!(s, StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(json(&body)["details"], "Unknown area");
 }
 
 #[tokio::test]
@@ -935,6 +945,29 @@ async fn search_engine_metadata() {
 }
 
 #[tokio::test]
+async fn slow_request_times_out_with_503_and_counts_as_5xx() {
+    let app = test_app();
+    let state = super::WebState {
+        env: std::sync::Arc::new(super::template_env(&app)),
+        app: app.clone(),
+    };
+    let slow = axum::Router::new().route(
+        "/slow",
+        axum::routing::get(|| async {
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            "done"
+        }),
+    );
+    let res = super::layers(slow, state, std::time::Duration::from_millis(20))
+        .oneshot(Request::builder().uri("/slow").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::SERVICE_UNAVAILABLE);
+    let stats = app.http_stats.to_json();
+    assert_eq!(stats["routes"]["/slow"]["5xx"], 1, "{stats}");
+}
+
+#[tokio::test]
 async fn webpulse_script_only_when_configured() {
     let app = test_app();
     let (_, body, _) = get(&app, "/sv/SE1").await;
@@ -1042,7 +1075,7 @@ async fn panicking_handler_answers_500() {
             "unreachable"
         }),
     );
-    let res = super::layers(r, state)
+    let res = super::layers(r, state, super::REQUEST_TIMEOUT)
         .oneshot(Request::builder().uri("/boom").body(Body::empty()).unwrap())
         .await
         .unwrap();

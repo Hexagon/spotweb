@@ -316,28 +316,32 @@ impl Db {
     ///
     /// If `dest` ends in `.zst` the copy is zstd-compressed (restore with `zstd -d`). The
     /// uncompressed copy is written next to `dest` first and removed afterwards, so the
-    /// directory briefly needs room for both. `dest` is replaced atomically, so a failed run
-    /// never destroys an earlier backup with the same name.
+    /// directory briefly needs room for both. The uncompressed copy must pass `PRAGMA
+    /// quick_check` before it is compressed or renamed. `dest` is replaced atomically, so a
+    /// failed run never destroys an earlier backup with the same name.
     pub fn backup_to(&self, dest: &Path) -> anyhow::Result<()> {
         let compress = dest.extension().is_some_and(|e| e == "zst");
         let raw = sibling(dest, ".tmp-db");
         let _ = std::fs::remove_file(&raw);
-        let result = self.backup_raw(&raw).and_then(|()| {
-            if compress {
-                let part = sibling(dest, ".part");
-                let r = compress_file(&raw, &part).and_then(|()| {
-                    std::fs::rename(&part, dest)
+        let result = self
+            .backup_raw(&raw)
+            .and_then(|()| quick_check(&raw))
+            .and_then(|()| {
+                if compress {
+                    let part = sibling(dest, ".part");
+                    let r = compress_file(&raw, &part).and_then(|()| {
+                        std::fs::rename(&part, dest)
+                            .with_context(|| format!("renaming to {}", dest.display()))
+                    });
+                    if r.is_err() {
+                        let _ = std::fs::remove_file(&part);
+                    }
+                    r
+                } else {
+                    std::fs::rename(&raw, dest)
                         .with_context(|| format!("renaming to {}", dest.display()))
-                });
-                if r.is_err() {
-                    let _ = std::fs::remove_file(&part);
                 }
-                r
-            } else {
-                std::fs::rename(&raw, dest)
-                    .with_context(|| format!("renaming to {}", dest.display()))
-            }
-        });
+            });
         let _ = std::fs::remove_file(&raw);
         result
     }
@@ -356,6 +360,27 @@ impl Db {
         dst.close().map_err(|(_, e)| e)?;
         Ok(())
     }
+}
+
+/// Runs `PRAGMA quick_check` on the database file at `path` and fails unless it answers "ok".
+fn quick_check(path: &Path) -> anyhow::Result<()> {
+    let c = Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .with_context(|| format!("opening {} for verification", path.display()))?;
+    let problems = c
+        .prepare("PRAGMA quick_check(10)")
+        .and_then(|mut st| {
+            st.query_map([], |r| r.get::<_, String>(0))?
+                .collect::<Result<Vec<_>, _>>()
+        })
+        .with_context(|| format!("verifying {}", path.display()))?;
+    if problems != ["ok"] {
+        anyhow::bail!(
+            "backup copy {} failed quick_check: {}",
+            path.display(),
+            problems.join("; ")
+        );
+    }
+    Ok(())
 }
 
 /// `dest` with `suffix` appended to the file name, in the same directory (so rename is atomic).
@@ -435,6 +460,35 @@ mod backup_tests {
             )
             .unwrap();
         assert_eq!(v, 11.5);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn quick_check_rejects_corrupt_copy() {
+        let dir = std::env::temp_dir().join(format!("spotweb-qc-{}", rand_id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("copy.db");
+        let c = Connection::open(&path).unwrap();
+        c.execute_batch(
+            "PRAGMA page_size = 4096;
+             CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT);
+             CREATE INDEX t_v ON t (v);
+             WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 2000)
+             INSERT INTO t SELECT i, printf('value-%d', i) FROM n;",
+        )
+        .unwrap();
+        drop(c);
+        quick_check(&path).unwrap();
+
+        // Overwrite the middle of the file (b-tree pages, not the header) with garbage.
+        let mut bytes = std::fs::read(&path).unwrap();
+        let mid = bytes.len() / 2;
+        bytes[mid..mid + 8192].fill(0xA5);
+        std::fs::write(&path, &bytes).unwrap();
+        assert!(quick_check(&path).is_err());
+
+        std::fs::write(&path, b"not a database at all").unwrap();
+        assert!(quick_check(&path).is_err());
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

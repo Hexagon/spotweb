@@ -132,10 +132,12 @@ pub async fn spot(
         return api_error("Period not valid");
     };
     let area = param(&q, "area").unwrap_or("").to_uppercase();
-    let (tz, area_name) = match find_area(&area) {
-        Some((c, a)) => (c.timezone(), a.name.to_string()),
-        None => (crate::timeutil::stockholm(), area.clone()),
+    // 1.x looked the name up as is and answered unknown areas with empty data; it only ever
+    // stored the area names that `find_area` knows, so nothing that used to work is rejected.
+    let Some((country, area_def)) = find_area(&area) else {
+        return api_error("Unknown area");
     };
+    let tz = country.timezone();
     let (Some(start), Some(end)) = (
         param(&q, "startDate").and_then(|s| parse_api_date(s, &tz)),
         param(&q, "endDate").and_then(|s| parse_api_date(s, &tz)),
@@ -167,7 +169,7 @@ pub async fn spot(
         },
     };
 
-    match data::spot_grouped(&st.app, &area_name, from, to, grouping, &mode, tz).await {
+    match data::spot_grouped(&st.app, area_def.name, from, to, grouping, &mode, tz).await {
         Ok(rows) => {
             let mut rows = (*rows).clone();
             if rate != 1.0 {
@@ -239,8 +241,8 @@ pub async fn hass(
         return api_error("Missing/invalid parameters");
     }
     let Some((country, area_def)) = find_area(&area) else {
-        // 1.x answered unknown areas with empty data
-        return json_response(StatusCode::OK, empty_hass(), 60);
+        // 1.x answered with empty data, which hid typos
+        return api_error("Unknown area");
     };
     let tz = country.timezone();
     let mode = interval_mode(&q, &area);
@@ -458,26 +460,6 @@ pub fn etag_matches(if_none_match: &str, tag: &str) -> bool {
     if_none_match
         .split(',')
         .any(|t| t.trim() == "*" || bare(t) == bare(tag))
-}
-
-fn empty_hass() -> HassResponse {
-    let d = || "-".to_string();
-    HassResponse {
-        source: SOURCE,
-        note: None,
-        updated: js_iso(now_ms()),
-        now: d(),
-        avg: d(),
-        min: d(),
-        max: d(),
-        avg_tomorrow: d(),
-        min_tomorrow: d(),
-        max_tomorrow: d(),
-        avg_yesterday: d(),
-        min_yesterday: d(),
-        max_yesterday: d(),
-        data: vec![],
-    }
 }
 
 async fn data_health(st: &WebState) -> anyhow::Result<crate::health::Health> {

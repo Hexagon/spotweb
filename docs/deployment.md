@@ -154,6 +154,9 @@ Database migrations run automatically at start. Take a backup first (`sudo syste
 rotating files) using SQLite's online backup API. The `.zst` suffix makes `spotweb backup` compress the copy with zstd,
 which shrinks a 1.6 GB database to a fraction of that; name the file `.db` instead to keep it uncompressed. The copy is
 written uncompressed next to the destination first, so the backup directory briefly needs room for one full database.
+That uncompressed copy is checked with `PRAGMA quick_check` before it is compressed and renamed; if the check fails,
+`spotweb backup` exits with an error, the unit fails (`systemctl --failed`) and the previous file with the same name is
+kept.
 The output is "rsyncable", so restic and borg still deduplicate most of it between nights. Copy that directory off the
 machine (restic, borg, rsync…).
 
@@ -186,6 +189,23 @@ once, the repository password is the only way back.
 Restore: stop the service, unpack a backup to `/var/lib/spotweb/spotweb.db`
 (`zstd -d /var/lib/spotweb/backup/spotweb-3.db.zst -o /var/lib/spotweb/spotweb.db`, `apt install zstd` if missing; an
 uncompressed `.db` backup is just copied), remove any `spotweb.db-wal`/`-shm` files, `chown spotweb:spotweb`, start.
+
+### Restore test
+
+Test a backup now and then without touching the running service (needs `zstd` and `sqlite3`):
+
+```sh
+zstd -d /var/lib/spotweb/backup/spotweb-$(date +%u).db.zst -o /tmp/spotweb-restore.db
+sqlite3 /tmp/spotweb-restore.db 'PRAGMA integrity_check;'   # prints "ok"
+sqlite3 /tmp/spotweb-restore.db \
+  "SELECT area, datetime(max(period) / 1000, 'unixepoch') FROM spotprice GROUP BY area;"
+SPOTWEB_DB=/tmp/spotweb-restore.db SPOTWEB_NO_SCHEDULER=1 SPOTWEB_BIND=127.0.0.1 SPOTWEB_PORT=8099 \
+  /usr/local/bin/spotweb serve &
+sleep 2; curl -s 'http://127.0.0.1:8099/api/v2/spot?currency=SEK&area=SE3' | head -c 300; echo; kill %1
+rm /tmp/spotweb-restore.db*
+```
+
+The latest prices should be from last night or today, and the API should answer with data.
 
 Everything except the database can be re-created, and even the database can be rebuilt from ENTSO-e (set
 `SPOTWEB_HISTORY_START` and start with an empty file) – it just takes a few hours.
