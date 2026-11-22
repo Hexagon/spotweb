@@ -30,6 +30,10 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 zip = { version = "9", default-features = false, features = ["deflate"] }
 zstd = { version = "0.14", features = ["zstdmt", "experimental"] }
 
+# musl's malloc is slow with many threads, so the static Linux builds (release archives and Docker) use mimalloc
+[target.'cfg(target_env = "musl")'.dependencies]
+mimalloc = { version = "0.1", default-features = false }
+
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
 http-body-util = "0.1"

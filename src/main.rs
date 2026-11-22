@@ -24,6 +24,11 @@ use jiff::civil::Date;
 use jiff::tz::TimeZone;
 use tracing_subscriber::EnvFilter;
 
+// musl's allocator is slow under contention; the static Linux builds use mimalloc instead
+#[cfg(target_env = "musl")]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 #[derive(Parser)]
 #[command(
     name = "spotweb",
