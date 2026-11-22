@@ -111,7 +111,8 @@
       "yesterday_and_today": "Igår och idag",
       "now": "Nu",
       "time": "Tid",
-      "price": "Pris"
+      "price": "Pris",
+      "net_flow": "Import och export per granne"
     },
     "generation": {
       "current_production": "Produktion och förbrukning",
@@ -189,7 +190,19 @@
       "today_tomorrow": "Idag och imorgon",
       "note": "Gränserna mellan elområdena är ungefärliga. Pilarna visar fysiskt nettoflöde (MW) mellan elområdena.",
       "all_areas": "Alla elområden",
-      "zoom": "Zoomnivå"
+      "zoom": "Zoomnivå",
+      "flow_chart_hint": "Över noll: export, under noll: import",
+      "flow_sum": "Netto",
+      "zoom_in": "Zooma in",
+      "zoom_out": "Zooma ut",
+      "zoom_reset": "Återställ vyn",
+      "zoom_hint": "Håll ned Ctrl (⌘ på Mac) och scrolla för att zooma",
+      "zoom_help": "Karta. Zooma med + och −, flytta med piltangenterna, 0 återställer vyn.",
+      "time": "Tidpunkt",
+      "play": "Spela upp",
+      "pause": "Pausa",
+      "flows_future": "Flöden finns bara fram till nu",
+      "net_24h": "Nettoexport senaste 24 timmarna"
     },
     "share": {
       "share": "Dela",

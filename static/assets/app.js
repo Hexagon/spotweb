@@ -309,6 +309,83 @@
     draw("net", o, mwText);
   };
 
+  // Power flows of an area or country: net export per neighbour (negative is import)
+  const zoneCountry = {};
+  for (const c of boot.countries || []) for (const a of c.areas || []) zoneCountry[a.name] = c.id;
+  const flowItems = (inside, group) => {
+    const by = {};
+    for (const f of (boot.flows && boot.flows.borders) || []) {
+      const fi = inside(f.from), ti = inside(f.to);
+      if (fi === ti) continue;
+      const other = group(fi ? f.to : f.from);
+      by[other] = (by[other] || 0) + (fi ? f.value : -f.value);
+    }
+    return Object.entries(by).map(([name, value]) => ({ name, value })).sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+  };
+  // `label(name)` gives the HTML for the neighbour, usually a link
+  const flowListHtml = (items, label) => {
+    if (!items.length) return `<li class="muted">${t("map.no_flows")}</li>`;
+    const max = Math.max(1, ...items.map((f) => Math.abs(f.value)));
+    return items.map((f) => {
+      const v = Math.abs(f.value), none = v < 1, imp = !none && f.value < 0;
+      const dir = none ? "" : imp ? t("map.import") : t("map.export");
+      return `<li class="${none ? "" : imp ? "is-import" : "is-export"}"><span class="flow-dir" aria-hidden="true">${none ? "·" : imp ? "&larr;" : "&rarr;"}</span>${label(f.name)}<span class="muted small">${esc(dir)}</span><span class="flow-bar"><span style="width:${(v / max) * 50}%"></span></span><span class="num">${mw(v)} MW</span></li>`;
+    }).join("");
+  };
+  const flowNetText = (items) => {
+    if (!items.length) return "";
+    const net = items.reduce((a, f) => a + f.value, 0);
+    return `· ${net < 0 ? t("map.net_import") : t("map.net_export")} ${mw(Math.abs(net))} MW`;
+  };
+  const flowsUpdatedText = () => {
+    const upd = boot.flows && boot.flows.updated;
+    return upd ? `${t("map.flows_updated")} ${dayFmt.format(new Date(upd))} ${hhmm(upd)}` : t("map.no_flows");
+  };
+  // Neighbours on a country page are countries, or a zone that is not ours (GB, IT)
+  const zoneCountryIds = new Set(Object.values(zoneCountry));
+  const neighbourName = (n) => (boot.area || !zoneCountryIds.has(n) ? n : t("countries." + n));
+  const neighbourHref = (n) => {
+    if (!boot.area) return zoneCountryIds.has(n) ? `/${n}` : null;
+    return zoneCountry[n] ? `/${zoneCountry[n]}/${encodeURIComponent(n)}` : null;
+  };
+
+  const flowCard = () => {
+    const el = $("[data-flows-list]");
+    if (!el || !boot.flows) return;
+    const inside = boot.area ? (z) => z === boot.area.name : (z) => zoneCountry[z] === boot.country.id;
+    const group = boot.area ? (z) => z : (z) => zoneCountry[z] || z;
+    const items = flowItems(inside, group);
+    el.innerHTML = flowListHtml(items, (n) => {
+      const href = neighbourHref(n);
+      return href ? `<a href="${esc(href)}">${esc(neighbourName(n))}</a>` : `<span>${esc(neighbourName(n))}</span>`;
+    });
+    $("[data-flows-total]").textContent = flowNetText(items);
+    $("[data-flows-updated]").textContent = flowsUpdatedText();
+  };
+
+  const FLOW_COLORS = ["#4e79a7", "#f28e2b", "#59a14f", "#e15759", "#76b7b2", "#edc948", "#b07aa1", "#ff9da7", "#9c755f", "#bab0ac"];
+  const chartFlows = () => {
+    const f = boot.area_flows;
+    if (!f || !f.series) return;
+    const o = baseChart();
+    o.chart.type = "line";
+    o.chart.stacked = true;
+    o.chart.stackOnlyBar = true;
+    o.plotOptions = { bar: { columnWidth: "95%" } };
+    const pts = (vals) => vals.map((v, i) => ({ x: f.times[i], y: v }));
+    o.series = f.series.map((s) => ({ name: neighbourName(s.name), type: "bar", data: pts(s.values) }));
+    if (o.series.length) o.series.push({ name: t("map.flow_sum"), type: "line", data: pts(f.net) });
+    o.colors = f.series.map((_s, i) => FLOW_COLORS[i % FLOW_COLORS.length]).concat([theme.text]);
+    o.stroke = { width: f.series.map(() => 0).concat([2]), curve: "stepline" };
+    o.fill = { opacity: f.series.map(() => 0.85).concat([1]) };
+    o.yaxis = { labels: { formatter: (v) => mw(v) } };
+    o.tooltip.shared = true;
+    o.tooltip.intersect = false;
+    o.tooltip.y = { formatter: (v) => (v === null || v === undefined ? "" : `${mw(v)} MW`) };
+    o.annotations = { yaxis: [{ y: 0, borderColor: theme.zero, strokeDashArray: 0 }] };
+    draw("flows", o, mwText);
+  };
+
   // API helpers
   const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const apiCache = {};
@@ -579,6 +656,33 @@ series:
     const v = boot.upcoming ? nowFromRows(boot.upcoming[name], Date.now()) : null;
     return v !== null && v !== undefined ? v : z ? z.now : null;
   };
+  // Price of a zone at the time chosen on the slider (`map.time`), or right now
+  const zoneAt = (name) => {
+    if (map.time === null || map.time === undefined) return zoneNow(name);
+    const z = boot.zones[name];
+    if (!z) return null;
+    for (const d of [z.today, z.tomorrow]) {
+      const p = d && d.points.find((x) => x[0] <= map.time && map.time < x[0] + d.interval);
+      if (p) return p[1];
+    }
+    return null;
+  };
+  // Net flow per border at the chosen time: the latest values when live, otherwise the hourly
+  // average of that hour. There are no flows for the future.
+  const HOUR = 3600000;
+  const mapBorders = () => {
+    if (map.time === null || map.time === undefined) return (boot.flows && boot.flows.borders) || [];
+    const fh = boot.flow_hours;
+    const i = fh ? fh.times.indexOf(map.time - (((map.time % HOUR) + HOUR) % HOUR)) : -1;
+    if (i < 0) return [];
+    const out = [];
+    for (const b of fh.borders) {
+      const v = b.values[i];
+      if (v === null || v === undefined) continue;
+      out.push(v >= 0 ? { from: b.a, to: b.b, value: v } : { from: b.b, to: b.a, value: -v });
+    }
+    return out;
+  };
   const zoneLabel = (name) => (boot.zones[name] ? `${name} – ${boot.zones[name].long}` : `${name} – ${(boot.neighbours || {})[name] || ""}`);
 
   const mapSetup = () => {
@@ -587,22 +691,26 @@ series:
     const svg = $("svg.zone-map", app);
     map.app = app;
     map.svg = svg;
+    map.wrap = $(".map-wrap", app);
     map.tip = $(".map-tooltip", app);
     map.anchor = {};
     $$("[data-x]", svg).forEach((p) => { map.anchor[p.dataset.area || p.dataset.ext] = [Number(p.dataset.x), Number(p.dataset.y)]; });
     // Arrow spot and direction per border, from scripts/build_map.py: {"A|B": [x, y, ux, uy]} pointing A -> B
     try { map.flowAt = JSON.parse($("g.flows", svg).dataset.at || "{}"); } catch (_) { map.flowAt = {}; }
     map.full = svg.getAttribute("viewBox").split(" ").map(Number);
+    map.vb = map.full.slice();
+    // Size of each zone, for the level of detail of its label
+    map.box = {};
+    $$(".zone", svg).forEach((p) => { const b = p.getBBox(); map.box[p.dataset.area] = [b.x, b.y, b.width, b.height]; });
     // Nordic view: bounding box of the Nordic zones, padded to show the Baltic zones
     // Europe view: bounding box of all our zones
     const bbox = (keep) => {
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-      $$(".zone", svg).forEach((p) => {
-        const z = boot.zones[p.dataset.area];
-        if (!z || !keep(z)) return;
-        const b = p.getBBox();
-        x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.width); y1 = Math.max(y1, b.y + b.height);
-      });
+      for (const [name, b] of Object.entries(map.box)) {
+        const z = boot.zones[name];
+        if (!z || !keep(z)) continue;
+        x0 = Math.min(x0, b[0]); y0 = Math.min(y0, b[1]); x1 = Math.max(x1, b[0] + b[2]); y1 = Math.max(y1, b[1] + b[3]);
+      }
       return Number.isFinite(x0) ? [x0, y0, x1 - x0, y1 - y0] : null;
     };
     const n = bbox((z) => NORDIC.includes(z.country));
@@ -639,53 +747,186 @@ series:
     };
     svg.addEventListener("pointermove", (e) => {
       const target = e.target.closest("[data-area],[data-ext],[data-flow]");
-      if (!target || e.pointerType === "touch") { map.tip.hidden = true; return; }
+      if (!target || e.pointerType === "touch" || drag) { map.tip.hidden = true; return; }
       if (target.dataset.flow) {
-        const f = boot.flows.borders[Number(target.dataset.flow)];
-        showTip(e, `<strong>${esc(f.from)} &rarr; ${esc(f.to)}</strong><br>${mw(f.value)} MW`);
+        showTip(e, flowTip(map.borders[Number(target.dataset.flow)]));
       } else if (target.dataset.area) {
         const n = target.dataset.area;
-        showTip(e, `<strong>${esc(zoneLabel(n))}</strong><br>${price(zoneNow(n))} ${esc(unit())}`);
+        showTip(e, `<strong>${esc(zoneLabel(n))}</strong><br>${price(zoneAt(n))} ${esc(unit())}`);
       } else {
         showTip(e, `<strong>${esc(zoneLabel(target.dataset.ext))}</strong>`);
       }
     });
     svg.addEventListener("pointerleave", () => { map.tip.hidden = true; });
+    // Moving dashes on the arrows stop while the tab is hidden
+    document.addEventListener("visibilitychange", () => svg.classList.toggle("paused", document.hidden));
 
-    // View toggle
+    // ------------------------------------------------------------ zoom and pan
+    const reduce = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const minW = Math.min(120, map.full[2]);
+    // Keep the zoom between the whole map and about 20 times closer
+    const clamp = (vb) => {
+      let [x, y, w, h] = vb;
+      const f = Math.max(minW / w, Math.min(1, map.full[2] / w, map.full[3] / h));
+      if (f !== 1) { x += (w - w * f) / 2; y += (h - h * f) / 2; w *= f; h *= f; }
+      // Inside the map's edges, centred on an axis where the view is wider than the map
+      const [fx, fy, fw, fh] = map.full;
+      x = w >= fw ? fx + (fw - w) / 2 : Math.max(fx, Math.min(fx + fw - w, x));
+      y = h >= fh ? fy + (fh - h) / 2 : Math.max(fy, Math.min(fy + fh - h, y));
+      return [x, y, w, h];
+    };
+    let settle = null;
+    // Per frame only the viewBox and the scale of labels and arrows change; the overlay is
+    // drawn again (level of detail, arrow lengths) once the view has been still for a moment
+    const setVB = (vb, settleMs = 140) => {
+      map.vb = clamp(vb);
+      svg.setAttribute("viewBox", map.vb.map((v) => v.toFixed(1)).join(" "));
+      if (scale()) applyScale();
+      if (!map.ready) return;
+      clearTimeout(settle);
+      settle = setTimeout(() => safe(mapOverlay), settleMs);
+    };
+    let anim = 0;
+    const animateTo = (to) => {
+      cancelAnimationFrame(anim);
+      const from = map.vb.slice();
+      if (reduce()) { setVB(to, 0); return; }
+      const t0 = performance.now(), dur = 450;
+      const step = (now) => {
+        const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        setVB(from.map((f, i) => f + (to[i] - f) * e), k < 1 ? 140 : 0);
+        if (k < 1) anim = requestAnimationFrame(step);
+      };
+      anim = requestAnimationFrame(step);
+    };
+    // Map units under a point on the screen
+    const toMap = (cx, cy) => {
+      const m = svg.getScreenCTM();
+      if (!m) return [map.vb[0] + map.vb[2] / 2, map.vb[1] + map.vb[3] / 2];
+      const p = new DOMPoint(cx, cy).matrixTransform(m.inverse());
+      return [p.x, p.y];
+    };
+    // Zoom by `f` (below 1 is closer) keeping the map point under (cx, cy) in place
+    const zoomAt = (cx, cy, f, animate) => {
+      const [px, py] = toMap(cx, cy);
+      const [x, y, w, h] = map.vb;
+      const to = [px - (px - x) * f, py - (py - y) * f, w * f, h * f];
+      customView();
+      if (animate) animateTo(clamp(to)); else { cancelAnimationFrame(anim); setVB(to); }
+    };
+    const centre = () => { const r = svg.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+    const panBy = (dx, dy) => {
+      const s = (svg.getScreenCTM() || { a: 1 }).a || 1;
+      cancelAnimationFrame(anim);
+      customView();
+      setVB([map.vb[0] - dx / s, map.vb[1] - dy / s, map.vb[2], map.vb[3]]);
+    };
+    // After zooming or panning by hand neither preset button is pressed
+    const customView = () => $$("[data-map-view]", app).forEach((b) => b.setAttribute("aria-pressed", "false"));
+
+    // Wheel zooms with Ctrl/⌘ (also a pinch on a touchpad) or while the map has focus, so the
+    // page still scrolls past the map
+    let hintTimer = 0;
+    const hint = $(".map-zoom-hint", app);
+    svg.addEventListener("wheel", (e) => {
+      if (!(e.ctrlKey || e.metaKey || map.wrap.contains(document.activeElement))) {
+        if (hint) { hint.hidden = false; clearTimeout(hintTimer); hintTimer = setTimeout(() => { hint.hidden = true; }, 1400); }
+        return;
+      }
+      e.preventDefault();
+      const d = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1);
+      zoomAt(e.clientX, e.clientY, Math.exp(Math.max(-1, Math.min(1, d * 0.0022))), false);
+    }, { passive: false });
+    svg.addEventListener("dblclick", (e) => { e.preventDefault(); zoomAt(e.clientX, e.clientY, e.shiftKey ? 2 : 0.5, true); });
+
+    // Drag to pan (mouse and pen). A drag is not a click on a zone.
+    let drag = null;
+    svg.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "touch" || e.button !== 0) return;
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false };
+    });
+    svg.addEventListener("pointermove", (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (!drag.moved && Math.hypot(dx, dy) < 5) return;
+      if (!drag.moved) { drag.moved = true; svg.setPointerCapture(e.pointerId); svg.classList.add("dragging"); }
+      drag.x = e.clientX; drag.y = e.clientY;
+      panBy(dx, dy);
+    });
+    const endDrag = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      if (drag.moved) {
+        svg.classList.remove("dragging");
+        // Swallow the click that follows the drag
+        svg.addEventListener("click", (c) => { c.stopPropagation(); c.preventDefault(); }, { capture: true, once: true });
+        setTimeout(() => { drag = null; }, 0);
+      } else {
+        drag = null;
+      }
+    };
+    svg.addEventListener("pointerup", endDrag);
+    svg.addEventListener("pointercancel", endDrag);
+
+    // Two fingers zoom and pan on touch screens; one finger still scrolls the page
+    let pinch = null;
+    const touchState = (ts) => {
+      const [a, b] = [ts[0], ts[1]];
+      return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2, d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1 };
+    };
+    svg.addEventListener("touchstart", (e) => { if (e.touches.length === 2) pinch = touchState(e.touches); }, { passive: true });
+    svg.addEventListener("touchmove", (e) => {
+      if (e.touches.length !== 2 || !pinch) return;
+      e.preventDefault();
+      const s = touchState(e.touches);
+      panBy(s.x - pinch.x, s.y - pinch.y);
+      zoomAt(s.x, s.y, pinch.d / s.d, false);
+      pinch = s;
+    }, { passive: false });
+    svg.addEventListener("touchend", (e) => { if (e.touches.length < 2) pinch = null; });
+
+    // Buttons and keys: + and - zoom, arrows pan, 0 goes back to the chosen view
+    const reset = () => setView(map.view, true);
+    $$("[data-map-zoom]", app).forEach((b) => b.addEventListener("click", () => {
+      const z = b.dataset.mapZoom;
+      if (z === "reset") reset(); else zoomAt(...centre(), z === "in" ? 0.6 : 1 / 0.6, true);
+    }));
+    map.wrap.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const step = 80;
+      const keys = {
+        "+": () => zoomAt(...centre(), 0.6, true), "=": () => zoomAt(...centre(), 0.6, true),
+        "-": () => zoomAt(...centre(), 1 / 0.6, true), "0": reset,
+        ArrowLeft: () => panBy(step, 0), ArrowRight: () => panBy(-step, 0),
+        ArrowUp: () => panBy(0, step), ArrowDown: () => panBy(0, -step),
+      };
+      if (!keys[e.key]) return;
+      e.preventDefault();
+      keys[e.key]();
+    });
+
+    // View presets
     const setView = (v, animate) => {
       map.view = v;
       store.set("sw_map_view", v);
       $$("[data-map-view]", app).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mapView === v)));
       const to = v === "nordic" ? map.nordic : map.europe;
-      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const from = svg.getAttribute("viewBox").split(" ").map(Number);
-      map.to = to;
-      scale();
-      if (map.ready) mapRender();
-      if (!animate || reduce) { svg.setAttribute("viewBox", to.join(" ")); return; }
-      const t0 = performance.now(), dur = 450;
-      const step = (now) => {
-        const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-        svg.setAttribute("viewBox", from.map((f, i) => (f + (to[i] - f) * e).toFixed(1)).join(" "));
-        if (k < 1) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
+      if (animate) animateTo(to); else setVB(to, 0);
     };
-    // Text and arrows grow when the map is drawn small (zoomed out or on a phone) so they stay readable
+    // Text and arrows are drawn larger when the map is drawn small (zoomed out or on a phone) so
+    // they stay readable, and do not grow without end when zoomed in
     const scale = () => {
-      const to = map.to || map.full;
-      const ppu = Math.min(svg.clientWidth / to[2], svg.clientHeight / to[3]) || 1;
-      const k = Math.max(0.9, Math.min(2.4, Math.pow(1 / ppu, 0.8)));
-      const changed = Math.abs(k - (map.k || 0)) > 0.02;
+      const m = svg.getScreenCTM();
+      const ppu = (m && m.a) || Math.min(svg.clientWidth / map.vb[2], svg.clientHeight / map.vb[3]) || 1;
+      const k = Math.min(2.4, Math.max(Math.pow(ppu, -0.8), Math.min(0.9, 1.35 / ppu)));
+      map.ppu = ppu;
+      const changed = Math.abs(k - (map.k || 0)) > 0.001;
       map.k = k;
-      svg.style.setProperty("--k", k.toFixed(3));
       return changed;
     };
     let resizeTimer = null;
     window.addEventListener("resize", () => {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => { if (scale() && map.ready) safe(mapRender); }, 150);
+      resizeTimer = setTimeout(() => { scale(); applyScale(); if (map.ready) safe(mapOverlay); }, 150);
     });
     $$("[data-map-view]", app).forEach((b) => b.addEventListener("click", () => setView(b.dataset.mapView, true)));
     setView(store.get("sw_map_view") || (NORDIC.includes(lang) ? "nordic" : "europe"), false);
@@ -695,11 +936,93 @@ series:
     map.selected = initial || Object.keys(boot.zones)[0];
     $("#zone-select").value = map.selected;
     window.addEventListener("hashchange", () => { const n = decodeURIComponent(location.hash.slice(1)).toUpperCase(); if (boot.zones[n]) select(n, false); });
+    mapTimeSetup(app);
     map.ready = true;
     return true;
   };
 
-  const flowArrow = (g, f, i, selected) => {
+  // ------------------------------------------------------------ time slider
+  // Today 00:00 to tomorrow 24:00 (the visitor's time) in quarters. The map shows prices for the
+  // chosen time, and flows up to now. `map.time` is null when following the clock.
+  map.time = null;
+  const QUARTER = 900000;
+  const sliderStart = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const nowStep = () => Math.floor((Date.now() - sliderStart()) / QUARTER);
+  let playTimer = 0;
+  const mapTimeSetup = (app) => {
+    const box = $("[data-map-time]", app);
+    if (!box) return;
+    box.hidden = false;
+    const slider = $("[data-map-slider]", box);
+    const play = $("[data-map-play]", box);
+    const setTime = (step) => {
+      const st = Math.max(0, Math.min(Number(slider.max), step));
+      map.time = st === nowStep() ? null : sliderStart() + st * QUARTER;
+      mapColors();
+      mapOverlay();
+      mapTimeUi();
+    };
+    const stop = () => {
+      clearInterval(playTimer);
+      playTimer = 0;
+      play.innerHTML = "&#9654;";
+      play.setAttribute("aria-label", t("map.play"));
+      play.title = t("map.play");
+    };
+    map.stopPlay = stop;
+    slider.addEventListener("input", () => { stop(); setTime(Number(slider.value)); });
+    $("[data-map-live]", box).addEventListener("click", () => { stop(); setTime(nowStep()); });
+    // Plays an hour at a time from the chosen time (from the start at the end) to the end
+    play.addEventListener("click", () => {
+      if (playTimer) { stop(); return; }
+      let st = Number(slider.value);
+      if (st >= Number(slider.max) - 4) st = 0;
+      st -= st % 4;
+      setTime(st);
+      play.innerHTML = "&#10073;&#10073;";
+      play.setAttribute("aria-label", t("map.pause"));
+      play.title = t("map.pause");
+      playTimer = setInterval(() => {
+        st += 4;
+        if (st > Number(slider.max)) { stop(); return; }
+        setTime(st);
+      }, 650);
+    });
+  };
+  const mapTimeUi = () => {
+    const box = $("[data-map-time]");
+    if (!box || box.hidden) return;
+    const slider = $("[data-map-slider]", box);
+    const step = map.time === null ? nowStep() : Math.round((map.time - sliderStart()) / QUARTER);
+    slider.value = String(step);
+    const t0 = map.time === null ? Date.now() : map.time;
+    const day = Math.floor((t0 - sliderStart()) / (24 * HOUR)) === 0 ? t("chart.today") : t("chart.tomorrow");
+    const time = map.time === null ? t("chart.now") : `${day} ${hhmm(t0)}`;
+    $("[data-map-time-label]", box).textContent = time;
+    slider.setAttribute("aria-valuetext", map.time === null ? `${t("chart.now")} ${hhmm(t0)}` : time);
+    $("[data-map-live]", box).setAttribute("aria-pressed", String(map.time === null));
+    const tick = $("[data-map-now-tick]", box);
+    tick.style.left = `${(nowStep() / Number(slider.max)) * 100}%`;
+  };
+
+  // Labels and arrows sit in groups placed at their spot and scaled by `map.k`
+  map.scaled = [];
+  const placed = (parent, x, y, attrs) => {
+    const g = svgEl("g", attrs, parent);
+    map.scaled.push([g, x, y]);
+    g.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${(map.k || 1).toFixed(3)})`);
+    return g;
+  };
+  const applyScale = () => {
+    const k = (map.k || 1).toFixed(3);
+    for (const [g, x, y] of map.scaled) g.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${k})`);
+  };
+
+  // One arrow per border. Each arrow has its own gradient from tail to tip, so the direction shows
+  // even where the head is small. Arrows of the selected zone are coloured as import (into the
+  // zone) or export, and get a few light dashes that move from tail to tip, faster for more MW.
+  // Drawn around (0, 0) at scale 1; the group places and scales it.
+  const flowArrow = (g, f, i, selected, allLabels) => {
     const a = map.anchor[f.from], b = map.anchor[f.to];
     if (!a || !b) return;
     const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1;
@@ -712,43 +1035,134 @@ series:
     }
     const px = -uy, py = ux;
     const touches = selected && (f.from === selected || f.to === selected);
-    const cls = "flow" + (touches ? " active" : selected ? " dim" : "");
-    const grp = svgEl("g", { class: cls, "data-flow": i }, g);
+    const dir = !touches || f.value < 1 ? "" : f.to === selected ? " is-import" : " is-export";
+    const cls = "flow" + (touches ? " active" : selected ? " dim" : "") + dir;
+    const grp = placed(g, mid[0], mid[1], { class: cls, "data-flow": i });
     if (f.value < 1) {
-      svgEl("circle", { cx: mid[0], cy: mid[1], r: 3, class: "flow-zero" }, grp);
+      svgEl("circle", { cx: 0, cy: 0, r: 3, class: "flow-zero" }, grp);
       return;
     }
     const k = map.k || 1;
-    const L = Math.min(34 * k, len * 0.55);
-    const w = Math.min(10, 1.6 + Math.sqrt(f.value) / 7) * k;
-    const hw = w + 4.5 * k, hl = Math.min(12 * k, 6 * k + w * 0.6);
-    const tail = [mid[0] - ux * L / 2, mid[1] - uy * L / 2];
-    const tip = [mid[0] + ux * L / 2, mid[1] + uy * L / 2];
+    // Not longer than about half the distance between the labels it connects
+    const L = Math.min(34, (len * 0.55) / k);
+    const w = Math.min(10, 1.6 + Math.sqrt(f.value) / 7);
+    const hw = w + 4.5, hl = Math.min(12, 6 + w * 0.6);
+    const tail = [-ux * L / 2, -uy * L / 2];
+    const tip = [ux * L / 2, uy * L / 2];
     const base = [tip[0] - ux * hl, tip[1] - uy * hl];
-    const pt = (p, s) => `${(p[0] + px * s).toFixed(1)},${(p[1] + py * s).toFixed(1)}`;
-    const points = [pt(tail, w / 2), pt(base, w / 2), pt(base, hw / 2), `${tip[0].toFixed(1)},${tip[1].toFixed(1)}`, pt(base, -hw / 2), pt(base, -w / 2), pt(tail, -w / 2)];
-    svgEl("polygon", { points: points.join(" "), class: "flow-arrow" }, grp);
-    // Wider invisible hit target
-    svgEl("line", { x1: tail[0], y1: tail[1], x2: tip[0], y2: tip[1], class: "flow-hit" }, grp);
+    const f1 = (v) => v.toFixed(1);
+    const pt = (p, s) => `${f1(p[0] + px * s)},${f1(p[1] + py * s)}`;
+    const points = [pt(tail, w / 2), pt(base, w / 2), pt(base, hw / 2), `${f1(tip[0])},${f1(tip[1])}`, pt(base, -hw / 2), pt(base, -w / 2), pt(tail, -w / 2)];
+    const gid = `flow-grad-${i}`;
+    const grad = svgEl("linearGradient", { id: gid, gradientUnits: "userSpaceOnUse", x1: f1(tail[0]), y1: f1(tail[1]), x2: f1(tip[0]), y2: f1(tip[1]) }, grp);
+    svgEl("stop", { offset: "0", class: "flow-stop-tail" }, grad);
+    svgEl("stop", { offset: "0.75", class: "flow-stop-tip" }, grad);
+    svgEl("polygon", { points: points.join(" "), class: "flow-arrow", fill: `url(#${gid})` }, grp);
     if (touches) {
-      const off = hw / 2 + 9 * k;
+      // Dash period about a third of the shaft, so two or three dashes are visible at a time
+      const shaft = Math.max(1, L - hl);
+      const period = shaft / 2.5, dash = Math.min(period * 0.45, 5);
+      const dur = 3 - 2.2 * Math.min(1, Math.sqrt(f.value / 2000));
+      svgEl("line", {
+        x1: f1(tail[0]), y1: f1(tail[1]), x2: f1(base[0]), y2: f1(base[1]), class: "flow-dash",
+        "stroke-width": f1(Math.max(1.2, w * 0.45)), "stroke-dasharray": `${f1(dash)} ${f1(period - dash)}`,
+        style: `--p:${f1(period)};animation-duration:${dur.toFixed(2)}s`,
+      }, grp);
+    }
+    // Wider invisible hit target
+    svgEl("line", { x1: f1(tail[0]), y1: f1(tail[1]), x2: f1(tip[0]), y2: f1(tip[1]), class: "flow-hit" }, grp);
+    if (touches || allLabels) {
+      const off = hw / 2 + 9;
       const side = py > 0 ? -1 : 1;
-      const txt = svgEl("text", { x: (mid[0] + px * off * side).toFixed(1), y: (mid[1] + py * off * side + 4).toFixed(1), class: "flow-label", "text-anchor": "middle" }, grp);
-      txt.setAttribute("y", (mid[1] + py * off * side + 4 * k).toFixed(1));
+      const txt = svgEl("text", { x: f1(px * off * side), y: f1(py * off * side + 4), class: "flow-label" + (touches ? "" : " minor"), "text-anchor": "middle" }, grp);
       txt.textContent = mw(f.value);
     }
   };
 
-  const mapRender = () => {
-    if (!map.ready && !mapSetup()) return;
+  // Tooltip for an arrow: MW, and the price on both sides with the difference, which shows
+  // where a border is congested ("SE3 4.1 → SE4 9.8 öre/kWh (+5.7)")
+  const flowTip = (f) => {
+    let html = `<strong>${esc(f.from)} &rarr; ${esc(f.to)}</strong><br>${mw(f.value)} MW`;
+    const pa = priceNum(zoneAt(f.from)), pb = priceNum(zoneAt(f.to));
+    if (pa !== null && pb !== null) {
+      const d = pb - pa;
+      const ds = (d > 0 ? "+" : d < 0 ? "−" : "±") + Math.abs(d).toFixed(prefs.decimals);
+      html += `<br><span class="muted">${esc(f.from)} ${price(zoneAt(f.from))} &rarr; ${esc(f.to)} ${price(zoneAt(f.to))} ${esc(unit())} (${ds})</span>`;
+    }
+    return html;
+  };
+
+  // Level of detail per zone label from the zone's size on screen: name and price, only the
+  // name, or nothing. Labels are placed largest zone first (the selected zone before all) and a
+  // label that would overlap one already placed is made smaller or left out.
+  const ZL_FULL = 34, ZL_NAME = 16; // px, the larger side of the zone on screen
+  const labelPlan = (sel) => {
+    const k = map.k || 1, ppu = map.ppu || 1;
+    const names = Object.keys(boot.zones).filter((n) => map.anchor[n]);
+    const size = (n) => { const b = map.box[n]; return b ? Math.max(b[2], b[3]) * ppu : 0; };
+    const area = (n) => { const b = map.box[n]; return b ? b[2] * b[3] : 0; };
+    names.sort((a, b) => (a === sel ? -1 : b === sel ? 1 : area(b) - area(a)));
+    const taken = [];
+    const fits = (r) => !taken.some((o) => r[0] < o[2] && o[0] < r[2] && r[1] < o[3] && o[1] < r[3]);
+    // Box around the text in map units, [x0, y0, x1, y1], from its extent at scale 1. The halo
+    // around the text may overlap.
+    const rect = (n, w, y0, y1) => { const a = map.anchor[n]; return [a[0] - (w / 2) * k, a[1] + y0 * k, a[0] + (w / 2) * k, a[1] + y1 * k]; };
+    const plan = {};
+    for (const n of names) {
+      const s = size(n);
+      const pw = price(zoneAt(n)).length * (n === sel ? 8 : 7.2);
+      const full = rect(n, Math.max(n.length * 6, pw), -13, 13);
+      const short = rect(n, n.length * 6, -4, 5);
+      if (n === sel || (s >= ZL_FULL && fits(full))) { plan[n] = "full"; taken.push(full); }
+      else if (s >= ZL_NAME && fits(short)) { plan[n] = "name"; taken.push(short); }
+    }
+    return plan;
+  };
+
+  // Arrows and labels, drawn again when the selection or the zoom changes
+  const mapOverlay = () => {
     const svg = map.svg;
     const sel = map.selected;
-    // Colors
-    const prices = Object.keys(boot.zones).map((n) => [n, zoneNow(n)]).filter((x) => x[1] !== null && x[1] !== undefined);
+    map.scaled = [];
+    // Flows. Close up every arrow shows its MW.
+    const fg = $("g.flows", svg);
+    fg.textContent = "";
+    const allLabels = (map.ppu || 0) >= 3;
+    const borders = mapBorders();
+    map.borders = borders;
+    borders.forEach((f, i) => { if (!(sel && (f.from === sel || f.to === sel))) flowArrow(fg, f, i, sel, allLabels); });
+    borders.forEach((f, i) => { if (sel && (f.from === sel || f.to === sel)) flowArrow(fg, f, i, sel, allLabels); });
+
+    // Labels
+    const lg = $("g.labels", svg);
+    lg.textContent = "";
+    const plan = labelPlan(sel);
+    for (const [name, level] of Object.entries(plan)) {
+      const a = map.anchor[name];
+      const g = placed(lg, a[0], a[1], { class: "zone-label" + (name === sel ? " selected" : "") });
+      if (level === "full") {
+        svgEl("text", { x: 0, y: -6, class: "zl-name", "text-anchor": "middle" }, g).textContent = name;
+        svgEl("text", { x: 0, y: 10, class: "zl-price", "text-anchor": "middle" }, g).textContent = price(zoneAt(name));
+      } else {
+        svgEl("text", { x: 0, y: 4, class: "zl-name", "text-anchor": "middle" }, g).textContent = name;
+      }
+    }
+    for (const name of Object.keys(boot.neighbours || {})) {
+      const a = map.anchor[name];
+      if (!a) continue;
+      svgEl("text", { x: 0, y: 4, class: "zl-ext", "text-anchor": "middle" }, placed(lg, a[0], a[1])).textContent = name;
+    }
+  };
+
+  // Zone colours, legend and flow status for the chosen time
+  const mapColors = () => {
+    const svg = map.svg;
+    const sel = map.selected;
+    const prices = Object.keys(boot.zones).map((n) => [n, zoneAt(n)]).filter((x) => x[1] !== null && x[1] !== undefined);
     const vals = prices.map((x) => x[1]);
     const lo = vals.length ? Math.min(...vals) : 0, hi = vals.length ? Math.max(...vals) : 1;
     $$(".zone", svg).forEach((p) => {
-      const v = zoneNow(p.dataset.area);
+      const v = zoneAt(p.dataset.area);
       p.style.fill = v === null || v === undefined ? "" : rampColor(hi > lo ? (v - lo) / (hi - lo) : 0.5);
       p.classList.toggle("no-data", v === null || v === undefined);
       p.classList.toggle("selected", p.dataset.area === sel);
@@ -761,32 +1175,56 @@ series:
     $("[data-legend-min]").textContent = price(lo);
     $("[data-legend-max]").textContent = price(hi);
     $(".legend-ramp").style.background = `linear-gradient(90deg, ${theme.ramp.join(",")})`;
-
-    // Flows
-    const fg = $("g.flows", svg);
-    fg.textContent = "";
-    const borders = (boot.flows && boot.flows.borders) || [];
-    borders.forEach((f, i) => { if (!(sel && (f.from === sel || f.to === sel))) flowArrow(fg, f, i, sel); });
-    borders.forEach((f, i) => { if (sel && (f.from === sel || f.to === sel)) flowArrow(fg, f, i, sel); });
-    const upd = boot.flows && boot.flows.updated;
-    $("[data-flows-updated]").textContent = upd ? `${t("map.flows_updated")} ${dayFmt.format(new Date(upd))} ${hhmm(upd)}` : t("map.no_flows");
-
-    // Labels
-    const lg = $("g.labels", svg);
-    lg.textContent = "";
-    for (const name of Object.keys(boot.zones)) {
-      const a = map.anchor[name];
-      if (!a) continue;
-      const g = svgEl("g", { class: "zone-label" + (name === sel ? " selected" : "") }, lg);
-      const k = map.k || 1;
-      svgEl("text", { x: a[0], y: a[1] - 6 * k, class: "zl-name", "text-anchor": "middle" }, g).textContent = name;
-      svgEl("text", { x: a[0], y: a[1] + 10 * k, class: "zl-price", "text-anchor": "middle" }, g).textContent = price(zoneNow(name));
+    // At a chosen time the arrows are that hour's average
+    let status = flowsUpdatedText();
+    if (map.time !== null && map.time !== undefined) {
+      const h = map.time - (((map.time % HOUR) + HOUR) % HOUR);
+      if (mapBorders().length) status = `${t("map.flows")} ${hhmm(h)}–${hhmm(h + HOUR)}`;
+      else if (map.time > Date.now() - HOUR) status = t("map.flows_future");
     }
-    for (const name of Object.keys(boot.neighbours || {})) {
-      const a = map.anchor[name];
-      if (a) svgEl("text", { x: a[0], y: a[1] + 4, class: "zl-ext", "text-anchor": "middle" }, lg).textContent = name;
-    }
+    $("[data-flows-updated]").textContent = status;
+  };
+
+  const mapRender = () => {
+    if (!map.ready && !mapSetup()) return;
+    mapColors();
+    mapOverlay();
+    mapTimeUi();
     zonePanel();
+  };
+
+  // Net export of a zone per hour for the last 24 hours, as bars above (export) and below
+  // (import) a zero line
+  const zoneSpark = (name, panel) => {
+    const box = $("[data-zone-spark]", panel);
+    const fh = boot.flow_hours;
+    if (!box || !fh) return;
+    const from = Date.now() - 24 * HOUR;
+    const idx = fh.times.map((t0, i) => [t0, i]).filter(([t0]) => t0 >= from - HOUR);
+    const net = idx.map(([, i]) => {
+      let v = null;
+      for (const b of fh.borders) {
+        const x = b.values[i];
+        if (x === null || x === undefined || (b.a !== name && b.b !== name)) continue;
+        v = (v || 0) + (b.a === name ? x : -x);
+      }
+      return v;
+    });
+    const known = net.filter((v) => v !== null);
+    box.hidden = known.length < 2;
+    if (box.hidden) return;
+    const svg = $("[data-zone-spark-svg]", box);
+    const max = Math.max(1, ...known.map(Math.abs));
+    const w = 240 / net.length, mid = 20;
+    svg.textContent = "";
+    net.forEach((v, i) => {
+      if (v === null) return;
+      const h = (Math.abs(v) / max) * 19;
+      svgEl("rect", { x: (i * w + 0.5).toFixed(1), y: (v >= 0 ? mid - h : mid).toFixed(1), width: Math.max(1, w - 1).toFixed(1), height: Math.max(0.5, h).toFixed(1), class: v >= 0 ? "spark-exp" : "spark-imp" }, svg);
+    });
+    svgEl("line", { x1: 0, y1: mid, x2: 240, y2: mid, class: "spark-zero" }, svg);
+    const last = known[known.length - 1];
+    svg.setAttribute("aria-label", `${t("map.net_24h")}: ${t("a11y.average")} ${mw(known.reduce((a, v) => a + v, 0) / known.length)} MW, ${last < 0 ? t("map.net_import") : t("map.net_export")} ${mw(Math.abs(last))} MW`);
   };
 
   const zonePanel = () => {
@@ -818,18 +1256,10 @@ series:
     $("[data-zone-gl]", panel).innerHTML = html || `<div class="muted">-</div>`;
 
     // Flows touching the zone
-    const list = ((boot.flows && boot.flows.borders) || []).filter((f) => f.from === name || f.to === name)
-      .map((f) => ({ other: f.from === name ? f.to : f.from, value: f.value, import: f.to === name && f.value >= 1 }))
-      .sort((a, b) => b.value - a.value);
-    let net = 0;
-    const max = Math.max(1, ...list.map((f) => f.value));
-    $("[data-zone-flows]", panel).innerHTML = list.length ? list.map((f) => {
-      net += f.import ? -f.value : f.value;
-      const dir = f.value < 1 ? "" : f.import ? t("map.import") : t("map.export");
-      const link = boot.zones[f.other] ? `<a href="#${esc(f.other)}" data-goto="${esc(f.other)}">${esc(f.other)}</a>` : `<span>${esc(f.other)}</span>`;
-      return `<li class="${f.value < 1 ? "" : f.import ? "is-import" : "is-export"}"><span class="flow-dir" aria-hidden="true">${f.value < 1 ? "·" : f.import ? "&larr;" : "&rarr;"}</span>${link}<span class="muted small">${esc(dir)}</span><span class="flow-bar"><span style="width:${(f.value / max) * 50}%"></span></span><span class="num">${mw(f.value)} MW</span></li>`;
-    }).join("") : `<li class="muted">${t("map.no_flows")}</li>`;
-    $("[data-zone-flow-total]", panel).textContent = list.length ? `· ${net < 0 ? t("map.net_import") : t("map.net_export")} ${mw(Math.abs(net))} MW` : "";
+    const items = flowItems((z) => z === name, (z) => z);
+    $("[data-zone-flows]", panel).innerHTML = flowListHtml(items, (n) => (boot.zones[n] ? `<a href="#${esc(n)}" data-goto="${esc(n)}">${esc(n)}</a>` : `<span>${esc(n)}</span>`));
+    $("[data-zone-flow-total]", panel).textContent = flowNetText(items);
+    zoneSpark(name, panel);
     $$("[data-goto]", panel).forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); map.select(a.dataset.goto, false); }));
 
     // Today and tomorrow chart
@@ -1029,7 +1459,7 @@ series:
   const rerender = () => {
     renderStatic();
     renderNow();
-    [chartAreaToday, () => chartAllAreas("today"), () => chartAllAreas("tomorrow"), chartProduction, chartNet,
+    [chartAreaToday, () => chartAllAreas("today"), () => chartAllAreas("tomorrow"), chartProduction, chartNet, chartFlows, flowCard,
       chartLongTermArea, chartLongTermCountry, chartThirtyDays, priceTable, hass, mapRender].forEach(safe);
     if (customRun && !$("#custom-result").classList.contains("hidden")) safe(customRun);
     renderStatic();
@@ -1061,7 +1491,7 @@ series:
     }
     if (map.ready) {
       const q = Math.floor(Date.now() / 900000);
-      if (q !== map.slot) { map.slot = q; safe(mapRender); }
+      if (q !== map.slot) { map.slot = q; safe(mapRender); } else safe(mapTimeUi);
     }
   }, 30000);
 

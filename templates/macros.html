@@ -121,3 +121,21 @@
   <div class="chart" data-chart="{{ id }}"><div class="chart-empty muted">&hellip;</div></div>
 </section>
 {% endmacro %}
+
+{% macro flows_card(title) %}
+<section class="card">
+  <header class="card-head"><h2>{{ title }} <span class="muted small" data-flows-total></span></h2></header>
+  <div class="pad">
+    <ul class="flow-list flow-list-wide" data-flows-list><li class="muted">&hellip;</li></ul>
+    <p class="muted small flows-updated" data-flows-updated></p>
+  </div>
+</section>
+{% endmacro %}
+
+{% macro flows_chart_card(title) %}
+<section class="card">
+  <header class="card-head"><h2>{{ title }}</h2></header>
+  <div class="chart" data-chart="flows"><div class="chart-empty muted">&hellip;</div></div>
+  <p class="pad muted small chart-note">{{ t("map.flow_chart_hint") }}</p>
+</section>
+{% endmacro %}

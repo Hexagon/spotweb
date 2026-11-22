@@ -111,7 +111,8 @@
       "yesterday_and_today": "Hier et aujourd'hui",
       "now": "Maintenant",
       "time": "Heure",
-      "price": "Prix"
+      "price": "Prix",
+      "net_flow": "Importations et exportations par voisin"
     },
     "generation": {
       "current_production": "Production et consommation",
@@ -189,7 +190,19 @@
       "today_tomorrow": "Aujourd'hui et demain",
       "note": "Les frontières des zones sont approximatives. Les flèches indiquent le flux physique net (MW) entre les zones.",
       "all_areas": "Toutes les zones",
-      "zoom": "Niveau de zoom"
+      "zoom": "Niveau de zoom",
+      "flow_chart_hint": "Au-dessus de zéro : export, en dessous : import",
+      "flow_sum": "Net",
+      "zoom_in": "Zoom avant",
+      "zoom_out": "Zoom arrière",
+      "zoom_reset": "Réinitialiser la vue",
+      "zoom_hint": "Maintenez Ctrl (⌘ sur Mac) et faites défiler pour zoomer",
+      "zoom_help": "Carte. Zoomez avec + et −, déplacez avec les flèches, 0 réinitialise la vue.",
+      "time": "Moment",
+      "play": "Lecture",
+      "pause": "Pause",
+      "flows_future": "Les flux ne sont connus que jusqu'à maintenant",
+      "net_24h": "Export net sur 24 heures"
     },
     "share": {
       "share": "Partager",

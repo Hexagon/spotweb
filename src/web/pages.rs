@@ -503,6 +503,24 @@ async fn production_ctx(
     ))
 }
 
+/// Flows for an area or country page: net flow per border right now (for the list) and the
+/// hourly net export per neighbour for yesterday and today (for the chart)
+async fn flows_ctx(
+    st: &WebState,
+    c: &Country,
+    scope: data::FlowScope<'_>,
+) -> Result<(Value, Value), Response> {
+    let tz = c.timezone();
+    let t = today(&tz);
+    let (from, _) = day_range(&tz, add_days(t, -1));
+    let (_, to) = day_range(&tz, t);
+    let current = data::current_flows(&st.app).await.map_err(internal)?;
+    let series = data::area_flows(&st.app, scope, from, to)
+        .await
+        .map_err(internal)?;
+    Ok((json!(&*current), json!(&*series)))
+}
+
 // ---------------------------------------------------------------------------
 // Handlers
 // ---------------------------------------------------------------------------
@@ -594,6 +612,15 @@ pub async fn index(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> 
     boot.insert("upcoming".into(), json!(now.upcoming));
     boot.insert("zones".into(), Value::Object(zones));
     boot.insert("flows".into(), json!(&*flows));
+    // Flows per hour from yesterday until now, for the time slider and the panel's sparkline
+    let tz = crate::timeutil::market_tz();
+    let (from, _) = day_range(&tz, add_days(today(&tz), -1));
+    // Up to the end of the current quarter, so the cache key changes four times an hour
+    let to = now_ms() - now_ms().rem_euclid(900_000) + 900_000;
+    let hours = data::border_flows(&st.app, from, to)
+        .await
+        .map_err(internal)?;
+    boot.insert("flow_hours".into(), json!(&*hours));
     boot.insert("neighbours".into(), Value::Object(neighbours));
     boot.insert("default_area".into(), json!(default_map_area(&lang)));
     render(&st, "index.html", finish(ctx, boot))
@@ -665,6 +692,9 @@ pub async fn country(
     boot.insert("areas".into(), json!(areas));
     boot.insert("production".into(), series);
     boot.insert("net".into(), net);
+    let (flows, area_flows) = flows_ctx(&st, c, data::FlowScope::Country(c.id)).await?;
+    boot.insert("flows".into(), flows);
+    boot.insert("area_flows".into(), area_flows);
     render(&st, "country.html", finish(ctx, boot))
 }
 
@@ -816,6 +846,9 @@ pub async fn area(
     boot.insert("area".into(), ov);
     boot.insert("production".into(), series);
     boot.insert("net".into(), net);
+    let (flows, area_flows) = flows_ctx(&st, c, data::FlowScope::Area(a.name)).await?;
+    boot.insert("flows".into(), flows);
+    boot.insert("area_flows".into(), area_flows);
     render(&st, "area.html", finish(ctx, boot))
 }
 

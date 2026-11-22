@@ -18,6 +18,11 @@
   {{ m.chart_card(t("chart.net_production") ~ " - " ~ area.name ~ " - " ~ t("chart.yesterday_and_today"), "net") }}
 </div>
 
+<div class="grid grid-2">
+  {{ m.flows_card(t("map.flows") ~ " - " ~ area.name) }}
+  {{ m.flows_chart_card(t("chart.net_flow") ~ " - " ~ area.name ~ " - " ~ t("chart.yesterday_and_today")) }}
+</div>
+
 <div class="grid {% if single %}grid-2{% endif %}">
   <section class="card">
     <header class="card-head"><h2>{{ t("longtermchart.title") }}{{ area.name }}, {{ t("countries." ~ country.id) }}</h2></header>

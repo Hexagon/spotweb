@@ -152,7 +152,7 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
 
 ### P1 – Snabba vinster med data som redan finns
 
-43. **Import/export på elområdessidan och landssidan.** Kartpanelen visar flöde per granne, men inte `/sv/SE3`. Tabellen
+43. ✅ **Import/export på elområdessidan och landssidan.** Kartpanelen visar flöde per granne, men inte `/sv/SE3`. Tabellen
     `flow` sparar redan historik per gräns och riktning, men bara det senaste värdet används (`flows::latest`).
     Åtgärd:
     - Gör om panelens lista (`zonePanel` i `app.js`) till en delad funktion och visa den som kort på områdessidan:
@@ -163,7 +163,7 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
     - På landssidan: flöden mot andra länder (gränser inom landet räknas inte), t.ex. Sveriges nettoexport till FI, NO,
       DK, DE, PL och LT.
     - Gärna en sparkline för nettoimporten de senaste 24 timmarna i kartpanelen.
-44. **Tydligare riktning på pilarna.** I dag är alla pilar likadana och grå, och riktningen syns bara på spetsen. Åtgärd,
+44. ✅ **Tydligare riktning på pilarna.** I dag är alla pilar likadana och grå, och riktningen syns bara på spetsen. Åtgärd,
     i den här ordningen:
     - (a) *Övertoning.* En `linearGradient` per pil (`gradientUnits="userSpaceOnUse"`, från svans till spets) från cirka
       15 % till 100 % täckning, så att pilen "tonar in" i flödesriktningen. Den är statisk, billig och fungerar i alla
@@ -175,7 +175,7 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
     - (c) *Färg efter valt område.* Import och export får samma färger som listan i panelen (`is-import`/`is-export`).
     - Tooltip på en pil: pris på båda sidor och skillnaden ("SE3 41 → SE4 98 öre, +57"). Det förklarar flaskhalsar,
       vilket ofta efterfrågas.
-45. **Fri zoom, och etiketter som anpassar sig.** Kartan har två fasta vyer (Norden/Europa). `--k` räknas bara om när
+45. ✅ **Fri zoom, och etiketter som anpassar sig.** Kartan har två fasta vyer (Norden/Europa). `--k` räknas bara om när
     vyn byts eller fönstret ändrar storlek, och etiketterna ritas om helt. Åtgärd:
     - Zooma med hjulet (med Ctrl/⌘, eller när kartan har fokus, så att sidan fortfarande scrollar), med två fingrar
       på mobil och med dubbelklick, och panorera genom att dra. Begränsa till `map.full`. En knapp för att återställa
@@ -188,7 +188,7 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
       en som redan är ritad. Den valda zonens etikett visas alltid.
     - Fel att rätta samtidigt: grannetiketterna (GB, IT) skalas inte med `k` (`y: a[1] + 4` och fast teckenstorlek).
     - Tillgänglighet: `+`/`-`-knappar och piltangenter när kartan har fokus.
-46. **Tidsreglage på kartan.** Priserna för idag och imorgon finns redan i boot-datan (`z.today`, `z.tomorrow`), så kartan
+46. ✅ **Tidsreglage på kartan.** Sidopanelen visar fortfarande läget just nu, och omladdningen varje timme (punkt 42) är kvar. Priserna för idag och imorgon finns redan i boot-datan (`z.today`, `z.tomorrow`), så kartan
     kan visa valfri kvart eller timme utan nya anrop. Åtgärd: ett reglage under kartan (idag 00 till imorgon 24) med
     uppspelningsknapp. Färger, etiketter och färgskala följer vald tidpunkt, och "nu" markeras. Flöden finns bara bakåt i
     tiden: visa flödet för vald tidpunkt upp till nu (kräver `flows` per timme i boot eller ett anrop), och dölj pilarna
@@ -233,7 +233,7 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
 
 ### P3 – Drift och mindre
 
-55. **`flow` växer utan gräns.** Cirka 104 riktningar × 24–96 punkter per dygn. Bestäm hur länge historiken ska sparas
+55. ✅ **`flow` växer utan gräns.** Löst med full upplösning i 90 dagar och timmedel därefter. Cirka 104 riktningar × 24–96 punkter per dygn. Bestäm hur länge historiken ska sparas
     innan punkt 43 och 46 börjar använda den: t.ex. full upplösning i 90 dagar och timmedel därefter, eller rensning som
     för avbrotten (punkt 28).
 56. **Obalanspriser (A85) och reglerkraft**, för den som vill fördjupa sig. Nischat, men lätt att lägga till som eget

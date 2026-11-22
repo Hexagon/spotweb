@@ -111,7 +111,8 @@
       "yesterday_and_today": "Gisteren en vandaag",
       "now": "Nu",
       "time": "Tijd",
-      "price": "Prijs"
+      "price": "Prijs",
+      "net_flow": "Import en export per buurland"
     },
     "generation": {
       "current_production": "Productie en verbruik",
@@ -189,7 +190,19 @@
       "today_tomorrow": "Vandaag en morgen",
       "note": "De grenzen van de biedzones zijn bij benadering. Pijlen tonen de fysieke nettostroom (MW) tussen zones.",
       "all_areas": "Alle biedzones",
-      "zoom": "Zoomniveau"
+      "zoom": "Zoomniveau",
+      "flow_chart_hint": "Boven nul: export, onder nul: import",
+      "flow_sum": "Netto",
+      "zoom_in": "Inzoomen",
+      "zoom_out": "Uitzoomen",
+      "zoom_reset": "Weergave herstellen",
+      "zoom_hint": "Houd Ctrl (⌘ op Mac) ingedrukt en scroll om te zoomen",
+      "zoom_help": "Kaart. Zoom met + en −, verschuif met de pijltjestoetsen, 0 herstelt de weergave.",
+      "time": "Tijdstip",
+      "play": "Afspelen",
+      "pause": "Pauze",
+      "flows_future": "Stromen zijn alleen tot nu bekend",
+      "net_24h": "Netto-export afgelopen 24 uur"
     },
     "share": {
       "share": "Delen",
