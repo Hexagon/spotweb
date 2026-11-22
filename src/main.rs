@@ -247,11 +247,36 @@ async fn shutdown_signal() {
     tracing::info!("shutting down");
 }
 
+/// How long shutdown waits for running jobs (`SPOTWEB_SHUTDOWN_GRACE_SECS`, default 15)
+fn shutdown_grace() -> std::time::Duration {
+    let secs = env_opt("SPOTWEB_SHUTDOWN_GRACE_SECS")
+        .and_then(|v| v.trim().parse().ok())
+        .unwrap_or(15);
+    std::time::Duration::from_secs(secs)
+}
+
 async fn serve(app: App, args: ServeArgs) -> anyhow::Result<()> {
     if !app.entsoe.has_token() {
         tracing::warn!(
             "API_TOKEN not set, ENTSO-e data will not be updated (exchange rates still are)"
         );
+    }
+    // No run of this process is in progress yet: rows without `finished` were cut off by a
+    // shutdown or crash. `run-job` from the command line at the same moment would be marked too.
+    match app
+        .db
+        .run(|c| {
+            Ok(db::queries::job_mark_interrupted(
+                c,
+                timeutil::now_ms(),
+                "interrupted, the server stopped during the run",
+            )?)
+        })
+        .await
+    {
+        Ok(0) => {}
+        Ok(n) => tracing::warn!(runs = n, "marked unfinished job runs as interrupted"),
+        Err(e) => tracing::warn!(error = %format!("{e:#}"), "marking unfinished job runs failed"),
     }
     let scheduler = if args.no_scheduler {
         tracing::info!("scheduler disabled");
@@ -268,11 +293,29 @@ async fn serve(app: App, args: ServeArgs) -> anyhow::Result<()> {
         .with_context(|| format!("binding {addr}"))?;
     web::metrics::spawn_summary(app.clone());
     tracing::info!(%addr, db = %app.db.path().display(), version = env!("CARGO_PKG_VERSION"), "spotweb listening");
-    axum::serve(listener, web::router(app))
+    axum::serve(listener, web::router(app.clone()))
         .with_graceful_shutdown(shutdown_signal())
         .await?;
     if let Some(s) = scheduler {
-        let _ = s.shutdown().await;
+        s.shutdown().await;
+    }
+    // Let running jobs finish their bookkeeping, for a short while
+    let grace = shutdown_grace();
+    if !jobs::wait_until_idle(&app, grace).await {
+        tracing::warn!(
+            secs = grace.as_secs(),
+            "jobs still running at shutdown, interrupting"
+        );
+        let _ = app
+            .db
+            .run(|c| {
+                Ok(db::queries::job_mark_interrupted(
+                    c,
+                    timeutil::now_ms(),
+                    "interrupted, the server was stopped",
+                )?)
+            })
+            .await;
     }
     Ok(())
 }

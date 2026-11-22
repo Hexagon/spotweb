@@ -17,6 +17,7 @@ use axum::Router;
 use minijinja::value::Value;
 use minijinja::{Environment, State as TplState};
 use rust_embed::RustEmbed;
+use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::compression::CompressionLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
@@ -379,6 +380,16 @@ fn finish_etag(
     Response::from_parts(parts, body)
 }
 
+fn panic_response(p: Box<dyn std::any::Any + Send + 'static>) -> Response {
+    let msg = p
+        .downcast_ref::<&str>()
+        .copied()
+        .or_else(|| p.downcast_ref::<String>().map(String::as_str))
+        .unwrap_or("unknown panic");
+    tracing::error!(panic = msg, "request handler panicked");
+    (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").into_response()
+}
+
 pub fn router(app: App) -> Router {
     let state = WebState {
         env: Arc::new(template_env(&app)),
@@ -406,7 +417,14 @@ pub fn router(app: App) -> Router {
     for file in Static::iter() {
         r = r.route(&format!("/{file}"), get(static_handler));
     }
-    r.fallback(pages::not_found)
+    layers(r.fallback(pages::not_found), state)
+}
+
+/// The middleware every route gets
+fn layers(r: Router<WebState>, state: WebState) -> Router {
+    r
+        // A panicking handler answers 500 (with the usual headers) instead of dropping the connection
+        .layer(CatchPanicLayer::custom(panic_response))
         .layer(axum::middleware::from_fn(api_etag))
         .layer(axum::middleware::from_fn(remember_lang))
         .layer(axum::middleware::from_fn(security_headers))

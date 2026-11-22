@@ -61,6 +61,7 @@ spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried po
 | `SPOTWEB_CSP`              | `on`                     | Content-Security-Policy on pages: `on`, `report-only` or `off`   |
 | `SPOTWEB_ACCESS_LOG`       | off                      | `1` logs every request: method, path, status and time           |
 | `SPOTWEB_HTTP_SUMMARY_SECS` | `60`                    | Log HTTP counts, p50/p95 and 4xx/5xx per route this often; `0` is off |
+| `SPOTWEB_SHUTDOWN_GRACE_SECS` | `15`                 | On shutdown, wait this long for running jobs before interrupting them |
 | `RUST_LOG`                 | `spotweb=info,warn`      | Log filter, `--debug` for verbose logs                          |
 
 ### Schedule

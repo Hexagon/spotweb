@@ -163,7 +163,10 @@ Everything except the database can be re-created, and even the database can be r
 - `GET /api/v2/status` has the same verdict as `healthy` and `problems`, the newest price/generation/load timestamps and
   the last run of each job. Also alert if a job keeps reporting `"status": "failed"`.
   Each job run has a `status`: `ok`, `partial` (finished, but some areas failed; they are listed in `failures` with the
-  reason), `failed` or `running`. `ok` stays `true` for `partial` runs, for compatibility with 2.0.0.
+  reason), `failed`, `running` or `interrupted` (the server stopped or restarted during the run; it runs again at the
+  next scheduled time). `ok` stays `true` for `partial` runs, for compatibility with 2.0.0, and is `false` for
+  `interrupted` runs. On shutdown spotweb waits up to `SPOTWEB_SHUTDOWN_GRACE_SECS` (15) for running jobs; keep
+  systemd's `TimeoutStopSec` above that. A run that panics is recorded as `failed`.
 - Each ENTSO-e request is retried twice after 15 s on timeouts, connection errors and 5xx (60 s on 429/503). HTTP 599
   is logged as "upstream timeout": it is a non-standard code from ENTSO-e's gateway when its backend is slow, not from
   spotweb. spotweb's own per-request timeout is logged as "spotweb timeout".
