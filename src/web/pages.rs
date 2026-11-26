@@ -653,6 +653,13 @@ pub async fn index(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> 
         .await
         .map_err(internal)?;
     boot.insert("flow_hours".into(), json!(&*hours));
+    // Planned flows and capacity per hour today and tomorrow, for future times on the slider
+    let plan_from = day_range(&tz, today(&tz)).0;
+    let plan_to = day_range(&tz, add_days(today(&tz), 1)).1;
+    let plan = data::border_plan(&st.app, plan_from, plan_to)
+        .await
+        .map_err(internal)?;
+    boot.insert("plan".into(), json!(&*plan));
     boot.insert("neighbours".into(), Value::Object(neighbours));
     boot.insert("default_area".into(), json!(default_map_area(&lang)));
     render(&st, "index.html", finish(ctx, boot))
@@ -1078,7 +1085,8 @@ pub async fn llms(State(st): State<WebState>, headers: HeaderMap) -> Response {
          `hours` (or with `consecutive=false` the cheapest separate intervals) from now to the end \
          of tomorrow, or between optional `from` and `to`. Returns `start`, `end`, average `price` \
          (currency/MWh), `windows`, the intervals in `data` and `active` (true while one of them is in progress).\n\
-         - [Cross-border flows]({base}/api/v2/flows): latest physical flows between zones, MW.\n\
+         - [Cross-border flows]({base}/api/v2/flows): latest physical flows between zones, MW. \
+         With `planned=true` the day-ahead scheduled exchange and capacity per border and hour, today and tomorrow.\n\
          - [Hydro reservoirs]({base}/api/v2/reservoirs?country=no): energy stored per ISO week (GWh) \
          compared with the same week of earlier years, per `area` or `country`.\n\
          - [Status]({base}/api/v2/status): data freshness.\n\n\

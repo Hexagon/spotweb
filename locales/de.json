@@ -220,7 +220,12 @@
       "deficit": "Defizit",
       "surplus": "Überschuss",
       "measured": "Zuletzt gemessene Erzeugung",
-      "layer_note": "Bezieht sich auf die Erzeugung in der Zone, nicht auf den dort verbrauchten Strom (Import wird nicht berücksichtigt). CO₂ ist eine Schätzung."
+      "layer_note": "Bezieht sich auf die Erzeugung in der Zone, nicht auf den dort verbrauchten Strom (Import wird nicht berücksichtigt). CO₂ ist eine Schätzung.",
+      "planned": "Geplant",
+      "capacity": "Kapazität",
+      "used": "genutzt",
+      "congested": "Engpass: unterschiedliche Preise auf beiden Seiten",
+      "flows_planned": "Geplanter Fluss (Day-Ahead)"
     },
     "share": {
       "share": "Teilen",
@@ -415,7 +420,8 @@
       "ep_healthz_data": "<code>200 ok</code>, wenn Preise, Erzeugung und Verbrauch aktuell sind, sonst <code>503</code> mit einem Problem pro Zeile.",
       "selfhost": "Diese Endpunkte zeigen nur den aktuellen Zustand und versprechen nichts über die künftige Verfügbarkeit. Wenn Sie garantierte Verfügbarkeit brauchen, betreiben Sie eine eigene Instanz; der <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">Quellcode</a> ist offen.",
       "ep_reservoirs": "In Speicherseen gespeicherte Energie (GWh) pro ISO-Woche für Gebotszonen und Länder, die sie an ENTSO-e melden (Norwegen, Schweden, Finnland, Österreich, Schweiz u. a.). Die letzte Woche wird mit derselben Woche im Vorjahr und mit dem niedrigsten, mittleren und höchsten Wert der Woche in früheren Jahren verglichen. <code>weeks</code> enthält das ganze Jahr für ein Diagramm.",
-      "p_reservoirs_scope": "eines davon ist erforderlich: Gebotszone (<code>area=NO2</code>) oder Land (<code>country=no</code>, die Summe seiner Zonen)."
+      "p_reservoirs_scope": "eines davon ist erforderlich: Gebotszone (<code>area=NO2</code>) oder Land (<code>country=no</code>, die Summe seiner Zonen).",
+      "p_flows_planned": "optional. Der Day-Ahead-Plan für heute und morgen je Grenze und Stunde: <code>scheduled</code> ist der geplante Nettofluss (MW) von <code>from</code> nach <code>to</code>, <code>capacity</code> die Übertragungskapazität je Richtung (<code>null</code>, wo die Grenze keine veröffentlicht)."
     },
     "hass": {
       "page_title": "Home Assistant - Sensor für Strom-Spotpreise",

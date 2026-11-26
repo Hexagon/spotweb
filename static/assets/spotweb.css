@@ -387,6 +387,9 @@ body.currency-eur .hide-eur { display: none; }
 .zone-map .flow-stop-tail { stop-color: var(--map-arrow); stop-opacity: .2; }
 .zone-map .flow-stop-tip { stop-color: var(--map-arrow); stop-opacity: 1; }
 .zone-map .flow.dim { opacity: .35; }
+/* Day-ahead plan (future times on the slider): outlined, dashed arrows */
+.zone-map .flow.planned .flow-arrow { stroke: var(--map-arrow); stroke-width: 1.2; stroke-dasharray: 3 2; }
+.zone-map .flow.planned .flow-stop-tip { stop-opacity: .55; }
 .zone-map .flow.active stop { stop-color: var(--map-ink); }
 .zone-map .flow.active .flow-stop-tail { stop-opacity: .25; }
 .zone-map .flow.is-import stop { stop-color: var(--import); }

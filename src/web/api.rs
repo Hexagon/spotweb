@@ -522,6 +522,9 @@ pub async fn flows(
     if param(&q, "area").is_some() || param(&q, "country").is_some() {
         return area_flows(&st, &q).await;
     }
+    if matches!(param(&q, "planned"), Some("true" | "1")) {
+        return planned_flows(&st).await;
+    }
     match data::current_flows(&st.app).await {
         Ok(f) => json_response(
             StatusCode::OK,
@@ -657,6 +660,61 @@ pub async fn healthz_data(State(st): State<WebState>) -> Response {
     res.headers_mut()
         .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
     res
+}
+
+/// `GET /api/v2/flows?planned=true`: the day-ahead plan per border and hour for today and
+/// tomorrow (Stockholm time). `scheduled` is the net scheduled commercial exchange from `from`
+/// to `to` (MW, negative is the other way), `capacity` the transfer capacity per direction
+/// where the border publishes one.
+async fn planned_flows(st: &WebState) -> Response {
+    let tz = crate::timeutil::stockholm();
+    let t = today(&tz);
+    let (from, _) = crate::timeutil::day_range(&tz, t);
+    let (_, to) = crate::timeutil::day_range(&tz, add_days(t, 1));
+    let plan = match data::border_plan(&st.app, from, to).await {
+        Ok(p) => p,
+        Err(e) => {
+            tracing::error!(error = %format!("{e:#}"), "planned flows query failed");
+            return api_error("Query failed");
+        }
+    };
+    let cap = |a: &str, b: &str, i: usize| {
+        plan.capacity
+            .directions
+            .iter()
+            .find(|d| d.from == a && d.to == b)
+            .and_then(|d| d.values.get(i).copied().flatten())
+    };
+    let data: Vec<serde_json::Value> =
+        plan.schedule
+            .borders
+            .iter()
+            .flat_map(|b| {
+                let cap = &cap;
+                plan.schedule.times.iter().enumerate().filter_map(move |(i, t)| {
+                let v = b.values.get(i).copied().flatten()?;
+                Some(json!({
+                    "time": js_iso(*t),
+                    "from": b.a,
+                    "to": b.b,
+                    "scheduled": v,
+                    "capacity": { "forward": cap(&b.a, &b.b, i), "back": cap(&b.b, &b.a, i) },
+                }))
+            })
+            })
+            .collect();
+    json_response(
+        StatusCode::OK,
+        json!({
+            "status": "ok",
+            "source": SOURCE,
+            "license": "CC-BY-4.0",
+            "unit": "MW",
+            "interval": "PT60M",
+            "data": data,
+        }),
+        900,
+    )
 }
 
 /// `GET /api/v2/reservoirs?area=NO2` or `?country=no`: energy stored in hydro reservoirs per

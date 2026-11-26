@@ -235,7 +235,16 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
     **Vattenmagasin (A72, veckovis)** för SE, NO och FI, per elområde där det finns: fyllnadsgrad mot samma vecka
     tidigare år (min, max, median). Det är troligen det mest efterfrågade i Norden när priserna stiger på hösten. Få
     anrop (en gång i veckan), liten tabell. Ett kort på lands- och områdessidan.
-52. **Planerade flöden och kapacitet.** Kommersiella flöden day-ahead (A09) visar planerad import och export imorgon. Då
+52. ✅ Klart (behöver kontrolleras mot riktiga svar): jobbet `schedules` (13:10 och 15:10) hämtar day-ahead
+    scheduled commercial exchanges (A09, `contract_MarketAgreement.Type=A01`) och day-ahead-kapacitet (A61, A01)
+    för båda riktningarna av alla gränser, idag och imorgon, och hoppar över det som redan är komplett. Tabellen
+    `border_plan` (migration 7), rensas efter 90 dagar. Kartans tidsreglage visar planerat nettoflöde för tider
+    efter nu (streckade pilar, "Planerat flöde (day-ahead)"), och verktygstipset på en pil visar planerat flöde,
+    kapacitet, hur stor del som används och "Flaskhals" när priserna skiljer sig åt (minst 0,5 EUR/MWh).
+    `/api/v2/flows?planned=true`. Följ upp i driften: vilka gränser som svarar på A09 och A61 efter införandet av
+    flödesbaserad kapacitetsberäkning (Norden och Core har troligen ingen A61, då visas bara planerat flöde), och
+    om A09 behöver `A05` (total) i stället för `A01` för någon gräns. Ursprunglig beskrivning:
+    **Planerade flöden och kapacitet.** Kommersiella flöden day-ahead (A09) visar planerad import och export imorgon. Då
     fungerar import/export-vyn (punkt 43) och tidsreglaget (punkt 46) även framåt i tiden. Kapacitet per gräns (A61
     eller flödesbaserade parametrar där det gäller) visar om en gräns är full, alltså varför priserna skiljer sig.
     Kontrollera först vad som finns för Norden efter införandet av flödesbaserad kapacitetsberäkning (oktober 2024),

@@ -220,7 +220,12 @@
       "deficit": "Déficit",
       "surplus": "Excédent",
       "measured": "Dernière production mesurée",
-      "layer_note": "Concerne la production dans la zone, pas l'électricité qui y est consommée (les importations ne sont pas comptées). Le CO₂ est une estimation."
+      "layer_note": "Concerne la production dans la zone, pas l'électricité qui y est consommée (les importations ne sont pas comptées). Le CO₂ est une estimation.",
+      "planned": "Prévu",
+      "capacity": "Capacité",
+      "used": "utilisée",
+      "congested": "Congestion : prix différents de chaque côté",
+      "flows_planned": "Flux prévu (day-ahead)"
     },
     "share": {
       "share": "Partager",
@@ -415,7 +420,8 @@
       "ep_healthz_data": "<code>200 ok</code> lorsque les prix, la production et la consommation sont à jour, sinon <code>503</code> avec un problème par ligne.",
       "selfhost": "Ces points d'accès ne montrent que l'état actuel et ne promettent rien sur la disponibilité future. Si vous avez besoin d'une disponibilité garantie, faites tourner votre propre instance ; le <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">code source</a> est ouvert.",
       "ep_reservoirs": "Énergie stockée dans les réservoirs hydrauliques (GWh) par semaine ISO, pour les zones et pays qui la déclarent à ENTSO-e (France, Espagne, Suisse, pays nordiques, etc.). La dernière semaine est comparée à la même semaine de l'an dernier et aux valeurs minimale, médiane et maximale de la semaine les années précédentes. <code>weeks</code> contient toute l'année pour un graphique.",
-      "p_reservoirs_scope": "l'un des deux est requis : zone (<code>area=NO2</code>) ou pays (<code>country=no</code>, la somme de ses zones)."
+      "p_reservoirs_scope": "l'un des deux est requis : zone (<code>area=NO2</code>) ou pays (<code>country=no</code>, la somme de ses zones).",
+      "p_flows_planned": "facultatif. Le plan day-ahead d'aujourd'hui et de demain par frontière et par heure : <code>scheduled</code> est le flux net prévu (MW) de <code>from</code> vers <code>to</code>, <code>capacity</code> la capacité d'échange dans chaque sens (<code>null</code> si la frontière n'en publie pas)."
     },
     "hass": {
       "page_title": "Home Assistant - capteur du prix spot de l'électricité",

@@ -707,18 +707,43 @@ series:
   // Net flow per border at the chosen time: the latest values when live, otherwise the hourly
   // average of that hour. There are no flows for the future.
   const HOUR = 3600000;
-  const mapBorders = () => {
-    if (map.time === null || map.time === undefined) return (boot.flows && boot.flows.borders) || [];
-    const fh = boot.flow_hours;
-    const i = fh ? fh.times.indexOf(map.time - (((map.time % HOUR) + HOUR) % HOUR)) : -1;
+  // Hourly net values per border at `time` from a `{times, borders: [{a, b, values}]}` series
+  const hourOf = (time) => time - (((time % HOUR) + HOUR) % HOUR);
+  const bordersAt = (series, time, extra) => {
+    const i = series ? series.times.indexOf(hourOf(time)) : -1;
     if (i < 0) return [];
     const out = [];
-    for (const b of fh.borders) {
+    for (const b of series.borders) {
       const v = b.values[i];
       if (v === null || v === undefined) continue;
-      out.push(v >= 0 ? { from: b.a, to: b.b, value: v } : { from: b.b, to: b.a, value: -v });
+      out.push(Object.assign(v >= 0 ? { from: b.a, to: b.b, value: v } : { from: b.b, to: b.a, value: -v }, extra));
     }
     return out;
+  };
+  // Physical flows up to now; after that the day-ahead plan (scheduled commercial exchange)
+  const mapBorders = () => {
+    if (map.time === null || map.time === undefined) return (boot.flows && boot.flows.borders) || [];
+    const physical = map.time < Date.now() ? bordersAt(boot.flow_hours, map.time) : [];
+    return physical.length ? physical : bordersAt(boot.plan && boot.plan.schedule, map.time, { planned: true });
+  };
+  // Day-ahead plan for one direction at a time: scheduled MW from `from` to `to` (negative is the
+  // other way) and the capacity in that direction, either `null` when not published
+  const planAt = (from, to, time) => {
+    const p = boot.plan;
+    if (!p) return { scheduled: null, capacity: null };
+    const h = hourOf(time);
+    let scheduled = null, capacity = null;
+    const i = p.schedule.times.indexOf(h);
+    for (const b of i < 0 ? [] : p.schedule.borders) {
+      const v = b.values[i];
+      if (v === null || v === undefined) continue;
+      if (b.a === from && b.b === to) scheduled = v;
+      else if (b.a === to && b.b === from) scheduled = -v;
+    }
+    const j = p.capacity.times.indexOf(h);
+    const d = j < 0 ? null : p.capacity.directions.find((x) => x.from === from && x.to === to);
+    if (d && d.values[j] !== null && d.values[j] !== undefined) capacity = d.values[j];
+    return { scheduled, capacity };
   };
   const zoneLabel = (name) => (boot.zones[name] ? `${name} – ${boot.zones[name].long}` : `${name} – ${(boot.neighbours || {})[name] || ""}`);
 
@@ -1102,7 +1127,7 @@ series:
     const px = -uy, py = ux;
     const touches = selected && (f.from === selected || f.to === selected);
     const dir = !touches || f.value < 1 ? "" : f.to === selected ? " is-import" : " is-export";
-    const cls = "flow" + (touches ? " active" : selected ? " dim" : "") + dir;
+    const cls = "flow" + (touches ? " active" : selected ? " dim" : "") + dir + (f.planned ? " planned" : "");
     const grp = placed(g, mid[0], mid[1], { class: cls, "data-flow": i });
     if (f.value < 1) {
       svgEl("circle", { cx: 0, cy: 0, r: 3, class: "flow-zero" }, grp);
@@ -1148,13 +1173,24 @@ series:
   // Tooltip for an arrow: MW, and the price on both sides with the difference, which shows
   // where a border is congested ("SE3 4.1 → SE4 9.8 öre/kWh (+5.7)")
   const flowTip = (f) => {
-    let html = `<strong>${esc(f.from)} &rarr; ${esc(f.to)}</strong><br>${mw(f.value)} MW`;
+    let html = `<strong>${esc(f.from)} &rarr; ${esc(f.to)}</strong><br>${mw(f.value)} MW${f.planned ? ` <span class="muted">(${esc(t("map.planned"))})</span>` : ""}`;
     const pa = priceNum(zoneAt(f.from)), pb = priceNum(zoneAt(f.to));
     if (pa !== null && pb !== null) {
       const d = pb - pa;
       const ds = (d > 0 ? "+" : d < 0 ? "−" : "±") + Math.abs(d).toFixed(prefs.decimals);
       html += `<br><span class="muted">${esc(f.from)} ${price(zoneAt(f.from))} &rarr; ${esc(f.to)} ${price(zoneAt(f.to))} ${esc(unit())} (${ds})</span>`;
     }
+    // The day-ahead plan for the same hour: planned flow, capacity and how much of it is used
+    const time = map.time === null || map.time === undefined ? Date.now() : map.time;
+    const p = planAt(f.from, f.to, time);
+    if (p.scheduled !== null && !f.planned) html += `<br>${esc(t("map.planned"))}: ${mw(p.scheduled)} MW`;
+    if (p.capacity !== null && p.capacity > 0) {
+      const used = p.scheduled === null ? null : Math.round((Math.max(0, p.scheduled) / p.capacity) * 100);
+      html += `<br>${esc(t("map.capacity"))}: ${mw(p.capacity)} MW${used === null ? "" : ` · ${used} % ${esc(t("map.used"))}`}`;
+    }
+    // Different prices on the two sides: the market could not send more, the border is congested
+    const ea = zoneAt(f.from), eb = zoneAt(f.to);
+    if (ea !== null && eb !== null && ea !== undefined && eb !== undefined && Math.abs(eb - ea) >= 0.5) html += `<br><strong>${esc(t("map.congested"))}</strong>`;
     return html;
   };
 
@@ -1314,7 +1350,8 @@ series:
     let status = flowsUpdatedText();
     if (map.time !== null && map.time !== undefined) {
       const h = map.time - (((map.time % HOUR) + HOUR) % HOUR);
-      if (mapBorders().length) status = `${t("map.flows")} ${hhmm(h)}–${hhmm(h + HOUR)}`;
+      const bs = mapBorders();
+      if (bs.length) status = `${bs[0].planned ? t("map.flows_planned") : t("map.flows")} ${hhmm(h)}–${hhmm(h + HOUR)}`;
       else if (map.time > Date.now() - HOUR) status = t("map.flows_future");
     }
     $("[data-flows-updated]").textContent = status;

@@ -546,3 +546,37 @@ pub async fn reservoirs(
         )
         .await
 }
+
+/// Day-ahead plan per border for the hours in `[from, to)`: the scheduled commercial exchange
+/// netted per border (like [`border_flows`]) and the transfer capacity per direction
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct BorderPlan {
+    pub schedule: crate::flows::BorderSeries,
+    pub capacity: crate::flows::DirectionSeries,
+}
+
+pub async fn border_plan(app: &App, from: i64, to: i64) -> anyhow::Result<Arc<BorderPlan>> {
+    use queries::PlanKind;
+    let db = app.db.clone();
+    app.cache
+        .get_or_load(
+            "plan",
+            format!("plan:{from}:{to}"),
+            Duration::from_secs(30 * MIN),
+            || async move {
+                let (schedule, capacity) = db
+                    .run(move |c| {
+                        Ok((
+                            queries::plan_rows(c, PlanKind::Schedule, from - HOUR_MS, to)?,
+                            queries::plan_rows(c, PlanKind::Capacity, from - HOUR_MS, to)?,
+                        ))
+                    })
+                    .await?;
+                Ok(BorderPlan {
+                    schedule: crate::flows::border_series(&schedule, from, to),
+                    capacity: crate::flows::direction_series(&capacity, from, to),
+                })
+            },
+        )
+        .await
+}

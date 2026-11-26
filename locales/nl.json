@@ -220,7 +220,12 @@
       "deficit": "Tekort",
       "surplus": "Overschot",
       "measured": "Laatst gemeten productie",
-      "layer_note": "Gaat over de productie in de zone, niet over de stroom die er wordt gebruikt (import telt niet mee). CO₂ is een schatting."
+      "layer_note": "Gaat over de productie in de zone, niet over de stroom die er wordt gebruikt (import telt niet mee). CO₂ is een schatting.",
+      "planned": "Gepland",
+      "capacity": "Capaciteit",
+      "used": "benut",
+      "congested": "Knelpunt: verschillende prijzen aan beide kanten",
+      "flows_planned": "Gepland transport (day-ahead)"
     },
     "share": {
       "share": "Delen",
@@ -415,7 +420,8 @@
       "ep_healthz_data": "<code>200 ok</code> als prijzen, productie en verbruik actueel zijn, anders <code>503</code> met één probleem per regel.",
       "selfhost": "Deze endpoints tonen alleen de huidige toestand en beloven niets over toekomstige beschikbaarheid. Hebt u gegarandeerde beschikbaarheid nodig, draai dan een eigen instantie; de <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">broncode</a> is open.",
       "ep_reservoirs": "Energie opgeslagen in stuwmeren (GWh) per ISO-week, voor biedzones en landen die dit aan ENTSO-e melden (Noorwegen, Zweden, Finland, Frankrijk en andere). De laatste week wordt vergeleken met dezelfde week vorig jaar en met de laagste, mediane en hoogste waarde van die week in eerdere jaren. <code>weeks</code> bevat het hele jaar voor een grafiek.",
-      "p_reservoirs_scope": "een van beide is verplicht: biedzone (<code>area=NO2</code>) of land (<code>country=no</code>, de som van de zones van het land)."
+      "p_reservoirs_scope": "een van beide is verplicht: biedzone (<code>area=NO2</code>) of land (<code>country=no</code>, de som van de zones van het land).",
+      "p_flows_planned": "optioneel. Het day-ahead-plan van vandaag en morgen per grens en uur: <code>scheduled</code> is het geplande nettotransport (MW) van <code>from</code> naar <code>to</code>, <code>capacity</code> de transportcapaciteit in elke richting (<code>null</code> waar de grens er geen publiceert)."
     },
     "hass": {
       "page_title": "Home Assistant - sensor voor de spotprijs van stroom",

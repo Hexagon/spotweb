@@ -220,7 +220,12 @@
       "deficit": "Underskott",
       "surplus": "Överskott",
       "measured": "Senast uppmätt produktion",
-      "layer_note": "Gäller produktionen i elområdet, inte elen som används där (import räknas inte). CO₂ är en uppskattning."
+      "layer_note": "Gäller produktionen i elområdet, inte elen som används där (import räknas inte). CO₂ är en uppskattning.",
+      "planned": "Planerat",
+      "capacity": "Kapacitet",
+      "used": "utnyttjat",
+      "congested": "Flaskhals: olika pris på var sida",
+      "flows_planned": "Planerat flöde (day-ahead)"
     },
     "share": {
       "share": "Dela",
@@ -415,7 +420,8 @@
       "ep_healthz_data": "<code>200 ok</code> när priser, produktion och förbrukning är aktuella, annars <code>503</code> med ett problem per rad.",
       "selfhost": "De här anropen visar bara läget just nu och lovar ingenting om framtida upptid. Behöver du garanterad tillgänglighet, kör en egen instans; <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">källkoden</a> är öppen.",
       "ep_reservoirs": "Energi lagrad i vattenmagasinen (GWh) per ISO-vecka, för elområden och länder som rapporterar det till ENTSO-e (Sverige, Norge, Finland med flera). Senaste veckan jämförs med samma vecka i fjol och med lägsta, median och högsta värde för veckan tidigare år. <code>weeks</code> har hela året för ett diagram.",
-      "p_reservoirs_scope": "ett av dem krävs: elområde (<code>area=NO2</code>) eller land (<code>country=no</code>, summan av landets elområden)."
+      "p_reservoirs_scope": "ett av dem krävs: elområde (<code>area=NO2</code>) eller land (<code>country=no</code>, summan av landets elområden).",
+      "p_flows_planned": "valfri. Dagens och morgondagens plan från day-ahead-marknaden per gräns och timme: <code>scheduled</code> är planerat nettoflöde (MW) från <code>from</code> till <code>to</code>, <code>capacity</code> överföringskapaciteten i varje riktning (<code>null</code> där gränsen inte publicerar någon)."
     },
     "hass": {
       "page_title": "Home Assistant - sensor för spotpris på el",

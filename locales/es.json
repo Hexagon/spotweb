@@ -220,7 +220,12 @@
       "deficit": "Déficit",
       "surplus": "Excedente",
       "measured": "Última producción medida",
-      "layer_note": "Se refiere a la producción en la zona, no a la electricidad consumida allí (no se cuentan las importaciones). El CO₂ es una estimación."
+      "layer_note": "Se refiere a la producción en la zona, no a la electricidad consumida allí (no se cuentan las importaciones). El CO₂ es una estimación.",
+      "planned": "Previsto",
+      "capacity": "Capacidad",
+      "used": "utilizada",
+      "congested": "Cuello de botella: precios distintos a cada lado",
+      "flows_planned": "Flujo previsto (diario)"
     },
     "share": {
       "share": "Compartir",
@@ -415,7 +420,8 @@
       "ep_healthz_data": "<code>200 ok</code> cuando los precios, la generación y el consumo están al día; si no, <code>503</code> con un problema por línea.",
       "selfhost": "Estos endpoints solo muestran el estado actual y no prometen nada sobre la disponibilidad futura. Si necesita disponibilidad garantizada, ejecute su propia instancia; el <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">código fuente</a> es abierto.",
       "ep_reservoirs": "Energía almacenada en los embalses (GWh) por semana ISO, para las zonas y países que la comunican a ENTSO-e (España, Portugal, Francia, países nórdicos, etc.). La última semana se compara con la misma semana del año pasado y con los valores mínimo, mediano y máximo de esa semana en años anteriores. <code>weeks</code> contiene todo el año para un gráfico.",
-      "p_reservoirs_scope": "se requiere uno de ellos: zona (<code>area=NO2</code>) o país (<code>country=no</code>, la suma de sus zonas)."
+      "p_reservoirs_scope": "se requiere uno de ellos: zona (<code>area=NO2</code>) o país (<code>country=no</code>, la suma de sus zonas).",
+      "p_flows_planned": "opcional. El plan del mercado diario de hoy y mañana por frontera y hora: <code>scheduled</code> es el flujo neto previsto (MW) de <code>from</code> a <code>to</code>, <code>capacity</code> la capacidad de intercambio en cada sentido (<code>null</code> si la frontera no la publica)."
     },
     "hass": {
       "page_title": "Home Assistant - sensor del precio spot de la electricidad",

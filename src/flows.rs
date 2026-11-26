@@ -334,6 +334,54 @@ pub fn border_series(rows: &[FlowRow], from: i64, to: i64) -> BorderSeries {
     BorderSeries { times, borders }
 }
 
+/// Hourly values per direction (not netted), see [`direction_series`]
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct DirectionSeries {
+    /// Start of each hour (ms)
+    pub times: Vec<i64>,
+    /// Directions with data, in [`BORDERS`] order
+    pub directions: Vec<DirectionHours>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DirectionHours {
+    pub from: String,
+    pub to: String,
+    /// Average MW per hour, `None` without data
+    pub values: Vec<Option<f64>>,
+}
+
+/// Hourly average per direction for the hours starting in `[from, to)`, for values that are not
+/// netted over a border, such as transfer capacity
+pub fn direction_series(rows: &[FlowRow], from: i64, to: i64) -> DirectionSeries {
+    let idx = index(rows);
+    let start = from - from.rem_euclid(HOUR_MS);
+    let times: Vec<i64> = (start..to).step_by(HOUR_MS as usize).collect();
+    let directions = BORDERS
+        .iter()
+        .flat_map(|&(a, b)| [(a, b), (b, a)])
+        .filter_map(|(a, b)| {
+            let dir = idx.get(&(a, b));
+            dir?;
+            let values: Vec<Option<f64>> = times
+                .iter()
+                .map(|&h| {
+                    let s: Vec<f64> = (0..4)
+                        .filter_map(|q| indexed_at(dir, h + q * QUARTER_MS))
+                        .collect();
+                    (!s.is_empty()).then(|| (s.iter().sum::<f64>() / s.len() as f64).round())
+                })
+                .collect();
+            values.iter().any(Option::is_some).then(|| DirectionHours {
+                from: a.into(),
+                to: b.into(),
+                values,
+            })
+        })
+        .collect();
+    DirectionSeries { times, directions }
+}
+
 /// The country id of one of our zones, or the zone name for a neighbour that is not ours
 pub fn country_of(zone: &str) -> String {
     COUNTRIES
@@ -471,5 +519,31 @@ mod tests {
             (no.a.as_str(), no.values.clone()),
             ("SE3", vec![None, Some(-100.0), None])
         );
+    }
+
+    #[test]
+    fn hourly_series_per_direction() {
+        const H: i64 = 3_600_000;
+        const Q: i64 = 900_000;
+        let r =
+            |f: &str, t: &str, p: i64, iv: i64, v: f64| (f.to_string(), t.to_string(), p, iv, v);
+        let mut rows = vec![r("SE3", "FI", 0, H, 1200.0), r("FI", "SE3", 0, H, 1100.0)];
+        for (q, v) in [1000.0, 1000.0, 2000.0, 2000.0].iter().enumerate() {
+            rows.push(r("SE3", "FI", H + q as i64 * Q, Q, *v));
+        }
+        let d = direction_series(&rows, 0, 2 * H);
+        assert_eq!(d.times, vec![0, H]);
+        let get = |a: &str, b: &str| {
+            d.directions
+                .iter()
+                .find(|x| x.from == a && x.to == b)
+                .unwrap()
+                .values
+                .clone()
+        };
+        // Not netted: each direction keeps its own value
+        assert_eq!(get("SE3", "FI"), vec![Some(1200.0), Some(1500.0)]);
+        assert_eq!(get("FI", "SE3"), vec![Some(1100.0), None]);
+        assert_eq!(d.directions.len(), 2);
     }
 }

@@ -220,7 +220,12 @@
       "deficit": "Deficit",
       "surplus": "Surplus",
       "measured": "Latest measured production",
-      "layer_note": "About the production in the zone, not the electricity used there (imports are not counted). CO₂ is an estimate."
+      "layer_note": "About the production in the zone, not the electricity used there (imports are not counted). CO₂ is an estimate.",
+      "planned": "Planned",
+      "capacity": "Capacity",
+      "used": "used",
+      "congested": "Bottleneck: different prices on each side",
+      "flows_planned": "Planned flow (day-ahead)"
     },
     "share": {
       "share": "Share",
@@ -415,7 +420,8 @@
       "ep_healthz_data": "<code>200 ok</code> when prices, production and consumption are up to date, otherwise <code>503</code> with one problem per line.",
       "selfhost": "These endpoints only show the current state and promise nothing about future uptime. If you need guaranteed availability, run your own instance; the <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">source code</a> is open.",
       "ep_reservoirs": "Energy stored in hydro reservoirs (GWh) per ISO week, for bidding zones and countries that report it to ENTSO-e (Sweden, Norway, Finland and others). The latest week is compared with the same week last year and with the lowest, median and highest value of the week in earlier years. <code>weeks</code> has the whole year for a chart.",
-      "p_reservoirs_scope": "one of them is required: bidding zone (<code>area=NO2</code>) or country (<code>country=no</code>, the sum of the country's zones)."
+      "p_reservoirs_scope": "one of them is required: bidding zone (<code>area=NO2</code>) or country (<code>country=no</code>, the sum of the country's zones).",
+      "p_flows_planned": "optional. Today's and tomorrow's day-ahead plan per border and hour: <code>scheduled</code> is the planned net flow (MW) from <code>from</code> to <code>to</code>, <code>capacity</code> the transfer capacity in each direction (<code>null</code> where the border publishes none)."
     },
     "hass": {
       "page_title": "Home Assistant - electricity spot price sensor",

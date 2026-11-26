@@ -593,6 +593,56 @@ impl Client {
         Ok(out)
     }
 
+    /// Day-ahead scheduled commercial exchange from `out_eic` into `in_eic` (A09, MW), the flow
+    /// the market planned. Published right after the day-ahead auction for the next day.
+    pub async fn scheduled_exchanges(
+        &self,
+        out_eic: &str,
+        in_eic: &str,
+        start: Timestamp,
+        end: Timestamp,
+    ) -> anyhow::Result<Vec<Point>> {
+        self.border_document("A09", out_eic, in_eic, start, end)
+            .await
+    }
+
+    /// Day-ahead transfer capacity from `out_eic` into `in_eic` (A61, MW). Borders with flow-based
+    /// capacity calculation (the Nordic and Core regions) may have none: then the list is empty.
+    pub async fn day_ahead_capacity(
+        &self,
+        out_eic: &str,
+        in_eic: &str,
+        start: Timestamp,
+        end: Timestamp,
+    ) -> anyhow::Result<Vec<Point>> {
+        self.border_document("A61", out_eic, in_eic, start, end)
+            .await
+    }
+
+    /// A per-direction border document with day-ahead contract type (A01), `quantity` in MW
+    async fn border_document(
+        &self,
+        doc_type: &str,
+        out_eic: &str,
+        in_eic: &str,
+        start: Timestamp,
+        end: Timestamp,
+    ) -> anyhow::Result<Vec<Point>> {
+        let mut p = vec![
+            ("documentType", doc_type.to_string()),
+            ("contract_MarketAgreement.Type", "A01".to_string()),
+            ("in_Domain", in_eic.to_string()),
+            ("out_Domain", out_eic.to_string()),
+        ];
+        p.extend(Self::range(start, end));
+        let mut out = vec![];
+        for doc in self.query(&p).await? {
+            // Same layout as physical flows: Publication_MarketDocument with `quantity`
+            out.extend(parse_flows(&doc)?);
+        }
+        Ok(out)
+    }
+
     /// Physical flow from `out_eic` into `in_eic` (A11)
     pub async fn physical_flows(
         &self,

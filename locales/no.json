@@ -220,7 +220,12 @@
       "deficit": "Underskudd",
       "surplus": "Overskudd",
       "measured": "Sist målte produksjon",
-      "layer_note": "Gjelder produksjonen i prisområdet, ikke strømmen som brukes der (import regnes ikke med). CO₂ er et anslag."
+      "layer_note": "Gjelder produksjonen i prisområdet, ikke strømmen som brukes der (import regnes ikke med). CO₂ er et anslag.",
+      "planned": "Planlagt",
+      "capacity": "Kapasitet",
+      "used": "utnyttet",
+      "congested": "Flaskehals: ulik pris på hver side",
+      "flows_planned": "Planlagt flyt (day-ahead)"
     },
     "share": {
       "share": "Del",
@@ -415,7 +420,8 @@
       "ep_healthz_data": "<code>200 ok</code> når priser, produksjon og forbruk er oppdatert, ellers <code>503</code> med ett problem per linje.",
       "selfhost": "Disse endepunktene viser bare tilstanden nå og lover ingenting om fremtidig oppetid. Trenger du garantert tilgjengelighet, kjør din egen instans; <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">kildekoden</a> er åpen.",
       "ep_reservoirs": "Energi lagret i vannmagasinene (GWh) per ISO-uke, for prisområder og land som rapporterer det til ENTSO-e (Norge, Sverige, Finland med flere). Siste uke sammenlignes med samme uke i fjor og med laveste, median og høyeste verdi for uken tidligere år. <code>weeks</code> har hele året for et diagram.",
-      "p_reservoirs_scope": "en av dem kreves: prisområde (<code>area=NO2</code>) eller land (<code>country=no</code>, summen av landets prisområder)."
+      "p_reservoirs_scope": "en av dem kreves: prisområde (<code>area=NO2</code>) eller land (<code>country=no</code>, summen av landets prisområder).",
+      "p_flows_planned": "valgfri. Dagens og morgendagens plan fra day-ahead-markedet per grense og time: <code>scheduled</code> er planlagt nettoflyt (MW) fra <code>from</code> til <code>to</code>, <code>capacity</code> overføringskapasiteten i hver retning (<code>null</code> der grensen ikke publiserer noen)."
     },
     "hass": {
       "page_title": "Home Assistant - sensor for spotpris på strøm",

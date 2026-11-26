@@ -220,7 +220,12 @@
       "deficit": "Alijäämä",
       "surplus": "Ylijäämä",
       "measured": "Viimeisin mitattu tuotanto",
-      "layer_note": "Koskee hinta-alueen tuotantoa, ei siellä käytettyä sähköä (tuontia ei lasketa). CO₂ on arvio."
+      "layer_note": "Koskee hinta-alueen tuotantoa, ei siellä käytettyä sähköä (tuontia ei lasketa). CO₂ on arvio.",
+      "planned": "Suunniteltu",
+      "capacity": "Kapasiteetti",
+      "used": "käytössä",
+      "congested": "Pullonkaula: eri hinta kummallakin puolella",
+      "flows_planned": "Suunniteltu siirto (day-ahead)"
     },
     "share": {
       "share": "Jaa",
@@ -415,7 +420,8 @@
       "ep_healthz_data": "<code>200 ok</code>, kun hinnat, tuotanto ja kulutus ovat ajan tasalla, muuten <code>503</code> ja yksi ongelma riviä kohden.",
       "selfhost": "Nämä kutsut kertovat vain nykytilan eivätkä lupaa mitään tulevasta käytettävyydestä. Jos tarvitset taatun saatavuuden, aja omaa instanssia; <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">lähdekoodi</a> on avoin.",
       "ep_reservoirs": "Vesivarastoihin varastoitu energia (GWh) ISO-viikoittain niille hinta-alueille ja maille, jotka raportoivat sen ENTSO-e:lle (Suomi, Ruotsi, Norja ym.). Viimeisintä viikkoa verrataan samaan viikkoon viime vuonna sekä viikon pienimpään, mediaani- ja suurimpaan arvoon aiempina vuosina. <code>weeks</code> sisältää koko vuoden kaaviota varten.",
-      "p_reservoirs_scope": "toinen vaaditaan: hinta-alue (<code>area=NO2</code>) tai maa (<code>country=no</code>, maan hinta-alueiden summa)."
+      "p_reservoirs_scope": "toinen vaaditaan: hinta-alue (<code>area=NO2</code>) tai maa (<code>country=no</code>, maan hinta-alueiden summa).",
+      "p_flows_planned": "valinnainen. Tämän päivän ja huomisen day-ahead-suunnitelma rajoittain ja tunneittain: <code>scheduled</code> on suunniteltu nettosiirto (MW) alueelta <code>from</code> alueelle <code>to</code>, <code>capacity</code> siirtokapasiteetti kumpaankin suuntaan (<code>null</code>, jos rajalta ei julkaista sitä)."
     },
     "hass": {
       "page_title": "Home Assistant - sähkön spot-hinnan sensori",

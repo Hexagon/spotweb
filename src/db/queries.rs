@@ -997,6 +997,96 @@ pub fn data_freshness(c: &Connection) -> rusqlite::Result<DataFreshness> {
 }
 
 // ---------------------------------------------------------------------------
+// Planned flows and capacity
+// ---------------------------------------------------------------------------
+
+/// What a `border_plan` row is
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlanKind {
+    /// Day-ahead scheduled commercial exchange (A09)
+    Schedule,
+    /// Day-ahead transfer capacity (A61)
+    Capacity,
+}
+
+impl PlanKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            PlanKind::Schedule => "schedule",
+            PlanKind::Capacity => "capacity",
+        }
+    }
+}
+
+/// Start of the latest stored interval of one kind and direction
+pub fn max_plan_period(
+    c: &Connection,
+    kind: PlanKind,
+    from: &str,
+    to: &str,
+) -> rusqlite::Result<Option<i64>> {
+    c.query_row(
+        "SELECT MAX(period) FROM border_plan WHERE kind = ?1 AND from_area = ?2 AND to_area = ?3",
+        params![kind.as_str(), from, to],
+        |r| r.get(0),
+    )
+}
+
+/// `(period, interval, MW)` for one kind and direction. Returns the number of rows inserted or changed.
+pub fn upsert_plan(
+    c: &mut Connection,
+    kind: PlanKind,
+    from: &str,
+    to: &str,
+    rows: &[(i64, String, f64)],
+) -> rusqlite::Result<usize> {
+    let tx = c.transaction()?;
+    let mut changed = 0;
+    {
+        let mut st = tx.prepare_cached(
+            "INSERT INTO border_plan (kind, from_area, to_area, period, interval, value)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+             ON CONFLICT (kind, from_area, to_area, period, interval) DO UPDATE SET value = excluded.value
+             WHERE value IS NOT excluded.value",
+        )?;
+        for (period, interval, value) in rows {
+            changed += st.execute(params![kind.as_str(), from, to, period, interval, value])?;
+        }
+    }
+    tx.commit()?;
+    Ok(changed)
+}
+
+/// Remove planned values that start before `before`. Returns the number of rows removed.
+pub fn prune_plan(c: &Connection, before: i64) -> rusqlite::Result<usize> {
+    c.execute("DELETE FROM border_plan WHERE period < ?1", params![before])
+}
+
+/// Rows of one kind in `[from, to)`, in the same shape as flow rows
+pub fn plan_rows(
+    c: &Connection,
+    kind: PlanKind,
+    from: i64,
+    to: i64,
+) -> rusqlite::Result<Vec<crate::flows::FlowRow>> {
+    let mut st = c.prepare_cached(
+        "SELECT from_area, to_area, period, interval, value FROM border_plan
+         WHERE kind = ?1 AND period >= ?2 AND period < ?3",
+    )?;
+    let rows = st.query_map(params![kind.as_str(), from, to], |r| {
+        let iv: String = r.get(3)?;
+        Ok((
+            r.get(0)?,
+            r.get(1)?,
+            r.get(2)?,
+            crate::timeutil::interval_ms(&iv),
+            r.get(4)?,
+        ))
+    })?;
+    rows.collect()
+}
+
+// ---------------------------------------------------------------------------
 // Hydro reservoirs
 // ---------------------------------------------------------------------------
 
