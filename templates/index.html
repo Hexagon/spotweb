@@ -34,16 +34,26 @@
       <button type="button" class="map-live" data-map-live>{{ t("chart.now") }}</button>
     </div>
     <footer class="map-foot">
+      <label class="map-layer small"><span class="muted">{{ t("map.layer") }}</span>
+        <select class="compact-select" data-map-layer>
+          <option value="price">{{ t("map.layer_price") }}</option>
+          <option value="renewable">{{ t("map.layer_renewable") }}</option>
+          <option value="fossil_free">{{ t("map.layer_fossil_free") }}</option>
+          <option value="co2">{{ t("map.layer_co2") }}</option>
+          <option value="balance">{{ t("map.layer_balance") }}</option>
+        </select>
+      </label>
       <div class="map-legend" aria-hidden="true">
-        <span class="muted small">{{ t("map.cheap") }}</span>
+        <span class="muted small" data-legend-lo>{{ t("map.cheap") }}</span>
         <span class="legend-ramp"></span>
-        <span class="muted small">{{ t("map.expensive") }}</span>
-        <span class="legend-range small"><span data-legend-min>-</span> &ndash; <span data-legend-max>-</span> {{ m.unit() }}</span>
-        {{ m.price_kind() }}
+        <span class="muted small" data-legend-hi>{{ t("map.expensive") }}</span>
+        <span class="legend-range small"><span data-legend-min>-</span> &ndash; <span data-legend-max>-</span> <span data-legend-unit>{{ m.unit() }}</span></span>
+        <span data-legend-price>{{ m.price_kind() }}</span>
         <span class="legend-negative small" data-legend-negative hidden><i></i>{{ t("map.negative") }}</span>
         <span class="legend-equal small muted" data-legend-equal hidden>{{ t("map.all_equal") }}</span>
       </div>
       <div class="muted small" data-flows-updated></div>
+      <p class="muted small map-layer-note" data-layer-note hidden>{{ t("map.layer_note") }}</p>
     </footer>
   </div>
 
@@ -121,7 +131,7 @@
         <th class="hide-sm">{{ t("generation.primary_source") }}</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody data-live="overview">
       {%- for c in rows %}
       <tr class="country-row">
         <td><a href="/{{ c.id }}">{{ t("countries." ~ c.id) }}</a></td>

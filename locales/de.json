@@ -206,7 +206,26 @@
       "net_24h": "Nettoexport der letzten 24 Stunden",
       "negative": "Negativer Preis",
       "all_equal": "Gleicher Preis in allen Zonen",
-      "vs_yesterday": "ggü. gestern"
+      "vs_yesterday": "ggü. gestern",
+      "layer": "Anzeigen",
+      "layer_price": "Strompreis",
+      "layer_renewable": "Erneuerbar",
+      "layer_fossil_free": "Fossilfrei",
+      "layer_co2": "CO₂",
+      "layer_balance": "Überschuss/Defizit",
+      "share_low": "Geringer Anteil",
+      "share_high": "Hoher Anteil",
+      "co2_low": "Geringe Emissionen",
+      "co2_high": "Hohe Emissionen",
+      "deficit": "Defizit",
+      "surplus": "Überschuss",
+      "measured": "Zuletzt gemessene Erzeugung",
+      "layer_note": "Bezieht sich auf die Erzeugung in der Zone, nicht auf den dort verbrauchten Strom (Import wird nicht berücksichtigt). CO₂ ist eine Schätzung.",
+      "planned": "Geplant",
+      "capacity": "Kapazität",
+      "used": "genutzt",
+      "congested": "Engpass: unterschiedliche Preise auf beiden Seiten",
+      "flows_planned": "Geplanter Fluss (Day-Ahead)"
     },
     "share": {
       "share": "Teilen",
@@ -249,6 +268,31 @@
       "custom": "Angepasster Preis",
       "spot_hint": "Spotpreis ohne Gebühren. Klicken zum Anpassen.",
       "custom_hint": "Spotpreis mit Ihren Gebühren und Faktoren. Klicken zum Ändern."
+    },
+    "green": {
+      "renewable": "Erneuerbar",
+      "fossil_free": "Fossilfrei",
+      "co2": "CO₂-Intensität",
+      "estimate": "Schätzung",
+      "note": "Bezieht sich auf die Erzeugung im Gebiet, nicht auf den dort verbrauchten Strom: Import und Export werden nicht berücksichtigt. Fossilfrei sind Erneuerbare, Kernkraft und Pumpspeicher. CO₂ ist eine Schätzung mit festen Lebenszykluswerten je Energieträger (IPCC)."
+    },
+    "reservoir": {
+      "title": "Speicherseen",
+      "week": "Woche",
+      "stored": "Gespeicherte Energie",
+      "of_max": "des höchsten gemessenen Werts",
+      "change": "Seit letzter Woche",
+      "last_year": "Gleiche Woche im Vorjahr",
+      "median": "Median",
+      "range": "Niedrigster–höchster",
+      "lowest": "Niedrigstes früheres Jahr",
+      "highest": "Höchstes früheres Jahr",
+      "vs_median": "gegenüber dem Median",
+      "above_all": "Mehr Wasser in den Speichern als in derselben Woche aller früheren Jahre",
+      "below_all": "Weniger Wasser in den Speichern als in derselben Woche aller früheren Jahre",
+      "above_median": "Mehr Wasser in den Speichern als für die Woche üblich",
+      "below_median": "Weniger Wasser in den Speichern als für die Woche üblich",
+      "note": "Am Ende der Woche in den Speicherseen gespeicherte Energie laut ENTSO-e. Ein Füllstand in Prozent wird dort nicht veröffentlicht, daher bezieht sich der Anteil auf den höchsten gespeicherten Wert. Weniger Wasser als üblich bedeutet im Norden meist höhere Strompreise."
     }
   },
   "pages": {
@@ -374,7 +418,10 @@
       "ep_status": "Version, Aktualität der Daten und die letzten Läufe der Importjobs.",
       "ep_healthz": "<code>200 ok</code>, wenn der Dienst und seine Datenbank laufen.",
       "ep_healthz_data": "<code>200 ok</code>, wenn Preise, Erzeugung und Verbrauch aktuell sind, sonst <code>503</code> mit einem Problem pro Zeile.",
-      "selfhost": "Diese Endpunkte zeigen nur den aktuellen Zustand und versprechen nichts über die künftige Verfügbarkeit. Wenn Sie garantierte Verfügbarkeit brauchen, betreiben Sie eine eigene Instanz; der <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">Quellcode</a> ist offen."
+      "selfhost": "Diese Endpunkte zeigen nur den aktuellen Zustand und versprechen nichts über die künftige Verfügbarkeit. Wenn Sie garantierte Verfügbarkeit brauchen, betreiben Sie eine eigene Instanz; der <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">Quellcode</a> ist offen.",
+      "ep_reservoirs": "In Speicherseen gespeicherte Energie (GWh) pro ISO-Woche für Gebotszonen und Länder, die sie an ENTSO-e melden (Norwegen, Schweden, Finnland, Österreich, Schweiz u. a.). Die letzte Woche wird mit derselben Woche im Vorjahr und mit dem niedrigsten, mittleren und höchsten Wert der Woche in früheren Jahren verglichen. <code>weeks</code> enthält das ganze Jahr für ein Diagramm.",
+      "p_reservoirs_scope": "eines davon ist erforderlich: Gebotszone (<code>area=NO2</code>) oder Land (<code>country=no</code>, die Summe seiner Zonen).",
+      "p_flows_planned": "optional. Der Day-Ahead-Plan für heute und morgen je Grenze und Stunde: <code>scheduled</code> ist der geplante Nettofluss (MW) von <code>from</code> nach <code>to</code>, <code>capacity</code> die Übertragungskapazität je Richtung (<code>null</code>, wo die Grenze keine veröffentlicht)."
     },
     "hass": {
       "page_title": "Home Assistant - Sensor für Strom-Spotpreise",

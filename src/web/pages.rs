@@ -496,11 +496,17 @@ async fn production_ctx(
     let net = data::net_generation(&st.app, key, from, to + 1)
         .await
         .map_err(internal)?;
-    Ok((
-        production_overview(&gen, &load, c.interval, &tz),
-        production_series(&gen),
-        json!(&*net),
-    ))
+    let mut overview = production_overview(&gen, &load, c.interval, &tz);
+    // Renewable and fossil free share and carbon intensity of the latest interval
+    let genload = data::current_generation_and_load(&st.app)
+        .await
+        .map_err(internal)?;
+    if let (Some(r), Value::Object(o)) = (genload.iter().find(|r| r.area == key), &mut overview) {
+        if r.derived.renewable.is_some() {
+            o.insert("derived".into(), json!(r.derived));
+        }
+    }
+    Ok((overview, production_series(&gen), json!(&*net)))
 }
 
 /// Flows for an area or country page: net flow per border right now (for the list) and the
@@ -519,6 +525,21 @@ async fn flows_ctx(
         .await
         .map_err(internal)?;
     Ok((json!(&*current), json!(&*series)))
+}
+
+/// Reservoir filling for an area or country page, when the zone reports it
+async fn reservoir_ctx(
+    st: &WebState,
+    scope: data::FlowScope<'_>,
+    ctx: &mut Map<String, Value>,
+    boot: &mut Map<String, Value>,
+) -> Result<(), Response> {
+    let r = data::reservoirs(&st.app, scope).await.map_err(internal)?;
+    if r.latest.is_some() {
+        ctx.insert("reservoir".into(), json!(&*r));
+        boot.insert("reservoir".into(), json!(&*r));
+    }
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------
@@ -569,6 +590,10 @@ pub async fn index(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> 
                 "net": r.net_generation,
                 "primary": r.primary_psr_group,
                 "mix": r.mix,
+                "period": r.period,
+                "renewable": r.derived.renewable,
+                "fossil_free": r.derived.fossil_free,
+                "co2": r.derived.co2,
                 "primary_share": match (r.primary_psr_group_generation, r.generation_total) {
                     (Some(p), Some(t)) if t != 0.0 => Some((p / t * 100.0).round()),
                     _ => None,
@@ -628,6 +653,13 @@ pub async fn index(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> 
         .await
         .map_err(internal)?;
     boot.insert("flow_hours".into(), json!(&*hours));
+    // Planned flows and capacity per hour today and tomorrow, for future times on the slider
+    let plan_from = day_range(&tz, today(&tz)).0;
+    let plan_to = day_range(&tz, add_days(today(&tz), 1)).1;
+    let plan = data::border_plan(&st.app, plan_from, plan_to)
+        .await
+        .map_err(internal)?;
+    boot.insert("plan".into(), json!(&*plan));
     boot.insert("neighbours".into(), Value::Object(neighbours));
     boot.insert("default_area".into(), json!(default_map_area(&lang)));
     render(&st, "index.html", finish(ctx, boot))
@@ -702,6 +734,7 @@ pub async fn country(
     let (flows, area_flows) = flows_ctx(&st, c, data::FlowScope::Country(c.id)).await?;
     boot.insert("flows".into(), flows);
     boot.insert("area_flows".into(), area_flows);
+    reservoir_ctx(&st, data::FlowScope::Country(c.id), &mut ctx, &mut boot).await?;
     render(&st, "country.html", finish(ctx, boot))
 }
 
@@ -856,6 +889,7 @@ pub async fn area(
     let (flows, area_flows) = flows_ctx(&st, c, data::FlowScope::Area(a.name)).await?;
     boot.insert("flows".into(), flows);
     boot.insert("area_flows".into(), area_flows);
+    reservoir_ctx(&st, data::FlowScope::Area(a.name), &mut ctx, &mut boot).await?;
     render(&st, "area.html", finish(ctx, boot))
 }
 
@@ -1051,7 +1085,10 @@ pub async fn llms(State(st): State<WebState>, headers: HeaderMap) -> Response {
          `hours` (or with `consecutive=false` the cheapest separate intervals) from now to the end \
          of tomorrow, or between optional `from` and `to`. Returns `start`, `end`, average `price` \
          (currency/MWh), `windows`, the intervals in `data` and `active` (true while one of them is in progress).\n\
-         - [Cross-border flows]({base}/api/v2/flows): latest physical flows between zones, MW.\n\
+         - [Cross-border flows]({base}/api/v2/flows): latest physical flows between zones, MW. \
+         With `planned=true` the day-ahead scheduled exchange and capacity per border and hour, today and tomorrow.\n\
+         - [Hydro reservoirs]({base}/api/v2/reservoirs?country=no): energy stored per ISO week (GWh) \
+         compared with the same week of earlier years, per `area` or `country`.\n\
          - [Status]({base}/api/v2/status): data freshness.\n\n\
          ## Bidding zones\n\n\
          - [Map of all zones with current prices and flows]({base}/)\n",

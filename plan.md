@@ -141,8 +141,15 @@ Bygget, clippy och de 72 testerna är gröna. Punkterna nedan kommer från en ge
     `SPOTWEB_API_TOKEN` (alias för `API_TOKEN`) nämns inte i README eller `docs/deployment.md`.
 41. ✅ (#59) **Timeout-svaret är 408.** `TimeoutLayer` svarar `408 Request Timeout` när servern är långsam, men 408 betyder att
     klienten var för långsam. Proxyer och klienter kan då göra om anropet automatiskt. Åtgärd: 503 eller 504.
-42. **Timvis omladdning av hela sidan.** Klienten laddar om sidan varje hel timme för att få ny data. Det ger ny
-    sidvisning, laddar om annonserna och ritar om allt. Åtgärd (större): hämta bara ny boot-data som JSON och rita om.
+42. ✅ ~~**Timvis omladdning av hela sidan.** Klienten laddar om sidan varje hel timme för att få ny data. Det ger ny
+    sidvisning, laddar om annonserna och ritar om allt. Åtgärd (större): hämta bara ny boot-data som JSON och rita om.~~
+    Klart (variant): en timer vid varje kvartsgräns flyttar fram priset nu, nu-linjen i diagrammen, pristabellen och
+    kartan med data som sidan redan har (idag och imorgon per område, inte bara de närmaste två timmarna). Ny data
+    hämtas genom att klienten hämtar sidan själv med `fetch` och byter boot-JSON:en och de serverrenderade delarna
+    som är märkta `data-live` (statistiken i områdeskorten, produktionskortet och tabellen på startsidan). Det sker
+    1–3 minuter efter varje hel timme, vid nytt dygn, och högst en gång per kvart när priset för aktuellt intervall
+    saknas eller när morgondagens priser väntas (12:45–20:00 svensk tid). Ingen omladdning, så annonser, analys och
+    scrollläge lämnas i fred. Dolda flikar uppdateras när de visas igen.
 
 ## Nya punkter: karta, elområdessidan och mer data (genomgång 22 nov 2026)
 
@@ -205,7 +212,7 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
 48. ✅ **Mer i kartpanelen.** Panelen är också kompaktare: pris nu, snitt idag och imorgon på en rad. Nu visas bara huvudkällan för produktionen. Åtgärd: produktionsmixen som en liten staplad
     stapel (vatten, kärnkraft, vind, sol, fossilt), den billigaste perioden idag och imorgon (samma logik som
     `/api/v2/cheapest`), och skillnaden mot igår eller samma dag förra veckan.
-49. **Notiser om ovanliga priser.** En rad överst på startsidan och områdessidan när morgondagen har negativa priser,
+49. **Notiser om ovanliga priser.** (Ingår nu i nyhetsspalten, punkt 59, som dess första del.) En rad överst på startsidan och områdessidan när morgondagen har negativa priser,
     ovanligt höga toppar eller ett nytt rekord för månaden ("Negativa priser imorgon 11–15 i SE3"). Allt beräknas ur
     data som redan finns.
 
@@ -216,15 +223,39 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
     priser: lite vind och hög förbrukning ger dyrt. Åtgärd: nytt jobb efter publiceringen (cirka 18:00 CET), nya
     tabeller, och ett diagram på områdessidan med morgondagens pris mot prognosen för vind+sol och förbrukning
     (residuallast). Ungefär 2–3 anrop per område och dygn.
-51. **Vattenmagasin (A72, veckovis)** för SE, NO och FI, per elområde där det finns: fyllnadsgrad mot samma vecka
+51. ✅ Klart: jobbet `reservoirs` (10:35) hämtar A72 för alla elområden, de senaste 8 veckorna (ett anrop per
+    område; områden utan magasin svarar "no data"), och första gången ett område har data hela historiken sedan 2015
+    ett år per anrop. Tabellen `reservoir` (migration 6). Kort med diagram på områdes- och landssidan (landet är
+    summan av områdena, bara veckor där alla har värden): lagrad energi i TWh, ändring sedan förra veckan, samma
+    vecka i fjol, median och lägsta–högsta för veckan tidigare år, en mening om läget mot normalt, och veckokurvor
+    för i år, i fjol, median och spridning. `/api/v2/reservoirs?area=NO2` eller `?country=no`, dokumenterat i
+    README, på API-sidan och i `llms.txt`. ENTSO-e publicerar lagrad energi, inte fyllnadsgrad i procent, så
+    andelen visas mot högsta sparade värde. Följ upp: vilka av våra områden som faktiskt svarar, och att veckorna
+    hamnar rätt (ISO-vecka efter veckans mitt). Ursprunglig beskrivning:
+    **Vattenmagasin (A72, veckovis)** för SE, NO och FI, per elområde där det finns: fyllnadsgrad mot samma vecka
     tidigare år (min, max, median). Det är troligen det mest efterfrågade i Norden när priserna stiger på hösten. Få
     anrop (en gång i veckan), liten tabell. Ett kort på lands- och områdessidan.
-52. **Planerade flöden och kapacitet.** Kommersiella flöden day-ahead (A09) visar planerad import och export imorgon. Då
+52. ✅ Klart (behöver kontrolleras mot riktiga svar): jobbet `schedules` (13:10 och 15:10) hämtar day-ahead
+    scheduled commercial exchanges (A09, `contract_MarketAgreement.Type=A01`) och day-ahead-kapacitet (A61, A01)
+    för båda riktningarna av alla gränser, idag och imorgon, och hoppar över det som redan är komplett. Tabellen
+    `border_plan` (migration 7), rensas efter 90 dagar. Kartans tidsreglage visar planerat nettoflöde för tider
+    efter nu (streckade pilar, "Planerat flöde (day-ahead)"), och verktygstipset på en pil visar planerat flöde,
+    kapacitet, hur stor del som används och "Flaskhals" när priserna skiljer sig åt (minst 0,5 EUR/MWh).
+    `/api/v2/flows?planned=true`. Följ upp i driften: vilka gränser som svarar på A09 och A61 efter införandet av
+    flödesbaserad kapacitetsberäkning (Norden och Core har troligen ingen A61, då visas bara planerat flöde), och
+    om A09 behöver `A05` (total) i stället för `A01` för någon gräns. Ursprunglig beskrivning:
+    **Planerade flöden och kapacitet.** Kommersiella flöden day-ahead (A09) visar planerad import och export imorgon. Då
     fungerar import/export-vyn (punkt 43) och tidsreglaget (punkt 46) även framåt i tiden. Kapacitet per gräns (A61
     eller flödesbaserade parametrar där det gäller) visar om en gräns är full, alltså varför priserna skiljer sig.
     Kontrollera först vad som finns för Norden efter införandet av flödesbaserad kapacitetsberäkning (oktober 2024),
     eftersom NTC-dokumenten inte längre finns för alla gränser där.
-53. **Härledda mått utan nya anrop:** andel förnybart och fossilfritt per område, och uppskattad CO₂-intensitet (g/kWh)
+53. ✅ Klart: `src/emissions.rs` räknar andel förnybart, andel fossilfritt (förnybart, kärnkraft, pumpkraft) och
+    CO₂-intensitet per `psrType` (livscykelvärden, IPCC AR5-medianer, avrundade; avfall och övrigt räknas som varken
+    eller, energilager räknas inte). Visas i kartpanelen, i produktionskortet på område och land med en förklaring,
+    och som kartlager (Elpris, Förnybart, Fossilfritt, CO₂, Över-/underskott) med egna färgskalor och fasta
+    skalor (0–100 %, 0–700 g/kWh). Lagren visar senast uppmätta produktion oavsett tidsreglaget, vilket står i
+    teckenförklaringen. Valet sparas i webbläsaren. Ursprunglig beskrivning:
+    **Härledda mått utan nya anrop:** andel förnybart och fossilfritt per område, och uppskattad CO₂-intensitet (g/kWh)
     med fasta emissionsfaktorer per `psr_group`. Visa tydligt att det gäller produktionen i området, inte förbrukningen
     med import. Det blir ett kartlager: pris, förnybart, CO₂ eller nettobalans (val i kartans huvud).
 54. **Installerad effekt (A68, årligen) och kärnkraft tillgänglig.** Med installerad effekt kan utnyttjandet visas (t.ex.
@@ -246,6 +277,57 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
 
 **Förslag till ordning:** 44 (liten, syns direkt) → 43 → 45 → 46 → 47/48 → 53 → 50 → 51 → 52 → 54 → 49. Punkt 55 bör
 avgöras innan 43 slås samman.
+
+## Automatisk nyhetsspalt (plan 26 nov 2026)
+
+Syftet är fler besökare: nytt, indexerbart innehåll varje dag med datum och elområde i rubriken (det folk söker på:
+"negativa elpriser imorgon", "elpris rekord november", "vattenmagasin under normalt"), något att dela, och ett skäl att
+komma tillbaka. Allt beräknas ur data som redan hämtas. Ingen text skrivs av en språkmodell: varje nyhet är en regel
+som har slagit till, med siffror, och texten kommer från mallar i `locales/*.json`, så att den blir korrekt på alla
+nio språk. Punkt 49 (notisraden) blir den första delen av det här.
+
+59. **Nyhetsspalt.**
+    - **Regler (detektorer)** som körs efter jobben och ger händelser med typ, område, datum, prioritet och siffror:
+      | Regel | Källa | När den slår till (startvärden, justeras efter backtest) |
+      | ----- | ----- | ------------------------------------------------------- |
+      | Negativa priser imorgon | priser | minst en kvart under 0 i ett område; anger timmar och lägsta pris |
+      | Pristopp imorgon | priser | dygnets högsta ≥ 2 × medianen av de senaste 30 dagarnas högsta, och över en fast nivå |
+      | Rekord | priser sedan 2021 | högsta/lägsta dygnsmedel i månaden, året eller sedan 2021 för ett område |
+      | Stor förändring | priser | morgondagens medel ±50 % mot idag och minst 20 EUR/MWh |
+      | Norr–söder | priser, flöden (52) | stor prisskillnad inom ett land (SE1–SE4, NO), med gränsen som är flaskhals |
+      | Samma pris överallt | priser | alla nordiska områden inom 0,5 EUR/MWh under större delen av dygnet |
+      | Vattenmagasin | 51 | ny vecka: under lägsta/över högsta för veckan, eller långt från medianen; ändring mot förra veckan |
+      | Kärnkraft | avbrott, (54) | oplanerat avbrott ≥ 400 MW börjar eller slutar; tillgänglig kärnkraft i ett land under en nivå |
+      | Förnybart och CO₂ | 53 | rekordandel förnybart/fossilfritt eller ovanligt hög CO₂ för ett land |
+      | Veckosammanfattning | alla | måndag morgon: förra veckans medelpris per område mot veckan innan, och veckans händelser |
+    - **Gruppering och tak:** samma regel för flera områden samma dag blir en nyhet ("Negativa elpriser imorgon i SE3, SE4
+      och DK1"). Varje händelse har en nyckel (regel, område/grupp, datum) och sparas bara en gång, men uppdateras om
+      siffrorna ändras (till exempel när fler områden får negativa priser). Högst cirka 5 nyheter per dygn, efter prioritet.
+    - **Lagring:** tabellen `news` (id, regel, nyckel unik, datum, skapad, uppdaterad, prioritet, områden och siffror som
+      JSON). Ingen text sparas: rubrik och brödtext renderas när sidan visas, på besökarens språk och i dess valuta.
+    - **Jobb:** `news` körs efter prisjobbet (13:30 och 14:15 för morgondagen), efter avbrotten (08:30), efter magasinen
+      (onsdag–fredag) och måndag 07:00 för veckosammanfattningen. Det är idempotent och gör inga anrop till ENTSO-e.
+    - **Var nyheterna syns:**
+      - En rad överst på startsidan och på områdes- och landssidorna med de 1–3 viktigaste nyheterna för området (punkt 49).
+      - Sidan `/news` (rubrik "Nyheter" på alla språk) med alla nyheter, filtrerbar per land, sidor per månad.
+      - En egen sida per nyhet, `/news/2026-11-28-negativa-elpriser-se3`, med rubrik och beskrivning som innehåller datum
+        och område, ett litet diagram, länk till områdessidan, `NewsArticle` i JSON-LD, canonical och Open Graph. Bara
+        nyheter över en prioritetsgräns får en egen sida, så att det inte blir tunna sidor; de andra finns bara i listan.
+      - RSS/Atom per språk (`/news.xml?lang=sv`), JSON i `/api/v2/news?area=SE3` (för Home Assistant och andra), och
+        nyhetssidorna i `sitemap.xml` med `lastmod`.
+      - Delningsknappen (finns redan) på varje nyhet. Senare: en bild för delning per nyhet (kartan eller diagrammet som
+        PNG, renderad på servern), som hänger ihop med punkt 57.
+    - **Språk:** en mall per regel och språk med platshållare, till exempel `news.negative_tomorrow`: "Negativa elpriser
+      imorgon i {areas}: under noll {from}–{to}, lägst {min} {unit}". Siffror och datum formateras som på resten av
+      sajten. Rubrikerna hålls korta och sakliga.
+    - **Kvalitet:** tester per regel med konstruerad data, och `spotweb news --from 2025-01-01 --dry-run` som kör
+      reglerna mot historiken och skriver ut vad som skulle ha blivit nyheter. Med det sätts gränserna så att det blir
+      cirka 1–3 nyheter per dag i snitt och inga dagar med tio. Historiken kan också fylla arkivet bakåt vid lansering,
+      vilket ger sidor att indexera direkt.
+    - **Mät:** visningar och klick för `/news` i Search Console, och antal delningar per nyhet.
+    - **Ordning för PR:erna:** (a) tabell, jobb och prisreglerna (negativa priser, topp, rekord, förändring) och raden
+      på sidorna, alltså punkt 49; (b) `/news`, sidor per nyhet, RSS, API och sitemap; (c) reglerna för magasin,
+      kärnkraft, förnybart/CO₂ och flaskhalsar; (d) veckosammanfattningen; (e) bilder för delning.
 
 ## Ny startsida
 

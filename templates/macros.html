@@ -22,7 +22,7 @@
     <div class="muted">{{ unit() }} {{ t("overview.right_now") }}</div>
     <div>{{ price_kind() }}</div>
   </div>
-  <div class="stats">
+  <div class="stats" data-live="stats-{{ a.name }}">
     <div>
       <h3>{{ t("overview.average_today") }}</h3>
       <div class="big">{{ price(a.avg_today) }} <small>{{ unit() }}</small></div>
@@ -53,7 +53,7 @@
 {% endmacro %}
 
 {% macro production_card(p) %}
-<section class="card">
+<section class="card" data-live="production">
   <header class="card-head"><h2>{{ t("generation.current_production") }}</h2></header>
   {%- if p.has_data %}
   <table class="table">
@@ -67,8 +67,14 @@
         <th>{% if p.net < 0 %}{{ t("generation.deficit") }}{% else %}{{ t("generation.excess") }}{% endif %}</th>
         <th class="num">{{ mw(p.net) }} MW</th>
       </tr>
+      {%- if p.derived %}
+      <tr><td>{{ t("green.renewable") }}</td><td class="num">{{ p.derived.renewable|int }} %</td></tr>
+      <tr><td>{{ t("green.fossil_free") }}</td><td class="num">{{ p.derived.fossil_free|int }} %</td></tr>
+      <tr><td>{{ t("green.co2") }} <span class="muted">({{ t("green.estimate") }})</span></td><td class="num">{{ p.derived.co2|int }} g/kWh</td></tr>
+      {%- endif %}
     </tbody>
   </table>
+  {%- if p.derived %}<p class="muted small pad">{{ t("green.note") }}</p>{% endif %}
   <p class="muted small right pad">{{ t("generation.last_updated") }}: {{ p.updated }}</p>
   {%- else %}
   <p class="muted pad">-</p>
@@ -123,6 +129,44 @@
 <section class="card">
   <header class="card-head"><h2>{{ title }}</h2>{{ extra|safe }}</header>
   <div class="chart" data-chart="{{ id }}"><div class="chart-empty muted">&hellip;</div></div>
+</section>
+{% endmacro %}
+
+{# Hydro reservoirs: latest week compared with earlier years, and a chart over the year #}
+{% macro reservoir_card(r, name) %}
+<section class="card reservoir-card" id="reservoirs">
+  <header class="card-head"><h2>{{ t("reservoir.title") }} &ndash; {{ name }}</h2><span class="muted small">{{ t("reservoir.week") }} {{ r.week }}, {{ r.year }}</span></header>
+  <div class="stats reservoir-stats">
+    <div>
+      <h3>{{ t("reservoir.stored") }}</h3>
+      <div class="big">{{ twh(r.latest) }} <small>TWh</small></div>
+      {%- if r.share_of_max is not none %}<div class="muted">{{ r.share_of_max|round(0)|int }} % {{ t("reservoir.of_max") }}</div>{% endif %}
+    </div>
+    <div class="right">
+      <h3>{{ t("reservoir.change") }}</h3>
+      <div class="big {% if r.change is not none and r.change < 0 %}text-danger{% else %}text-success{% endif %}">{{ twh(r.change, true) }} <small>TWh</small></div>
+    </div>
+    <div>
+      <h3>{{ t("reservoir.last_year") }}</h3>
+      <div class="big">{{ twh(r.last_year) }} <small>TWh</small></div>
+    </div>
+    <div class="right">
+      <h3>{{ t("reservoir.median") }}{% if r.first_year %} {{ r.first_year }}&ndash;{{ r.year - 1 }}{% endif %}</h3>
+      <div class="big">{{ twh(r.median) }} <small>TWh</small></div>
+      {%- if r.min is not none %}<div class="muted">{{ t("reservoir.range") }} {{ twh(r.min) }} &ndash; {{ twh(r.max) }}</div>{% endif %}
+    </div>
+  </div>
+  {%- if r.median is not none %}
+  <p class="pad reservoir-verdict">
+    {%- if r.latest >= r.max %}{{ t("reservoir.above_all") }}
+    {%- elif r.latest <= r.min %}{{ t("reservoir.below_all") }}
+    {%- elif r.latest >= r.median %}{{ t("reservoir.above_median") }}
+    {%- else %}{{ t("reservoir.below_median") }}{% endif %}
+    ({{ twh(r.latest - r.median, true) }} TWh {{ t("reservoir.vs_median") }})
+  </p>
+  {%- endif %}
+  <div class="chart" data-chart="reservoir"><div class="chart-empty muted">&hellip;</div></div>
+  <p class="pad muted small">{{ t("reservoir.note") }}</p>
 </section>
 {% endmacro %}
 

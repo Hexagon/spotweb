@@ -38,7 +38,7 @@ spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried po
 | -------------------------------- | ------------------------------------------------------------------------ |
 | `spotweb serve`                  | Web server + scheduler (default). `--no-scheduler` for a read-only node. |
 | `spotweb import-v1 [db/main.db]` | Import history from a 1.x database. Safe to run repeatedly.              |
-| `spotweb run-job prices …`       | Run `prices`, `currency`, `load`, `production`, `flows`, `outages` once. |
+| `spotweb run-job prices …`       | Run `prices`, `currency`, `load`, `production`, `flows`, `outages`, `reservoirs`, `schedules` once. |
 | `spotweb repair-prices [AREA…]`  | Refetch months with incomplete days in stored history. `--from DATE`.    |
 | `spotweb backup <file>`          | Consistent online copy, safe while running. `*.zst` is zstd-compressed.  |
 
@@ -83,6 +83,8 @@ Same timing as 1.x, in `SPOTWEB_SCHEDULE_TZ` (DST changes are handled):
 | `production` | every hour at :50                                                 |
 | `flows`      | every hour at :25, half of the borders per run, so each border every second hour (two requests per border) |
 | `outages`    | 08:05                                                             |
+| `schedules`  | 13:10 and 15:10, day-ahead scheduled exchanges and capacity for both directions of every border, today and tomorrow (skips what is complete) |
+| `reservoirs` | 10:35, the last eight weeks per zone (one request each); the first time a zone has data, its history since 2015 a year per request |
 
 Runs only fetch what can have changed:
 
@@ -158,6 +160,15 @@ Neighbours are zones for `area` and countries for `country` (borders inside the 
 their zone name). `start` and `end` are dates in the zone's time zone, by default yesterday and today, at most 31 days.
 Hours without data are left out. Flows are kept at full resolution for 90 days and as hourly averages after that.
 
+`GET /api/v2/flows?planned=true` – the day-ahead plan per border and hour for today and tomorrow: `scheduled` is the net
+scheduled commercial exchange (A09) from `from` to `to` in MW, `capacity.forward`/`capacity.back` the day-ahead transfer
+capacity (A61) per direction, `null` where the border does not publish one (flow-based regions).
+
+`GET /api/v2/reservoirs?area=NO2` or `?country=no` – energy stored in hydro reservoirs per ISO week (GWh), for the zones
+that report it to ENTSO-e (A72). The latest week (`year`, `week`, `latest`, `change`) is compared with the same week last
+year (`last_year`) and in the years before (`min`, `median`, `max`); `weeks` has the whole year for a chart. ENTSO-e
+publishes stored energy, not a filling percentage: `share_of_max` is the latest value as a share of the highest stored.
+
 `GET /api/v2/status` – latest data, last job runs, `healthy`/`problems` and HTTP statistics (`http`). `GET /healthz` – liveness probe.
 `GET /healthz/data` – `200` when prices are complete for today (and tomorrow after 14:00 CET) and load and generation are
 current, else `503`.
@@ -200,13 +211,13 @@ sha256sum --ignore-missing -c SHA256SUMS
 
 # Signature: proves the archive was built by this repository's release workflow
 cosign verify-blob \
-  --bundle spotweb-v2.4.4-x86_64-unknown-linux-musl.tar.gz.sigstore.json \
+  --bundle spotweb-v2.5.0-x86_64-unknown-linux-musl.tar.gz.sigstore.json \
   --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  spotweb-v2.4.4-x86_64-unknown-linux-musl.tar.gz
+  spotweb-v2.5.0-x86_64-unknown-linux-musl.tar.gz
 
 # Or with the GitHub CLI (build provenance attestation)
-gh attestation verify spotweb-v2.4.4-x86_64-unknown-linux-musl.tar.gz --repo Hexagon/spotweb
+gh attestation verify spotweb-v2.5.0-x86_64-unknown-linux-musl.tar.gz --repo Hexagon/spotweb
 ```
 
 ### Recommended setup (Linux, systemd)
@@ -232,10 +243,10 @@ A signed multi-arch image (amd64, arm64) is published to GHCR with each release 
 run it (details and `docker-compose.yml` in [docs/deployment.md](docs/deployment.md#docker)):
 
 ```sh
-cosign verify ghcr.io/hexagon/spotweb:2.4.4 \
+cosign verify ghcr.io/hexagon/spotweb:2.5.0 \
   --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
-docker run -d -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.4.4
+docker run -d -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.5.0
 ```
 
 ## Development

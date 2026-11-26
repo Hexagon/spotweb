@@ -103,32 +103,42 @@
     const r = (rows || []).find((x) => x[0] <= now && x[0] + x[2] > now);
     return r ? r[1] : null;
   };
-  const areaRows = (a) => (a && a.today ? a.today.points.map((p) => [p[0], p[1], a.today.interval]) : []);
+  // Today's and tomorrow's rows of an area overview (`boot.area`, `boot.areas[i]`, `boot.zones[n]`)
+  const dayRows = (d) => (d && d.points ? d.points.map((p) => [p[0], p[1], d.interval]) : []);
+  const areaRows = (a) => (a ? dayRows(a.today).concat(dayRows(a.tomorrow)) : []);
+  /** Price of an area at `now` from whatever the page has loaded, `null` when it has nothing */
+  const areaNow = (name, now) => {
+    const sources = [boot.upcoming && boot.upcoming[name], boot.zones && areaRows(boot.zones[name])];
+    for (const a of boot.areas || (boot.area ? [boot.area] : [])) if (a.name === name) sources.push(areaRows(a));
+    for (const rows of sources) {
+      const v = nowFromRows(rows, now);
+      if (v !== null) return v;
+    }
+    return null;
+  };
+  // Whether a price shown on the page is not known for the current interval: the page's data
+  // has run out (open since yesterday, or the tab slept), see the live updates at the end
+  let missingNow = false;
 
   const renderNow = () => {
     const now = Date.now();
-    const areas = boot.areas || (boot.area ? [boot.area] : []);
     const byArea = {};
-    for (const a of areas) byArea[a.name] = nowFromRows(areaRows(a), now);
-    if (boot.upcoming) for (const [k, rows] of Object.entries(boot.upcoming)) {
-      const v = nowFromRows(rows, now);
-      if (v !== null) byArea[k] = v;
-    }
+    missingNow = false;
     $$("[data-now-area]").forEach((el) => {
-      const v = byArea[el.dataset.nowArea];
-      if (v !== undefined && v !== null) el.innerHTML = `<span class="p" data-eur="${v}">${price(v)}</span>`;
+      const n = el.dataset.nowArea;
+      const v = (byArea[n] = areaNow(n, now));
+      if (v !== null) el.innerHTML = `<span class="p" data-eur="${v}">${price(v)}</span>`;
+      else missingNow = true;
     });
-    if (boot.upcoming) {
-      $$("[data-now-country]").forEach((el) => {
-        const c = boot.countries.find((x) => x.id === el.dataset.nowCountry);
-        if (!c) return;
-        const vals = c.areas.map((a) => byArea[a.name]).filter((v) => v !== undefined && v !== null);
-        if (vals.length) {
-          const v = vals.reduce((a, b) => a + b, 0) / vals.length;
-          el.innerHTML = `<span class="p" data-eur="${v}">${price(v)}</span>`;
-        }
-      });
-    }
+    $$("[data-now-country]").forEach((el) => {
+      const c = (boot.countries || []).find((x) => x.id === el.dataset.nowCountry);
+      if (!c) return;
+      const vals = c.areas.map((a) => (a.name in byArea ? byArea[a.name] : areaNow(a.name, now))).filter((v) => v !== null);
+      if (vals.length) {
+        const v = vals.reduce((a, b) => a + b, 0) / vals.length;
+        el.innerHTML = `<span class="p" data-eur="${v}">${price(v)}</span>`;
+      }
+    });
   };
 
   // ------------------------------------------------------------------ charts
@@ -146,9 +156,15 @@
       now: v("--chart-now"), nowText: v("--chart-now-text"), nowBg: v("--chart-now-bg"),
       c1: v("--chart-1"), c2: v("--chart-2"), c3: v("--chart-3"), zone: v("--chart-zone"),
       negative: v("--chart-negative"), positive: v("--chart-positive"),
-      ramp: v("--ramp").split(",").map((x) => x.trim()).filter((x) => /^#[0-9a-f]{6}$/i.test(x)),
     };
-    if (theme.ramp.length < 2) theme.ramp = ["#2b2418", "#ffd58a"];
+    const ramp = (name, fallback) => {
+      const r = v(name).split(",").map((x) => x.trim()).filter((x) => /^#[0-9a-f]{6}$/i.test(x));
+      return r.length >= 2 ? r : fallback;
+    };
+    theme.ramp = ramp("--ramp", ["#2b2418", "#ffd58a"]);
+    theme.rampGreen = ramp("--ramp-green", ["#1f2a22", "#b5e39b"]);
+    theme.rampCo2 = ramp("--ramp-co2", ["#1d2a24", "#ff6a4a"]);
+    theme.rampBalance = ramp("--ramp-balance", ["#e0685f", "#2c2f3a", "#5fc07a"]);
   };
   readTheme();
   const areaColor = (a) => theme.areas[(a.color - 1) % theme.areas.length];
@@ -657,8 +673,7 @@ series:
   // ------------------------------------------------------------- start page map
   // Sequential ramp (one hue, cheap blends into the background, expensive stands out), from `--ramp`
   const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-  const rampColor = (f) => {
-    const ramp = theme.ramp;
+  const rampColor = (f, ramp = theme.ramp) => {
     const x = Math.max(0, Math.min(1, f)) * (ramp.length - 1);
     const i = Math.min(ramp.length - 2, Math.floor(x));
     const a = hexRgb(ramp[i]), b = hexRgb(ramp[i + 1]), k = x - i;
@@ -677,11 +692,7 @@ series:
   const NORDIC = ["sv", "no", "fi", "dk"];
 
   const map = { ready: false, selected: null, view: null };
-  const zoneNow = (name) => {
-    const z = boot.zones[name];
-    const v = boot.upcoming ? nowFromRows(boot.upcoming[name], Date.now()) : null;
-    return v !== null && v !== undefined ? v : z ? z.now : null;
-  };
+  const zoneNow = (name) => areaNow(name, Date.now());
   // Price of a zone at the time chosen on the slider (`map.time`), or right now
   const zoneAt = (name) => {
     if (map.time === null || map.time === undefined) return zoneNow(name);
@@ -696,20 +707,68 @@ series:
   // Net flow per border at the chosen time: the latest values when live, otherwise the hourly
   // average of that hour. There are no flows for the future.
   const HOUR = 3600000;
-  const mapBorders = () => {
-    if (map.time === null || map.time === undefined) return (boot.flows && boot.flows.borders) || [];
-    const fh = boot.flow_hours;
-    const i = fh ? fh.times.indexOf(map.time - (((map.time % HOUR) + HOUR) % HOUR)) : -1;
+  // Hourly net values per border at `time` from a `{times, borders: [{a, b, values}]}` series
+  const hourOf = (time) => time - (((time % HOUR) + HOUR) % HOUR);
+  const bordersAt = (series, time, extra) => {
+    const i = series ? series.times.indexOf(hourOf(time)) : -1;
     if (i < 0) return [];
     const out = [];
-    for (const b of fh.borders) {
+    for (const b of series.borders) {
       const v = b.values[i];
       if (v === null || v === undefined) continue;
-      out.push(v >= 0 ? { from: b.a, to: b.b, value: v } : { from: b.b, to: b.a, value: -v });
+      out.push(Object.assign(v >= 0 ? { from: b.a, to: b.b, value: v } : { from: b.b, to: b.a, value: -v }, extra));
     }
     return out;
   };
+  // Physical flows up to now; after that the day-ahead plan (scheduled commercial exchange)
+  const mapBorders = () => {
+    if (map.time === null || map.time === undefined) return (boot.flows && boot.flows.borders) || [];
+    const physical = map.time < Date.now() ? bordersAt(boot.flow_hours, map.time) : [];
+    return physical.length ? physical : bordersAt(boot.plan && boot.plan.schedule, map.time, { planned: true });
+  };
+  // Day-ahead plan for one direction at a time: scheduled MW from `from` to `to` (negative is the
+  // other way) and the capacity in that direction, either `null` when not published
+  const planAt = (from, to, time) => {
+    const p = boot.plan;
+    if (!p) return { scheduled: null, capacity: null };
+    const h = hourOf(time);
+    let scheduled = null, capacity = null;
+    const i = p.schedule.times.indexOf(h);
+    for (const b of i < 0 ? [] : p.schedule.borders) {
+      const v = b.values[i];
+      if (v === null || v === undefined) continue;
+      if (b.a === from && b.b === to) scheduled = v;
+      else if (b.a === to && b.b === from) scheduled = -v;
+    }
+    const j = p.capacity.times.indexOf(h);
+    const d = j < 0 ? null : p.capacity.directions.find((x) => x.from === from && x.to === to);
+    if (d && d.values[j] !== null && d.values[j] !== undefined) capacity = d.values[j];
+    return { scheduled, capacity };
+  };
   const zoneLabel = (name) => (boot.zones[name] ? `${name} – ${boot.zones[name].long}` : `${name} – ${(boot.neighbours || {})[name] || ""}`);
+
+  // Map layers: the price at the chosen time, or a value of the latest measured production
+  // (shares and carbon intensity of the production in the zone, net balance)
+  const LAYERS = ["price", "renewable", "fossil_free", "co2", "balance"];
+  map.layer = LAYERS.includes(store.get("sw_map_layer")) ? store.get("sw_map_layer") : "price";
+  const layerValue = (name, layer = map.layer) => {
+    if (layer === "price") return zoneAt(name);
+    const gl = boot.zones[name] && boot.zones[name].gl;
+    if (!gl) return null;
+    const v = layer === "balance" ? (gl.load === null || gl.load === undefined ? null : gl.net) : gl[layer];
+    return v === undefined ? null : v;
+  };
+  const layerText = (name, layer = map.layer) => {
+    const v = layerValue(name, layer);
+    if (layer === "price") return price(v);
+    if (v === null) return "-";
+    if (layer === "co2") return mw(v);
+    if (layer === "balance") return `${v > 0 ? "+" : ""}${mw(v)}`;
+    return `${Math.round(v)} %`;
+  };
+  const layerUnit = (layer = map.layer) => ({ price: unit(), co2: "g/kWh", balance: "MW" })[layer] || "";
+  // Fixed scales, so that zones and days can be compared: 0-100 %, 0-700 g/kWh
+  const CO2_MAX = 700;
 
   const mapSetup = () => {
     const app = $("#map-app");
@@ -758,6 +817,12 @@ series:
       p.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(p.dataset.area); } });
     });
     $("#zone-select").addEventListener("change", (e) => select(e.target.value));
+    const layerSel = $("[data-map-layer]", app);
+    if (layerSel) layerSel.addEventListener("change", () => {
+      map.layer = LAYERS.includes(layerSel.value) ? layerSel.value : "price";
+      store.set("sw_map_layer", map.layer);
+      mapRender();
+    });
 
     // Tooltip for zones, neighbours and arrows
     const showTip = (e, html) => {
@@ -777,7 +842,8 @@ series:
         showTip(e, flowTip(map.borders[Number(target.dataset.flow)]));
       } else if (target.dataset.area) {
         const n = target.dataset.area;
-        showTip(e, `<strong>${esc(zoneLabel(n))}</strong><br>${price(zoneAt(n))} ${esc(unit())}`);
+        const extra = map.layer === "price" ? "" : `<br>${esc(t("map.layer_" + map.layer))}: ${esc(layerText(n))} ${esc(layerUnit())}`;
+        showTip(e, `<strong>${esc(zoneLabel(n))}</strong><br>${price(zoneAt(n))} ${esc(unit())}${extra}`);
       } else {
         showTip(e, `<strong>${esc(zoneLabel(target.dataset.ext))}</strong>`);
       }
@@ -1061,7 +1127,7 @@ series:
     const px = -uy, py = ux;
     const touches = selected && (f.from === selected || f.to === selected);
     const dir = !touches || f.value < 1 ? "" : f.to === selected ? " is-import" : " is-export";
-    const cls = "flow" + (touches ? " active" : selected ? " dim" : "") + dir;
+    const cls = "flow" + (touches ? " active" : selected ? " dim" : "") + dir + (f.planned ? " planned" : "");
     const grp = placed(g, mid[0], mid[1], { class: cls, "data-flow": i });
     if (f.value < 1) {
       svgEl("circle", { cx: 0, cy: 0, r: 3, class: "flow-zero" }, grp);
@@ -1107,13 +1173,24 @@ series:
   // Tooltip for an arrow: MW, and the price on both sides with the difference, which shows
   // where a border is congested ("SE3 4.1 → SE4 9.8 öre/kWh (+5.7)")
   const flowTip = (f) => {
-    let html = `<strong>${esc(f.from)} &rarr; ${esc(f.to)}</strong><br>${mw(f.value)} MW`;
+    let html = `<strong>${esc(f.from)} &rarr; ${esc(f.to)}</strong><br>${mw(f.value)} MW${f.planned ? ` <span class="muted">(${esc(t("map.planned"))})</span>` : ""}`;
     const pa = priceNum(zoneAt(f.from)), pb = priceNum(zoneAt(f.to));
     if (pa !== null && pb !== null) {
       const d = pb - pa;
       const ds = (d > 0 ? "+" : d < 0 ? "−" : "±") + Math.abs(d).toFixed(prefs.decimals);
       html += `<br><span class="muted">${esc(f.from)} ${price(zoneAt(f.from))} &rarr; ${esc(f.to)} ${price(zoneAt(f.to))} ${esc(unit())} (${ds})</span>`;
     }
+    // The day-ahead plan for the same hour: planned flow, capacity and how much of it is used
+    const time = map.time === null || map.time === undefined ? Date.now() : map.time;
+    const p = planAt(f.from, f.to, time);
+    if (p.scheduled !== null && !f.planned) html += `<br>${esc(t("map.planned"))}: ${mw(p.scheduled)} MW`;
+    if (p.capacity !== null && p.capacity > 0) {
+      const used = p.scheduled === null ? null : Math.round((Math.max(0, p.scheduled) / p.capacity) * 100);
+      html += `<br>${esc(t("map.capacity"))}: ${mw(p.capacity)} MW${used === null ? "" : ` · ${used} % ${esc(t("map.used"))}`}`;
+    }
+    // Different prices on the two sides: the market could not send more, the border is congested
+    const ea = zoneAt(f.from), eb = zoneAt(f.to);
+    if (ea !== null && eb !== null && ea !== undefined && eb !== undefined && Math.abs(eb - ea) >= 0.5) html += `<br><strong>${esc(t("map.congested"))}</strong>`;
     return html;
   };
 
@@ -1135,7 +1212,7 @@ series:
     const plan = {};
     for (const n of names) {
       const s = size(n);
-      const pw = price(zoneAt(n)).length * (n === sel ? 8 : 7.2);
+      const pw = layerText(n).length * (n === sel ? 8 : 7.2);
       const full = rect(n, Math.max(n.length * 6, pw), -13, 13);
       const short = rect(n, n.length * 6, -4, 5);
       if (n === sel || (s >= ZL_FULL && fits(full))) { plan[n] = "full"; taken.push(full); }
@@ -1167,7 +1244,7 @@ series:
       const g = placed(lg, a[0], a[1], { class: "zone-label" + (name === sel ? " selected" : "") });
       if (level === "full") {
         svgEl("text", { x: 0, y: -6, class: "zl-name", "text-anchor": "middle" }, g).textContent = name;
-        svgEl("text", { x: 0, y: 10, class: "zl-price", "text-anchor": "middle" }, g).textContent = price(zoneAt(name));
+        svgEl("text", { x: 0, y: 10, class: "zl-price", "text-anchor": "middle" }, g).textContent = layerText(name);
       } else {
         svgEl("text", { x: 0, y: 4, class: "zl-name", "text-anchor": "middle" }, g).textContent = name;
       }
@@ -1180,7 +1257,60 @@ series:
   };
 
   // Zone colours, legend and flow status for the chosen time
+  // Legend texts per layer: [low end, high end]
+  const layerEnds = () => ({
+    price: [t("map.cheap"), t("map.expensive")],
+    renewable: [t("map.share_low"), t("map.share_high")],
+    fossil_free: [t("map.share_low"), t("map.share_high")],
+    co2: [t("map.co2_low"), t("map.co2_high")],
+    balance: [t("map.deficit"), t("map.surplus")],
+  })[map.layer];
+  const mapColorsOther = () => {
+    const svg = map.svg;
+    const sel = map.selected;
+    const layer = map.layer;
+    const names = Object.keys(boot.zones);
+    const vals = names.map((n) => layerValue(n)).filter((v) => v !== null);
+    const span = layer === "balance" ? Math.max(500, ...vals.map(Math.abs)) : 0;
+    const [ramp, frac] = layer === "co2" ? [theme.rampCo2, (v) => v / CO2_MAX]
+      : layer === "balance" ? [theme.rampBalance, (v) => 0.5 + v / (2 * span)]
+      : [theme.rampGreen, (v) => v / 100];
+    $$(".zone", svg).forEach((p) => {
+      const n = p.dataset.area;
+      const v = layerValue(n);
+      p.style.fill = v === null ? "" : rampColor(frac(v), ramp);
+      p.classList.toggle("no-data", v === null);
+      p.classList.toggle("selected", n === sel);
+      p.setAttribute("aria-label", `${zoneLabel(n)}: ${layerText(n)} ${layerUnit()}`);
+      p.setAttribute("aria-pressed", String(n === sel));
+    });
+    const selPath = $(`.zone[data-area="${sel}"]`, svg);
+    if (selPath) selPath.parentNode.appendChild(selPath);
+    const fmt = (v) => (layer === "co2" ? mw(v) : layer === "balance" ? `${v > 0 ? "+" : ""}${mw(v)}` : `${v}`);
+    const [lo, hi] = layer === "co2" ? [0, CO2_MAX] : layer === "balance" ? [-span, span] : [0, 100];
+    $("[data-legend-min]").textContent = fmt(lo);
+    $("[data-legend-max]").textContent = fmt(hi) + (layer === "co2" ? "+" : "");
+    const stops = [0, 0.25, 0.5, 0.75, 1].map((x) => rampColor(x, ramp));
+    $(".legend-ramp").style.background = `linear-gradient(90deg, ${stops.join(",")})`;
+    $("[data-legend-negative]").hidden = true;
+    $("[data-legend-equal]").hidden = true;
+    // The values are of the latest measured production, whatever time the slider is at
+    const latest = Math.max(...names.map((n) => (boot.zones[n].gl && boot.zones[n].gl.period) || 0));
+    $("[data-flows-updated]").textContent = latest > 0 ? `${t("map.measured")} ${hhmm(latest)}` : "";
+  };
+  const mapLegendUi = () => {
+    const [lo, hi] = layerEnds();
+    $("[data-legend-lo]").textContent = lo;
+    $("[data-legend-hi]").textContent = hi;
+    $("[data-legend-unit]").textContent = map.layer === "price" ? unit() : layerUnit() || "%";
+    $$("[data-legend-price]").forEach((el) => { el.hidden = map.layer !== "price"; });
+    $("[data-layer-note]").hidden = map.layer === "price" || map.layer === "balance";
+    const s = $("[data-map-layer]");
+    if (s) s.value = map.layer;
+  };
   const mapColors = () => {
+    mapLegendUi();
+    if (map.layer !== "price") { mapColorsOther(); return; }
     const svg = map.svg;
     const sel = map.selected;
     const prices = Object.keys(boot.zones).map((n) => [n, zoneAt(n)]).filter((x) => x[1] !== null && x[1] !== undefined);
@@ -1220,7 +1350,8 @@ series:
     let status = flowsUpdatedText();
     if (map.time !== null && map.time !== undefined) {
       const h = map.time - (((map.time % HOUR) + HOUR) % HOUR);
-      if (mapBorders().length) status = `${t("map.flows")} ${hhmm(h)}–${hhmm(h + HOUR)}`;
+      const bs = mapBorders();
+      if (bs.length) status = `${bs[0].planned ? t("map.flows_planned") : t("map.flows")} ${hhmm(h)}–${hhmm(h + HOUR)}`;
       else if (map.time > Date.now() - HOUR) status = t("map.flows_future");
     }
     $("[data-flows-updated]").textContent = status;
@@ -1304,6 +1435,11 @@ series:
       if (gl.generation !== null) html += row(t("generation.production"), `${mw(gl.generation)} MW`);
       if (gl.load !== null) html += row(t("generation.consumption"), `${mw(gl.load)} MW`);
       if (gl.net !== null && gl.load !== null) html += row(gl.net < 0 ? t("generation.deficit") : t("generation.excess"), `${mw(gl.net)} MW`, gl.net < 0 ? "text-danger" : "text-success");
+      if (gl.renewable !== null && gl.renewable !== undefined) {
+        html += row(t("green.renewable"), `${Math.round(gl.renewable)} %`);
+        html += row(t("green.fossil_free"), `${Math.round(gl.fossil_free)} %`);
+        html += row(`${t("green.co2")} <span class="muted">(${esc(t("green.estimate"))})</span>`, `${mw(gl.co2)} g/kWh`);
+      }
       if (gl.primary && !(gl.mix && gl.mix.length)) html += row(t("generation.primary_source"), `${esc(t("generation.psr_" + gl.primary + "_0"))}${gl.primary_share !== null ? ` <span class="muted">(${gl.primary_share} %)</span>` : ""}`);
     }
     $("[data-zone-gl]", panel).innerHTML = html || `<div class="muted">-</div>`;
@@ -1527,12 +1663,40 @@ series:
     }));
   };
 
+  // ------------------------------------------------------------ reservoirs
+  // Stored energy per ISO week this year and last year, with the median, lowest and highest of
+  // the same week in the years before
+  const twhFmt = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const chartReservoir = () => {
+    const r = boot.reservoir;
+    if (!r || !r.weeks) return;
+    const pts = (k) => r.weeks.map((w) => ({ x: w.week, y: w[k] === null ? null : w[k] / 1000 }));
+    const range = r.first_year ? ` ${r.first_year}–${r.year - 1}` : "";
+    const o = baseChart();
+    o.chart.type = "line";
+    o.chart.height = 300;
+    o.series = [
+      { name: String(r.year), data: pts("this_year") },
+      { name: String(r.year - 1), data: pts("last_year") },
+      { name: t("reservoir.median") + range, data: pts("median") },
+      { name: t("reservoir.lowest"), data: pts("min") },
+      { name: t("reservoir.highest"), data: pts("max") },
+    ];
+    const spread = theme.mode === "light" ? "rgba(90,98,115,.45)" : "rgba(170,176,190,.45)";
+    o.colors = [theme.c1, theme.c2, theme.text, spread, spread];
+    o.stroke = { width: [3, 2, 2, 1, 1], dashArray: [0, 5, 2, 0, 0], curve: "smooth" };
+    o.xaxis = { type: "numeric", min: 1, max: 53, tickAmount: 13, labels: { formatter: (v) => String(Math.round(v)) }, title: { text: t("reservoir.week") } };
+    o.yaxis = { min: 0, labels: { formatter: (v) => (v === null || v === undefined ? "" : twhFmt.format(v)) }, title: { text: "TWh" } };
+    o.tooltip = { theme: theme.mode, shared: true, x: { formatter: (v) => `${t("reservoir.week")} ${v}` }, y: { formatter: (v) => (v === null || v === undefined ? "-" : `${twhFmt.format(v)} TWh`) } };
+    draw("reservoir", o, (v) => `${twhFmt.format(v)} TWh`);
+  };
+
   // -------------------------------------------------------------- lifecycle
   const safe = (fn) => { try { const r = fn(); if (r && r.catch) r.catch((e) => console.error(e)); } catch (e) { console.error(e); } };
   const rerender = () => {
     renderStatic();
     renderNow();
-    [chartAreaToday, () => chartAllAreas("today"), () => chartAllAreas("tomorrow"), chartProduction, chartNet, chartFlows, flowCard,
+    [chartAreaToday, () => chartAllAreas("today"), () => chartAllAreas("tomorrow"), chartProduction, chartNet, chartFlows, flowCard, chartReservoir,
       chartLongTermArea, chartLongTermCountry, chartThirtyDays, priceTable, hass, mapRender].forEach(safe);
     if (customRun && !$("#custom-result").classList.contains("hidden")) safe(customRun);
     renderStatic();
@@ -1553,31 +1717,81 @@ series:
   // Ads
   $$("ins.adsbygoogle").forEach(() => { try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (_e) { /* blocked */ } });
 
-  // Roll the "now" price forward every 30 seconds, re-mark the chart on new intervals
-  let lastSlot = boot.area ? currentSlot(boot.area) : null;
-  setInterval(() => {
+  // ------------------------------------------------------------ live updates
+  // The price changes every quarter (or hour). A timer at each quarter boundary moves "now" on
+  // with the data the page already has: the price, the chart's now-line, the price table and the
+  // map. New data (tomorrow's prices after the auction, production, flows, a new day) is fetched
+  // as the page itself, without reloading it: the boot JSON and the server-rendered parts marked
+  // `data-live` are swapped in, so ads, analytics and the scroll position are left alone.
+  const live = ["index"].includes(boot.page) || boot.area || boot.areas;
+  const marketClock = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Stockholm", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  const marketMinutes = () => { const [h, m] = marketClock.format(new Date()).split(":").map(Number); return h * 60 + m; };
+  const shownAreas = () => (boot.zones ? Object.values(boot.zones) : boot.areas || (boot.area ? [boot.area] : []));
+  // Tomorrow's prices are auctioned around 12:45-13:00 CET; until they are in, look every quarter
+  const awaitingTomorrow = () => {
+    const m = marketMinutes();
+    return m >= 12 * 60 + 45 && m < 20 * 60 && shownAreas().some((a) => !(a.tomorrow && a.tomorrow.points && a.tomorrow.points.length));
+  };
+  // Time of the latest refresh attempt (a failed one is not retried until a condition below says so)
+  let lastRefresh = Date.now();
+  let refreshDay = new Date().toDateString();
+  let refreshing = null;
+  let refreshWhenVisible = false;
+  const refresh = () => {
+    if (refreshing) return refreshing;
+    if (document.hidden) { refreshWhenVisible = true; return Promise.resolve(); }
+    lastRefresh = Date.now();
+    refreshing = (async () => {
+      const res = await fetch(location.pathname + location.search, { cache: "no-store", credentials: "same-origin", headers: { Accept: "text/html" } });
+      if (!res.ok) throw new Error(`refresh: HTTP ${res.status}`);
+      const doc = new DOMParser().parseFromString(await res.text(), "text/html");
+      const el = doc.getElementById("sw-boot");
+      const next = el ? JSON.parse(el.textContent) : null;
+      if (!next || next.page !== boot.page) throw new Error("refresh: not the same page");
+      $$("[data-live]").forEach((old) => {
+        const n = doc.querySelector(`[data-live="${CSS.escape(old.dataset.live)}"]`);
+        if (n) old.replaceWith(document.importNode(n, true));
+      });
+      for (const k of Object.keys(boot)) delete boot[k];
+      Object.assign(boot, next);
+      refreshDay = new Date().toDateString();
+      rerender();
+    })().catch((e) => console.warn(e)).finally(() => { refreshing = null; });
+    return refreshing;
+  };
+  // Once an hour (1-3 minutes past, spread over the open tabs, after the price job at :00), at a
+  // new day, and at most once a quarter while the shown data has run out or tomorrow is awaited
+  const hourOffset = 60000 + Math.random() * 120000;
+  const refreshDue = () => {
+    const now = Date.now();
+    const since = now - lastRefresh;
+    if (since < 120000) return false;
+    const hourPassed = Math.floor((now - hourOffset) / HOUR) !== Math.floor((lastRefresh - hourOffset) / HOUR);
+    if (hourPassed || refreshDay !== new Date().toDateString()) return true;
+    return since >= QUARTER - 60000 && (missingNow || awaitingTomorrow());
+  };
+  let lastQuarter = Math.floor(Date.now() / QUARTER);
+  const tick = () => {
     renderNow();
     renderStatic();
-    if (boot.area) {
-      const s = currentSlot(boot.area);
-      if (s !== lastSlot) { lastSlot = s; safe(chartAreaToday); safe(priceTable); }
-    }
-    if (map.ready) {
-      const q = Math.floor(Date.now() / 900000);
-      if (q !== map.slot) { map.slot = q; safe(mapRender); } else safe(mapTimeUi);
-    }
-  }, 30000);
-
-  // Reload at each full hour to pick up new data (if the page has been open for more than two minutes)
-  const loaded = Date.now();
-  const scheduleReload = () => {
-    const next = new Date(); next.setMinutes(60, 0, 0);
-    const jitter = 10000 + Math.random() * 50000;
-    setTimeout(() => {
-      if (Date.now() - loaded < 120000) { scheduleReload(); return; }
-      if (document.visibilityState === "visible") location.reload();
-      else document.addEventListener("visibilitychange", () => location.reload(), { once: true });
-    }, next.getTime() - Date.now() + jitter);
+    const q = Math.floor(Date.now() / QUARTER);
+    if (q !== lastQuarter) {
+      lastQuarter = q;
+      [chartAreaToday, () => chartAllAreas("today"), priceTable, mapRender].forEach(safe);
+    } else if (map.ready) safe(mapTimeUi);
+    if (live && refreshDue()) refresh();
   };
-  if (["index"].includes(boot.page) || boot.area || boot.areas) scheduleReload();
+  // Just after each quarter boundary; timers in hidden tabs are throttled, so catch up on return
+  const armQuarter = () => {
+    const jitter = 300 + Math.random() * 1500;
+    setTimeout(() => { tick(); armQuarter(); }, QUARTER - (Date.now() % QUARTER) + jitter);
+  };
+  armQuarter();
+  // Between quarters: the map slider's now-mark, and the hourly refresh spread over a minute
+  setInterval(tick, 60000 + Math.random() * 5000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) return;
+    tick();
+    if (refreshWhenVisible) { refreshWhenVisible = false; if (live) refresh(); }
+  });
 })();

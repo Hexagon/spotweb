@@ -152,6 +152,7 @@
     <ul>
       <li><strong>area</strong> {{ h("or") }} <strong>country</strong> &ndash; {{ html("p_flows_scope") }}</li>
       <li><strong>start</strong>, <strong>end</strong> &ndash; {{ html("p_flows_dates") }}</li>
+      <li><strong>planned=true</strong> &ndash; {{ html("p_flows_planned") }}</li>
     </ul>
     <p>{{ html("ep_flows_out") }}</p>
   </section>
@@ -169,6 +170,33 @@
     { "time": "2026-01-01T23:00:00.000Z", "net": -812.0,
       "flows": { "SE2": -2400.0, "SE4": 1350.0, "NO1": 120.0, "DK1": 98.0, "FI": 20.0 } }
   ]
+}</code></pre>
+  </section>
+</div>
+
+<div class="grid grid-ha" id="reservoirs">
+  <section class="pad prose">
+    <h2><code>/api/v2/reservoirs</code></h2>
+    <p>{{ html("ep_reservoirs") }}</p>
+    <ul>
+      <li><strong>area</strong> {{ h("or") }} <strong>country</strong> &ndash; {{ html("p_reservoirs_scope") }}</li>
+    </ul>
+  </section>
+  <section class="card code-card">
+    <header class="card-head"><h2>{{ h("example") }}</h2></header>
+    <pre><code>GET {{ base_url }}/api/v2/reservoirs?area=NO2
+
+{
+  "status": "ok", "area": "NO2", "unit": "GWh",
+  "data": {
+    "year": 2026, "week": 47, "latest": 28140.2, "change": -512.4,
+    "last_year": 26910.0, "min": 21022.1, "median": 27540.8, "max": 30110.5,
+    "first_year": 2015, "years": 11, "share_of_max": 82.3, "vs_median": 1.8,
+    "weeks": [
+      { "week": 1, "this_year": 22014.3, "last_year": 20877.1,
+        "min": 15502.0, "median": 21333.9, "max": 24890.2 }
+    ]
+  }
 }</code></pre>
   </section>
 </div>

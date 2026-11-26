@@ -206,7 +206,26 @@
       "net_24h": "Exportación neta, últimas 24 horas",
       "negative": "Precio negativo",
       "all_equal": "Mismo precio en todas las zonas",
-      "vs_yesterday": "vs. ayer"
+      "vs_yesterday": "vs. ayer",
+      "layer": "Mostrar",
+      "layer_price": "Precio",
+      "layer_renewable": "Renovable",
+      "layer_fossil_free": "Sin fósiles",
+      "layer_co2": "CO₂",
+      "layer_balance": "Excedente/déficit",
+      "share_low": "Cuota baja",
+      "share_high": "Cuota alta",
+      "co2_low": "Emisiones bajas",
+      "co2_high": "Emisiones altas",
+      "deficit": "Déficit",
+      "surplus": "Excedente",
+      "measured": "Última producción medida",
+      "layer_note": "Se refiere a la producción en la zona, no a la electricidad consumida allí (no se cuentan las importaciones). El CO₂ es una estimación.",
+      "planned": "Previsto",
+      "capacity": "Capacidad",
+      "used": "utilizada",
+      "congested": "Cuello de botella: precios distintos a cada lado",
+      "flows_planned": "Flujo previsto (diario)"
     },
     "share": {
       "share": "Compartir",
@@ -249,6 +268,31 @@
       "custom": "Precio personalizado",
       "spot_hint": "Se muestra el precio spot sin tasas. Haz clic para personalizar.",
       "custom_hint": "Se muestra el precio spot con tus tasas y factores. Haz clic para cambiar."
+    },
+    "green": {
+      "renewable": "Renovable",
+      "fossil_free": "Sin fósiles",
+      "co2": "Intensidad de CO₂",
+      "estimate": "estimación",
+      "note": "Se refiere a la producción en la zona, no a la electricidad consumida allí: no se cuentan importaciones ni exportaciones. Sin fósiles es renovable, nuclear y bombeo. El CO₂ es una estimación con valores fijos de ciclo de vida por fuente (IPCC)."
+    },
+    "reservoir": {
+      "title": "Embalses hidroeléctricos",
+      "week": "Semana",
+      "stored": "Energía almacenada",
+      "of_max": "del máximo registrado",
+      "change": "Desde la semana pasada",
+      "last_year": "Misma semana del año pasado",
+      "median": "Mediana",
+      "range": "Mínimo–máximo",
+      "lowest": "Mínimo de años anteriores",
+      "highest": "Máximo de años anteriores",
+      "vs_median": "frente a la mediana",
+      "above_all": "Más agua en los embalses que la misma semana de cualquier año anterior",
+      "below_all": "Menos agua en los embalses que la misma semana de cualquier año anterior",
+      "above_median": "Más agua en los embalses de lo normal para la semana",
+      "below_median": "Menos agua en los embalses de lo normal para la semana",
+      "note": "Energía almacenada en los embalses al final de la semana, según ENTSO-e. Allí no se publica el porcentaje de llenado, así que la proporción se refiere al valor más alto registrado. Menos agua de lo normal suele significar precios más altos en los países nórdicos."
     }
   },
   "pages": {
@@ -374,7 +418,10 @@
       "ep_status": "versión, lo actualizados que están los datos y las últimas ejecuciones de las tareas de importación.",
       "ep_healthz": "<code>200 ok</code> cuando el servicio y su base de datos funcionan.",
       "ep_healthz_data": "<code>200 ok</code> cuando los precios, la generación y el consumo están al día; si no, <code>503</code> con un problema por línea.",
-      "selfhost": "Estos endpoints solo muestran el estado actual y no prometen nada sobre la disponibilidad futura. Si necesita disponibilidad garantizada, ejecute su propia instancia; el <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">código fuente</a> es abierto."
+      "selfhost": "Estos endpoints solo muestran el estado actual y no prometen nada sobre la disponibilidad futura. Si necesita disponibilidad garantizada, ejecute su propia instancia; el <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">código fuente</a> es abierto.",
+      "ep_reservoirs": "Energía almacenada en los embalses (GWh) por semana ISO, para las zonas y países que la comunican a ENTSO-e (España, Portugal, Francia, países nórdicos, etc.). La última semana se compara con la misma semana del año pasado y con los valores mínimo, mediano y máximo de esa semana en años anteriores. <code>weeks</code> contiene todo el año para un gráfico.",
+      "p_reservoirs_scope": "se requiere uno de ellos: zona (<code>area=NO2</code>) o país (<code>country=no</code>, la suma de sus zonas).",
+      "p_flows_planned": "opcional. El plan del mercado diario de hoy y mañana por frontera y hora: <code>scheduled</code> es el flujo neto previsto (MW) de <code>from</code> a <code>to</code>, <code>capacity</code> la capacidad de intercambio en cada sentido (<code>null</code> si la frontera no la publica)."
     },
     "hass": {
       "page_title": "Home Assistant - sensor del precio spot de la electricidad",

@@ -185,6 +185,37 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
     CREATE INDEX outage_availability_mrid ON outage_availability (mrid, ts);
     "#,
     ),
+    (
+        6,
+        "hydro reservoir filling",
+        // ENTSO-e A72: energy stored in reservoirs per bidding zone at the end of each week (MWh)
+        r#"
+    CREATE TABLE reservoir (
+        area   TEXT    NOT NULL,
+        period INTEGER NOT NULL,
+        value  REAL    NOT NULL,
+        PRIMARY KEY (area, period)
+    ) WITHOUT ROWID;
+    "#,
+    ),
+    (
+        7,
+        "planned flows and capacity per border",
+        // `kind` is `schedule` (day-ahead scheduled commercial exchange, A09) or `capacity`
+        // (day-ahead transfer capacity, A61), per direction like `flow`
+        r#"
+    CREATE TABLE border_plan (
+        kind      TEXT    NOT NULL,
+        from_area TEXT    NOT NULL,
+        to_area   TEXT    NOT NULL,
+        period    INTEGER NOT NULL,
+        interval  TEXT    NOT NULL,
+        value     REAL    NOT NULL,
+        PRIMARY KEY (kind, from_area, to_area, period, interval)
+    ) WITHOUT ROWID;
+    CREATE INDEX border_plan_period ON border_plan (kind, period);
+    "#,
+    ),
 ];
 
 /// See [`Db::optimize`]

@@ -206,7 +206,26 @@
       "net_24h": "Nettovienti viimeiset 24 tuntia",
       "negative": "Negatiivinen hinta",
       "all_equal": "Sama hinta kaikilla alueilla",
-      "vs_yesterday": "vs. eilen"
+      "vs_yesterday": "vs. eilen",
+      "layer": "Näytä",
+      "layer_price": "Sähkön hinta",
+      "layer_renewable": "Uusiutuva",
+      "layer_fossil_free": "Fossiiliton",
+      "layer_co2": "CO₂",
+      "layer_balance": "Yli-/alijäämä",
+      "share_low": "Pieni osuus",
+      "share_high": "Suuri osuus",
+      "co2_low": "Pienet päästöt",
+      "co2_high": "Suuret päästöt",
+      "deficit": "Alijäämä",
+      "surplus": "Ylijäämä",
+      "measured": "Viimeisin mitattu tuotanto",
+      "layer_note": "Koskee hinta-alueen tuotantoa, ei siellä käytettyä sähköä (tuontia ei lasketa). CO₂ on arvio.",
+      "planned": "Suunniteltu",
+      "capacity": "Kapasiteetti",
+      "used": "käytössä",
+      "congested": "Pullonkaula: eri hinta kummallakin puolella",
+      "flows_planned": "Suunniteltu siirto (day-ahead)"
     },
     "share": {
       "share": "Jaa",
@@ -249,6 +268,31 @@
       "custom": "Mukautettu hinta",
       "spot_hint": "Näytetään spot-hinta ilman maksuja. Napsauta mukauttaaksesi.",
       "custom_hint": "Näytetään spot-hinta omilla maksuillasi ja kertoimillasi. Napsauta muuttaaksesi."
+    },
+    "green": {
+      "renewable": "Uusiutuva",
+      "fossil_free": "Fossiiliton",
+      "co2": "CO₂-intensiteetti",
+      "estimate": "arvio",
+      "note": "Koskee alueen tuotantoa, ei siellä käytettyä sähköä: tuontia ja vientiä ei lasketa. Fossiiliton on uusiutuva, ydinvoima ja pumppuvoima. CO₂ on arvio, jossa käytetään kiinteitä elinkaariarvoja tuotantomuodoittain (IPCC)."
+    },
+    "reservoir": {
+      "title": "Vesivarastot",
+      "week": "Viikko",
+      "stored": "Varastoitu energia",
+      "of_max": "korkeimmasta mitatusta",
+      "change": "Edellisestä viikosta",
+      "last_year": "Sama viikko viime vuonna",
+      "median": "Mediaani",
+      "range": "Pienin–suurin",
+      "lowest": "Pienin aiempi vuosi",
+      "highest": "Suurin aiempi vuosi",
+      "vs_median": "mediaaniin verrattuna",
+      "above_all": "Varastoissa on enemmän vettä kuin samalla viikolla minään aiempana vuonna",
+      "below_all": "Varastoissa on vähemmän vettä kuin samalla viikolla minään aiempana vuonna",
+      "above_median": "Varastoissa on enemmän vettä kuin viikolla tavallisesti",
+      "below_median": "Varastoissa on vähemmän vettä kuin viikolla tavallisesti",
+      "note": "Vesivarastoihin varastoitu energia viikon lopussa ENTSO-e:n mukaan. Täyttöastetta prosentteina ei julkaista siellä, joten osuus on suhteessa korkeimpaan tallennettuun arvoon. Tavallista vähemmän vettä nostaa yleensä sähkön hintaa Pohjoismaissa."
     }
   },
   "pages": {
@@ -374,7 +418,10 @@
       "ep_status": "versio, tietojen ajantasaisuus ja tuontitöiden viimeisimmät ajot.",
       "ep_healthz": "<code>200 ok</code>, kun palvelu ja sen tietokanta ovat käynnissä.",
       "ep_healthz_data": "<code>200 ok</code>, kun hinnat, tuotanto ja kulutus ovat ajan tasalla, muuten <code>503</code> ja yksi ongelma riviä kohden.",
-      "selfhost": "Nämä kutsut kertovat vain nykytilan eivätkä lupaa mitään tulevasta käytettävyydestä. Jos tarvitset taatun saatavuuden, aja omaa instanssia; <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">lähdekoodi</a> on avoin."
+      "selfhost": "Nämä kutsut kertovat vain nykytilan eivätkä lupaa mitään tulevasta käytettävyydestä. Jos tarvitset taatun saatavuuden, aja omaa instanssia; <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">lähdekoodi</a> on avoin.",
+      "ep_reservoirs": "Vesivarastoihin varastoitu energia (GWh) ISO-viikoittain niille hinta-alueille ja maille, jotka raportoivat sen ENTSO-e:lle (Suomi, Ruotsi, Norja ym.). Viimeisintä viikkoa verrataan samaan viikkoon viime vuonna sekä viikon pienimpään, mediaani- ja suurimpaan arvoon aiempina vuosina. <code>weeks</code> sisältää koko vuoden kaaviota varten.",
+      "p_reservoirs_scope": "toinen vaaditaan: hinta-alue (<code>area=NO2</code>) tai maa (<code>country=no</code>, maan hinta-alueiden summa).",
+      "p_flows_planned": "valinnainen. Tämän päivän ja huomisen day-ahead-suunnitelma rajoittain ja tunneittain: <code>scheduled</code> on suunniteltu nettosiirto (MW) alueelta <code>from</code> alueelle <code>to</code>, <code>capacity</code> siirtokapasiteetti kumpaankin suuntaan (<code>null</code>, jos rajalta ei julkaista sitä)."
     },
     "hass": {
       "page_title": "Home Assistant - sähkön spot-hinnan sensori",

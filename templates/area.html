@@ -22,6 +22,9 @@
   {{ m.flows_card(t("map.flows") ~ " - " ~ area.name) }}
   {{ m.flows_chart_card(t("chart.net_flow") ~ " - " ~ area.name ~ " - " ~ t("chart.yesterday_and_today")) }}
 </div>
+{%- if reservoir %}
+{{ m.reservoir_card(reservoir, area.name) }}
+{%- endif %}
 
 <div class="grid {% if single %}grid-2{% endif %}">
   <section class="card">

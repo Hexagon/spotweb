@@ -28,16 +28,20 @@ pub enum Job {
     Load,
     Production,
     Flows,
+    Reservoirs,
+    Schedules,
 }
 
 impl Job {
-    pub const ALL: [Job; 6] = [
+    pub const ALL: [Job; 8] = [
         Job::Currency,
         Job::Prices,
         Job::Load,
         Job::Production,
         Job::Flows,
         Job::Outages,
+        Job::Reservoirs,
+        Job::Schedules,
     ];
 
     pub fn name(&self) -> &'static str {
@@ -48,6 +52,8 @@ impl Job {
             Job::Load => "load",
             Job::Production => "production",
             Job::Flows => "flows",
+            Job::Reservoirs => "reservoirs",
+            Job::Schedules => "schedules",
         }
     }
 
@@ -72,6 +78,10 @@ impl Job {
         const LOAD: &[Schedule] = &[every_hour(&[5])];
         const PRODUCTION: &[Schedule] = &[every_hour(&[50])];
         const FLOWS: &[Schedule] = &[every_hour(&[25])];
+        // Weekly data, published some days after the week; one cheap request per zone a day
+        const RESERVOIRS: &[Schedule] = &[at(&[10], &[35])];
+        // After the day-ahead auction (results from about 12:45), and again for late publications
+        const SCHEDULES: &[Schedule] = &[at(&[13, 15], &[10])];
         match self {
             Job::Prices => PRICES,
             Job::Currency => CURRENCY,
@@ -79,6 +89,8 @@ impl Job {
             Job::Load => LOAD,
             Job::Production => PRODUCTION,
             Job::Flows => FLOWS,
+            Job::Reservoirs => RESERVOIRS,
+            Job::Schedules => SCHEDULES,
         }
     }
 
@@ -86,6 +98,10 @@ impl Job {
         match self {
             Job::Currency => Duration::from_secs(60),
             Job::Outages => Duration::from_secs(3600),
+            // The first run fetches the history since 2015, a year per request
+            Job::Reservoirs => Duration::from_secs(1800),
+            // Two kinds for each direction of every border
+            Job::Schedules => Duration::from_secs(1800),
             // A first run back-fills all history since 2021
             Job::Prices => Duration::from_secs(4 * 3600),
             // Two requests per border
@@ -101,6 +117,8 @@ impl Job {
             Job::Outages => &["outage"],
             Job::Load | Job::Production => &["load", "generation"],
             Job::Flows => &["flow"],
+            Job::Reservoirs => &["reservoir"],
+            Job::Schedules => &["plan"],
         }
     }
 }
@@ -312,6 +330,8 @@ async fn run_inner(app: &App, job: Job, scheduled: bool) -> anyhow::Result<Outco
         Job::Load => update_load(app).await,
         Job::Production => update_production(app).await,
         Job::Flows => update_flows(app, scheduled).await,
+        Job::Reservoirs => update_reservoirs(app).await,
+        Job::Schedules => update_schedules(app).await,
     }
 }
 
@@ -942,6 +962,178 @@ async fn update_outages(app: &App) -> anyhow::Result<Outcome> {
     })
     .await;
     summarize(&results, |r| r.0, "outage")
+}
+
+/// First year fetched for a zone that has no reservoir data stored yet (ENTSO-e has it from 2015)
+const RESERVOIR_HISTORY_YEAR: i16 = 2015;
+/// Weeks fetched again on every run, for new and revised values
+const RESERVOIR_RECENT_WEEKS: i64 = 8;
+
+/// Weekly reservoir filling per zone. Zones that do not report it answer "no data" and cost one
+/// request a day. The first time a zone has data, its history is fetched a year at a time.
+async fn update_reservoirs(app: &App) -> anyhow::Result<Outcome> {
+    let results = for_each_area(Job::Reservoirs, |_country, area| {
+        let app = app.clone();
+        async move {
+            let name = area.name;
+            let stored = app
+                .db
+                .run(move |c| Ok(queries::max_reservoir_period(c, name)?))
+                .await?;
+            let now = Timestamp::now();
+            let recent = now - SignedDuration::from_hours(RESERVOIR_RECENT_WEEKS * 7 * 24);
+            let mut points = request(name, "reservoir", || {
+                app.entsoe.reservoirs(area.eic, recent, now)
+            })
+            .await?;
+            if stored.is_none() && !points.is_empty() {
+                let mut year = RESERVOIR_HISTORY_YEAR;
+                loop {
+                    let start = jiff::civil::date(year, 1, 1)
+                        .to_zoned(TimeZone::UTC)?
+                        .timestamp();
+                    if start >= recent {
+                        break;
+                    }
+                    let end = jiff::civil::date(year + 1, 1, 1)
+                        .to_zoned(TimeZone::UTC)?
+                        .timestamp()
+                        .min(recent);
+                    points.extend(
+                        request(name, "reservoir", || {
+                            app.entsoe.reservoirs(area.eic, start, end)
+                        })
+                        .await?,
+                    );
+                    year += 1;
+                }
+            }
+            let rows: Vec<(i64, f64)> = points.into_iter().map(|p| (p.start, p.value)).collect();
+            let n = app
+                .db
+                .run(move |c| Ok(queries::upsert_reservoir(c, name, &rows)?))
+                .await?;
+            Ok(Rows(n, "reservoir"))
+        }
+    })
+    .await;
+    summarize(&results, |r| r.0, "reservoir")
+}
+
+/// Planned values are kept this long, for looking back at how a day was planned
+const PLAN_KEEP_DAYS: i64 = 90;
+
+/// Day-ahead scheduled exchanges (A09) and transfer capacity (A61) for every direction of every
+/// border, today and tomorrow (Stockholm time). A kind and direction that is stored up to the end
+/// of tomorrow is not fetched again; capacity that a border does not publish (flow-based regions)
+/// is asked for on every run, a request each.
+async fn update_schedules(app: &App) -> anyhow::Result<Outcome> {
+    use queries::PlanKind;
+    let tz = stockholm();
+    let t = today(&tz);
+    let start = local_midnight(&tz, t).timestamp();
+    let end = local_midnight(&tz, add_days(t, 2)).timestamp();
+    let end_ms = end.as_millisecond();
+    let sem = Arc::new(Semaphore::new(concurrency()));
+    let mut set = JoinSet::new();
+    for kind in [PlanKind::Schedule, PlanKind::Capacity] {
+        for (from, to) in flow_borders(None) {
+            let (Some(out_eic), Some(in_eic)) = (crate::flows::eic(from), crate::flows::eic(to))
+            else {
+                continue;
+            };
+            let app = app.clone();
+            let sem = sem.clone();
+            set.spawn(async move {
+                let _permit = sem.acquire_owned().await.expect("semaphore");
+                let name = format!("{}:{from}>{to}", kind.as_str());
+                let r: anyhow::Result<Option<usize>> = async {
+                    let latest = app
+                        .db
+                        .run(move |c| Ok(queries::max_plan_period(c, kind, from, to)?))
+                        .await?;
+                    if latest.is_some_and(|l| l >= end_ms - HOUR_MS) {
+                        return Ok(None);
+                    }
+                    let points = request(&name, kind.as_str(), || async {
+                        match kind {
+                            PlanKind::Schedule => {
+                                app.entsoe
+                                    .scheduled_exchanges(out_eic, in_eic, start, end)
+                                    .await
+                            }
+                            PlanKind::Capacity => {
+                                app.entsoe
+                                    .day_ahead_capacity(out_eic, in_eic, start, end)
+                                    .await
+                            }
+                        }
+                    })
+                    .await?;
+                    let rows: Vec<(i64, String, f64)> = points
+                        .into_iter()
+                        .map(|p| (p.start, p.interval, p.value))
+                        .collect();
+                    Ok(Some(
+                        app.db
+                            .run(move |c| Ok(queries::upsert_plan(c, kind, from, to, &rows)?))
+                            .await?,
+                    ))
+                }
+                .await;
+                match &r {
+                    Ok(Some(n)) => tracing::debug!(job = "schedules", what = %name, "stored {n} rows"),
+                    Ok(None) => {}
+                    Err(e) => tracing::warn!(job = "schedules", what = %name, error = %format!("{e:#}"), "request failed"),
+                }
+                (name, r)
+            });
+        }
+    }
+    let (mut total, mut skipped, mut requests) = (0, 0, 0);
+    let mut failures = vec![];
+    while let Some(res) = set.join_next().await {
+        match res {
+            Ok((_, Ok(Some(n)))) => {
+                total += n;
+                requests += 1;
+            }
+            Ok((_, Ok(None))) => skipped += 1,
+            Ok((name, Err(e))) => {
+                requests += 1;
+                failures.push(AreaFailure {
+                    area: name,
+                    error: format!("{e:#}"),
+                })
+            }
+            Err(e) => tracing::error!(job = "schedules", error = %e, "task panicked"),
+        }
+    }
+    failures.sort_by(|a, b| a.area.cmp(&b.area));
+    if requests > 0 && failures.len() == requests {
+        anyhow::bail!(
+            "all schedule requests failed: {}",
+            failures.first().map(|f| f.error.as_str()).unwrap_or("")
+        );
+    }
+    let before = Timestamp::now().as_millisecond() - PLAN_KEEP_DAYS * 24 * HOUR_MS;
+    let pruned = app
+        .db
+        .run(move |c| Ok(queries::prune_plan(c, before)?))
+        .await?;
+    let mut message =
+        format!("stored {total} planned rows ({requests} requests, {skipped} complete)");
+    if !failures.is_empty() {
+        message.push_str(&format!(", {} requests failed", failures.len()));
+    }
+    if pruned > 0 {
+        message.push_str(&format!(", removed {pruned} old rows"));
+    }
+    Ok(Outcome {
+        message,
+        failures,
+        changed: total > 0 || pruned > 0,
+    })
 }
 
 /// Flows older than this are kept as hourly averages only (see [`queries::compact_flows`])

@@ -504,3 +504,79 @@ pub async fn border_flows(
         )
         .await
 }
+
+/// Hydro reservoir filling of an area, or of a country (the sum of its areas), compared with
+/// the same week of earlier years. Empty for zones that do not report it.
+pub async fn reservoirs(
+    app: &App,
+    scope: FlowScope<'_>,
+) -> anyhow::Result<Arc<crate::reservoir::Overview>> {
+    let (key, areas): (String, Vec<&'static str>) = match scope {
+        FlowScope::Area(a) => (
+            format!("a:{a}"),
+            COUNTRIES
+                .iter()
+                .flat_map(|c| c.areas)
+                .filter(|x| x.name == a)
+                .map(|x| x.name)
+                .collect(),
+        ),
+        FlowScope::Country(c) => (
+            format!("c:{c}"),
+            COUNTRIES
+                .iter()
+                .filter(|x| x.id == c)
+                .flat_map(|x| x.areas)
+                .map(|x| x.name)
+                .collect(),
+        ),
+    };
+    let db = app.db.clone();
+    app.cache
+        .get_or_load(
+            "reservoir",
+            key,
+            Duration::from_secs(6 * 3600),
+            || async move {
+                let rows = db
+                    .run(move |c| Ok(queries::reservoir_rows(c, &areas)?))
+                    .await?;
+                Ok(crate::reservoir::overview(&crate::reservoir::weekly(&rows)))
+            },
+        )
+        .await
+}
+
+/// Day-ahead plan per border for the hours in `[from, to)`: the scheduled commercial exchange
+/// netted per border (like [`border_flows`]) and the transfer capacity per direction
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct BorderPlan {
+    pub schedule: crate::flows::BorderSeries,
+    pub capacity: crate::flows::DirectionSeries,
+}
+
+pub async fn border_plan(app: &App, from: i64, to: i64) -> anyhow::Result<Arc<BorderPlan>> {
+    use queries::PlanKind;
+    let db = app.db.clone();
+    app.cache
+        .get_or_load(
+            "plan",
+            format!("plan:{from}:{to}"),
+            Duration::from_secs(30 * MIN),
+            || async move {
+                let (schedule, capacity) = db
+                    .run(move |c| {
+                        Ok((
+                            queries::plan_rows(c, PlanKind::Schedule, from - HOUR_MS, to)?,
+                            queries::plan_rows(c, PlanKind::Capacity, from - HOUR_MS, to)?,
+                        ))
+                    })
+                    .await?;
+                Ok(BorderPlan {
+                    schedule: crate::flows::border_series(&schedule, from, to),
+                    capacity: crate::flows::direction_series(&capacity, from, to),
+                })
+            },
+        )
+        .await
+}

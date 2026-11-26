@@ -1206,3 +1206,79 @@ async fn panicking_handler_answers_500() {
     // The usual headers are still there
     assert!(res.headers().contains_key("x-content-type-options"));
 }
+
+#[tokio::test]
+async fn reservoirs_api_and_card() {
+    let app = test_app();
+    {
+        let mut c = app.db.conn().unwrap();
+        // Weeks 44-46 of 2024 and 2025 for SE1 and SE2 (Monday 00:00 CET = Sunday 23:00 UTC)
+        let week = 7 * 24 * 3_600_000i64;
+        for (year, start, base) in [
+            (2024, 1_730_070_000_000i64, 10_000.0),
+            (2025, 1_761_519_600_000i64, 12_000.0),
+        ] {
+            for i in 0..3 {
+                let p = start + i * week;
+                assert_eq!(crate::reservoir::iso_week(p).unwrap().0, year);
+                queries::upsert_reservoir(&mut c, "SE1", &[(p, base + i as f64 * 100.0)]).unwrap();
+                queries::upsert_reservoir(&mut c, "SE2", &[(p, 2.0 * base)]).unwrap();
+            }
+        }
+    }
+    let (s, body, _) = get(&app, "/api/v2/reservoirs?area=se1").await;
+    assert_eq!(s, StatusCode::OK);
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["area"], "SE1");
+    assert_eq!(v["data"]["year"], 2025);
+    assert_eq!(v["data"]["latest"], 12.2);
+    assert_eq!(v["data"]["change"], 0.1);
+    assert_eq!(v["data"]["last_year"], 10.2);
+    assert_eq!(v["data"]["years"], 1);
+    // The country is the sum of its zones that report
+    let (_, body, _) = get(&app, "/api/v2/reservoirs?country=sv").await;
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["data"]["latest"], 36.2);
+    let (_, body, _) = get(&app, "/api/v2/reservoirs?area=SE9").await;
+    assert!(body.contains("Unknown area"), "{body}");
+    // Cards on the pages of zones with data only
+    let (_, page, _) = get(&app, "/sv/SE1").await;
+    assert!(page.contains(r#"data-chart="reservoir""#));
+    let (_, page, _) = get(&app, "/sv/SE3").await;
+    assert!(!page.contains(r#"data-chart="reservoir""#));
+}
+
+#[tokio::test]
+async fn planned_flows_api() {
+    use crate::db::queries::PlanKind;
+    let app = test_app();
+    let tz = crate::timeutil::stockholm();
+    let (start, _) = day_range(&tz, crate::timeutil::add_days(today(&tz), 1));
+    {
+        let mut c = app.db.conn().unwrap();
+        let h = |v: f64| vec![(start, "PT60M".to_string(), v)];
+        queries::upsert_plan(&mut c, PlanKind::Schedule, "SE3", "FI", &h(900.0)).unwrap();
+        queries::upsert_plan(&mut c, PlanKind::Schedule, "FI", "SE3", &h(100.0)).unwrap();
+        queries::upsert_plan(&mut c, PlanKind::Capacity, "SE3", "FI", &h(1200.0)).unwrap();
+        assert_eq!(
+            queries::max_plan_period(&c, PlanKind::Schedule, "SE3", "FI").unwrap(),
+            Some(start)
+        );
+    }
+    let (s, body, _) = get(&app, "/api/v2/flows?planned=true").await;
+    assert_eq!(s, StatusCode::OK);
+    let v: Value = serde_json::from_str(&body).unwrap();
+    let row = v["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["from"] == "SE3" && r["to"] == "FI")
+        .cloned()
+        .unwrap();
+    assert_eq!(row["scheduled"], 800.0);
+    assert_eq!(row["capacity"]["forward"], 1200.0);
+    assert!(row["capacity"]["back"].is_null());
+    // The start page hands the plan to the map
+    let (_, page, _) = get(&app, "/").await;
+    assert!(page.contains(r#""plan":{"schedule""#));
+}

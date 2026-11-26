@@ -206,7 +206,26 @@
       "net_24h": "Netto-export afgelopen 24 uur",
       "negative": "Negatieve prijs",
       "all_equal": "Zelfde prijs in alle zones",
-      "vs_yesterday": "t.o.v. gisteren"
+      "vs_yesterday": "t.o.v. gisteren",
+      "layer": "Toon",
+      "layer_price": "Prijs",
+      "layer_renewable": "Hernieuwbaar",
+      "layer_fossil_free": "Fossielvrij",
+      "layer_co2": "CO₂",
+      "layer_balance": "Overschot/tekort",
+      "share_low": "Laag aandeel",
+      "share_high": "Hoog aandeel",
+      "co2_low": "Lage uitstoot",
+      "co2_high": "Hoge uitstoot",
+      "deficit": "Tekort",
+      "surplus": "Overschot",
+      "measured": "Laatst gemeten productie",
+      "layer_note": "Gaat over de productie in de zone, niet over de stroom die er wordt gebruikt (import telt niet mee). CO₂ is een schatting.",
+      "planned": "Gepland",
+      "capacity": "Capaciteit",
+      "used": "benut",
+      "congested": "Knelpunt: verschillende prijzen aan beide kanten",
+      "flows_planned": "Gepland transport (day-ahead)"
     },
     "share": {
       "share": "Delen",
@@ -249,6 +268,31 @@
       "custom": "Aangepaste prijs",
       "spot_hint": "Spotprijs zonder kosten. Klik om aan te passen.",
       "custom_hint": "Spotprijs met jouw kosten en factoren. Klik om te wijzigen."
+    },
+    "green": {
+      "renewable": "Hernieuwbaar",
+      "fossil_free": "Fossielvrij",
+      "co2": "CO₂-intensiteit",
+      "estimate": "schatting",
+      "note": "Gaat over de productie in het gebied, niet over de stroom die er wordt gebruikt: import en export tellen niet mee. Fossielvrij is hernieuwbaar, kernenergie en pompcentrales. CO₂ is een schatting met vaste levenscycluswaarden per bron (IPCC)."
+    },
+    "reservoir": {
+      "title": "Stuwmeren",
+      "week": "Week",
+      "stored": "Opgeslagen energie",
+      "of_max": "van het hoogst gemeten",
+      "change": "Sinds vorige week",
+      "last_year": "Zelfde week vorig jaar",
+      "median": "Mediaan",
+      "range": "Laagste–hoogste",
+      "lowest": "Laagste eerdere jaar",
+      "highest": "Hoogste eerdere jaar",
+      "vs_median": "ten opzichte van de mediaan",
+      "above_all": "Meer water in de stuwmeren dan in dezelfde week van alle eerdere jaren",
+      "below_all": "Minder water in de stuwmeren dan in dezelfde week van alle eerdere jaren",
+      "above_median": "Meer water in de stuwmeren dan normaal voor de week",
+      "below_median": "Minder water in de stuwmeren dan normaal voor de week",
+      "note": "Energie opgeslagen in de stuwmeren aan het einde van de week, volgens ENTSO-e. Een vullingsgraad in procenten wordt daar niet gepubliceerd, dus het aandeel is ten opzichte van de hoogste opgeslagen waarde. Minder water dan normaal betekent in Scandinavië meestal hogere stroomprijzen."
     }
   },
   "pages": {
@@ -374,7 +418,10 @@
       "ep_status": "versie, hoe actueel de gegevens zijn en de laatste runs van de importtaken.",
       "ep_healthz": "<code>200 ok</code> als de dienst en de database draaien.",
       "ep_healthz_data": "<code>200 ok</code> als prijzen, productie en verbruik actueel zijn, anders <code>503</code> met één probleem per regel.",
-      "selfhost": "Deze endpoints tonen alleen de huidige toestand en beloven niets over toekomstige beschikbaarheid. Hebt u gegarandeerde beschikbaarheid nodig, draai dan een eigen instantie; de <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">broncode</a> is open."
+      "selfhost": "Deze endpoints tonen alleen de huidige toestand en beloven niets over toekomstige beschikbaarheid. Hebt u gegarandeerde beschikbaarheid nodig, draai dan een eigen instantie; de <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">broncode</a> is open.",
+      "ep_reservoirs": "Energie opgeslagen in stuwmeren (GWh) per ISO-week, voor biedzones en landen die dit aan ENTSO-e melden (Noorwegen, Zweden, Finland, Frankrijk en andere). De laatste week wordt vergeleken met dezelfde week vorig jaar en met de laagste, mediane en hoogste waarde van die week in eerdere jaren. <code>weeks</code> bevat het hele jaar voor een grafiek.",
+      "p_reservoirs_scope": "een van beide is verplicht: biedzone (<code>area=NO2</code>) of land (<code>country=no</code>, de som van de zones van het land).",
+      "p_flows_planned": "optioneel. Het day-ahead-plan van vandaag en morgen per grens en uur: <code>scheduled</code> is het geplande nettotransport (MW) van <code>from</code> naar <code>to</code>, <code>capacity</code> de transportcapaciteit in elke richting (<code>null</code> waar de grens er geen publiceert)."
     },
     "hass": {
       "page_title": "Home Assistant - sensor voor de spotprijs van stroom",

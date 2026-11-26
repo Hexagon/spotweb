@@ -206,7 +206,26 @@
       "net_24h": "Nettoexport senaste 24 timmarna",
       "negative": "Negativt pris",
       "all_equal": "Samma pris i alla elområden",
-      "vs_yesterday": "mot igår"
+      "vs_yesterday": "mot igår",
+      "layer": "Visa",
+      "layer_price": "Elpris",
+      "layer_renewable": "Förnybart",
+      "layer_fossil_free": "Fossilfritt",
+      "layer_co2": "CO₂",
+      "layer_balance": "Över-/underskott",
+      "share_low": "Låg andel",
+      "share_high": "Hög andel",
+      "co2_low": "Låga utsläpp",
+      "co2_high": "Höga utsläpp",
+      "deficit": "Underskott",
+      "surplus": "Överskott",
+      "measured": "Senast uppmätt produktion",
+      "layer_note": "Gäller produktionen i elområdet, inte elen som används där (import räknas inte). CO₂ är en uppskattning.",
+      "planned": "Planerat",
+      "capacity": "Kapacitet",
+      "used": "utnyttjat",
+      "congested": "Flaskhals: olika pris på var sida",
+      "flows_planned": "Planerat flöde (day-ahead)"
     },
     "share": {
       "share": "Dela",
@@ -249,6 +268,31 @@
       "custom": "Anpassat pris",
       "spot_hint": "Visar spotpris utan avgifter. Klicka för att anpassa.",
       "custom_hint": "Visar spotpris med dina avgifter och faktorer. Klicka för att ändra."
+    },
+    "green": {
+      "renewable": "Förnybart",
+      "fossil_free": "Fossilfritt",
+      "co2": "CO₂-intensitet",
+      "estimate": "uppskattning",
+      "note": "Gäller produktionen i området, inte elen som används där: import och export räknas inte. Fossilfritt är förnybart, kärnkraft och pumpkraft. CO₂ är en uppskattning med fasta livscykelvärden per kraftslag (IPCC)."
+    },
+    "reservoir": {
+      "title": "Vattenmagasin",
+      "week": "Vecka",
+      "stored": "Lagrad energi",
+      "of_max": "av högsta uppmätta",
+      "change": "Sedan förra veckan",
+      "last_year": "Samma vecka i fjol",
+      "median": "Median",
+      "range": "Lägsta–högsta",
+      "lowest": "Lägsta tidigare år",
+      "highest": "Högsta tidigare år",
+      "vs_median": "mot medianen",
+      "above_all": "Mer vatten i magasinen än samma vecka något tidigare år",
+      "below_all": "Mindre vatten i magasinen än samma vecka något tidigare år",
+      "above_median": "Mer vatten i magasinen än normalt för veckan",
+      "below_median": "Mindre vatten i magasinen än normalt för veckan",
+      "note": "Energi lagrad i vattenmagasinen i slutet av veckan, enligt ENTSO-e. Fyllnadsgrad i procent publiceras inte där, så andelen gäller det högsta värde som finns sparat. Mindre vatten än normalt brukar ge högre elpriser i Norden."
     }
   },
   "pages": {
@@ -374,7 +418,10 @@
       "ep_status": "version, hur aktuell datan är och de senaste körningarna av importjobben.",
       "ep_healthz": "<code>200 ok</code> när tjänsten och databasen är igång.",
       "ep_healthz_data": "<code>200 ok</code> när priser, produktion och förbrukning är aktuella, annars <code>503</code> med ett problem per rad.",
-      "selfhost": "De här anropen visar bara läget just nu och lovar ingenting om framtida upptid. Behöver du garanterad tillgänglighet, kör en egen instans; <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">källkoden</a> är öppen."
+      "selfhost": "De här anropen visar bara läget just nu och lovar ingenting om framtida upptid. Behöver du garanterad tillgänglighet, kör en egen instans; <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">källkoden</a> är öppen.",
+      "ep_reservoirs": "Energi lagrad i vattenmagasinen (GWh) per ISO-vecka, för elområden och länder som rapporterar det till ENTSO-e (Sverige, Norge, Finland med flera). Senaste veckan jämförs med samma vecka i fjol och med lägsta, median och högsta värde för veckan tidigare år. <code>weeks</code> har hela året för ett diagram.",
+      "p_reservoirs_scope": "ett av dem krävs: elområde (<code>area=NO2</code>) eller land (<code>country=no</code>, summan av landets elområden).",
+      "p_flows_planned": "valfri. Dagens och morgondagens plan från day-ahead-marknaden per gräns och timme: <code>scheduled</code> är planerat nettoflöde (MW) från <code>from</code> till <code>to</code>, <code>capacity</code> överföringskapaciteten i varje riktning (<code>null</code> där gränsen inte publicerar någon)."
     },
     "hass": {
       "page_title": "Home Assistant - sensor för spotpris på el",
