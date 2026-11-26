@@ -206,7 +206,21 @@
       "net_24h": "Netto-export afgelopen 24 uur",
       "negative": "Negatieve prijs",
       "all_equal": "Zelfde prijs in alle zones",
-      "vs_yesterday": "t.o.v. gisteren"
+      "vs_yesterday": "t.o.v. gisteren",
+      "layer": "Toon",
+      "layer_price": "Prijs",
+      "layer_renewable": "Hernieuwbaar",
+      "layer_fossil_free": "Fossielvrij",
+      "layer_co2": "CO₂",
+      "layer_balance": "Overschot/tekort",
+      "share_low": "Laag aandeel",
+      "share_high": "Hoog aandeel",
+      "co2_low": "Lage uitstoot",
+      "co2_high": "Hoge uitstoot",
+      "deficit": "Tekort",
+      "surplus": "Overschot",
+      "measured": "Laatst gemeten productie",
+      "layer_note": "Gaat over de productie in de zone, niet over de stroom die er wordt gebruikt (import telt niet mee). CO₂ is een schatting."
     },
     "share": {
       "share": "Delen",
@@ -249,6 +263,13 @@
       "custom": "Aangepaste prijs",
       "spot_hint": "Spotprijs zonder kosten. Klik om aan te passen.",
       "custom_hint": "Spotprijs met jouw kosten en factoren. Klik om te wijzigen."
+    },
+    "green": {
+      "renewable": "Hernieuwbaar",
+      "fossil_free": "Fossielvrij",
+      "co2": "CO₂-intensiteit",
+      "estimate": "schatting",
+      "note": "Gaat over de productie in het gebied, niet over de stroom die er wordt gebruikt: import en export tellen niet mee. Fossielvrij is hernieuwbaar, kernenergie en pompcentrales. CO₂ is een schatting met vaste levenscycluswaarden per bron (IPCC)."
     }
   },
   "pages": {

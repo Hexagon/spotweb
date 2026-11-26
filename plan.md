@@ -231,7 +231,13 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
     eller flödesbaserade parametrar där det gäller) visar om en gräns är full, alltså varför priserna skiljer sig.
     Kontrollera först vad som finns för Norden efter införandet av flödesbaserad kapacitetsberäkning (oktober 2024),
     eftersom NTC-dokumenten inte längre finns för alla gränser där.
-53. **Härledda mått utan nya anrop:** andel förnybart och fossilfritt per område, och uppskattad CO₂-intensitet (g/kWh)
+53. ✅ Klart: `src/emissions.rs` räknar andel förnybart, andel fossilfritt (förnybart, kärnkraft, pumpkraft) och
+    CO₂-intensitet per `psrType` (livscykelvärden, IPCC AR5-medianer, avrundade; avfall och övrigt räknas som varken
+    eller, energilager räknas inte). Visas i kartpanelen, i produktionskortet på område och land med en förklaring,
+    och som kartlager (Elpris, Förnybart, Fossilfritt, CO₂, Över-/underskott) med egna färgskalor och fasta
+    skalor (0–100 %, 0–700 g/kWh). Lagren visar senast uppmätta produktion oavsett tidsreglaget, vilket står i
+    teckenförklaringen. Valet sparas i webbläsaren. Ursprunglig beskrivning:
+    **Härledda mått utan nya anrop:** andel förnybart och fossilfritt per område, och uppskattad CO₂-intensitet (g/kWh)
     med fasta emissionsfaktorer per `psr_group`. Visa tydligt att det gäller produktionen i området, inte förbrukningen
     med import. Det blir ett kartlager: pris, förnybart, CO₂ eller nettobalans (val i kartans huvud).
 54. **Installerad effekt (A68, årligen) och kärnkraft tillgänglig.** Med installerad effekt kan utnyttjandet visas (t.ex.

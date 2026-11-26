@@ -67,8 +67,14 @@
         <th>{% if p.net < 0 %}{{ t("generation.deficit") }}{% else %}{{ t("generation.excess") }}{% endif %}</th>
         <th class="num">{{ mw(p.net) }} MW</th>
       </tr>
+      {%- if p.derived %}
+      <tr><td>{{ t("green.renewable") }}</td><td class="num">{{ p.derived.renewable|int }} %</td></tr>
+      <tr><td>{{ t("green.fossil_free") }}</td><td class="num">{{ p.derived.fossil_free|int }} %</td></tr>
+      <tr><td>{{ t("green.co2") }} <span class="muted">({{ t("green.estimate") }})</span></td><td class="num">{{ p.derived.co2|int }} g/kWh</td></tr>
+      {%- endif %}
     </tbody>
   </table>
+  {%- if p.derived %}<p class="muted small pad">{{ t("green.note") }}</p>{% endif %}
   <p class="muted small right pad">{{ t("generation.last_updated") }}: {{ p.updated }}</p>
   {%- else %}
   <p class="muted pad">-</p>

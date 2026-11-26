@@ -206,7 +206,21 @@
       "net_24h": "Nettoeksport seneste 24 timer",
       "negative": "Negativ pris",
       "all_equal": "Samme pris i alle prisområder",
-      "vs_yesterday": "ift. i går"
+      "vs_yesterday": "ift. i går",
+      "layer": "Vis",
+      "layer_price": "Elpris",
+      "layer_renewable": "Vedvarende",
+      "layer_fossil_free": "Fossilfri",
+      "layer_co2": "CO₂",
+      "layer_balance": "Over-/underskud",
+      "share_low": "Lav andel",
+      "share_high": "Høj andel",
+      "co2_low": "Lav udledning",
+      "co2_high": "Høj udledning",
+      "deficit": "Underskud",
+      "surplus": "Overskud",
+      "measured": "Senest målte produktion",
+      "layer_note": "Gælder produktionen i prisområdet, ikke den strøm der bruges der (import tælles ikke med). CO₂ er et skøn."
     },
     "share": {
       "share": "Del",
@@ -249,6 +263,13 @@
       "custom": "Tilpasset pris",
       "spot_hint": "Viser spotprisen uden afgifter. Klik for at tilpasse.",
       "custom_hint": "Viser spotprisen med dine afgifter og faktorer. Klik for at ændre."
+    },
+    "green": {
+      "renewable": "Vedvarende",
+      "fossil_free": "Fossilfri",
+      "co2": "CO₂-intensitet",
+      "estimate": "skøn",
+      "note": "Gælder produktionen i området, ikke den strøm der bruges der: import og eksport tælles ikke med. Fossilfri er vedvarende energi, kernekraft og pumpekraft. CO₂ er et skøn med faste livscyklusværdier pr. energikilde (IPCC)."
     }
   },
   "pages": {

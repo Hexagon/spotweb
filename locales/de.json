@@ -206,7 +206,21 @@
       "net_24h": "Nettoexport der letzten 24 Stunden",
       "negative": "Negativer Preis",
       "all_equal": "Gleicher Preis in allen Zonen",
-      "vs_yesterday": "ggü. gestern"
+      "vs_yesterday": "ggü. gestern",
+      "layer": "Anzeigen",
+      "layer_price": "Strompreis",
+      "layer_renewable": "Erneuerbar",
+      "layer_fossil_free": "Fossilfrei",
+      "layer_co2": "CO₂",
+      "layer_balance": "Überschuss/Defizit",
+      "share_low": "Geringer Anteil",
+      "share_high": "Hoher Anteil",
+      "co2_low": "Geringe Emissionen",
+      "co2_high": "Hohe Emissionen",
+      "deficit": "Defizit",
+      "surplus": "Überschuss",
+      "measured": "Zuletzt gemessene Erzeugung",
+      "layer_note": "Bezieht sich auf die Erzeugung in der Zone, nicht auf den dort verbrauchten Strom (Import wird nicht berücksichtigt). CO₂ ist eine Schätzung."
     },
     "share": {
       "share": "Teilen",
@@ -249,6 +263,13 @@
       "custom": "Angepasster Preis",
       "spot_hint": "Spotpreis ohne Gebühren. Klicken zum Anpassen.",
       "custom_hint": "Spotpreis mit Ihren Gebühren und Faktoren. Klicken zum Ändern."
+    },
+    "green": {
+      "renewable": "Erneuerbar",
+      "fossil_free": "Fossilfrei",
+      "co2": "CO₂-Intensität",
+      "estimate": "Schätzung",
+      "note": "Bezieht sich auf die Erzeugung im Gebiet, nicht auf den dort verbrauchten Strom: Import und Export werden nicht berücksichtigt. Fossilfrei sind Erneuerbare, Kernkraft und Pumpspeicher. CO₂ ist eine Schätzung mit festen Lebenszykluswerten je Energieträger (IPCC)."
     }
   },
   "pages": {

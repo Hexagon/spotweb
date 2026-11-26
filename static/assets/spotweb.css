@@ -49,6 +49,10 @@
   --map-negative: #3f8fd6;
   /* Price ramp of the map, cheap to expensive (read by app.js) */
   --ramp: #2b2418, #5a3d12, #8f5a0e, #c47a12, #eea23a, #ffd58a;
+  /* Other map layers: share renewable/fossil free (low to high), CO2 (low to high), balance (deficit to surplus) */
+  --ramp-green: #1f2a22, #23452c, #2a6a3a, #3b8f4c, #66b86a, #b5e39b;
+  --ramp-co2: #1d2a24, #3b4a24, #6b5a1c, #9a5a16, #c8481c, #ff6a4a;
+  --ramp-balance: #e0685f, #8a3a36, #2c2f3a, #2f6b45, #5fc07a;
   /* Charts (read by app.js) */
   --chart-text: #c7cbd6;
   --chart-grid: #2a3145;
@@ -110,6 +114,9 @@
     --map-arrow-zero: rgba(27, 32, 48, .45);
     --map-negative: #2f7ec7;
     --ramp: #fbefd6, #f7d79a, #f0b45a, #d98a1f, #a85f0c, #6b3a06;
+    --ramp-green: #eef7e9, #cfe9bf, #9fd18a, #63b05a, #2f8a3c, #145c25;
+    --ramp-co2: #eef6ee, #e9e5b8, #f0c27a, #e58e4a, #c9512b, #8e2414;
+    --ramp-balance: #c0392b, #eaa79d, #f2f2f2, #9ed3a8, #2e8b4a;
     --chart-text: #3d4456;
     --chart-grid: #dde1e9;
     --chart-now: #d6336c;
@@ -421,6 +428,9 @@ body.currency-eur .hide-eur { display: none; }
 .legend-range { color: var(--text); font-variant-numeric: tabular-nums; margin-left: 4px; }
 .legend-negative i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; background: var(--map-negative); }
 .map-legend { flex-wrap: wrap; }
+.map-layer { display: inline-flex; align-items: center; gap: 6px; }
+.map-layer .compact-select { width: auto; max-width: none; }
+.map-layer-note { flex-basis: 100%; margin: 0; }
 .map-note { margin: 6px 2px var(--gap); }
 .zone-panel { position: sticky; top: 70px; scroll-margin-top: 110px; }
 .zone-panel-head { flex-direction: column; align-items: stretch; gap: 8px; }

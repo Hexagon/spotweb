@@ -206,7 +206,21 @@
       "net_24h": "Nettoexport senaste 24 timmarna",
       "negative": "Negativt pris",
       "all_equal": "Samma pris i alla elområden",
-      "vs_yesterday": "mot igår"
+      "vs_yesterday": "mot igår",
+      "layer": "Visa",
+      "layer_price": "Elpris",
+      "layer_renewable": "Förnybart",
+      "layer_fossil_free": "Fossilfritt",
+      "layer_co2": "CO₂",
+      "layer_balance": "Över-/underskott",
+      "share_low": "Låg andel",
+      "share_high": "Hög andel",
+      "co2_low": "Låga utsläpp",
+      "co2_high": "Höga utsläpp",
+      "deficit": "Underskott",
+      "surplus": "Överskott",
+      "measured": "Senast uppmätt produktion",
+      "layer_note": "Gäller produktionen i elområdet, inte elen som används där (import räknas inte). CO₂ är en uppskattning."
     },
     "share": {
       "share": "Dela",
@@ -249,6 +263,13 @@
       "custom": "Anpassat pris",
       "spot_hint": "Visar spotpris utan avgifter. Klicka för att anpassa.",
       "custom_hint": "Visar spotpris med dina avgifter och faktorer. Klicka för att ändra."
+    },
+    "green": {
+      "renewable": "Förnybart",
+      "fossil_free": "Fossilfritt",
+      "co2": "CO₂-intensitet",
+      "estimate": "uppskattning",
+      "note": "Gäller produktionen i området, inte elen som används där: import och export räknas inte. Fossilfritt är förnybart, kärnkraft och pumpkraft. CO₂ är en uppskattning med fasta livscykelvärden per kraftslag (IPCC)."
     }
   },
   "pages": {

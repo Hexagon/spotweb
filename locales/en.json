@@ -206,7 +206,21 @@
       "net_24h": "Net export, last 24 hours",
       "negative": "Negative price",
       "all_equal": "Same price in every zone",
-      "vs_yesterday": "vs yesterday"
+      "vs_yesterday": "vs yesterday",
+      "layer": "Show",
+      "layer_price": "Price",
+      "layer_renewable": "Renewable",
+      "layer_fossil_free": "Fossil free",
+      "layer_co2": "CO₂",
+      "layer_balance": "Surplus/deficit",
+      "share_low": "Low share",
+      "share_high": "High share",
+      "co2_low": "Low emissions",
+      "co2_high": "High emissions",
+      "deficit": "Deficit",
+      "surplus": "Surplus",
+      "measured": "Latest measured production",
+      "layer_note": "About the production in the zone, not the electricity used there (imports are not counted). CO₂ is an estimate."
     },
     "share": {
       "share": "Share",
@@ -249,6 +263,13 @@
       "custom": "Custom price",
       "spot_hint": "Showing the spot price without fees. Click to customize.",
       "custom_hint": "Showing the spot price with your fees and factors. Click to change."
+    },
+    "green": {
+      "renewable": "Renewable",
+      "fossil_free": "Fossil free",
+      "co2": "CO₂ intensity",
+      "estimate": "estimate",
+      "note": "About the production in the area, not the electricity used there: imports and exports are not counted. Fossil free is renewable, nuclear and pumped storage. CO₂ is an estimate with fixed life-cycle values per source (IPCC)."
     }
   },
   "pages": {

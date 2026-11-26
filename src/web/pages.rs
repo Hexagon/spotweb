@@ -496,11 +496,17 @@ async fn production_ctx(
     let net = data::net_generation(&st.app, key, from, to + 1)
         .await
         .map_err(internal)?;
-    Ok((
-        production_overview(&gen, &load, c.interval, &tz),
-        production_series(&gen),
-        json!(&*net),
-    ))
+    let mut overview = production_overview(&gen, &load, c.interval, &tz);
+    // Renewable and fossil free share and carbon intensity of the latest interval
+    let genload = data::current_generation_and_load(&st.app)
+        .await
+        .map_err(internal)?;
+    if let (Some(r), Value::Object(o)) = (genload.iter().find(|r| r.area == key), &mut overview) {
+        if r.derived.renewable.is_some() {
+            o.insert("derived".into(), json!(r.derived));
+        }
+    }
+    Ok((overview, production_series(&gen), json!(&*net)))
 }
 
 /// Flows for an area or country page: net flow per border right now (for the list) and the
@@ -569,6 +575,10 @@ pub async fn index(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> 
                 "net": r.net_generation,
                 "primary": r.primary_psr_group,
                 "mix": r.mix,
+                "period": r.period,
+                "renewable": r.derived.renewable,
+                "fossil_free": r.derived.fossil_free,
+                "co2": r.derived.co2,
                 "primary_share": match (r.primary_psr_group_generation, r.generation_total) {
                     (Some(p), Some(t)) if t != 0.0 => Some((p / t * 100.0).round()),
                     _ => None,

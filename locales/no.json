@@ -206,7 +206,21 @@
       "net_24h": "Nettoeksport siste 24 timer",
       "negative": "Negativ pris",
       "all_equal": "Samme pris i alle prisområder",
-      "vs_yesterday": "mot i går"
+      "vs_yesterday": "mot i går",
+      "layer": "Vis",
+      "layer_price": "Strømpris",
+      "layer_renewable": "Fornybart",
+      "layer_fossil_free": "Fossilfritt",
+      "layer_co2": "CO₂",
+      "layer_balance": "Over-/underskudd",
+      "share_low": "Lav andel",
+      "share_high": "Høy andel",
+      "co2_low": "Lave utslipp",
+      "co2_high": "Høye utslipp",
+      "deficit": "Underskudd",
+      "surplus": "Overskudd",
+      "measured": "Sist målte produksjon",
+      "layer_note": "Gjelder produksjonen i prisområdet, ikke strømmen som brukes der (import regnes ikke med). CO₂ er et anslag."
     },
     "share": {
       "share": "Del",
@@ -249,6 +263,13 @@
       "custom": "Tilpasset pris",
       "spot_hint": "Viser spotprisen uten avgifter. Klikk for å tilpasse.",
       "custom_hint": "Viser spotprisen med dine avgifter og faktorer. Klikk for å endre."
+    },
+    "green": {
+      "renewable": "Fornybart",
+      "fossil_free": "Fossilfritt",
+      "co2": "CO₂-intensitet",
+      "estimate": "anslag",
+      "note": "Gjelder produksjonen i området, ikke strømmen som brukes der: import og eksport regnes ikke med. Fossilfritt er fornybart, kjernekraft og pumpekraft. CO₂ er et anslag med faste livsløpsverdier per kraftslag (IPCC)."
     }
   },
   "pages": {

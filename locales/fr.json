@@ -206,7 +206,21 @@
       "net_24h": "Export net sur 24 heures",
       "negative": "Prix négatif",
       "all_equal": "Même prix dans toutes les zones",
-      "vs_yesterday": "vs hier"
+      "vs_yesterday": "vs hier",
+      "layer": "Afficher",
+      "layer_price": "Prix",
+      "layer_renewable": "Renouvelable",
+      "layer_fossil_free": "Sans fossile",
+      "layer_co2": "CO₂",
+      "layer_balance": "Excédent/déficit",
+      "share_low": "Part faible",
+      "share_high": "Part élevée",
+      "co2_low": "Émissions faibles",
+      "co2_high": "Émissions élevées",
+      "deficit": "Déficit",
+      "surplus": "Excédent",
+      "measured": "Dernière production mesurée",
+      "layer_note": "Concerne la production dans la zone, pas l'électricité qui y est consommée (les importations ne sont pas comptées). Le CO₂ est une estimation."
     },
     "share": {
       "share": "Partager",
@@ -249,6 +263,13 @@
       "custom": "Prix personnalisé",
       "spot_hint": "Prix spot affiché sans frais. Cliquez pour personnaliser.",
       "custom_hint": "Prix spot affiché avec vos frais et facteurs. Cliquez pour modifier."
+    },
+    "green": {
+      "renewable": "Renouvelable",
+      "fossil_free": "Sans fossile",
+      "co2": "Intensité CO₂",
+      "estimate": "estimation",
+      "note": "Concerne la production dans la zone, pas l'électricité qui y est consommée : les importations et exportations ne sont pas comptées. Sans fossile : renouvelable, nucléaire et pompage-turbinage. Le CO₂ est une estimation avec des valeurs fixes de cycle de vie par filière (GIEC)."
     }
   },
   "pages": {

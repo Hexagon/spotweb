@@ -312,6 +312,8 @@ pub struct GenLoadRow {
     /// Generation per `psr_group` in the same interval, largest first (pumped storage
     /// consumption and other negative values left out)
     pub mix: Vec<(String, f64)>,
+    /// Renewable and fossil free share and carbon intensity of the same interval
+    pub derived: crate::emissions::Derived,
 }
 
 /// Latest generation and load per area (index page). Port of `sqlCurrentLoadAndGeneration`.
@@ -376,6 +378,7 @@ pub fn current_generation_and_load(c: &Connection, from: i64) -> rusqlite::Resul
             load_total: r.get(6)?,
             net_generation: r.get(7)?,
             mix: vec![],
+            derived: Default::default(),
         })
     })?;
     let mut rows: Vec<GenLoadRow> = rows.collect::<rusqlite::Result<_>>()?;
@@ -386,12 +389,24 @@ pub fn current_generation_and_load(c: &Connection, from: i64) -> rusqlite::Resul
          WHERE g.area = ?1 AND g.period = ?2 AND g.interval = ?3 AND g.consumption = 0
          GROUP BY 1 HAVING SUM(g.value) > 0 ORDER BY 2 DESC",
     )?;
+    // Per production type for the derived values, which tell types in the same group apart
+    let mut by_psr = c.prepare_cached(
+        "SELECT psr, SUM(value) FROM generation
+         WHERE area = ?1 AND period = ?2 AND interval = ?3 AND consumption = 0
+         GROUP BY psr",
+    )?;
     for r in &mut rows {
         r.mix = mix
             .query_map(params![r.area, r.period, r.interval], |x| {
                 Ok((x.get(0)?, x.get(1)?))
             })?
             .collect::<rusqlite::Result<_>>()?;
+        let psr: Vec<(String, f64)> = by_psr
+            .query_map(params![r.area, r.period, r.interval], |x| {
+                Ok((x.get(0)?, x.get(1)?))
+            })?
+            .collect::<rusqlite::Result<_>>()?;
+        r.derived = crate::emissions::derive(psr.iter().map(|(p, v)| (p.as_str(), *v)));
     }
     Ok(rows)
 }

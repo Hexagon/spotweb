@@ -4,6 +4,7 @@ mod cache;
 mod countries;
 mod db;
 mod ecb;
+mod emissions;
 mod entsoe;
 mod flows;
 mod health;

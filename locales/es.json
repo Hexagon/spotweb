@@ -206,7 +206,21 @@
       "net_24h": "Exportación neta, últimas 24 horas",
       "negative": "Precio negativo",
       "all_equal": "Mismo precio en todas las zonas",
-      "vs_yesterday": "vs. ayer"
+      "vs_yesterday": "vs. ayer",
+      "layer": "Mostrar",
+      "layer_price": "Precio",
+      "layer_renewable": "Renovable",
+      "layer_fossil_free": "Sin fósiles",
+      "layer_co2": "CO₂",
+      "layer_balance": "Excedente/déficit",
+      "share_low": "Cuota baja",
+      "share_high": "Cuota alta",
+      "co2_low": "Emisiones bajas",
+      "co2_high": "Emisiones altas",
+      "deficit": "Déficit",
+      "surplus": "Excedente",
+      "measured": "Última producción medida",
+      "layer_note": "Se refiere a la producción en la zona, no a la electricidad consumida allí (no se cuentan las importaciones). El CO₂ es una estimación."
     },
     "share": {
       "share": "Compartir",
@@ -249,6 +263,13 @@
       "custom": "Precio personalizado",
       "spot_hint": "Se muestra el precio spot sin tasas. Haz clic para personalizar.",
       "custom_hint": "Se muestra el precio spot con tus tasas y factores. Haz clic para cambiar."
+    },
+    "green": {
+      "renewable": "Renovable",
+      "fossil_free": "Sin fósiles",
+      "co2": "Intensidad de CO₂",
+      "estimate": "estimación",
+      "note": "Se refiere a la producción en la zona, no a la electricidad consumida allí: no se cuentan importaciones ni exportaciones. Sin fósiles es renovable, nuclear y bombeo. El CO₂ es una estimación con valores fijos de ciclo de vida por fuente (IPCC)."
     }
   },
   "pages": {

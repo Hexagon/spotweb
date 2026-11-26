@@ -156,9 +156,15 @@
       now: v("--chart-now"), nowText: v("--chart-now-text"), nowBg: v("--chart-now-bg"),
       c1: v("--chart-1"), c2: v("--chart-2"), c3: v("--chart-3"), zone: v("--chart-zone"),
       negative: v("--chart-negative"), positive: v("--chart-positive"),
-      ramp: v("--ramp").split(",").map((x) => x.trim()).filter((x) => /^#[0-9a-f]{6}$/i.test(x)),
     };
-    if (theme.ramp.length < 2) theme.ramp = ["#2b2418", "#ffd58a"];
+    const ramp = (name, fallback) => {
+      const r = v(name).split(",").map((x) => x.trim()).filter((x) => /^#[0-9a-f]{6}$/i.test(x));
+      return r.length >= 2 ? r : fallback;
+    };
+    theme.ramp = ramp("--ramp", ["#2b2418", "#ffd58a"]);
+    theme.rampGreen = ramp("--ramp-green", ["#1f2a22", "#b5e39b"]);
+    theme.rampCo2 = ramp("--ramp-co2", ["#1d2a24", "#ff6a4a"]);
+    theme.rampBalance = ramp("--ramp-balance", ["#e0685f", "#2c2f3a", "#5fc07a"]);
   };
   readTheme();
   const areaColor = (a) => theme.areas[(a.color - 1) % theme.areas.length];
@@ -667,8 +673,7 @@ series:
   // ------------------------------------------------------------- start page map
   // Sequential ramp (one hue, cheap blends into the background, expensive stands out), from `--ramp`
   const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-  const rampColor = (f) => {
-    const ramp = theme.ramp;
+  const rampColor = (f, ramp = theme.ramp) => {
     const x = Math.max(0, Math.min(1, f)) * (ramp.length - 1);
     const i = Math.min(ramp.length - 2, Math.floor(x));
     const a = hexRgb(ramp[i]), b = hexRgb(ramp[i + 1]), k = x - i;
@@ -717,6 +722,29 @@ series:
   };
   const zoneLabel = (name) => (boot.zones[name] ? `${name} – ${boot.zones[name].long}` : `${name} – ${(boot.neighbours || {})[name] || ""}`);
 
+  // Map layers: the price at the chosen time, or a value of the latest measured production
+  // (shares and carbon intensity of the production in the zone, net balance)
+  const LAYERS = ["price", "renewable", "fossil_free", "co2", "balance"];
+  map.layer = LAYERS.includes(store.get("sw_map_layer")) ? store.get("sw_map_layer") : "price";
+  const layerValue = (name, layer = map.layer) => {
+    if (layer === "price") return zoneAt(name);
+    const gl = boot.zones[name] && boot.zones[name].gl;
+    if (!gl) return null;
+    const v = layer === "balance" ? (gl.load === null || gl.load === undefined ? null : gl.net) : gl[layer];
+    return v === undefined ? null : v;
+  };
+  const layerText = (name, layer = map.layer) => {
+    const v = layerValue(name, layer);
+    if (layer === "price") return price(v);
+    if (v === null) return "-";
+    if (layer === "co2") return mw(v);
+    if (layer === "balance") return `${v > 0 ? "+" : ""}${mw(v)}`;
+    return `${Math.round(v)} %`;
+  };
+  const layerUnit = (layer = map.layer) => ({ price: unit(), co2: "g/kWh", balance: "MW" })[layer] || "";
+  // Fixed scales, so that zones and days can be compared: 0-100 %, 0-700 g/kWh
+  const CO2_MAX = 700;
+
   const mapSetup = () => {
     const app = $("#map-app");
     if (!app || !boot.zones) return false;
@@ -764,6 +792,12 @@ series:
       p.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(p.dataset.area); } });
     });
     $("#zone-select").addEventListener("change", (e) => select(e.target.value));
+    const layerSel = $("[data-map-layer]", app);
+    if (layerSel) layerSel.addEventListener("change", () => {
+      map.layer = LAYERS.includes(layerSel.value) ? layerSel.value : "price";
+      store.set("sw_map_layer", map.layer);
+      mapRender();
+    });
 
     // Tooltip for zones, neighbours and arrows
     const showTip = (e, html) => {
@@ -783,7 +817,8 @@ series:
         showTip(e, flowTip(map.borders[Number(target.dataset.flow)]));
       } else if (target.dataset.area) {
         const n = target.dataset.area;
-        showTip(e, `<strong>${esc(zoneLabel(n))}</strong><br>${price(zoneAt(n))} ${esc(unit())}`);
+        const extra = map.layer === "price" ? "" : `<br>${esc(t("map.layer_" + map.layer))}: ${esc(layerText(n))} ${esc(layerUnit())}`;
+        showTip(e, `<strong>${esc(zoneLabel(n))}</strong><br>${price(zoneAt(n))} ${esc(unit())}${extra}`);
       } else {
         showTip(e, `<strong>${esc(zoneLabel(target.dataset.ext))}</strong>`);
       }
@@ -1141,7 +1176,7 @@ series:
     const plan = {};
     for (const n of names) {
       const s = size(n);
-      const pw = price(zoneAt(n)).length * (n === sel ? 8 : 7.2);
+      const pw = layerText(n).length * (n === sel ? 8 : 7.2);
       const full = rect(n, Math.max(n.length * 6, pw), -13, 13);
       const short = rect(n, n.length * 6, -4, 5);
       if (n === sel || (s >= ZL_FULL && fits(full))) { plan[n] = "full"; taken.push(full); }
@@ -1173,7 +1208,7 @@ series:
       const g = placed(lg, a[0], a[1], { class: "zone-label" + (name === sel ? " selected" : "") });
       if (level === "full") {
         svgEl("text", { x: 0, y: -6, class: "zl-name", "text-anchor": "middle" }, g).textContent = name;
-        svgEl("text", { x: 0, y: 10, class: "zl-price", "text-anchor": "middle" }, g).textContent = price(zoneAt(name));
+        svgEl("text", { x: 0, y: 10, class: "zl-price", "text-anchor": "middle" }, g).textContent = layerText(name);
       } else {
         svgEl("text", { x: 0, y: 4, class: "zl-name", "text-anchor": "middle" }, g).textContent = name;
       }
@@ -1186,7 +1221,60 @@ series:
   };
 
   // Zone colours, legend and flow status for the chosen time
+  // Legend texts per layer: [low end, high end]
+  const layerEnds = () => ({
+    price: [t("map.cheap"), t("map.expensive")],
+    renewable: [t("map.share_low"), t("map.share_high")],
+    fossil_free: [t("map.share_low"), t("map.share_high")],
+    co2: [t("map.co2_low"), t("map.co2_high")],
+    balance: [t("map.deficit"), t("map.surplus")],
+  })[map.layer];
+  const mapColorsOther = () => {
+    const svg = map.svg;
+    const sel = map.selected;
+    const layer = map.layer;
+    const names = Object.keys(boot.zones);
+    const vals = names.map((n) => layerValue(n)).filter((v) => v !== null);
+    const span = layer === "balance" ? Math.max(500, ...vals.map(Math.abs)) : 0;
+    const [ramp, frac] = layer === "co2" ? [theme.rampCo2, (v) => v / CO2_MAX]
+      : layer === "balance" ? [theme.rampBalance, (v) => 0.5 + v / (2 * span)]
+      : [theme.rampGreen, (v) => v / 100];
+    $$(".zone", svg).forEach((p) => {
+      const n = p.dataset.area;
+      const v = layerValue(n);
+      p.style.fill = v === null ? "" : rampColor(frac(v), ramp);
+      p.classList.toggle("no-data", v === null);
+      p.classList.toggle("selected", n === sel);
+      p.setAttribute("aria-label", `${zoneLabel(n)}: ${layerText(n)} ${layerUnit()}`);
+      p.setAttribute("aria-pressed", String(n === sel));
+    });
+    const selPath = $(`.zone[data-area="${sel}"]`, svg);
+    if (selPath) selPath.parentNode.appendChild(selPath);
+    const fmt = (v) => (layer === "co2" ? mw(v) : layer === "balance" ? `${v > 0 ? "+" : ""}${mw(v)}` : `${v}`);
+    const [lo, hi] = layer === "co2" ? [0, CO2_MAX] : layer === "balance" ? [-span, span] : [0, 100];
+    $("[data-legend-min]").textContent = fmt(lo);
+    $("[data-legend-max]").textContent = fmt(hi) + (layer === "co2" ? "+" : "");
+    const stops = [0, 0.25, 0.5, 0.75, 1].map((x) => rampColor(x, ramp));
+    $(".legend-ramp").style.background = `linear-gradient(90deg, ${stops.join(",")})`;
+    $("[data-legend-negative]").hidden = true;
+    $("[data-legend-equal]").hidden = true;
+    // The values are of the latest measured production, whatever time the slider is at
+    const latest = Math.max(...names.map((n) => (boot.zones[n].gl && boot.zones[n].gl.period) || 0));
+    $("[data-flows-updated]").textContent = latest > 0 ? `${t("map.measured")} ${hhmm(latest)}` : "";
+  };
+  const mapLegendUi = () => {
+    const [lo, hi] = layerEnds();
+    $("[data-legend-lo]").textContent = lo;
+    $("[data-legend-hi]").textContent = hi;
+    $("[data-legend-unit]").textContent = map.layer === "price" ? unit() : layerUnit() || "%";
+    $$("[data-legend-price]").forEach((el) => { el.hidden = map.layer !== "price"; });
+    $("[data-layer-note]").hidden = map.layer === "price" || map.layer === "balance";
+    const s = $("[data-map-layer]");
+    if (s) s.value = map.layer;
+  };
   const mapColors = () => {
+    mapLegendUi();
+    if (map.layer !== "price") { mapColorsOther(); return; }
     const svg = map.svg;
     const sel = map.selected;
     const prices = Object.keys(boot.zones).map((n) => [n, zoneAt(n)]).filter((x) => x[1] !== null && x[1] !== undefined);
@@ -1310,6 +1398,11 @@ series:
       if (gl.generation !== null) html += row(t("generation.production"), `${mw(gl.generation)} MW`);
       if (gl.load !== null) html += row(t("generation.consumption"), `${mw(gl.load)} MW`);
       if (gl.net !== null && gl.load !== null) html += row(gl.net < 0 ? t("generation.deficit") : t("generation.excess"), `${mw(gl.net)} MW`, gl.net < 0 ? "text-danger" : "text-success");
+      if (gl.renewable !== null && gl.renewable !== undefined) {
+        html += row(t("green.renewable"), `${Math.round(gl.renewable)} %`);
+        html += row(t("green.fossil_free"), `${Math.round(gl.fossil_free)} %`);
+        html += row(`${t("green.co2")} <span class="muted">(${esc(t("green.estimate"))})</span>`, `${mw(gl.co2)} g/kWh`);
+      }
       if (gl.primary && !(gl.mix && gl.mix.length)) html += row(t("generation.primary_source"), `${esc(t("generation.psr_" + gl.primary + "_0"))}${gl.primary_share !== null ? ` <span class="muted">(${gl.primary_share} %)</span>` : ""}`);
     }
     $("[data-zone-gl]", panel).innerHTML = html || `<div class="muted">-</div>`;
