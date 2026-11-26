@@ -247,6 +247,7 @@ async fn pages_render() {
         ("/custom", "Custom period"),
         ("/help", "Table of Contents"),
         ("/homeassistant", "configuration.yaml"),
+        ("/api", "/api/v2/cheapest"),
     ] {
         let (s, body, _) = get(&app, uri).await;
         assert_eq!(s, StatusCode::OK, "{uri}: {body}");
@@ -904,7 +905,7 @@ async fn http_stats_per_route() {
 async fn translated_pages_have_no_missing_keys() {
     let app = test_app();
     for lang in crate::countries::LANGUAGES {
-        for page in ["help", "homeassistant", "custom"] {
+        for page in ["help", "api", "homeassistant", "custom"] {
             let (s, body, _) = get(&app, &format!("/{page}?lang={lang}")).await;
             assert_eq!(s, StatusCode::OK);
             assert!(!body.contains("pages."), "{page} {lang} shows a raw key");

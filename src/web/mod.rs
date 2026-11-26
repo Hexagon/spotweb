@@ -428,6 +428,7 @@ pub fn router(app: App) -> Router {
     let mut r = Router::new()
         .route("/", get(pages::index))
         .route("/help", get(pages::help))
+        .route("/api", get(pages::api))
         .route("/homeassistant", get(pages::homeassistant))
         .route("/custom", get(pages::custom))
         .route("/sitemap.xml", get(pages::sitemap))
