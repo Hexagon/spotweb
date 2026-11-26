@@ -212,7 +212,7 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
 48. ✅ **Mer i kartpanelen.** Panelen är också kompaktare: pris nu, snitt idag och imorgon på en rad. Nu visas bara huvudkällan för produktionen. Åtgärd: produktionsmixen som en liten staplad
     stapel (vatten, kärnkraft, vind, sol, fossilt), den billigaste perioden idag och imorgon (samma logik som
     `/api/v2/cheapest`), och skillnaden mot igår eller samma dag förra veckan.
-49. **Notiser om ovanliga priser.** En rad överst på startsidan och områdessidan när morgondagen har negativa priser,
+49. **Notiser om ovanliga priser.** (Ingår nu i nyhetsspalten, punkt 59, som dess första del.) En rad överst på startsidan och områdessidan när morgondagen har negativa priser,
     ovanligt höga toppar eller ett nytt rekord för månaden ("Negativa priser imorgon 11–15 i SE3"). Allt beräknas ur
     data som redan finns.
 
@@ -277,6 +277,57 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
 
 **Förslag till ordning:** 44 (liten, syns direkt) → 43 → 45 → 46 → 47/48 → 53 → 50 → 51 → 52 → 54 → 49. Punkt 55 bör
 avgöras innan 43 slås samman.
+
+## Automatisk nyhetsspalt (plan 26 nov 2026)
+
+Syftet är fler besökare: nytt, indexerbart innehåll varje dag med datum och elområde i rubriken (det folk söker på:
+"negativa elpriser imorgon", "elpris rekord november", "vattenmagasin under normalt"), något att dela, och ett skäl att
+komma tillbaka. Allt beräknas ur data som redan hämtas. Ingen text skrivs av en språkmodell: varje nyhet är en regel
+som har slagit till, med siffror, och texten kommer från mallar i `locales/*.json`, så att den blir korrekt på alla
+nio språk. Punkt 49 (notisraden) blir den första delen av det här.
+
+59. **Nyhetsspalt.**
+    - **Regler (detektorer)** som körs efter jobben och ger händelser med typ, område, datum, prioritet och siffror:
+      | Regel | Källa | När den slår till (startvärden, justeras efter backtest) |
+      | ----- | ----- | ------------------------------------------------------- |
+      | Negativa priser imorgon | priser | minst en kvart under 0 i ett område; anger timmar och lägsta pris |
+      | Pristopp imorgon | priser | dygnets högsta ≥ 2 × medianen av de senaste 30 dagarnas högsta, och över en fast nivå |
+      | Rekord | priser sedan 2021 | högsta/lägsta dygnsmedel i månaden, året eller sedan 2021 för ett område |
+      | Stor förändring | priser | morgondagens medel ±50 % mot idag och minst 20 EUR/MWh |
+      | Norr–söder | priser, flöden (52) | stor prisskillnad inom ett land (SE1–SE4, NO), med gränsen som är flaskhals |
+      | Samma pris överallt | priser | alla nordiska områden inom 0,5 EUR/MWh under större delen av dygnet |
+      | Vattenmagasin | 51 | ny vecka: under lägsta/över högsta för veckan, eller långt från medianen; ändring mot förra veckan |
+      | Kärnkraft | avbrott, (54) | oplanerat avbrott ≥ 400 MW börjar eller slutar; tillgänglig kärnkraft i ett land under en nivå |
+      | Förnybart och CO₂ | 53 | rekordandel förnybart/fossilfritt eller ovanligt hög CO₂ för ett land |
+      | Veckosammanfattning | alla | måndag morgon: förra veckans medelpris per område mot veckan innan, och veckans händelser |
+    - **Gruppering och tak:** samma regel för flera områden samma dag blir en nyhet ("Negativa elpriser imorgon i SE3, SE4
+      och DK1"). Varje händelse har en nyckel (regel, område/grupp, datum) och sparas bara en gång, men uppdateras om
+      siffrorna ändras (till exempel när fler områden får negativa priser). Högst cirka 5 nyheter per dygn, efter prioritet.
+    - **Lagring:** tabellen `news` (id, regel, nyckel unik, datum, skapad, uppdaterad, prioritet, områden och siffror som
+      JSON). Ingen text sparas: rubrik och brödtext renderas när sidan visas, på besökarens språk och i dess valuta.
+    - **Jobb:** `news` körs efter prisjobbet (13:30 och 14:15 för morgondagen), efter avbrotten (08:30), efter magasinen
+      (onsdag–fredag) och måndag 07:00 för veckosammanfattningen. Det är idempotent och gör inga anrop till ENTSO-e.
+    - **Var nyheterna syns:**
+      - En rad överst på startsidan och på områdes- och landssidorna med de 1–3 viktigaste nyheterna för området (punkt 49).
+      - Sidan `/news` (rubrik "Nyheter" på alla språk) med alla nyheter, filtrerbar per land, sidor per månad.
+      - En egen sida per nyhet, `/news/2026-11-28-negativa-elpriser-se3`, med rubrik och beskrivning som innehåller datum
+        och område, ett litet diagram, länk till områdessidan, `NewsArticle` i JSON-LD, canonical och Open Graph. Bara
+        nyheter över en prioritetsgräns får en egen sida, så att det inte blir tunna sidor; de andra finns bara i listan.
+      - RSS/Atom per språk (`/news.xml?lang=sv`), JSON i `/api/v2/news?area=SE3` (för Home Assistant och andra), och
+        nyhetssidorna i `sitemap.xml` med `lastmod`.
+      - Delningsknappen (finns redan) på varje nyhet. Senare: en bild för delning per nyhet (kartan eller diagrammet som
+        PNG, renderad på servern), som hänger ihop med punkt 57.
+    - **Språk:** en mall per regel och språk med platshållare, till exempel `news.negative_tomorrow`: "Negativa elpriser
+      imorgon i {areas}: under noll {from}–{to}, lägst {min} {unit}". Siffror och datum formateras som på resten av
+      sajten. Rubrikerna hålls korta och sakliga.
+    - **Kvalitet:** tester per regel med konstruerad data, och `spotweb news --from 2025-01-01 --dry-run` som kör
+      reglerna mot historiken och skriver ut vad som skulle ha blivit nyheter. Med det sätts gränserna så att det blir
+      cirka 1–3 nyheter per dag i snitt och inga dagar med tio. Historiken kan också fylla arkivet bakåt vid lansering,
+      vilket ger sidor att indexera direkt.
+    - **Mät:** visningar och klick för `/news` i Search Console, och antal delningar per nyhet.
+    - **Ordning för PR:erna:** (a) tabell, jobb och prisreglerna (negativa priser, topp, rekord, förändring) och raden
+      på sidorna, alltså punkt 49; (b) `/news`, sidor per nyhet, RSS, API och sitemap; (c) reglerna för magasin,
+      kärnkraft, förnybart/CO₂ och flaskhalsar; (d) veckosammanfattningen; (e) bilder för delning.
 
 ## Ny startsida
 
