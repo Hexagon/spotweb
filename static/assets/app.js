@@ -103,32 +103,42 @@
     const r = (rows || []).find((x) => x[0] <= now && x[0] + x[2] > now);
     return r ? r[1] : null;
   };
-  const areaRows = (a) => (a && a.today ? a.today.points.map((p) => [p[0], p[1], a.today.interval]) : []);
+  // Today's and tomorrow's rows of an area overview (`boot.area`, `boot.areas[i]`, `boot.zones[n]`)
+  const dayRows = (d) => (d && d.points ? d.points.map((p) => [p[0], p[1], d.interval]) : []);
+  const areaRows = (a) => (a ? dayRows(a.today).concat(dayRows(a.tomorrow)) : []);
+  /** Price of an area at `now` from whatever the page has loaded, `null` when it has nothing */
+  const areaNow = (name, now) => {
+    const sources = [boot.upcoming && boot.upcoming[name], boot.zones && areaRows(boot.zones[name])];
+    for (const a of boot.areas || (boot.area ? [boot.area] : [])) if (a.name === name) sources.push(areaRows(a));
+    for (const rows of sources) {
+      const v = nowFromRows(rows, now);
+      if (v !== null) return v;
+    }
+    return null;
+  };
+  // Whether a price shown on the page is not known for the current interval: the page's data
+  // has run out (open since yesterday, or the tab slept), see the live updates at the end
+  let missingNow = false;
 
   const renderNow = () => {
     const now = Date.now();
-    const areas = boot.areas || (boot.area ? [boot.area] : []);
     const byArea = {};
-    for (const a of areas) byArea[a.name] = nowFromRows(areaRows(a), now);
-    if (boot.upcoming) for (const [k, rows] of Object.entries(boot.upcoming)) {
-      const v = nowFromRows(rows, now);
-      if (v !== null) byArea[k] = v;
-    }
+    missingNow = false;
     $$("[data-now-area]").forEach((el) => {
-      const v = byArea[el.dataset.nowArea];
-      if (v !== undefined && v !== null) el.innerHTML = `<span class="p" data-eur="${v}">${price(v)}</span>`;
+      const n = el.dataset.nowArea;
+      const v = (byArea[n] = areaNow(n, now));
+      if (v !== null) el.innerHTML = `<span class="p" data-eur="${v}">${price(v)}</span>`;
+      else missingNow = true;
     });
-    if (boot.upcoming) {
-      $$("[data-now-country]").forEach((el) => {
-        const c = boot.countries.find((x) => x.id === el.dataset.nowCountry);
-        if (!c) return;
-        const vals = c.areas.map((a) => byArea[a.name]).filter((v) => v !== undefined && v !== null);
-        if (vals.length) {
-          const v = vals.reduce((a, b) => a + b, 0) / vals.length;
-          el.innerHTML = `<span class="p" data-eur="${v}">${price(v)}</span>`;
-        }
-      });
-    }
+    $$("[data-now-country]").forEach((el) => {
+      const c = (boot.countries || []).find((x) => x.id === el.dataset.nowCountry);
+      if (!c) return;
+      const vals = c.areas.map((a) => (a.name in byArea ? byArea[a.name] : areaNow(a.name, now))).filter((v) => v !== null);
+      if (vals.length) {
+        const v = vals.reduce((a, b) => a + b, 0) / vals.length;
+        el.innerHTML = `<span class="p" data-eur="${v}">${price(v)}</span>`;
+      }
+    });
   };
 
   // ------------------------------------------------------------------ charts
@@ -677,11 +687,7 @@ series:
   const NORDIC = ["sv", "no", "fi", "dk"];
 
   const map = { ready: false, selected: null, view: null };
-  const zoneNow = (name) => {
-    const z = boot.zones[name];
-    const v = boot.upcoming ? nowFromRows(boot.upcoming[name], Date.now()) : null;
-    return v !== null && v !== undefined ? v : z ? z.now : null;
-  };
+  const zoneNow = (name) => areaNow(name, Date.now());
   // Price of a zone at the time chosen on the slider (`map.time`), or right now
   const zoneAt = (name) => {
     if (map.time === null || map.time === undefined) return zoneNow(name);
@@ -1553,31 +1559,81 @@ series:
   // Ads
   $$("ins.adsbygoogle").forEach(() => { try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (_e) { /* blocked */ } });
 
-  // Roll the "now" price forward every 30 seconds, re-mark the chart on new intervals
-  let lastSlot = boot.area ? currentSlot(boot.area) : null;
-  setInterval(() => {
+  // ------------------------------------------------------------ live updates
+  // The price changes every quarter (or hour). A timer at each quarter boundary moves "now" on
+  // with the data the page already has: the price, the chart's now-line, the price table and the
+  // map. New data (tomorrow's prices after the auction, production, flows, a new day) is fetched
+  // as the page itself, without reloading it: the boot JSON and the server-rendered parts marked
+  // `data-live` are swapped in, so ads, analytics and the scroll position are left alone.
+  const live = ["index"].includes(boot.page) || boot.area || boot.areas;
+  const marketClock = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Stockholm", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  const marketMinutes = () => { const [h, m] = marketClock.format(new Date()).split(":").map(Number); return h * 60 + m; };
+  const shownAreas = () => (boot.zones ? Object.values(boot.zones) : boot.areas || (boot.area ? [boot.area] : []));
+  // Tomorrow's prices are auctioned around 12:45-13:00 CET; until they are in, look every quarter
+  const awaitingTomorrow = () => {
+    const m = marketMinutes();
+    return m >= 12 * 60 + 45 && m < 20 * 60 && shownAreas().some((a) => !(a.tomorrow && a.tomorrow.points && a.tomorrow.points.length));
+  };
+  // Time of the latest refresh attempt (a failed one is not retried until a condition below says so)
+  let lastRefresh = Date.now();
+  let refreshDay = new Date().toDateString();
+  let refreshing = null;
+  let refreshWhenVisible = false;
+  const refresh = () => {
+    if (refreshing) return refreshing;
+    if (document.hidden) { refreshWhenVisible = true; return Promise.resolve(); }
+    lastRefresh = Date.now();
+    refreshing = (async () => {
+      const res = await fetch(location.pathname + location.search, { cache: "no-store", credentials: "same-origin", headers: { Accept: "text/html" } });
+      if (!res.ok) throw new Error(`refresh: HTTP ${res.status}`);
+      const doc = new DOMParser().parseFromString(await res.text(), "text/html");
+      const el = doc.getElementById("sw-boot");
+      const next = el ? JSON.parse(el.textContent) : null;
+      if (!next || next.page !== boot.page) throw new Error("refresh: not the same page");
+      $$("[data-live]").forEach((old) => {
+        const n = doc.querySelector(`[data-live="${CSS.escape(old.dataset.live)}"]`);
+        if (n) old.replaceWith(document.importNode(n, true));
+      });
+      for (const k of Object.keys(boot)) delete boot[k];
+      Object.assign(boot, next);
+      refreshDay = new Date().toDateString();
+      rerender();
+    })().catch((e) => console.warn(e)).finally(() => { refreshing = null; });
+    return refreshing;
+  };
+  // Once an hour (1-3 minutes past, spread over the open tabs, after the price job at :00), at a
+  // new day, and at most once a quarter while the shown data has run out or tomorrow is awaited
+  const hourOffset = 60000 + Math.random() * 120000;
+  const refreshDue = () => {
+    const now = Date.now();
+    const since = now - lastRefresh;
+    if (since < 120000) return false;
+    const hourPassed = Math.floor((now - hourOffset) / HOUR) !== Math.floor((lastRefresh - hourOffset) / HOUR);
+    if (hourPassed || refreshDay !== new Date().toDateString()) return true;
+    return since >= QUARTER - 60000 && (missingNow || awaitingTomorrow());
+  };
+  let lastQuarter = Math.floor(Date.now() / QUARTER);
+  const tick = () => {
     renderNow();
     renderStatic();
-    if (boot.area) {
-      const s = currentSlot(boot.area);
-      if (s !== lastSlot) { lastSlot = s; safe(chartAreaToday); safe(priceTable); }
-    }
-    if (map.ready) {
-      const q = Math.floor(Date.now() / 900000);
-      if (q !== map.slot) { map.slot = q; safe(mapRender); } else safe(mapTimeUi);
-    }
-  }, 30000);
-
-  // Reload at each full hour to pick up new data (if the page has been open for more than two minutes)
-  const loaded = Date.now();
-  const scheduleReload = () => {
-    const next = new Date(); next.setMinutes(60, 0, 0);
-    const jitter = 10000 + Math.random() * 50000;
-    setTimeout(() => {
-      if (Date.now() - loaded < 120000) { scheduleReload(); return; }
-      if (document.visibilityState === "visible") location.reload();
-      else document.addEventListener("visibilitychange", () => location.reload(), { once: true });
-    }, next.getTime() - Date.now() + jitter);
+    const q = Math.floor(Date.now() / QUARTER);
+    if (q !== lastQuarter) {
+      lastQuarter = q;
+      [chartAreaToday, () => chartAllAreas("today"), priceTable, mapRender].forEach(safe);
+    } else if (map.ready) safe(mapTimeUi);
+    if (live && refreshDue()) refresh();
   };
-  if (["index"].includes(boot.page) || boot.area || boot.areas) scheduleReload();
+  // Just after each quarter boundary; timers in hidden tabs are throttled, so catch up on return
+  const armQuarter = () => {
+    const jitter = 300 + Math.random() * 1500;
+    setTimeout(() => { tick(); armQuarter(); }, QUARTER - (Date.now() % QUARTER) + jitter);
+  };
+  armQuarter();
+  // Between quarters: the map slider's now-mark, and the hourly refresh spread over a minute
+  setInterval(tick, 60000 + Math.random() * 5000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) return;
+    tick();
+    if (refreshWhenVisible) { refreshWhenVisible = false; if (live) refresh(); }
+  });
 })();

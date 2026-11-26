@@ -141,8 +141,15 @@ Bygget, clippy och de 72 testerna är gröna. Punkterna nedan kommer från en ge
     `SPOTWEB_API_TOKEN` (alias för `API_TOKEN`) nämns inte i README eller `docs/deployment.md`.
 41. ✅ (#59) **Timeout-svaret är 408.** `TimeoutLayer` svarar `408 Request Timeout` när servern är långsam, men 408 betyder att
     klienten var för långsam. Proxyer och klienter kan då göra om anropet automatiskt. Åtgärd: 503 eller 504.
-42. **Timvis omladdning av hela sidan.** Klienten laddar om sidan varje hel timme för att få ny data. Det ger ny
-    sidvisning, laddar om annonserna och ritar om allt. Åtgärd (större): hämta bara ny boot-data som JSON och rita om.
+42. ✅ ~~**Timvis omladdning av hela sidan.** Klienten laddar om sidan varje hel timme för att få ny data. Det ger ny
+    sidvisning, laddar om annonserna och ritar om allt. Åtgärd (större): hämta bara ny boot-data som JSON och rita om.~~
+    Klart (variant): en timer vid varje kvartsgräns flyttar fram priset nu, nu-linjen i diagrammen, pristabellen och
+    kartan med data som sidan redan har (idag och imorgon per område, inte bara de närmaste två timmarna). Ny data
+    hämtas genom att klienten hämtar sidan själv med `fetch` och byter boot-JSON:en och de serverrenderade delarna
+    som är märkta `data-live` (statistiken i områdeskorten, produktionskortet och tabellen på startsidan). Det sker
+    1–3 minuter efter varje hel timme, vid nytt dygn, och högst en gång per kvart när priset för aktuellt intervall
+    saknas eller när morgondagens priser väntas (12:45–20:00 svensk tid). Ingen omladdning, så annonser, analys och
+    scrollläge lämnas i fred. Dolda flikar uppdateras när de visas igen.
 
 ## Nya punkter: karta, elområdessidan och mer data (genomgång 22 nov 2026)
 

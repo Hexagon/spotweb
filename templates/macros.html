@@ -22,7 +22,7 @@
     <div class="muted">{{ unit() }} {{ t("overview.right_now") }}</div>
     <div>{{ price_kind() }}</div>
   </div>
-  <div class="stats">
+  <div class="stats" data-live="stats-{{ a.name }}">
     <div>
       <h3>{{ t("overview.average_today") }}</h3>
       <div class="big">{{ price(a.avg_today) }} <small>{{ unit() }}</small></div>
@@ -53,7 +53,7 @@
 {% endmacro %}
 
 {% macro production_card(p) %}
-<section class="card">
+<section class="card" data-live="production">
   <header class="card-head"><h2>{{ t("generation.current_production") }}</h2></header>
   {%- if p.has_data %}
   <table class="table">

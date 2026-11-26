@@ -121,7 +121,7 @@
         <th class="hide-sm">{{ t("generation.primary_source") }}</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody data-live="overview">
       {%- for c in rows %}
       <tr class="country-row">
         <td><a href="/{{ c.id }}">{{ t("countries." ~ c.id) }}</a></td>
