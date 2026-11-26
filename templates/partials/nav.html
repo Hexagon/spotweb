@@ -29,6 +29,7 @@
       <a href="/homeassistant" class="nav-link hide-sm{% if page == 'homeassistant' %} active{% endif %}">Home Assistant</a>
       {%- endif %}
       <a href="/custom" class="nav-link hide-sm{% if page == 'custom' %} active{% endif %}">{{ t("nav.table") }}</a>
+      <a href="/api" class="nav-link hide-sm{% if page == 'api' %} active{% endif %}">API</a>
       <a href="/help" class="nav-link hide-sm{% if page == 'help' %} active{% endif %}">{{ t("nav.help") }}</a>
       <button type="button" class="price-kind price-kind-chip hide-sm" data-price-kind data-open-settings aria-controls="settings" title="{{ t('price_kind.spot_hint') }}">{{ t("price_kind.spot") }}</button>
       <details class="dropdown nav-more show-sm">
@@ -36,6 +37,7 @@
         <div class="dropdown-menu dropdown-menu-right">
           <a href="/homeassistant"{% if page == 'homeassistant' %} class="active"{% endif %}>Home Assistant</a>
           <a href="/custom"{% if page == 'custom' %} class="active"{% endif %}>{{ t("nav.table") }}</a>
+          <a href="/api"{% if page == 'api' %} class="active"{% endif %}>API</a>
           <a href="/help"{% if page == 'help' %} class="active"{% endif %}>{{ t("nav.help") }}</a>
           <button type="button" data-open-settings aria-controls="settings">{{ t("customize.title") }}</button>
         </div>

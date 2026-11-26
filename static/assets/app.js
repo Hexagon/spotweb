@@ -575,8 +575,9 @@
       - name: "Spotprice Now"
         unique_id: "56k_spotprice_now"
         value_template: "{{ value_json.now }}"
+        availability: "{{ value_json.now | is_number }}"
         unit_of_measurement: "${cur}/kWh"
-        device_class: "monetary"
+        state_class: "measurement"
         json_attributes:
           - data
           - avg
@@ -588,6 +589,16 @@
           - avg_yesterday
           - min_yesterday
           - max_yesterday`;
+    // The chart shows prices in the minor unit (öre, cent) where the currency has a common one
+    const sub = { SEK: "öre", NOK: "øre", DKK: "øre", EUR: "c", PLN: "gr", CZK: "h", GBP: "p", CHF: "Rp" }[cur];
+    const scale = sub ? 100 : 1;
+    const chartUnit = `${sub || cur}/kWh`;
+    // Colour thresholds at 70 and 120 EUR/MWh spot, with the same fees and factors as the sensor
+    const threshold = (eurMwh) => {
+      const p = ((eurMwh * rate(cur)) / 1000 * multiplier + extra) * factor * scale;
+      return Number.isFinite(p) ? Number(p.toFixed(sub ? 0 : 2)) : eurMwh;
+    };
+    const mul = scale === 1 ? "" : ` * ${scale}`;
     $("#apex-conf").textContent = `type: custom:apexcharts-card
 experimental:
   color_threshold: true
@@ -602,8 +613,8 @@ span:
   start: day
 yaxis:
   - id: primary
-    decimals: 0
-    min: 0
+    decimals: ${sub ? 0 : 2}
+    min: '~0'
 header:
   show: true
   title: Electricity Price - Today and tomorrow
@@ -613,11 +624,11 @@ all_series_config:
   color_threshold:
     - value: 0
       color: green
-    - value: 75
+    - value: ${threshold(70)}
       color: orange
-    - value: 130
+    - value: ${threshold(120)}
       color: red
-  unit: 'c/kWh'
+  unit: '${chartUnit}'
   type: line
   stroke_width: 0
   show:
@@ -632,15 +643,15 @@ series:
       extremas: true
       in_header: before_now
     data_generator: >
-      return entity.attributes.data.map(e => [Date.parse(e.st), parseFloat(e.p) * 100]);
+      return entity.attributes.data.map(e => [Date.parse(e.st), parseFloat(e.p)${mul}]);
   - entity: sensor.spotprice_now
     name: Today (avg)
     data_generator: >
-      return [[new Date(), entity.attributes.avg * 100]]
+      return [[new Date(), parseFloat(entity.attributes.avg)${mul}]]
   - entity: sensor.spotprice_now
     name: Tomorrow (avg)
     data_generator: >
-      return [[new Date(), entity.attributes.avg_tomorrow * 100]]`;
+      return [[new Date(), parseFloat(entity.attributes.avg_tomorrow)${mul}]]`;
   };
 
   // ------------------------------------------------------------- start page map

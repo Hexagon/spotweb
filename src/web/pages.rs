@@ -897,6 +897,14 @@ pub async fn help(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> P
     render(&st, "help.html", finish(ctx, boot))
 }
 
+pub async fn api(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> PageResult {
+    let lang = detect_lang(&uri, &headers);
+    let head = page_head(&st, &lang, "api", Kind::Localized);
+    let (mut ctx, boot) = base(&st, &lang, "api", head, &uri, &headers).await?;
+    ctx.insert("base_url".into(), json!(public_base(&st, &headers)));
+    render(&st, "api.html", finish(ctx, boot))
+}
+
 pub async fn homeassistant(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> PageResult {
     let lang = detect_lang(&uri, &headers);
     let head = page_head(&st, &lang, "hass", Kind::Localized);
@@ -985,7 +993,7 @@ pub async fn sitemap(State(st): State<WebState>, headers: HeaderMap) -> Response
         }
     }
     // Translated pages without a date we know
-    for p in ["/help", "/homeassistant", "/custom"] {
+    for p in ["/help", "/api", "/homeassistant", "/custom"] {
         urls.push((format!("{base}{p}"), None));
         for l in LANGUAGES {
             urls.push((format!("{base}{p}?lang={l}"), None));
@@ -1020,7 +1028,8 @@ pub async fn llms(State(st): State<WebState>, headers: HeaderMap) -> Response {
          bidding zones in the Nordics and Europe: the price right now, today, tomorrow (published \
          around 13:00 CET) and history since {start}, plus production per type, consumption, \
          cross-border power flows and outages. Prices come from the ENTSO-E Transparency Platform \
-         and are converted with ECB reference rates. No API key is needed.\n\n\
+         and are converted with ECB reference rates. No API key is needed. The API is provided \
+         for personal use, free of charge and without any guarantee of uptime or correctness.\n\n\
          Spot prices exclude surcharges, grid fees, energy tax and VAT. The API returns prices in \
          the chosen currency per MWh (`/api/v2/spot`, times in milliseconds since the epoch) or \
          per kWh (`/api/v2/hass`). Days follow the local time zone of the zone. Prices are \
@@ -1079,6 +1088,7 @@ pub async fn llms(State(st): State<WebState>, headers: HeaderMap) -> Response {
     out.push_str(&format!(
         "\n## Optional\n\n\
          - [Help]({base}/help): price types, taxes and fees, how actual prices are calculated\n\
+         - [API documentation]({base}/api): all endpoints and parameters, data sources and how the data is converted\n\
          - [Home Assistant]({base}/homeassistant): REST sensor configuration\n\
          - [Custom period]({base}/custom): table of prices for any zone and period\n\
          - [Source code](https://github.com/Hexagon/spotweb)\n"
