@@ -744,21 +744,20 @@ series:
     map.nordic = n ? [n[0] - 70, n[1] - 15, n[2] + 120, n[3] + 75] : map.full;
     map.europe = e ? [e[0] - 60, e[1] - 15, e[2] + 100, e[3] + 30] : map.full;
 
-    const select = (name, focus) => {
+    const select = (name) => {
       if (!boot.zones[name]) return;
       map.selected = name;
       store.set("sw_map_area", name);
       if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
       $("#zone-select").value = name;
       mapRender();
-      if (focus && window.matchMedia("(max-width: 1000px)").matches) $("#zone-panel").scrollIntoView({ behavior: "smooth", block: "start" });
     };
     map.select = select;
     $$(".zone", svg).forEach((p) => {
-      p.addEventListener("click", () => select(p.dataset.area, true));
-      p.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(p.dataset.area, true); } });
+      p.addEventListener("click", () => select(p.dataset.area));
+      p.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(p.dataset.area); } });
     });
-    $("#zone-select").addEventListener("change", (e) => select(e.target.value, false));
+    $("#zone-select").addEventListener("change", (e) => select(e.target.value));
 
     // Tooltip for zones, neighbours and arrows
     const showTip = (e, html) => {
@@ -1326,7 +1325,7 @@ series:
     $("[data-zone-flows]", panel).innerHTML = flowListHtml(items, (n) => (boot.zones[n] ? `<a href="#${esc(n)}" data-goto="${esc(n)}">${esc(n)}</a>` : `<span>${esc(n)}</span>`));
     $("[data-zone-flow-total]", panel).textContent = flowNetText(items);
     zoneSpark(name, panel);
-    $$("[data-goto]", panel).forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); map.select(a.dataset.goto, false); }));
+    $$("[data-goto]", panel).forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); map.select(a.dataset.goto); }));
 
     // Today and tomorrow chart
     const pts = z.today.points.concat(z.tomorrow.points);
