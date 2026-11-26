@@ -185,6 +185,19 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
     CREATE INDEX outage_availability_mrid ON outage_availability (mrid, ts);
     "#,
     ),
+    (
+        6,
+        "hydro reservoir filling",
+        // ENTSO-e A72: energy stored in reservoirs per bidding zone at the end of each week (MWh)
+        r#"
+    CREATE TABLE reservoir (
+        area   TEXT    NOT NULL,
+        period INTEGER NOT NULL,
+        value  REAL    NOT NULL,
+        PRIMARY KEY (area, period)
+    ) WITHOUT ROWID;
+    "#,
+    ),
 ];
 
 /// See [`Db::optimize`]

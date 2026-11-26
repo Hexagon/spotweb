@@ -149,7 +149,37 @@ fn template_env(app: &App) -> Environment<'static> {
             .unwrap_or_else(|| "en".into());
         v.map(|v| format_int(v, &lang)).unwrap_or_default()
     });
+    // GWh -> "12,3" TWh in the page language; `signed` adds a + to positive values
+    env.add_function(
+        "twh",
+        |state: &TplState, v: Option<f64>, signed: Option<bool>| -> String {
+            let lang = state
+                .lookup("lang")
+                .map(|l| l.to_string())
+                .unwrap_or_else(|| "en".into());
+            v.map(|v| format_twh(v, &lang, signed.unwrap_or(false)))
+                .unwrap_or_else(|| "-".into())
+        },
+    );
     env
+}
+
+/// GWh as TWh with two decimals (one from 10 TWh), the decimal sign of the language
+pub fn format_twh(gwh: f64, lang: &str, signed: bool) -> String {
+    let t = gwh / 1000.0;
+    let decimals = if t.abs() >= 10.0 { 1 } else { 2 };
+    let mut s = format!("{:.*}", decimals, t.abs());
+    if lang != "en" {
+        s = s.replace('.', ",");
+    }
+    let sign = if t < 0.0 && s.chars().any(|c| c.is_ascii_digit() && c != '0') {
+        "\u{2212}"
+    } else if signed && t > 0.0 {
+        "+"
+    } else {
+        ""
+    };
+    format!("{sign}{s}")
 }
 
 /// Name of the cookie that remembers a language picked with `?lang=`
@@ -439,6 +469,7 @@ pub fn router(app: App) -> Router {
         .route("/api/v2/cheapest", get(api::cheapest))
         .route("/api/v2/status", get(api::status))
         .route("/api/v2/flows", get(api::flows))
+        .route("/api/v2/reservoirs", get(api::reservoirs))
         .route("/healthz", get(api::healthz))
         .route("/healthz/data", get(api::healthz_data))
         .route("/{country}", get(pages::country))

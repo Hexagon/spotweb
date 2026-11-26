@@ -38,7 +38,7 @@ spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried po
 | -------------------------------- | ------------------------------------------------------------------------ |
 | `spotweb serve`                  | Web server + scheduler (default). `--no-scheduler` for a read-only node. |
 | `spotweb import-v1 [db/main.db]` | Import history from a 1.x database. Safe to run repeatedly.              |
-| `spotweb run-job prices …`       | Run `prices`, `currency`, `load`, `production`, `flows`, `outages` once. |
+| `spotweb run-job prices …`       | Run `prices`, `currency`, `load`, `production`, `flows`, `outages`, `reservoirs` once. |
 | `spotweb repair-prices [AREA…]`  | Refetch months with incomplete days in stored history. `--from DATE`.    |
 | `spotweb backup <file>`          | Consistent online copy, safe while running. `*.zst` is zstd-compressed.  |
 
@@ -83,6 +83,7 @@ Same timing as 1.x, in `SPOTWEB_SCHEDULE_TZ` (DST changes are handled):
 | `production` | every hour at :50                                                 |
 | `flows`      | every hour at :25, half of the borders per run, so each border every second hour (two requests per border) |
 | `outages`    | 08:05                                                             |
+| `reservoirs` | 10:35, the last eight weeks per zone (one request each); the first time a zone has data, its history since 2015 a year per request |
 
 Runs only fetch what can have changed:
 
@@ -157,6 +158,11 @@ When the prices do not cover `hours` yet, `found` is `false` and `start`, `end` 
 Neighbours are zones for `area` and countries for `country` (borders inside the country are left out; GB and IT keep
 their zone name). `start` and `end` are dates in the zone's time zone, by default yesterday and today, at most 31 days.
 Hours without data are left out. Flows are kept at full resolution for 90 days and as hourly averages after that.
+
+`GET /api/v2/reservoirs?area=NO2` or `?country=no` – energy stored in hydro reservoirs per ISO week (GWh), for the zones
+that report it to ENTSO-e (A72). The latest week (`year`, `week`, `latest`, `change`) is compared with the same week last
+year (`last_year`) and in the years before (`min`, `median`, `max`); `weeks` has the whole year for a chart. ENTSO-e
+publishes stored energy, not a filling percentage: `share_of_max` is the latest value as a share of the highest stored.
 
 `GET /api/v2/status` – latest data, last job runs, `healthy`/`problems` and HTTP statistics (`http`). `GET /healthz` – liveness probe.
 `GET /healthz/data` – `200` when prices are complete for today (and tomorrow after 14:00 CET) and load and generation are

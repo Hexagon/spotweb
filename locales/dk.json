@@ -270,6 +270,24 @@
       "co2": "CO₂-intensitet",
       "estimate": "skøn",
       "note": "Gælder produktionen i området, ikke den strøm der bruges der: import og eksport tælles ikke med. Fossilfri er vedvarende energi, kernekraft og pumpekraft. CO₂ er et skøn med faste livscyklusværdier pr. energikilde (IPCC)."
+    },
+    "reservoir": {
+      "title": "Vandmagasiner",
+      "week": "Uge",
+      "stored": "Lagret energi",
+      "of_max": "af højeste målte",
+      "change": "Siden sidste uge",
+      "last_year": "Samme uge sidste år",
+      "median": "Median",
+      "range": "Laveste–højeste",
+      "lowest": "Laveste tidligere år",
+      "highest": "Højeste tidligere år",
+      "vs_median": "i forhold til medianen",
+      "above_all": "Mere vand i magasinerne end samme uge i noget tidligere år",
+      "below_all": "Mindre vand i magasinerne end samme uge i noget tidligere år",
+      "above_median": "Mere vand i magasinerne end normalt for ugen",
+      "below_median": "Mindre vand i magasinerne end normalt for ugen",
+      "note": "Energi lagret i vandmagasinerne ved udgangen af ugen ifølge ENTSO-e. Fyldningsgrad i procent offentliggøres ikke der, så andelen gælder den højeste gemte værdi. Mindre vand end normalt giver som regel højere elpriser i Norden."
     }
   },
   "pages": {
@@ -395,7 +413,9 @@
       "ep_status": "version, hvor opdaterede data er og de seneste kørsler af importjobbene.",
       "ep_healthz": "<code>200 ok</code>, når tjenesten og databasen kører.",
       "ep_healthz_data": "<code>200 ok</code>, når priser, produktion og forbrug er opdaterede, ellers <code>503</code> med ét problem pr. linje.",
-      "selfhost": "Disse endpoints viser kun tilstanden lige nu og lover intet om fremtidig oppetid. Har du brug for garanteret tilgængelighed, så kør din egen instans; <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">kildekoden</a> er åben."
+      "selfhost": "Disse endpoints viser kun tilstanden lige nu og lover intet om fremtidig oppetid. Har du brug for garanteret tilgængelighed, så kør din egen instans; <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">kildekoden</a> er åben.",
+      "ep_reservoirs": "Energi lagret i vandmagasinerne (GWh) pr. ISO-uge for prisområder og lande, der rapporterer det til ENTSO-e (Norge, Sverige, Finland m.fl.). Seneste uge sammenlignes med samme uge sidste år og med laveste, median og højeste værdi for ugen i tidligere år. <code>weeks</code> har hele året til et diagram.",
+      "p_reservoirs_scope": "en af dem kræves: prisområde (<code>area=NO2</code>) eller land (<code>country=no</code>, summen af landets prisområder)."
     },
     "hass": {
       "page_title": "Home Assistant - sensor for spotpris på el",

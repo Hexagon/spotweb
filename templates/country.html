@@ -27,6 +27,9 @@
   {{ m.flows_card(t("map.flows") ~ " - " ~ t("countries." ~ country.id)) }}
   {{ m.flows_chart_card(t("chart.net_flow") ~ " - " ~ t("countries." ~ country.id) ~ " - " ~ t("chart.yesterday_and_today")) }}
 </div>
+{%- if reservoir %}
+{{ m.reservoir_card(reservoir, t("countries." ~ country.id)) }}
+{%- endif %}
 
 <div class="grid grid-2">
   <section class="card">

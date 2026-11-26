@@ -659,6 +659,47 @@ pub async fn healthz_data(State(st): State<WebState>) -> Response {
     res
 }
 
+/// `GET /api/v2/reservoirs?area=NO2` or `?country=no`: energy stored in hydro reservoirs per
+/// ISO week (GWh), with the same week of earlier years (lowest, median, highest).
+pub async fn reservoirs(
+    State(st): State<WebState>,
+    Query(pairs): Query<Vec<(String, String)>>,
+) -> Response {
+    let q = query_map(pairs);
+    let (scope, label) = if let Some(a) = param(&q, "area") {
+        let Some((_, a)) = find_area(&a.to_uppercase()) else {
+            return api_error("Unknown area");
+        };
+        (data::FlowScope::Area(a.name), ("area", a.name))
+    } else if let Some(id) = param(&q, "country") {
+        let id = id.to_lowercase();
+        let Some(c) = crate::countries::COUNTRIES.iter().find(|c| c.id == id) else {
+            return api_error("Unknown country");
+        };
+        (data::FlowScope::Country(c.id), ("country", c.id))
+    } else {
+        return api_error("Missing/invalid parameters");
+    };
+    match data::reservoirs(&st.app, scope).await {
+        Ok(o) => json_response(
+            StatusCode::OK,
+            json!({
+                "status": "ok",
+                "source": SOURCE,
+                "license": "CC-BY-4.0",
+                label.0: label.1,
+                "unit": "GWh",
+                "data": &*o,
+            }),
+            3600,
+        ),
+        Err(e) => {
+            tracing::error!(error = %format!("{e:#}"), "reservoir query failed");
+            api_error("Query failed")
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

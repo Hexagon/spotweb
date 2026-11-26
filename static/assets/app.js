@@ -1626,12 +1626,40 @@ series:
     }));
   };
 
+  // ------------------------------------------------------------ reservoirs
+  // Stored energy per ISO week this year and last year, with the median, lowest and highest of
+  // the same week in the years before
+  const twhFmt = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const chartReservoir = () => {
+    const r = boot.reservoir;
+    if (!r || !r.weeks) return;
+    const pts = (k) => r.weeks.map((w) => ({ x: w.week, y: w[k] === null ? null : w[k] / 1000 }));
+    const range = r.first_year ? ` ${r.first_year}–${r.year - 1}` : "";
+    const o = baseChart();
+    o.chart.type = "line";
+    o.chart.height = 300;
+    o.series = [
+      { name: String(r.year), data: pts("this_year") },
+      { name: String(r.year - 1), data: pts("last_year") },
+      { name: t("reservoir.median") + range, data: pts("median") },
+      { name: t("reservoir.lowest"), data: pts("min") },
+      { name: t("reservoir.highest"), data: pts("max") },
+    ];
+    const spread = theme.mode === "light" ? "rgba(90,98,115,.45)" : "rgba(170,176,190,.45)";
+    o.colors = [theme.c1, theme.c2, theme.text, spread, spread];
+    o.stroke = { width: [3, 2, 2, 1, 1], dashArray: [0, 5, 2, 0, 0], curve: "smooth" };
+    o.xaxis = { type: "numeric", min: 1, max: 53, tickAmount: 13, labels: { formatter: (v) => String(Math.round(v)) }, title: { text: t("reservoir.week") } };
+    o.yaxis = { min: 0, labels: { formatter: (v) => (v === null || v === undefined ? "" : twhFmt.format(v)) }, title: { text: "TWh" } };
+    o.tooltip = { theme: theme.mode, shared: true, x: { formatter: (v) => `${t("reservoir.week")} ${v}` }, y: { formatter: (v) => (v === null || v === undefined ? "-" : `${twhFmt.format(v)} TWh`) } };
+    draw("reservoir", o, (v) => `${twhFmt.format(v)} TWh`);
+  };
+
   // -------------------------------------------------------------- lifecycle
   const safe = (fn) => { try { const r = fn(); if (r && r.catch) r.catch((e) => console.error(e)); } catch (e) { console.error(e); } };
   const rerender = () => {
     renderStatic();
     renderNow();
-    [chartAreaToday, () => chartAllAreas("today"), () => chartAllAreas("tomorrow"), chartProduction, chartNet, chartFlows, flowCard,
+    [chartAreaToday, () => chartAllAreas("today"), () => chartAllAreas("tomorrow"), chartProduction, chartNet, chartFlows, flowCard, chartReservoir,
       chartLongTermArea, chartLongTermCountry, chartThirtyDays, priceTable, hass, mapRender].forEach(safe);
     if (customRun && !$("#custom-result").classList.contains("hidden")) safe(customRun);
     renderStatic();

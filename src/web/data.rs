@@ -504,3 +504,45 @@ pub async fn border_flows(
         )
         .await
 }
+
+/// Hydro reservoir filling of an area, or of a country (the sum of its areas), compared with
+/// the same week of earlier years. Empty for zones that do not report it.
+pub async fn reservoirs(
+    app: &App,
+    scope: FlowScope<'_>,
+) -> anyhow::Result<Arc<crate::reservoir::Overview>> {
+    let (key, areas): (String, Vec<&'static str>) = match scope {
+        FlowScope::Area(a) => (
+            format!("a:{a}"),
+            COUNTRIES
+                .iter()
+                .flat_map(|c| c.areas)
+                .filter(|x| x.name == a)
+                .map(|x| x.name)
+                .collect(),
+        ),
+        FlowScope::Country(c) => (
+            format!("c:{c}"),
+            COUNTRIES
+                .iter()
+                .filter(|x| x.id == c)
+                .flat_map(|x| x.areas)
+                .map(|x| x.name)
+                .collect(),
+        ),
+    };
+    let db = app.db.clone();
+    app.cache
+        .get_or_load(
+            "reservoir",
+            key,
+            Duration::from_secs(6 * 3600),
+            || async move {
+                let rows = db
+                    .run(move |c| Ok(queries::reservoir_rows(c, &areas)?))
+                    .await?;
+                Ok(crate::reservoir::overview(&crate::reservoir::weekly(&rows)))
+            },
+        )
+        .await
+}

@@ -996,6 +996,57 @@ pub fn data_freshness(c: &Connection) -> rusqlite::Result<DataFreshness> {
     })
 }
 
+// ---------------------------------------------------------------------------
+// Hydro reservoirs
+// ---------------------------------------------------------------------------
+
+/// Start of the latest stored reservoir week of an area
+pub fn max_reservoir_period(c: &Connection, area: &str) -> rusqlite::Result<Option<i64>> {
+    c.query_row(
+        "SELECT MAX(period) FROM reservoir WHERE area = ?1",
+        params![area],
+        |r| r.get(0),
+    )
+}
+
+/// `(period, MWh)` per week. Returns the number of rows inserted or changed.
+pub fn upsert_reservoir(
+    c: &mut Connection,
+    area: &str,
+    rows: &[(i64, f64)],
+) -> rusqlite::Result<usize> {
+    let tx = c.transaction()?;
+    let mut changed = 0;
+    {
+        let mut st = tx.prepare_cached(
+            "INSERT INTO reservoir (area, period, value) VALUES (?1, ?2, ?3)
+             ON CONFLICT (area, period) DO UPDATE SET value = excluded.value
+             WHERE value IS NOT excluded.value",
+        )?;
+        for (period, value) in rows {
+            changed += st.execute(params![area, period, value])?;
+        }
+    }
+    tx.commit()?;
+    Ok(changed)
+}
+
+/// Every stored week of the given areas: `(area, period, MWh)`, oldest first
+pub fn reservoir_rows(c: &Connection, areas: &[&str]) -> rusqlite::Result<Vec<(String, i64, f64)>> {
+    let mut st = c.prepare_cached(
+        "SELECT area, period, value FROM reservoir WHERE area = ?1 ORDER BY period",
+    )?;
+    let mut out = vec![];
+    for a in areas {
+        let rows = st.query_map(params![a], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?;
+        for r in rows {
+            out.push(r?);
+        }
+    }
+    out.sort_by_key(|r| r.1);
+    Ok(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

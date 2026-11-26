@@ -527,6 +527,21 @@ async fn flows_ctx(
     Ok((json!(&*current), json!(&*series)))
 }
 
+/// Reservoir filling for an area or country page, when the zone reports it
+async fn reservoir_ctx(
+    st: &WebState,
+    scope: data::FlowScope<'_>,
+    ctx: &mut Map<String, Value>,
+    boot: &mut Map<String, Value>,
+) -> Result<(), Response> {
+    let r = data::reservoirs(&st.app, scope).await.map_err(internal)?;
+    if r.latest.is_some() {
+        ctx.insert("reservoir".into(), json!(&*r));
+        boot.insert("reservoir".into(), json!(&*r));
+    }
+    Ok(())
+}
+
 // ---------------------------------------------------------------------------
 // Handlers
 // ---------------------------------------------------------------------------
@@ -712,6 +727,7 @@ pub async fn country(
     let (flows, area_flows) = flows_ctx(&st, c, data::FlowScope::Country(c.id)).await?;
     boot.insert("flows".into(), flows);
     boot.insert("area_flows".into(), area_flows);
+    reservoir_ctx(&st, data::FlowScope::Country(c.id), &mut ctx, &mut boot).await?;
     render(&st, "country.html", finish(ctx, boot))
 }
 
@@ -866,6 +882,7 @@ pub async fn area(
     let (flows, area_flows) = flows_ctx(&st, c, data::FlowScope::Area(a.name)).await?;
     boot.insert("flows".into(), flows);
     boot.insert("area_flows".into(), area_flows);
+    reservoir_ctx(&st, data::FlowScope::Area(a.name), &mut ctx, &mut boot).await?;
     render(&st, "area.html", finish(ctx, boot))
 }
 
@@ -1062,6 +1079,8 @@ pub async fn llms(State(st): State<WebState>, headers: HeaderMap) -> Response {
          of tomorrow, or between optional `from` and `to`. Returns `start`, `end`, average `price` \
          (currency/MWh), `windows`, the intervals in `data` and `active` (true while one of them is in progress).\n\
          - [Cross-border flows]({base}/api/v2/flows): latest physical flows between zones, MW.\n\
+         - [Hydro reservoirs]({base}/api/v2/reservoirs?country=no): energy stored per ISO week (GWh) \
+         compared with the same week of earlier years, per `area` or `country`.\n\
          - [Status]({base}/api/v2/status): data freshness.\n\n\
          ## Bidding zones\n\n\
          - [Map of all zones with current prices and flows]({base}/)\n",

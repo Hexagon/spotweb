@@ -28,16 +28,18 @@ pub enum Job {
     Load,
     Production,
     Flows,
+    Reservoirs,
 }
 
 impl Job {
-    pub const ALL: [Job; 6] = [
+    pub const ALL: [Job; 7] = [
         Job::Currency,
         Job::Prices,
         Job::Load,
         Job::Production,
         Job::Flows,
         Job::Outages,
+        Job::Reservoirs,
     ];
 
     pub fn name(&self) -> &'static str {
@@ -48,6 +50,7 @@ impl Job {
             Job::Load => "load",
             Job::Production => "production",
             Job::Flows => "flows",
+            Job::Reservoirs => "reservoirs",
         }
     }
 
@@ -72,6 +75,8 @@ impl Job {
         const LOAD: &[Schedule] = &[every_hour(&[5])];
         const PRODUCTION: &[Schedule] = &[every_hour(&[50])];
         const FLOWS: &[Schedule] = &[every_hour(&[25])];
+        // Weekly data, published some days after the week; one cheap request per zone a day
+        const RESERVOIRS: &[Schedule] = &[at(&[10], &[35])];
         match self {
             Job::Prices => PRICES,
             Job::Currency => CURRENCY,
@@ -79,6 +84,7 @@ impl Job {
             Job::Load => LOAD,
             Job::Production => PRODUCTION,
             Job::Flows => FLOWS,
+            Job::Reservoirs => RESERVOIRS,
         }
     }
 
@@ -86,6 +92,8 @@ impl Job {
         match self {
             Job::Currency => Duration::from_secs(60),
             Job::Outages => Duration::from_secs(3600),
+            // The first run fetches the history since 2015, a year per request
+            Job::Reservoirs => Duration::from_secs(1800),
             // A first run back-fills all history since 2021
             Job::Prices => Duration::from_secs(4 * 3600),
             // Two requests per border
@@ -101,6 +109,7 @@ impl Job {
             Job::Outages => &["outage"],
             Job::Load | Job::Production => &["load", "generation"],
             Job::Flows => &["flow"],
+            Job::Reservoirs => &["reservoir"],
         }
     }
 }
@@ -312,6 +321,7 @@ async fn run_inner(app: &App, job: Job, scheduled: bool) -> anyhow::Result<Outco
         Job::Load => update_load(app).await,
         Job::Production => update_production(app).await,
         Job::Flows => update_flows(app, scheduled).await,
+        Job::Reservoirs => update_reservoirs(app).await,
     }
 }
 
@@ -942,6 +952,62 @@ async fn update_outages(app: &App) -> anyhow::Result<Outcome> {
     })
     .await;
     summarize(&results, |r| r.0, "outage")
+}
+
+/// First year fetched for a zone that has no reservoir data stored yet (ENTSO-e has it from 2015)
+const RESERVOIR_HISTORY_YEAR: i16 = 2015;
+/// Weeks fetched again on every run, for new and revised values
+const RESERVOIR_RECENT_WEEKS: i64 = 8;
+
+/// Weekly reservoir filling per zone. Zones that do not report it answer "no data" and cost one
+/// request a day. The first time a zone has data, its history is fetched a year at a time.
+async fn update_reservoirs(app: &App) -> anyhow::Result<Outcome> {
+    let results = for_each_area(Job::Reservoirs, |_country, area| {
+        let app = app.clone();
+        async move {
+            let name = area.name;
+            let stored = app
+                .db
+                .run(move |c| Ok(queries::max_reservoir_period(c, name)?))
+                .await?;
+            let now = Timestamp::now();
+            let recent = now - SignedDuration::from_hours(RESERVOIR_RECENT_WEEKS * 7 * 24);
+            let mut points = request(name, "reservoir", || {
+                app.entsoe.reservoirs(area.eic, recent, now)
+            })
+            .await?;
+            if stored.is_none() && !points.is_empty() {
+                let mut year = RESERVOIR_HISTORY_YEAR;
+                loop {
+                    let start = jiff::civil::date(year, 1, 1)
+                        .to_zoned(TimeZone::UTC)?
+                        .timestamp();
+                    if start >= recent {
+                        break;
+                    }
+                    let end = jiff::civil::date(year + 1, 1, 1)
+                        .to_zoned(TimeZone::UTC)?
+                        .timestamp()
+                        .min(recent);
+                    points.extend(
+                        request(name, "reservoir", || {
+                            app.entsoe.reservoirs(area.eic, start, end)
+                        })
+                        .await?,
+                    );
+                    year += 1;
+                }
+            }
+            let rows: Vec<(i64, f64)> = points.into_iter().map(|p| (p.start, p.value)).collect();
+            let n = app
+                .db
+                .run(move |c| Ok(queries::upsert_reservoir(c, name, &rows)?))
+                .await?;
+            Ok(Rows(n, "reservoir"))
+        }
+    })
+    .await;
+    summarize(&results, |r| r.0, "reservoir")
 }
 
 /// Flows older than this are kept as hourly averages only (see [`queries::compact_flows`])

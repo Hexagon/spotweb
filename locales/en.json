@@ -270,6 +270,24 @@
       "co2": "CO₂ intensity",
       "estimate": "estimate",
       "note": "About the production in the area, not the electricity used there: imports and exports are not counted. Fossil free is renewable, nuclear and pumped storage. CO₂ is an estimate with fixed life-cycle values per source (IPCC)."
+    },
+    "reservoir": {
+      "title": "Hydro reservoirs",
+      "week": "Week",
+      "stored": "Stored energy",
+      "of_max": "of the highest recorded",
+      "change": "Since last week",
+      "last_year": "Same week last year",
+      "median": "Median",
+      "range": "Lowest–highest",
+      "lowest": "Lowest earlier year",
+      "highest": "Highest earlier year",
+      "vs_median": "against the median",
+      "above_all": "More water in the reservoirs than the same week of any earlier year",
+      "below_all": "Less water in the reservoirs than the same week of any earlier year",
+      "above_median": "More water in the reservoirs than normal for the week",
+      "below_median": "Less water in the reservoirs than normal for the week",
+      "note": "Energy stored in the reservoirs at the end of the week, according to ENTSO-e. A filling percentage is not published there, so the share is of the highest value stored. Less water than normal usually means higher electricity prices in the Nordics."
     }
   },
   "pages": {
@@ -395,7 +413,9 @@
       "ep_status": "version, how up to date the data is and the latest runs of the import jobs.",
       "ep_healthz": "<code>200 ok</code> when the service and its database are running.",
       "ep_healthz_data": "<code>200 ok</code> when prices, production and consumption are up to date, otherwise <code>503</code> with one problem per line.",
-      "selfhost": "These endpoints only show the current state and promise nothing about future uptime. If you need guaranteed availability, run your own instance; the <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">source code</a> is open."
+      "selfhost": "These endpoints only show the current state and promise nothing about future uptime. If you need guaranteed availability, run your own instance; the <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">source code</a> is open.",
+      "ep_reservoirs": "Energy stored in hydro reservoirs (GWh) per ISO week, for bidding zones and countries that report it to ENTSO-e (Sweden, Norway, Finland and others). The latest week is compared with the same week last year and with the lowest, median and highest value of the week in earlier years. <code>weeks</code> has the whole year for a chart.",
+      "p_reservoirs_scope": "one of them is required: bidding zone (<code>area=NO2</code>) or country (<code>country=no</code>, the sum of the country's zones)."
     },
     "hass": {
       "page_title": "Home Assistant - electricity spot price sensor",

@@ -270,6 +270,24 @@
       "co2": "Intensidad de CO₂",
       "estimate": "estimación",
       "note": "Se refiere a la producción en la zona, no a la electricidad consumida allí: no se cuentan importaciones ni exportaciones. Sin fósiles es renovable, nuclear y bombeo. El CO₂ es una estimación con valores fijos de ciclo de vida por fuente (IPCC)."
+    },
+    "reservoir": {
+      "title": "Embalses hidroeléctricos",
+      "week": "Semana",
+      "stored": "Energía almacenada",
+      "of_max": "del máximo registrado",
+      "change": "Desde la semana pasada",
+      "last_year": "Misma semana del año pasado",
+      "median": "Mediana",
+      "range": "Mínimo–máximo",
+      "lowest": "Mínimo de años anteriores",
+      "highest": "Máximo de años anteriores",
+      "vs_median": "frente a la mediana",
+      "above_all": "Más agua en los embalses que la misma semana de cualquier año anterior",
+      "below_all": "Menos agua en los embalses que la misma semana de cualquier año anterior",
+      "above_median": "Más agua en los embalses de lo normal para la semana",
+      "below_median": "Menos agua en los embalses de lo normal para la semana",
+      "note": "Energía almacenada en los embalses al final de la semana, según ENTSO-e. Allí no se publica el porcentaje de llenado, así que la proporción se refiere al valor más alto registrado. Menos agua de lo normal suele significar precios más altos en los países nórdicos."
     }
   },
   "pages": {
@@ -395,7 +413,9 @@
       "ep_status": "versión, lo actualizados que están los datos y las últimas ejecuciones de las tareas de importación.",
       "ep_healthz": "<code>200 ok</code> cuando el servicio y su base de datos funcionan.",
       "ep_healthz_data": "<code>200 ok</code> cuando los precios, la generación y el consumo están al día; si no, <code>503</code> con un problema por línea.",
-      "selfhost": "Estos endpoints solo muestran el estado actual y no prometen nada sobre la disponibilidad futura. Si necesita disponibilidad garantizada, ejecute su propia instancia; el <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">código fuente</a> es abierto."
+      "selfhost": "Estos endpoints solo muestran el estado actual y no prometen nada sobre la disponibilidad futura. Si necesita disponibilidad garantizada, ejecute su propia instancia; el <a href=\"https://github.com/Hexagon/spotweb\" rel=\"noopener\">código fuente</a> es abierto.",
+      "ep_reservoirs": "Energía almacenada en los embalses (GWh) por semana ISO, para las zonas y países que la comunican a ENTSO-e (España, Portugal, Francia, países nórdicos, etc.). La última semana se compara con la misma semana del año pasado y con los valores mínimo, mediano y máximo de esa semana en años anteriores. <code>weeks</code> contiene todo el año para un gráfico.",
+      "p_reservoirs_scope": "se requiere uno de ellos: zona (<code>area=NO2</code>) o país (<code>country=no</code>, la suma de sus zonas)."
     },
     "hass": {
       "page_title": "Home Assistant - sensor del precio spot de la electricidad",

@@ -223,7 +223,16 @@ avbrott (A77/A80). Ordningen nedan är förslaget till ordning för PR:erna. Pun
     priser: lite vind och hög förbrukning ger dyrt. Åtgärd: nytt jobb efter publiceringen (cirka 18:00 CET), nya
     tabeller, och ett diagram på områdessidan med morgondagens pris mot prognosen för vind+sol och förbrukning
     (residuallast). Ungefär 2–3 anrop per område och dygn.
-51. **Vattenmagasin (A72, veckovis)** för SE, NO och FI, per elområde där det finns: fyllnadsgrad mot samma vecka
+51. ✅ Klart: jobbet `reservoirs` (10:35) hämtar A72 för alla elområden, de senaste 8 veckorna (ett anrop per
+    område; områden utan magasin svarar "no data"), och första gången ett område har data hela historiken sedan 2015
+    ett år per anrop. Tabellen `reservoir` (migration 6). Kort med diagram på områdes- och landssidan (landet är
+    summan av områdena, bara veckor där alla har värden): lagrad energi i TWh, ändring sedan förra veckan, samma
+    vecka i fjol, median och lägsta–högsta för veckan tidigare år, en mening om läget mot normalt, och veckokurvor
+    för i år, i fjol, median och spridning. `/api/v2/reservoirs?area=NO2` eller `?country=no`, dokumenterat i
+    README, på API-sidan och i `llms.txt`. ENTSO-e publicerar lagrad energi, inte fyllnadsgrad i procent, så
+    andelen visas mot högsta sparade värde. Följ upp: vilka av våra områden som faktiskt svarar, och att veckorna
+    hamnar rätt (ISO-vecka efter veckans mitt). Ursprunglig beskrivning:
+    **Vattenmagasin (A72, veckovis)** för SE, NO och FI, per elområde där det finns: fyllnadsgrad mot samma vecka
     tidigare år (min, max, median). Det är troligen det mest efterfrågade i Norden när priserna stiger på hösten. Få
     anrop (en gång i veckan), liten tabell. Ett kort på lands- och områdessidan.
 52. **Planerade flöden och kapacitet.** Kommersiella flöden day-ahead (A09) visar planerad import och export imorgon. Då

@@ -11,6 +11,7 @@ mod health;
 mod i18n;
 mod jobs;
 mod price;
+mod reservoir;
 mod timeutil;
 mod web;
 mod xml;

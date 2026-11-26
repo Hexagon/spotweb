@@ -1206,3 +1206,44 @@ async fn panicking_handler_answers_500() {
     // The usual headers are still there
     assert!(res.headers().contains_key("x-content-type-options"));
 }
+
+#[tokio::test]
+async fn reservoirs_api_and_card() {
+    let app = test_app();
+    {
+        let mut c = app.db.conn().unwrap();
+        // Weeks 44-46 of 2024 and 2025 for SE1 and SE2 (Monday 00:00 CET = Sunday 23:00 UTC)
+        let week = 7 * 24 * 3_600_000i64;
+        for (year, start, base) in [
+            (2024, 1_730_070_000_000i64, 10_000.0),
+            (2025, 1_761_519_600_000i64, 12_000.0),
+        ] {
+            for i in 0..3 {
+                let p = start + i * week;
+                assert_eq!(crate::reservoir::iso_week(p).unwrap().0, year);
+                queries::upsert_reservoir(&mut c, "SE1", &[(p, base + i as f64 * 100.0)]).unwrap();
+                queries::upsert_reservoir(&mut c, "SE2", &[(p, 2.0 * base)]).unwrap();
+            }
+        }
+    }
+    let (s, body, _) = get(&app, "/api/v2/reservoirs?area=se1").await;
+    assert_eq!(s, StatusCode::OK);
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["area"], "SE1");
+    assert_eq!(v["data"]["year"], 2025);
+    assert_eq!(v["data"]["latest"], 12.2);
+    assert_eq!(v["data"]["change"], 0.1);
+    assert_eq!(v["data"]["last_year"], 10.2);
+    assert_eq!(v["data"]["years"], 1);
+    // The country is the sum of its zones that report
+    let (_, body, _) = get(&app, "/api/v2/reservoirs?country=sv").await;
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["data"]["latest"], 36.2);
+    let (_, body, _) = get(&app, "/api/v2/reservoirs?area=SE9").await;
+    assert!(body.contains("Unknown area"), "{body}");
+    // Cards on the pages of zones with data only
+    let (_, page, _) = get(&app, "/sv/SE1").await;
+    assert!(page.contains(r#"data-chart="reservoir""#));
+    let (_, page, _) = get(&app, "/sv/SE3").await;
+    assert!(!page.contains(r#"data-chart="reservoir""#));
+}

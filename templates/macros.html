@@ -132,6 +132,44 @@
 </section>
 {% endmacro %}
 
+{# Hydro reservoirs: latest week compared with earlier years, and a chart over the year #}
+{% macro reservoir_card(r, name) %}
+<section class="card reservoir-card" id="reservoirs">
+  <header class="card-head"><h2>{{ t("reservoir.title") }} &ndash; {{ name }}</h2><span class="muted small">{{ t("reservoir.week") }} {{ r.week }}, {{ r.year }}</span></header>
+  <div class="stats reservoir-stats">
+    <div>
+      <h3>{{ t("reservoir.stored") }}</h3>
+      <div class="big">{{ twh(r.latest) }} <small>TWh</small></div>
+      {%- if r.share_of_max is not none %}<div class="muted">{{ r.share_of_max|round(0)|int }} % {{ t("reservoir.of_max") }}</div>{% endif %}
+    </div>
+    <div class="right">
+      <h3>{{ t("reservoir.change") }}</h3>
+      <div class="big {% if r.change is not none and r.change < 0 %}text-danger{% else %}text-success{% endif %}">{{ twh(r.change, true) }} <small>TWh</small></div>
+    </div>
+    <div>
+      <h3>{{ t("reservoir.last_year") }}</h3>
+      <div class="big">{{ twh(r.last_year) }} <small>TWh</small></div>
+    </div>
+    <div class="right">
+      <h3>{{ t("reservoir.median") }}{% if r.first_year %} {{ r.first_year }}&ndash;{{ r.year - 1 }}{% endif %}</h3>
+      <div class="big">{{ twh(r.median) }} <small>TWh</small></div>
+      {%- if r.min is not none %}<div class="muted">{{ t("reservoir.range") }} {{ twh(r.min) }} &ndash; {{ twh(r.max) }}</div>{% endif %}
+    </div>
+  </div>
+  {%- if r.median is not none %}
+  <p class="pad reservoir-verdict">
+    {%- if r.latest >= r.max %}{{ t("reservoir.above_all") }}
+    {%- elif r.latest <= r.min %}{{ t("reservoir.below_all") }}
+    {%- elif r.latest >= r.median %}{{ t("reservoir.above_median") }}
+    {%- else %}{{ t("reservoir.below_median") }}{% endif %}
+    ({{ twh(r.latest - r.median, true) }} TWh {{ t("reservoir.vs_median") }})
+  </p>
+  {%- endif %}
+  <div class="chart" data-chart="reservoir"><div class="chart-empty muted">&hellip;</div></div>
+  <p class="pad muted small">{{ t("reservoir.note") }}</p>
+</section>
+{% endmacro %}
+
 {% macro flows_card(title) %}
 <section class="card">
   <header class="card-head"><h2>{{ title }} <span class="muted small" data-flows-total></span></h2></header>
