@@ -99,7 +99,15 @@
       "lt": "Litauen",
       "nl": "Nederländerna",
       "cz": "Tjeckien",
-      "pt": "Portugal"
+      "pt": "Portugal",
+      "it": "Italien",
+      "sk": "Slovakien",
+      "hu": "Ungern",
+      "si": "Slovenien",
+      "hr": "Kroatien",
+      "ro": "Rumänien",
+      "bg": "Bulgarien",
+      "gr": "Grekland"
     },
     "chart": {
       "today_and_tomorrow": "Idag och imorgon",
