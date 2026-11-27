@@ -382,31 +382,36 @@ pub fn current_generation_and_load(c: &Connection, from: i64) -> rusqlite::Resul
         })
     })?;
     let mut rows: Vec<GenLoadRow> = rows.collect::<rusqlite::Result<_>>()?;
-    // The mix of each area's latest interval, the one the totals above are for
-    let mut mix = c.prepare_cached(
-        "SELECT COALESCE(psr.psr_group, 'other'), SUM(g.value) FROM generation g
-         LEFT JOIN psr ON g.psr = psr.psr
-         WHERE g.area = ?1 AND g.period = ?2 AND g.interval = ?3 AND g.consumption = 0
-         GROUP BY 1 HAVING SUM(g.value) > 0 ORDER BY 2 DESC",
-    )?;
-    // Per production type for the derived values, which tell types in the same group apart
+    // Latest value per production type in each area's latest interval, the same rows the
+    // totals above are summed from. Not only the newest period: types are often published
+    // with different delays (Germany), and the newest period can then hold a single type,
+    // which would make the mix and the derived values describe only that type.
     let mut by_psr = c.prepare_cached(
-        "SELECT psr, SUM(value) FROM generation
-         WHERE area = ?1 AND period = ?2 AND interval = ?3 AND consumption = 0
-         GROUP BY psr",
+        "SELECT g.psr, COALESCE(psr.psr_group, 'other'), g.value FROM (
+             SELECT psr, value,
+                    ROW_NUMBER() OVER (PARTITION BY psr ORDER BY period DESC) AS rn
+             FROM generation
+             WHERE area = ?1 AND interval = ?2 AND consumption = 0 AND period >= ?3
+         ) g LEFT JOIN psr ON g.psr = psr.psr
+         WHERE g.rn = 1",
     )?;
     for r in &mut rows {
-        r.mix = mix
-            .query_map(params![r.area, r.period, r.interval], |x| {
-                Ok((x.get(0)?, x.get(1)?))
+        let psr: Vec<(String, String, f64)> = by_psr
+            .query_map(params![r.area, r.interval, from], |x| {
+                Ok((x.get(0)?, x.get(1)?, x.get(2)?))
             })?
             .collect::<rusqlite::Result<_>>()?;
-        let psr: Vec<(String, f64)> = by_psr
-            .query_map(params![r.area, r.period, r.interval], |x| {
-                Ok((x.get(0)?, x.get(1)?))
-            })?
-            .collect::<rusqlite::Result<_>>()?;
-        r.derived = crate::emissions::derive(psr.iter().map(|(p, v)| (p.as_str(), *v)));
+        let mut groups: Vec<(String, f64)> = Vec::new();
+        for (_, group, v) in &psr {
+            match groups.iter_mut().find(|(g, _)| g == group) {
+                Some((_, sum)) => *sum += v,
+                None => groups.push((group.clone(), *v)),
+            }
+        }
+        groups.retain(|(_, v)| *v > 0.0);
+        groups.sort_by(|a, b| b.1.total_cmp(&a.1));
+        r.mix = groups;
+        r.derived = crate::emissions::derive(psr.iter().map(|(p, _, v)| (p.as_str(), *v)));
     }
     Ok(rows)
 }
@@ -1384,6 +1389,38 @@ mod tests {
         let se2 = cur.iter().find(|r| r.area == "BZN|SE2").unwrap();
         assert_eq!(se2.load_total, Some(200.0));
         assert_eq!(se2.net_generation, Some(100.0));
+    }
+
+    #[test]
+    fn derived_values_use_latest_value_per_type() {
+        let db = Db::open_memory();
+        let mut c = db.conn().unwrap();
+        // Wind and solar are published one interval later than coal: the newest period
+        // holds only coal, but the derived values must still count wind and solar
+        upsert_generation(
+            &mut c,
+            "BZN|DE-LU",
+            &[
+                (1000, "PT15M".into(), "B05".into(), 0, 100.0),
+                (1000, "PT15M".into(), "B16".into(), 0, 100.0),
+                (1000, "PT15M".into(), "B19".into(), 0, 200.0),
+                (2000, "PT15M".into(), "B05".into(), 0, 100.0),
+            ],
+        )
+        .unwrap();
+        let cur = current_generation_and_load(&c, 0).unwrap();
+        let de = cur.iter().find(|r| r.area == "BZN|DE-LU").unwrap();
+        assert_eq!(de.generation_total, Some(400.0));
+        assert_eq!(de.derived.renewable, Some(75.0));
+        assert_eq!(de.derived.fossil_free, Some(75.0));
+        assert_eq!(
+            de.mix,
+            vec![
+                ("wind".to_string(), 200.0),
+                ("coal".to_string(), 100.0),
+                ("solar".to_string(), 100.0)
+            ]
+        );
     }
 
     #[test]

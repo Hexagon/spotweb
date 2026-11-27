@@ -274,7 +274,7 @@
       "fossil_free": "Sin fósiles",
       "co2": "Intensidad de CO₂",
       "estimate": "estimación",
-      "note": "Se refiere a la producción en la zona, no a la electricidad consumida allí: no se cuentan importaciones ni exportaciones. Sin fósiles es renovable, nuclear y bombeo. El CO₂ es una estimación con valores fijos de ciclo de vida por fuente (IPCC)."
+      "note": "Se refiere a la producción en la zona, no a la electricidad consumida allí: no se cuentan importaciones ni exportaciones. Sin fósiles es renovable y nuclear; el bombeo es almacenamiento y no se cuenta. El CO₂ es una estimación con valores fijos de ciclo de vida por fuente (IPCC)."
     },
     "reservoir": {
       "title": "Embalses hidroeléctricos",

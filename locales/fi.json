@@ -274,7 +274,7 @@
       "fossil_free": "Fossiiliton",
       "co2": "CO₂-intensiteetti",
       "estimate": "arvio",
-      "note": "Koskee alueen tuotantoa, ei siellä käytettyä sähköä: tuontia ja vientiä ei lasketa. Fossiiliton on uusiutuva, ydinvoima ja pumppuvoima. CO₂ on arvio, jossa käytetään kiinteitä elinkaariarvoja tuotantomuodoittain (IPCC)."
+      "note": "Koskee alueen tuotantoa, ei siellä käytettyä sähköä: tuontia ja vientiä ei lasketa. Fossiiliton on uusiutuva ja ydinvoima; pumppuvoima on varastointia eikä sitä lasketa. CO₂ on arvio, jossa käytetään kiinteitä elinkaariarvoja tuotantomuodoittain (IPCC)."
     },
     "reservoir": {
       "title": "Vesivarastot",
