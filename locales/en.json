@@ -274,7 +274,7 @@
       "fossil_free": "Fossil free",
       "co2": "CO₂ intensity",
       "estimate": "estimate",
-      "note": "About the production in the area, not the electricity used there: imports and exports are not counted. Fossil free is renewable, nuclear and pumped storage. CO₂ is an estimate with fixed life-cycle values per source (IPCC)."
+      "note": "About the production in the area, not the electricity used there: imports and exports are not counted. Fossil free is renewable and nuclear; pumped storage is storage and not counted. CO₂ is an estimate with fixed life-cycle values per source (IPCC)."
     },
     "reservoir": {
       "title": "Hydro reservoirs",

@@ -274,7 +274,7 @@
       "fossil_free": "Fossielvrij",
       "co2": "CO₂-intensiteit",
       "estimate": "schatting",
-      "note": "Gaat over de productie in het gebied, niet over de stroom die er wordt gebruikt: import en export tellen niet mee. Fossielvrij is hernieuwbaar, kernenergie en pompcentrales. CO₂ is een schatting met vaste levenscycluswaarden per bron (IPCC)."
+      "note": "Gaat over de productie in het gebied, niet over de stroom die er wordt gebruikt: import en export tellen niet mee. Fossielvrij is hernieuwbaar en kernenergie; pompcentrales zijn opslag en tellen niet mee. CO₂ is een schatting met vaste levenscycluswaarden per bron (IPCC)."
     },
     "reservoir": {
       "title": "Stuwmeren",

@@ -308,40 +308,23 @@ fn production_overview(
     interval: &str,
     tz: &TimeZone,
 ) -> Value {
-    struct Last {
-        date: i64,
-        value: f64,
-        n: i64,
-    }
+    // The newest period: missing production types are already filled in with their last
+    // value (see `queries::generation`), so it is complete without mixing periods
     let cutoff = now_ms() - 12 * HOUR_MS;
-    let mut last: BTreeMap<String, Last> = BTreeMap::new();
-    let mut last_date = 0i64;
-    for (period, group, value, consumption, n) in gen {
-        if *period < cutoff {
-            continue;
-        }
-        last_date = last_date.max(*period);
-        let key = psr_key(group, *consumption);
-        match last.get(&key) {
-            Some(l) if !(l.date < *period && l.n <= *n) => {}
-            _ => {
-                last.insert(
-                    key,
-                    Last {
-                        date: *period,
-                        value: *value,
-                        n: *n,
-                    },
-                );
-            }
+    let last_date = gen
+        .iter()
+        .map(|r| r.0)
+        .filter(|p| *p >= cutoff)
+        .max()
+        .unwrap_or(0);
+    let mut last: BTreeMap<String, f64> = BTreeMap::new();
+    for (period, group, value, consumption, _) in gen {
+        if *period == last_date && last_date > 0 {
+            *last.entry(psr_key(group, *consumption)).or_default() += value;
         }
     }
-    let total: f64 = last.values().map(|l| l.value).sum();
-    let mut rows: Vec<(String, f64)> = last
-        .into_iter()
-        .map(|(k, l)| (k, l.value))
-        .filter(|(_, v)| *v != 0.0)
-        .collect();
+    let total: f64 = last.values().sum();
+    let mut rows: Vec<(String, f64)> = last.into_iter().filter(|(_, v)| *v != 0.0).collect();
     rows.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
     let mut load_total = load
         .iter()

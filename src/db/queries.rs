@@ -172,14 +172,93 @@ pub type GenerationRow = (i64, Option<String>, f64, i64, i64);
 /// `(period, value, interval)`
 pub type LoadRow = (i64, f64, String);
 
-const SQL_GENERATION: &str = "
-    SELECT g.period, psr.psr_group,
-           SUM(CASE WHEN g.consumption THEN 0 - g.value ELSE g.value END) AS value,
-           g.consumption, COUNT(g.psr) AS count_psr
-    FROM generation g LEFT JOIN psr ON psr.psr = g.psr
-    WHERE g.area = ?1 AND g.period >= ?2 AND g.period < ?3 [[interval]]
-    GROUP BY g.period, psr.psr_group, g.interval, g.consumption
-    ORDER BY g.period";
+/// How long the last value of a production type stands in for missing ones. Production types
+/// are often published with different delays (Germany), so the newest periods can lack some
+/// of them; summing only what is there makes production, and with it the surplus, drop.
+pub const GENERATION_FILL_MS: i64 = 3 * 3_600_000;
+
+/// `(period, interval, psr, psr_group, consumption, value)`
+type PsrRow = (i64, String, String, Option<String>, i64, f64);
+
+/// Adds the last value of each production type (per interval and consumption flag) to later
+/// periods that lack it, for at most [`GENERATION_FILL_MS`]. Only periods that have some data
+/// are filled. Input and output sorted by period.
+fn fill_missing_types(rows: Vec<PsrRow>) -> Vec<PsrRow> {
+    use std::collections::HashSet;
+    // Last real row per (interval, psr, consumption)
+    let mut last: HashMap<(String, String, i64), PsrRow> = HashMap::new();
+    let mut extra: Vec<PsrRow> = vec![];
+    for period in rows.chunk_by(|a, b| a.0 == b.0) {
+        let p = period[0].0;
+        let intervals: HashSet<&str> = period.iter().map(|r| r.1.as_str()).collect();
+        let here: HashSet<(&str, &str, i64)> = period
+            .iter()
+            .map(|r| (r.1.as_str(), r.2.as_str(), r.4))
+            .collect();
+        for ((iv, psr, cons), r) in &last {
+            if intervals.contains(iv.as_str())
+                && !here.contains(&(iv.as_str(), psr.as_str(), *cons))
+                && p - r.0 <= GENERATION_FILL_MS
+            {
+                extra.push((p, r.1.clone(), r.2.clone(), r.3.clone(), r.4, r.5));
+            }
+        }
+        for r in period {
+            last.insert((r.1.clone(), r.2.clone(), r.4), r.clone());
+        }
+    }
+    if extra.is_empty() {
+        return rows;
+    }
+    let mut all = rows;
+    all.extend(extra);
+    all.sort_by(|a, b| (a.0, &a.1, &a.2, a.4).cmp(&(b.0, &b.1, &b.2, b.4)));
+    all
+}
+
+/// Generation per production type with missing types filled in
+fn generation_per_psr(
+    c: &Connection,
+    area: &str,
+    from: i64,
+    to: i64,
+    interval: Option<&str>,
+) -> rusqlite::Result<Vec<PsrRow>> {
+    let sql = format!(
+        "SELECT g.period, g.interval, g.psr, psr.psr_group, g.consumption, g.value
+         FROM generation g LEFT JOIN psr ON psr.psr = g.psr
+         WHERE g.area = ?1 AND g.period >= ?2 AND g.period < ?3 {}
+         ORDER BY g.period, g.interval, g.psr, g.consumption",
+        if interval.is_some() {
+            "AND g.interval = ?4"
+        } else {
+            ""
+        }
+    );
+    let mut st = c.prepare_cached(&sql)?;
+    let map = |r: &rusqlite::Row| {
+        Ok((
+            r.get(0)?,
+            r.get(1)?,
+            r.get(2)?,
+            r.get(3)?,
+            r.get(4)?,
+            r.get(5)?,
+        ))
+    };
+    // Look back so the first periods can be filled too
+    let rows: Vec<PsrRow> = match interval {
+        Some(iv) => st
+            .query_map(params![area, from - GENERATION_FILL_MS, to, iv], map)?
+            .collect::<rusqlite::Result<_>>()?,
+        None => st
+            .query_map(params![area, from - GENERATION_FILL_MS, to], map)?
+            .collect::<rusqlite::Result<_>>()?,
+    };
+    let mut rows = fill_missing_types(rows);
+    rows.retain(|r| r.0 >= from);
+    Ok(rows)
+}
 
 fn generation_query(
     c: &Connection,
@@ -188,20 +267,20 @@ fn generation_query(
     to: i64,
     interval: Option<&str>,
 ) -> rusqlite::Result<Vec<GenerationRow>> {
-    let sql = SQL_GENERATION.replace(
-        "[[interval]]",
-        if interval.is_some() {
-            "AND g.interval = ?4"
-        } else {
-            ""
-        },
-    );
-    let mut st = c.prepare_cached(&sql)?;
-    let map = |r: &rusqlite::Row| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?));
-    match interval {
-        Some(iv) => st.query_map(params![area, from, to, iv], map)?.collect(),
-        None => st.query_map(params![area, from, to], map)?.collect(),
+    // (period, group, interval, consumption) -> (value, count)
+    type Key = (i64, Option<String>, String, i64);
+    let mut groups: BTreeMap<Key, (f64, i64)> = BTreeMap::new();
+    for (period, iv, _, group, consumption, value) in
+        generation_per_psr(c, area, from, to, interval)?
+    {
+        let e = groups.entry((period, group, iv, consumption)).or_default();
+        e.0 += if consumption != 0 { -value } else { value };
+        e.1 += 1;
     }
+    Ok(groups
+        .into_iter()
+        .map(|((period, group, _, consumption), (value, n))| (period, group, value, consumption, n))
+        .collect())
 }
 
 fn latest_interval(c: &Connection, table: &str, area: &str) -> rusqlite::Result<Option<String>> {
@@ -282,21 +361,22 @@ pub fn net_generation(
     from: i64,
     to: i64,
 ) -> rusqlite::Result<Vec<(i64, f64)>> {
+    let mut gen: BTreeMap<(i64, String), f64> = BTreeMap::new();
+    for (period, iv, _, _, consumption, value) in generation_per_psr(c, area, from, to + 1, None)? {
+        *gen.entry((period, iv)).or_default() += if consumption != 0 { -value } else { value };
+    }
     let mut st = c.prepare_cached(
-        "WITH generation_total AS (
-            SELECT g.area, g.period, g.interval,
-                   SUM(CASE WHEN g.consumption THEN 0 - g.value ELSE g.value END) AS sum_generation_value
-            FROM generation g
-            WHERE g.area = ?1 AND g.period >= ?2 AND g.period <= ?3
-            GROUP BY g.area, g.period, g.interval
-        )
-        SELECT gt.period, gt.sum_generation_value - l.value AS net_generation
-        FROM generation_total gt
-        INNER JOIN load l ON gt.area = l.area AND gt.period = l.period AND gt.interval = l.interval
-        ORDER BY gt.period",
+        "SELECT period, interval, value FROM load WHERE area = ?1 AND period >= ?2 AND period <= ?3",
     )?;
-    let rows = st.query_map(params![area, from, to], |r| Ok((r.get(0)?, r.get(1)?)))?;
-    rows.collect()
+    let load: HashMap<(i64, String), f64> = st
+        .query_map(params![area, from, to], |r| {
+            Ok(((r.get(0)?, r.get(1)?), r.get(2)?))
+        })?
+        .collect::<rusqlite::Result<_>>()?;
+    Ok(gen
+        .into_iter()
+        .filter_map(|(k, g)| load.get(&k).map(|l| (k.0, g - l)))
+        .collect())
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -320,22 +400,25 @@ pub struct GenLoadRow {
 pub fn current_generation_and_load(c: &Connection, from: i64) -> rusqlite::Result<Vec<GenLoadRow>> {
     let mut st = c.prepare_cached(
         "WITH
-        distinct_generation AS (
-            SELECT area, period, interval, consumption, value, psr,
-                   ROW_NUMBER() OVER (PARTITION BY area, interval, psr, consumption ORDER BY period DESC) AS row_number
-            FROM generation WHERE period >= ?1
-        ),
         latest_interval AS (
-            SELECT area, interval FROM (
-                SELECT area, interval, ROW_NUMBER() OVER (PARTITION BY area ORDER BY period DESC) AS rn
+            SELECT area, interval, period FROM (
+                SELECT area, interval, period, ROW_NUMBER() OVER (PARTITION BY area ORDER BY period DESC) AS rn
                 FROM generation WHERE period >= ?1
             ) WHERE rn = 1
+        ),
+        -- Latest value per production type, if not older than the fill window before the
+        -- area's newest period (types are published with different delays)
+        distinct_generation AS (
+            SELECT g.area, g.period, g.interval, g.consumption, g.value, g.psr,
+                   ROW_NUMBER() OVER (PARTITION BY g.area, g.interval, g.psr, g.consumption ORDER BY g.period DESC) AS row_number
+            FROM generation g
+            INNER JOIN latest_interval li ON li.area = g.area AND li.interval = g.interval
+            WHERE g.period >= ?1 AND g.period >= li.period - ?2
         ),
         generation_per_psr_group AS (
             SELECT g.area, MAX(g.period) AS period, g.interval, psr.psr_group, g.consumption,
                    SUM(CASE WHEN g.consumption THEN 0 - g.value ELSE g.value END) AS value
             FROM distinct_generation g
-            INNER JOIN latest_interval li ON li.area = g.area AND li.interval = g.interval
             LEFT JOIN psr ON g.psr = psr.psr
             WHERE row_number = 1
             GROUP BY g.area, g.interval, g.consumption, psr.psr_group
@@ -367,7 +450,7 @@ pub fn current_generation_and_load(c: &Connection, from: i64) -> rusqlite::Resul
         FROM generation_total gt
         LEFT JOIN load_at la ON gt.area = la.area",
     )?;
-    let rows = st.query_map(params![from], |r| {
+    let rows = st.query_map(params![from, GENERATION_FILL_MS], |r| {
         Ok(GenLoadRow {
             area: r.get(0)?,
             period: r.get(1)?,
@@ -382,31 +465,37 @@ pub fn current_generation_and_load(c: &Connection, from: i64) -> rusqlite::Resul
         })
     })?;
     let mut rows: Vec<GenLoadRow> = rows.collect::<rusqlite::Result<_>>()?;
-    // The mix of each area's latest interval, the one the totals above are for
-    let mut mix = c.prepare_cached(
-        "SELECT COALESCE(psr.psr_group, 'other'), SUM(g.value) FROM generation g
-         LEFT JOIN psr ON g.psr = psr.psr
-         WHERE g.area = ?1 AND g.period = ?2 AND g.interval = ?3 AND g.consumption = 0
-         GROUP BY 1 HAVING SUM(g.value) > 0 ORDER BY 2 DESC",
-    )?;
-    // Per production type for the derived values, which tell types in the same group apart
+    // Latest value per production type in each area's latest interval, the same rows the
+    // totals above are summed from. Not only the newest period: types are often published
+    // with different delays (Germany), and the newest period can then hold a single type,
+    // which would make the mix and the derived values describe only that type.
     let mut by_psr = c.prepare_cached(
-        "SELECT psr, SUM(value) FROM generation
-         WHERE area = ?1 AND period = ?2 AND interval = ?3 AND consumption = 0
-         GROUP BY psr",
+        "SELECT g.psr, COALESCE(psr.psr_group, 'other'), g.value FROM (
+             SELECT psr, value,
+                    ROW_NUMBER() OVER (PARTITION BY psr ORDER BY period DESC) AS rn
+             FROM generation
+             WHERE area = ?1 AND interval = ?2 AND consumption = 0 AND period >= ?3 AND period >= ?4
+         ) g LEFT JOIN psr ON g.psr = psr.psr
+         WHERE g.rn = 1",
     )?;
     for r in &mut rows {
-        r.mix = mix
-            .query_map(params![r.area, r.period, r.interval], |x| {
-                Ok((x.get(0)?, x.get(1)?))
-            })?
+        let psr: Vec<(String, String, f64)> = by_psr
+            .query_map(
+                params![r.area, r.interval, from, r.period - GENERATION_FILL_MS],
+                |x| Ok((x.get(0)?, x.get(1)?, x.get(2)?)),
+            )?
             .collect::<rusqlite::Result<_>>()?;
-        let psr: Vec<(String, f64)> = by_psr
-            .query_map(params![r.area, r.period, r.interval], |x| {
-                Ok((x.get(0)?, x.get(1)?))
-            })?
-            .collect::<rusqlite::Result<_>>()?;
-        r.derived = crate::emissions::derive(psr.iter().map(|(p, v)| (p.as_str(), *v)));
+        let mut groups: Vec<(String, f64)> = Vec::new();
+        for (_, group, v) in &psr {
+            match groups.iter_mut().find(|(g, _)| g == group) {
+                Some((_, sum)) => *sum += v,
+                None => groups.push((group.clone(), *v)),
+            }
+        }
+        groups.retain(|(_, v)| *v > 0.0);
+        groups.sort_by(|a, b| b.1.total_cmp(&a.1));
+        r.mix = groups;
+        r.derived = crate::emissions::derive(psr.iter().map(|(p, _, v)| (p.as_str(), *v)));
     }
     Ok(rows)
 }
@@ -1384,6 +1473,74 @@ mod tests {
         let se2 = cur.iter().find(|r| r.area == "BZN|SE2").unwrap();
         assert_eq!(se2.load_total, Some(200.0));
         assert_eq!(se2.net_generation, Some(100.0));
+    }
+
+    #[test]
+    fn missing_types_are_filled_with_their_last_value() {
+        let db = Db::open_memory();
+        let mut c = db.conn().unwrap();
+        let h = 3_600_000;
+        // Wind is missing in the newest hour, and in an hour more than the fill window
+        // after its last value
+        upsert_generation(
+            &mut c,
+            "BZN|DE-LU",
+            &[
+                (0, "PT60M".into(), "B05".into(), 0, 100.0),
+                (0, "PT60M".into(), "B19".into(), 0, 300.0),
+                (h, "PT60M".into(), "B05".into(), 0, 110.0),
+                (5 * h, "PT60M".into(), "B05".into(), 0, 120.0),
+            ],
+        )
+        .unwrap();
+        for p in [0, h, 5 * h] {
+            upsert_load(&mut c, "BZN|DE-LU", &[(p, "PT60M".into(), 400.0)]).unwrap();
+        }
+        let g = generation(&c, "BZN|DE-LU", 0, 6 * h, "PT60M").unwrap();
+        let wind = |p| {
+            g.iter()
+                .find(|r| r.0 == p && r.1.as_deref() == Some("wind"))
+                .map(|r| r.2)
+        };
+        assert_eq!(wind(h), Some(300.0));
+        assert_eq!(wind(5 * h), None);
+        let net = net_generation(&c, "BZN|DE-LU", 0, 6 * h).unwrap();
+        assert_eq!(net, vec![(0, 0.0), (h, 10.0), (5 * h, -280.0)]);
+        // A later range still sees values from before it
+        let g = generation(&c, "BZN|DE-LU", h, 6 * h, "PT60M").unwrap();
+        assert!(g.iter().any(|r| r.0 == h && r.1.as_deref() == Some("wind")));
+    }
+
+    #[test]
+    fn derived_values_use_latest_value_per_type() {
+        let db = Db::open_memory();
+        let mut c = db.conn().unwrap();
+        // Wind and solar are published one interval later than coal: the newest period
+        // holds only coal, but the derived values must still count wind and solar
+        upsert_generation(
+            &mut c,
+            "BZN|DE-LU",
+            &[
+                (1000, "PT15M".into(), "B05".into(), 0, 100.0),
+                (1000, "PT15M".into(), "B16".into(), 0, 100.0),
+                (1000, "PT15M".into(), "B19".into(), 0, 200.0),
+                (2000, "PT15M".into(), "B05".into(), 0, 100.0),
+            ],
+        )
+        .unwrap();
+        let cur = current_generation_and_load(&c, 0).unwrap();
+        let de = cur.iter().find(|r| r.area == "BZN|DE-LU").unwrap();
+        assert_eq!(de.generation_total, Some(400.0));
+        assert_eq!(de.derived.renewable, Some(75.0));
+        assert_eq!(de.derived.fossil_free, Some(75.0));
+        assert_eq!(
+            de.mix,
+            vec![
+                ("wind".to_string(), 200.0),
+                ("coal".to_string(), 100.0),
+                ("solar".to_string(), 100.0)
+            ]
+        );
     }
 
     #[test]

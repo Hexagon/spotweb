@@ -274,7 +274,7 @@
       "fossil_free": "Fossilfritt",
       "co2": "CO₂-intensitet",
       "estimate": "uppskattning",
-      "note": "Gäller produktionen i området, inte elen som används där: import och export räknas inte. Fossilfritt är förnybart, kärnkraft och pumpkraft. CO₂ är en uppskattning med fasta livscykelvärden per kraftslag (IPCC)."
+      "note": "Gäller produktionen i området, inte elen som används där: import och export räknas inte. Fossilfritt är förnybart och kärnkraft; pumpkraft är lagring och räknas inte. CO₂ är en uppskattning med fasta livscykelvärden per kraftslag (IPCC)."
     },
     "reservoir": {
       "title": "Vattenmagasin",

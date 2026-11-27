@@ -274,7 +274,7 @@
       "fossil_free": "Fossilfritt",
       "co2": "CO₂-intensitet",
       "estimate": "anslag",
-      "note": "Gjelder produksjonen i området, ikke strømmen som brukes der: import og eksport regnes ikke med. Fossilfritt er fornybart, kjernekraft og pumpekraft. CO₂ er et anslag med faste livsløpsverdier per kraftslag (IPCC)."
+      "note": "Gjelder produksjonen i området, ikke strømmen som brukes der: import og eksport regnes ikke med. Fossilfritt er fornybart og kjernekraft; pumpekraft er lagring og regnes ikke med. CO₂ er et anslag med faste livsløpsverdier per kraftslag (IPCC)."
     },
     "reservoir": {
       "title": "Vannmagasin",

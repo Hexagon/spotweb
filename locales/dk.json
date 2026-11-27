@@ -274,7 +274,7 @@
       "fossil_free": "Fossilfri",
       "co2": "CO₂-intensitet",
       "estimate": "skøn",
-      "note": "Gælder produktionen i området, ikke den strøm der bruges der: import og eksport tælles ikke med. Fossilfri er vedvarende energi, kernekraft og pumpekraft. CO₂ er et skøn med faste livscyklusværdier pr. energikilde (IPCC)."
+      "note": "Gælder produktionen i området, ikke den strøm der bruges der: import og eksport tælles ikke med. Fossilfri er vedvarende energi og kernekraft; pumpekraft er lagring og tælles ikke med. CO₂ er et skøn med faste livscyklusværdier pr. energikilde (IPCC)."
     },
     "reservoir": {
       "title": "Vandmagasiner",

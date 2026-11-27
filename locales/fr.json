@@ -274,7 +274,7 @@
       "fossil_free": "Sans fossile",
       "co2": "Intensité CO₂",
       "estimate": "estimation",
-      "note": "Concerne la production dans la zone, pas l'électricité qui y est consommée : les importations et exportations ne sont pas comptées. Sans fossile : renouvelable, nucléaire et pompage-turbinage. Le CO₂ est une estimation avec des valeurs fixes de cycle de vie par filière (GIEC)."
+      "note": "Concerne la production dans la zone, pas l'électricité qui y est consommée : les importations et exportations ne sont pas comptées. Sans fossile : renouvelable et nucléaire ; le pompage-turbinage est du stockage et n'est pas compté. Le CO₂ est une estimation avec des valeurs fixes de cycle de vie par filière (GIEC)."
     },
     "reservoir": {
       "title": "Réservoirs hydrauliques",

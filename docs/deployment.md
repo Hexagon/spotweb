@@ -21,7 +21,7 @@ Internet ──TLS──> Caddy / nginx ──HTTP──> 127.0.0.1:6000 spotweb
 ## 1. Install the binary
 
 ```sh
-VERSION=v2.5.0
+VERSION=v2.5.1
 TARGET=x86_64-unknown-linux-musl      # or aarch64-unknown-linux-musl
 BASE=https://github.com/Hexagon/spotweb/releases/download/$VERSION
 curl -LO $BASE/spotweb-$VERSION-$TARGET.tar.gz
@@ -242,22 +242,22 @@ still want a second node, run it with `--no-scheduler` (or `SPOTWEB_NO_SCHEDULER
 ## Docker
 
 Each release (from the first one after 2.2.0) publishes a multi-arch image (`linux/amd64`, `linux/arm64`) to
-`ghcr.io/hexagon/spotweb`, tagged with the version (`2.5.0`), the minor version (`2.5`) and `latest`. It contains the
+`ghcr.io/hexagon/spotweb`, tagged with the version (`2.5.1`), the minor version (`2.5`) and `latest`. It contains the
 same static musl binary as the release archive, is signed with Sigstore (keyless, by the release workflow) and has a
 GitHub build provenance attestation.
 
 ```sh
-docker pull ghcr.io/hexagon/spotweb:2.5.0
+docker pull ghcr.io/hexagon/spotweb:2.5.1
 
 # Signature: proves the image was built by this repository's release workflow
-cosign verify ghcr.io/hexagon/spotweb:2.5.0 \
+cosign verify ghcr.io/hexagon/spotweb:2.5.1 \
   --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
 # Or with the GitHub CLI (build provenance attestation)
-gh attestation verify oci://ghcr.io/hexagon/spotweb:2.5.0 --repo Hexagon/spotweb
+gh attestation verify oci://ghcr.io/hexagon/spotweb:2.5.1 --repo Hexagon/spotweb
 
-docker run -d --name spotweb -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.5.0
+docker run -d --name spotweb -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.5.1
 ```
 
 `docker-compose.yml` uses the image (set a fixed version instead of `latest` in production), or builds it from the
