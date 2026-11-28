@@ -404,7 +404,7 @@
       "general_title": "Yleistä",
       "gen_format": "Kaikki kutsut vastaavat <code>GET</code>-pyyntöihin JSON-muodossa. Parametrien nimissä kirjainkoolla on väliä, arvoissa kuten hinta-alue ja valuutta ei.",
       "gen_time": "Päivämäärät (<code>YYYY-MM-DD</code>) tulkitaan hinta-alueen paikallisessa aikavyöhykkeessä. Vastausten ajat ovat UTC-aikaa, joko ISO 8601 -muodossa tai rajapinnassa <code>/api/v2/spot</code> millisekunteina 1970-01-01 alkaen.",
-      "gen_errors": "Virheisiin vastataan HTTP-tilalla 500 ja <code>{\"status\": \"error\", \"details\": \"…\"}</code>, esimerkiksi tuntemattomasta hinta-alueesta tai valuutasta, puuttuvista parametreista tai liian pitkästä aikavälistä. Rajapinnassa <code>/api/v2/hass</code> puuttuvat hinnat ovat <code>\"-\"</code>.",
+      "gen_errors": "Virheisiin vastataan HTTP-tilalla 400 ja <code>{\"status\": \"error\", \"details\": \"…\"}</code>, esimerkiksi tuntemattomasta hinta-alueesta tai valuutasta, puuttuvista parametreista tai liian pitkästä aikavälistä. Epäonnistunut tietokantakysely palauttaa tilan 500. Rajapinnassa <code>/api/v2/hass</code> puuttuvat hinnat ovat <code>\"-\"</code>.",
       "gen_cache": "Vastauksissa on <code>Cache-Control</code>-otsake (yleensä minuutti ajantasaisille tiedoille ja tunti historialle) ja <code>ETag</code>, joten pyyntö otsakkeella <code>If-None-Match</code> antaa <code>304 Not Modified</code>, jos mikään ei ole muuttunut.",
       "example": "Esimerkki",
       "or": "tai",

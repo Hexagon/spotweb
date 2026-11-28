@@ -404,7 +404,7 @@
       "general_title": "Generelt",
       "gen_format": "Alle endpoints svarer på <code>GET</code> med JSON. Parameternavne skelner mellem store og små bogstaver, værdier som prisområde og valuta gør ikke.",
       "gen_time": "Datoer (<code>YYYY-MM-DD</code>) tolkes i prisområdets lokale tidszone. Tider i svarene er i UTC, enten som ISO 8601 eller, i <code>/api/v2/spot</code>, som millisekunder siden 1970-01-01.",
-      "gen_errors": "Fejl besvares med HTTP-status 500 og <code>{\"status\": \"error\", \"details\": \"…\"}</code>, for eksempel ved ukendt prisområde eller valuta, manglende parametre eller for lang periode. I <code>/api/v2/hass</code> er manglende priser <code>\"-\"</code>.",
+      "gen_errors": "Fejl besvares med HTTP-status 400 og <code>{\"status\": \"error\", \"details\": \"…\"}</code>, for eksempel ved ukendt prisområde eller valuta, manglende parametre eller for lang periode. En mislykket databaseforespørgsel giver 500. I <code>/api/v2/hass</code> er manglende priser <code>\"-\"</code>.",
       "gen_cache": "Svarene har en <code>Cache-Control</code>-header (normalt ét minut for aktuelle data og en time for historik) og en <code>ETag</code>, så en forespørgsel med <code>If-None-Match</code> giver <code>304 Not Modified</code>, når intet er ændret.",
       "example": "Eksempel",
       "or": "eller",

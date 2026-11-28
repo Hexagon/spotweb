@@ -516,7 +516,8 @@ pub async fn api_list(State(st): State<WebState>, Query(q): Query<ApiQuery>) -> 
             Some(json!({
                 "id": i.id, "area": i.area, "country": i.country, "day": i.day,
                 "published": i.published, "updated": i.updated, "importance": i.importance,
-                "url": news::path(i), "title": r.title, "summary": r.summary, "data": i.data,
+                "url": news::path(i), "title": r.title, "summary": r.summary,
+                "ai_generated": news::ai_generated(i), "data": i.data,
             }))
         })
         .collect();
@@ -528,7 +529,7 @@ pub async fn api_list(State(st): State<WebState>, Query(q): Query<ApiQuery>) -> 
 
 /// Whether the request carries the news token (`Authorization: Bearer …`) when one is set,
 /// compared in constant time
-fn authorized(st: &WebState, headers: &HeaderMap) -> bool {
+pub(super) fn authorized(st: &WebState, headers: &HeaderMap) -> bool {
     let Some(token) = st.app.cfg.news_token.as_deref() else {
         // Only reachable on loopback; without a token every local client may write
         return true;
@@ -548,11 +549,18 @@ fn authorized(st: &WebState, headers: &HeaderMap) -> bool {
             == 0
 }
 
+#[derive(Deserialize, Default)]
+pub struct PushQuery {
+    dry_run: Option<String>,
+}
+
 /// `POST /api/v2/news` on the local news service: add or replace a pushed item (see
 /// [`news::PushedItem`]). Lets an editor or an external (AI) writer on the server publish news.
+/// With `?dry_run=1` the item is checked and returned as it would be shown, but not stored.
 pub async fn api_push(
     State(st): State<WebState>,
     headers: HeaderMap,
+    Query(q): Query<PushQuery>,
     body: axum::body::Bytes,
 ) -> Response {
     if !authorized(&st, &headers) {
@@ -567,6 +575,35 @@ pub async fn api_push(
         Err(e) => return api_err(StatusCode::BAD_REQUEST, &e),
     };
     let id = row.id.clone();
+    if matches!(q.dry_run.as_deref(), Some("1" | "true" | "yes")) {
+        let check = row.id.clone();
+        let existing = match st
+            .app
+            .db
+            .run(move |c| Ok(crate::db::queries::news_get(c, &check)?))
+            .await
+        {
+            Ok(e) => e,
+            Err(_) => return api_err(StatusCode::INTERNAL_SERVER_ERROR, "Query failed"),
+        };
+        let texts: Map<String, Value> = news::languages(&row)
+            .iter()
+            .filter_map(|l| Some((l.to_string(), json!(news::render(&row, l)?))))
+            .collect();
+        return api_json(
+            StatusCode::OK,
+            json!({
+                "status": "ok",
+                "dry_run": true,
+                "id": id,
+                "url": format!("/news/{id}"),
+                "replaces": existing.is_some(),
+                "indexed": news::indexable(&row),
+                "item": row,
+                "rendered": texts,
+            }),
+        );
+    }
     let res = st
         .app
         .db

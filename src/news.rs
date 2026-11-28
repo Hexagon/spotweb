@@ -103,6 +103,8 @@ pub struct PushedItem {
     pub texts: serde_json::Map<String, Value>,
     /// Facts the text is based on, kept with the item and returned by the API
     pub facts: Option<Value>,
+    /// Whether the text was written by an AI system (default false)
+    pub ai_generated: Option<bool>,
 }
 
 /// Check a pushed item and turn it into a row
@@ -186,7 +188,11 @@ pub fn pushed_row(p: PushedItem, now: i64) -> Result<NewsRow, String> {
         published,
         updated: now,
         importance,
-        data: json!({ "texts": texts, "facts": p.facts }),
+        data: json!({
+            "texts": texts,
+            "facts": p.facts,
+            "ai_generated": p.ai_generated.unwrap_or(false),
+        }),
     })
 }
 
@@ -198,6 +204,14 @@ pub fn languages(item: &NewsRow) -> Vec<&'static str> {
         .copied()
         .filter(|l| texts.is_some_and(|t| t.contains_key(*l)))
         .collect()
+}
+
+/// Whether the item's text was written by an AI system
+pub fn ai_generated(item: &NewsRow) -> bool {
+    item.data
+        .get("ai_generated")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
 }
 
 /// Path of an item's page

@@ -103,7 +103,8 @@ Runs only fetch what can have changed:
 
 ## API
 
-Free and without key. Errors are returned as HTTP 500 with `{"status":"error","details":"…"}`, as in 1.x.
+Free and without key. Errors are returned with `{"status":"error","details":"…"}`: HTTP 400 for bad requests (unknown
+zone, currency or parameters; 500 up to 2.9 and in 1.x), 500 when a query fails.
 Successful responses carry an `ETag`; send it back in `If-None-Match` to get an empty `304 Not Modified` while the
 data is unchanged (for `/api/v2/hass` the `updated` field is not part of the tag).
 
@@ -174,6 +175,9 @@ capacity (A61) per direction, `null` where the border does not publish one (flow
 that report it to ENTSO-e (A72). The latest week (`year`, `week`, `latest`, `change`) is compared with the same week last
 year (`last_year`) and in the years before (`min`, `median`, `max`); `weeks` has the whole year for a chart. ENTSO-e
 publishes stored energy, not a filling percentage: `share_of_max` is the latest value as a share of the highest stored.
+`vs_median_pct` is the latest value against the median of the same week, in percent of that median. `age_weeks` counts
+the weeks from the latest value to the current week (normally 1) and `stale` is `true` when it is more than 2, i.e. the
+zone, or one zone of a country, has stopped reporting.
 
 `GET /api/v2/news?lang=sv&area=SE3` – news pushed on the server by an external writer, with their text in `lang` and
 the facts in `data`. Atom feeds at
@@ -222,13 +226,13 @@ sha256sum --ignore-missing -c SHA256SUMS
 
 # Signature: proves the archive was built by this repository's release workflow
 cosign verify-blob \
-  --bundle spotweb-v2.9.0-x86_64-unknown-linux-musl.tar.gz.sigstore.json \
+  --bundle spotweb-v2.10.0-x86_64-unknown-linux-musl.tar.gz.sigstore.json \
   --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  spotweb-v2.9.0-x86_64-unknown-linux-musl.tar.gz
+  spotweb-v2.10.0-x86_64-unknown-linux-musl.tar.gz
 
 # Or with the GitHub CLI (build provenance attestation)
-gh attestation verify spotweb-v2.9.0-x86_64-unknown-linux-musl.tar.gz --repo Hexagon/spotweb
+gh attestation verify spotweb-v2.10.0-x86_64-unknown-linux-musl.tar.gz --repo Hexagon/spotweb
 ```
 
 ### Recommended setup (Linux, systemd)
@@ -254,10 +258,10 @@ A signed multi-arch image (amd64, arm64) is published to GHCR with each release 
 run it (details and `docker-compose.yml` in [docs/deployment.md](docs/deployment.md#docker)):
 
 ```sh
-cosign verify ghcr.io/hexagon/spotweb:2.9.0 \
+cosign verify ghcr.io/hexagon/spotweb:2.10.0 \
   --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
-docker run -d -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.9.0
+docker run -d -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.10.0
 ```
 
 ## Development

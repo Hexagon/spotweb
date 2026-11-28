@@ -68,7 +68,45 @@ pub struct Overview {
     pub share_of_max: Option<f64>,
     /// Latest minus the median of the same week, percentage points of the highest value stored
     pub vs_median: Option<f64>,
+    /// Latest minus the median of the same week, percent of that median
+    pub vs_median_pct: Option<f64>,
+    /// Weeks from the latest value's week to the current week (normally 1, as a week is
+    /// published after it ends), set by [`Overview::at`]
+    pub age_weeks: Option<i64>,
+    /// The latest value is older than [`STALE_WEEKS`] weeks: the zone (or one zone of the
+    /// country) has not reported since. Set by [`Overview::at`].
+    pub stale: bool,
     pub weeks: Vec<WeekRow>,
+}
+
+/// More weeks than this between the latest value and now mark the overview as stale
+pub const STALE_WEEKS: i64 = 2;
+
+/// Monday of an ISO week
+fn week_monday(year: i16, week: i8) -> Option<jiff::civil::Date> {
+    jiff::civil::ISOWeekDate::new(year, week, jiff::civil::Weekday::Monday)
+        .ok()
+        .map(|d| d.date())
+}
+
+impl Overview {
+    /// The overview with its age at `now` (ms): [`Overview::age_weeks`] and [`Overview::stale`]
+    pub fn at(mut self, now: i64) -> Self {
+        let today = Timestamp::from_millisecond(now)
+            .map(|t| t.to_zoned(TimeZone::UTC).date())
+            .ok();
+        let age = match (self.year, self.week, today) {
+            (Some(y), Some(w), Some(t)) => week_monday(y, w).and_then(|m| {
+                let iso = t.iso_week_date();
+                let this = week_monday(iso.year(), iso.week())?;
+                Some(i64::from((this - m).get_days()) / 7)
+            }),
+            _ => None,
+        };
+        self.age_weeks = age;
+        self.stale = age.is_some_and(|a| a > STALE_WEEKS);
+        self
+    }
 }
 
 fn median(v: &mut [f64]) -> Option<f64> {
@@ -141,6 +179,11 @@ pub fn overview(weeks: &BTreeMap<(i16, i8), f64>) -> Overview {
         years,
         share_of_max: pct(latest),
         vs_median: med.and_then(|m| pct(latest - m)),
+        vs_median_pct: med
+            .filter(|m| *m > 0.0)
+            .map(|m| round1((latest - m) / m * 100.0)),
+        age_weeks: None,
+        stale: false,
         weeks: rows,
     }
 }
@@ -197,6 +240,20 @@ mod tests {
         assert_eq!(o.first_year, Some(2021));
         assert_eq!(o.share_of_max, Some(75.0));
         assert_eq!(o.vs_median, Some(25.0));
+        assert_eq!(o.vs_median_pct, Some(50.0));
+        // Week 5 of 2024 starts Monday 29 January
+        let ms = |y, m, d| {
+            jiff::civil::date(y, m, d)
+                .at(12, 0, 0, 0)
+                .to_zoned(TimeZone::UTC)
+                .unwrap()
+                .timestamp()
+                .as_millisecond()
+        };
+        let fresh = o.clone().at(ms(2024, 2, 7));
+        assert_eq!((fresh.age_weeks, fresh.stale), (Some(1), false));
+        let old = o.clone().at(ms(2024, 3, 1));
+        assert_eq!((old.age_weeks, old.stale), (Some(4), true));
         let w5 = o.weeks.iter().find(|r| r.week == 5).unwrap();
         assert_eq!((w5.this_year, w5.last_year), (Some(30.0), Some(40.0)));
         assert!(o.weeks.iter().all(|r| r.week != 53));

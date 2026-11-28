@@ -352,6 +352,16 @@ nio språk. Punkt 49 (notisraden) blir den första delen av det här.
   bort de genererade nyheterna och kolumnen `news.kind`; `kind` finns inte längre i `/api/v2/news`.
 - Reglerna i (c), veckosammanfattningen (d) och grupperingen av områden är nu skribentens sak, inte spotwebs.
 
+### Status 28 nov 2026 (2.10.0)
+
+- Stängt API för nyhetstjänsten under `/api/v2/local/` (bara på den lokala tjänsten, med token): `day`
+  (dagssammanfattning för alla zoner med jämförelse mot historiken: högsta/lägsta sedan, percentiler),
+  `outages` (avbrott som JSON med id, zon, publiceringstid och MW; migration 10 lägger till zon och
+  publiceringstid) och `zones` (tillstånd per zon: pris, produktion per typ, flöden per grannzon, magasin).
+- `POST /api/v2/news?dry_run=1` för provkörning. `/api/v2/reservoirs` har `vs_median_pct`, `age_weeks` och `stale`.
+- Felaktiga anrop till det publika API:et ger 400 i stället för 500.
+- Återstår: vind-, sol- och lastprognoser (hämtas inte från ENTSO-e i dag).
+
 ## Ny startsida
 
 - ✅ Startsidan är en karta över elområdena med pris just nu (färgskala billigt–dyrt) och pilar för fysiskt nettoflöde

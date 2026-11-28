@@ -404,7 +404,7 @@
       "general_title": "Algemeen",
       "gen_format": "Alle endpoints beantwoorden <code>GET</code>-verzoeken met JSON. Parameternamen zijn hoofdlettergevoelig, waarden zoals zone en valuta niet.",
       "gen_time": "Datums (<code>YYYY-MM-DD</code>) worden gelezen in de lokale tijdzone van de biedzone. Tijden in de antwoorden zijn in UTC, als ISO 8601 of, in <code>/api/v2/spot</code>, als milliseconden sinds 1970-01-01.",
-      "gen_errors": "Fouten krijgen HTTP-status 500 en <code>{\"status\": \"error\", \"details\": \"…\"}</code>, bijvoorbeeld bij een onbekende zone of valuta, ontbrekende parameters of een te lange periode. In <code>/api/v2/hass</code> zijn ontbrekende prijzen <code>\"-\"</code>.",
+      "gen_errors": "Fouten krijgen HTTP-status 400 en <code>{\"status\": \"error\", \"details\": \"…\"}</code>, bijvoorbeeld bij een onbekende zone of valuta, ontbrekende parameters of een te lange periode. Een mislukte databasequery geeft 500. In <code>/api/v2/hass</code> zijn ontbrekende prijzen <code>\"-\"</code>.",
       "gen_cache": "Antwoorden hebben een <code>Cache-Control</code>-header (meestal een minuut voor actuele gegevens en een uur voor historie) en een <code>ETag</code>, dus een verzoek met <code>If-None-Match</code> geeft <code>304 Not Modified</code> als er niets is veranderd.",
       "example": "Voorbeeld",
       "or": "of",

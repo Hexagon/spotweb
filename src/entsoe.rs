@@ -378,6 +378,7 @@ pub fn parse_unavailability(xml_doc: &str) -> anyhow::Result<Vec<NewOutage>> {
     // A05 active, A09 cancelled, A13 withdrawn. Inactive revisions are kept so they replace
     // the stored active revision; the outage queries hide them.
     let doc_status = root.path(&["docStatus", "value"]).map(str::to_string);
+    let published = root.text_of("createdDateTime").and_then(parse_time);
     let doc_type = root.text_of("type").map(|t| match t {
         "A80" => "Generation unavailability".to_string(),
         "A77" => "Production unavailability".to_string(),
@@ -406,6 +407,8 @@ pub fn parse_unavailability(xml_doc: &str) -> anyhow::Result<Vec<NewOutage>> {
             ts: index as i64,
             revision,
             doc_status: doc_status.clone(),
+            published,
+            area: None,
             business_type: ts
                 .text_of("businessType")
                 .map(|b| business_type_description(b).to_string()),
@@ -836,6 +839,7 @@ mod tests {
     fn unavailability() {
         let doc = r#"<Unavailability_MarketDocument>
           <mRID>OUT1</mRID><revisionNumber>2</revisionNumber><type>A80</type>
+          <createdDateTime>2023-12-20T10:15:00Z</createdDateTime>
           <TimeSeries>
             <businessType>A53</businessType><curveType>A03</curveType>
             <start_DateAndOrTime.date>2024-01-01</start_DateAndOrTime.date><start_DateAndOrTime.time>06:00:00Z</start_DateAndOrTime.time>
@@ -855,6 +859,7 @@ mod tests {
         let o = &o[0];
         assert_eq!(o.business_type.as_deref(), Some("Planned maintenance"));
         assert_eq!(o.psr_type.as_deref(), Some("Nuclear"));
+        assert_eq!(o.published, Some(1_703_067_300_000));
         assert_eq!(o.psr_nominal_power, Some(1400.0));
         assert_eq!(o.psr_nominal_power_unit.as_deref(), Some("MAW"));
         assert_eq!(

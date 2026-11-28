@@ -996,10 +996,13 @@ async fn update_outages(app: &App) -> anyhow::Result<Outcome> {
     let results = for_each_area(Job::Outages, |country, area| {
         let app = app.clone();
         async move {
-            let outages = request(area.name, "outage", || {
+            let mut outages = request(area.name, "outage", || {
                 app.entsoe.outages(area.eic, start, end)
             })
             .await?;
+            for o in &mut outages {
+                o.area = Some(area.name.to_string());
+            }
             let cid = country.id;
             let n = app
                 .db
