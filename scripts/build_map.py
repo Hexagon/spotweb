@@ -26,8 +26,9 @@ from shapely.ops import linemerge, nearest_points, unary_union
 BBOX = (-25.0, 30.0, 45.0, 75.0)
 # Wider pre-clip for the background land, so only the padded window cuts it
 LAND_BBOX = (-80.0, 0.0, 130.0, 90.0)
-# Points that must be inside the drawn window (lon, lat): Portugal, Nordkapp, Finland east, Spain south
-VIEW = [(-9.9, 39.0), (25.8, 71.3), (31.8, 63.0), (-5.6, 35.9), (19.0, 36.5), (-10.5, 53.5)]
+# Points that must be inside the drawn window (lon, lat): Portugal, Nordkapp, Finland east, Spain south, ...
+VIEW = [(-9.9, 39.0), (25.8, 71.3), (31.8, 63.0), (-5.6, 35.9), (19.0, 36.5), (-10.5, 53.5),
+        (29.8, 45.2), (26.5, 34.8)]  # Romania east (Danube delta), Crete
 MARGIN = 0.012
 # Extra land drawn around VIEW (left, top, right, bottom, in output units), so that a wide screen
 # shows land past the view instead of a straight cut
@@ -52,8 +53,18 @@ ADMIN1_ZONES = {
     "NO5": ["Hordaland", "Sogn og Fjordane"],
     "DK1": ["Nordjylland", "Midtjylland", "Syddanmark"],
     "DK2": ["Hovedstaden", "Sjaælland"],
+    # Italian zones by region (field `region`, the admin 1 units are provinces), 2021 configuration
+    "IT-NORD": ["Valle d'Aosta", "Piemonte", "Liguria", "Lombardia", "Trentino-Alto Adige", "Veneto",
+                "Friuli-Venezia Giulia", "Emilia-Romagna"],
+    "IT-CNOR": ["Toscana", "Umbria", "Marche"],
+    "IT-CSUD": ["Lazio", "Abruzzo", "Molise", "Campania"],
+    "IT-SUD": ["Apulia", "Basilicata"],
+    "IT-CALA": ["Calabria"],
+    "IT-SICI": ["Sicily"],
+    "IT-SARD": ["Sardegna"],
 }
-ADMIN1_COUNTRY = {"SE": "SE", "NO": "NO", "DK": "DK"}
+# Admin 1 field that names the units in ADMIN1_ZONES, per country
+ADMIN1_COUNTRY = {"SE": "name", "NO": "name", "DK": "name", "IT": "region"}
 
 # Bidding zones (and neighbours with flows) built from whole countries, by ISO A3
 COUNTRY_ZONES = {
@@ -71,10 +82,16 @@ COUNTRY_ZONES = {
     "NL": ["NLD"],
     "CZ": ["CZE"],
     "PT": ["PRT"],
+    "SK": ["SVK"],
+    "HU": ["HUN"],
+    "SI": ["SVN"],
+    "HR": ["HRV"],
+    "RO": ["ROU"],
+    "BG": ["BGR"],
+    "GR": ["GRC"],
 }
 NEIGHBOURS = {
     "GB": ["GBR"],
-    "IT": ["ITA"],
 }
 
 # Where a border arrow sits (lon, lat) when the automatic spot is poor
@@ -90,6 +107,9 @@ FLOW_AT = {
     ("SE4", "PL"): (15.4, 55.2),  # SwePol
     ("FR", "GB"): (0.6, 50.4),  # IFA, the Channel
     ("BE", "GB"): (2.4, 51.55),  # Nemo
+    ("IT-CNOR", "IT-SARD"): (9.9, 42.6),  # SACOI, via Corsica
+    ("IT-CSUD", "IT-SARD"): (11.2, 41.0),  # SAPEI
+    ("IT-SUD", "GR"): (19.4, 39.9),  # GRITA, Strait of Otranto
 }
 
 # Label anchors (lon, lat) where the automatic point looks off
@@ -100,7 +120,11 @@ ANCHORS = {
     "DE-LU": (10.2, 51.1), "PL": (19.3, 52.1), "FR": (2.4, 46.7), "BE": (4.6, 50.6),
     "CH": (8.2, 46.85), "AT": (14.3, 47.6), "ES": (-3.6, 40.2),
     "EE": (25.8, 58.7), "LV": (25.0, 56.85), "LT": (23.9, 55.3), "NL": (5.6, 52.3), "GB": (-1.6, 52.8),
-    "CZ": (15.4, 49.8), "IT": (11.0, 44.6), "PT": (-8.0, 39.8),
+    "CZ": (15.4, 49.8), "PT": (-8.0, 39.8),
+    "IT-NORD": (10.0, 45.5), "IT-CNOR": (11.6, 43.4), "IT-CSUD": (13.6, 41.9), "IT-SUD": (16.4, 40.9),
+    "IT-CALA": (16.4, 39.0), "IT-SICI": (14.2, 37.5), "IT-SARD": (9.0, 40.1),
+    "SK": (19.5, 48.7), "HU": (19.4, 47.1), "SI": (14.8, 46.1), "HR": (16.2, 45.6),
+    "RO": (24.9, 45.9), "BG": (25.2, 42.7), "GR": (22.0, 39.6),
 }
 
 d2r = math.radians
@@ -239,8 +263,10 @@ def main(src, dst):
     regions = {}
     for sr in a1.iterShapeRecords():
         d = dict(zip(f1, sr.record))
-        if d["iso_a2"] in ADMIN1_COUNTRY:
-            regions[d["name"]] = clip(shape(sr.shape.__geo_interface__))
+        field = ADMIN1_COUNTRY.get(d["iso_a2"])
+        if field:
+            g = clip(shape(sr.shape.__geo_interface__))
+            regions[d[field]] = unary_union([regions[d[field]], g]) if d[field] in regions else g
 
     zones = {}
     for z, names in ADMIN1_ZONES.items():
@@ -251,7 +277,7 @@ def main(src, dst):
         zones[z] = unary_union([countries[i] for i in isos if i in countries])
     neighbours = {z: unary_union([countries[i] for i in isos if i in countries]) for z, isos in NEIGHBOURS.items()}
 
-    used = {i for v in list(COUNTRY_ZONES.values()) + list(NEIGHBOURS.values()) for i in v} | {"SWE", "NOR", "DNK"}
+    used = {i for v in list(COUNTRY_ZONES.values()) + list(NEIGHBOURS.values()) for i in v} | {"SWE", "NOR", "DNK", "ITA"}
     land = unary_union([g for iso, g in world.items() if iso not in used])
 
     def anchor_xy(z, g):

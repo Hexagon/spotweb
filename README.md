@@ -3,7 +3,7 @@
 Source code of [https://spot.56k.guru](https://spot.56k.guru) – electricity spot prices, production and consumption for the Nordics and parts
 of Europe, fetched from [ENTSO-e](https://transparency.entsoe.eu/) and converted with [ECB](https://www.ecb.europa.eu/) exchange rates.
 
-Available in Swedish, Finnish, Danish, Norwegian, Spanish, French, German, Dutch and English. Each language has its own file in `locales/`.
+Available in Swedish, Finnish, Danish, Norwegian, Spanish, French, German, Dutch, Italian, Polish, Portuguese and English. Each language has its own file in `locales/`.
 
 [![CI](https://github.com/Hexagon/spotweb/actions/workflows/ci.yml/badge.svg)](https://github.com/Hexagon/spotweb/actions/workflows/ci.yml)
 
@@ -156,8 +156,8 @@ When the prices do not cover `hours` yet, `found` is `false` and `start`, `end` 
   "data": [{ "time": "2026-11-21T23:00:00.000Z", "net": 3463.0, "flows": { "DK1": 779.0, "FI": 834.0, "NO1": 1560.0, "SE2": -1293.0, "SE4": 1583.0 } }] }
 ```
 
-Neighbours are zones for `area` and countries for `country` (borders inside the country are left out; GB and IT keep
-their zone name). `start` and `end` are dates in the zone's time zone, by default yesterday and today, at most 31 days.
+Neighbours are zones for `area` and countries for `country` (borders inside the country are left out; GB keeps
+its zone name). `start` and `end` are dates in the zone's time zone, by default yesterday and today, at most 31 days.
 Hours without data are left out. Flows are kept at full resolution for 90 days and as hourly averages after that.
 
 `GET /api/v2/flows?planned=true` – the day-ahead plan per border and hour for today and tomorrow: `scheduled` is the net

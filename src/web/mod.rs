@@ -71,7 +71,7 @@ pub fn format_int(v: f64, lang: &str) -> String {
     }
     let sep = match lang {
         "en" => ",",
-        "de" | "nl" | "dk" | "es" => ".",
+        "de" | "nl" | "dk" | "es" | "it" => ".",
         _ => "\u{a0}",
     };
     let n = v.round() as i64;

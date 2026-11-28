@@ -99,7 +99,15 @@
       "lt": "Liettua",
       "nl": "Alankomaat",
       "cz": "Tšekki",
-      "pt": "Portugali"
+      "pt": "Portugali",
+      "it": "Italia",
+      "sk": "Slovakia",
+      "hu": "Unkari",
+      "si": "Slovenia",
+      "hr": "Kroatia",
+      "ro": "Romania",
+      "bg": "Bulgaria",
+      "gr": "Kreikka"
     },
     "chart": {
       "today_and_tomorrow": "Tänään ja huomenna",

@@ -16,18 +16,11 @@ pub struct Neighbour {
     pub eic: &'static str,
 }
 
-pub static NEIGHBOURS: &[Neighbour] = &[
-    Neighbour {
-        name: "GB",
-        long: "Great Britain",
-        eic: "10YGB----------A",
-    },
-    Neighbour {
-        name: "IT",
-        long: "Italia (Nord)",
-        eic: "10Y1001A1001A73I",
-    },
-];
+pub static NEIGHBOURS: &[Neighbour] = &[Neighbour {
+    name: "GB",
+    long: "Great Britain",
+    eic: "10YGB----------A",
+}];
 
 /// Interconnected zones. At least one side of every border is one of our areas.
 pub static BORDERS: &[(&str, &str)] = &[
@@ -73,19 +66,39 @@ pub static BORDERS: &[(&str, &str)] = &[
     ("DE-LU", "CZ"),
     ("AT", "CH"),
     ("AT", "CZ"),
-    ("AT", "IT"),
+    ("AT", "IT-NORD"),
     ("BE", "FR"),
     ("BE", "NL"),
     ("BE", "GB"),
     ("NL", "GB"),
     ("CH", "FR"),
-    ("CH", "IT"),
+    ("CH", "IT-NORD"),
     ("ES", "FR"),
     ("ES", "PT"),
-    ("FR", "IT"),
+    ("FR", "IT-NORD"),
     ("FR", "GB"),
     ("PL", "CZ"),
     ("PL", "LT"),
+    ("IT-NORD", "IT-CNOR"),
+    ("IT-NORD", "SI"),
+    ("IT-CNOR", "IT-CSUD"),
+    ("IT-CNOR", "IT-SARD"),
+    ("IT-CSUD", "IT-SUD"),
+    ("IT-CSUD", "IT-SARD"),
+    ("IT-SUD", "IT-CALA"),
+    ("IT-SUD", "GR"),
+    ("IT-CALA", "IT-SICI"),
+    ("AT", "SI"),
+    ("AT", "HU"),
+    ("CZ", "SK"),
+    ("PL", "SK"),
+    ("SK", "HU"),
+    ("SI", "HR"),
+    ("HU", "SI"),
+    ("HU", "HR"),
+    ("HU", "RO"),
+    ("RO", "BG"),
+    ("BG", "GR"),
 ];
 
 /// EIC code of one of our areas or a neighbour

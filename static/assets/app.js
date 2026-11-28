@@ -12,7 +12,7 @@
   if (!bootEl) return;
   const boot = JSON.parse(bootEl.textContent);
   const lang = boot.lang;
-  const LOCALES = { sv: "sv-SE", nl: "nl-NL", no: "nb-NO", fi: "fi-FI", dk: "da-DK", es: "es-ES", fr: "fr-FR", de: "de-DE", en: "en-GB" };
+  const LOCALES = { sv: "sv-SE", nl: "nl-NL", no: "nb-NO", fi: "fi-FI", dk: "da-DK", es: "es-ES", fr: "fr-FR", de: "de-DE", it: "it-IT", pl: "pl-PL", pt: "pt-PT", en: "en-GB" };
   const locale = LOCALES[lang] || "en-GB";
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -606,7 +606,7 @@
           - min_yesterday
           - max_yesterday`;
     // The chart shows prices in the minor unit (öre, cent) where the currency has a common one
-    const sub = { SEK: "öre", NOK: "øre", DKK: "øre", EUR: "c", PLN: "gr", CZK: "h", GBP: "p", CHF: "Rp" }[cur];
+    const sub = { SEK: "öre", NOK: "øre", DKK: "øre", EUR: "c", PLN: "gr", CZK: "h", RON: "bani", GBP: "p", CHF: "Rp" }[cur];
     const scale = sub ? 100 : 1;
     const chartUnit = `${sub || cur}/kWh`;
     // Colour thresholds at 70 and 120 EUR/MWh spot, with the same fees and factors as the sensor

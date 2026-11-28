@@ -352,7 +352,9 @@ fn lang_detection() {
     let mut h = HeaderMap::new();
     assert_eq!(lang("/sv/SE1", &h), "sv");
     assert_eq!(lang("/", &h), "en");
-    assert_eq!(lang("/pl/PL", &h), "en");
+    assert_eq!(lang("/cz/CZ", &h), "en");
+    assert_eq!(lang("/pl/PL", &h), "pl");
+    assert_eq!(lang("/it/IT-NORD", &h), "it");
     h.insert(
         "accept-language",
         HeaderValue::from_static("de-DE,de;q=0.9"),
@@ -360,13 +362,19 @@ fn lang_detection() {
     // Visitors get their browser language, also on a url with a language
     assert_eq!(lang("/sv/SE1", &h), "de");
     assert_eq!(lang("/", &h), "de");
-    assert_eq!(lang("/pl/PL", &h), "de");
+    assert_eq!(lang("/cz/CZ", &h), "de");
     assert_eq!(lang("/sv/SE1?lang=fi", &h), "fi");
     // A browser language we do not have falls back to the language of the url
-    let mut pl = HeaderMap::new();
-    pl.insert("accept-language", HeaderValue::from_static("pl-PL"));
-    assert_eq!(lang("/sv/SE1", &pl), "sv");
-    assert_eq!(lang("/", &pl), "en");
+    let mut cs = HeaderMap::new();
+    cs.insert("accept-language", HeaderValue::from_static("cs-CZ"));
+    assert_eq!(lang("/sv/SE1", &cs), "sv");
+    assert_eq!(lang("/", &cs), "en");
+    let mut pt = HeaderMap::new();
+    pt.insert(
+        "accept-language",
+        HeaderValue::from_static("pt-BR,pt;q=0.9"),
+    );
+    assert_eq!(lang("/sv/SE1", &pt), "pt");
     // Crawlers see the language of the url, whatever they send in Accept-Language
     let mut bot = h.clone();
     bot.insert(
@@ -388,7 +396,7 @@ fn lang_detection() {
     assert_eq!(lang("/", &h), "no");
     h.insert(
         "accept-language",
-        HeaderValue::from_static("pl;q=1, en;q=0.2, fi;q=0.8"),
+        HeaderValue::from_static("cs;q=1, en;q=0.2, fi;q=0.8"),
     );
     assert_eq!(lang("/", &h), "fi");
     // A language picked earlier wins over the url
@@ -435,7 +443,8 @@ async fn start_page_map_and_flows_api() {
     assert_eq!(s, StatusCode::OK);
     // Map with every zone, a neighbour and the side panel
     for name in [
-        "SE1", "SE3", "NO4", "DK2", "DE-LU", "ES", "EE", "LV", "LT", "CZ", "PT",
+        "SE1", "SE3", "NO4", "DK2", "DE-LU", "ES", "EE", "LV", "LT", "CZ", "PT", "IT-NORD",
+        "IT-SICI", "SK", "HU", "SI", "HR", "RO", "BG", "GR",
     ] {
         assert!(body.contains(&format!(r#"data-area="{name}""#)), "{name}");
     }

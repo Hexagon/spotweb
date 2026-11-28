@@ -539,6 +539,9 @@ fn default_map_area(lang: &str) -> &'static str {
         "fr" => "FR",
         "es" => "ES",
         "nl" => "BE",
+        "it" => "IT-NORD",
+        "pl" => "PL",
+        "pt" => "PT",
         _ => "SE3",
     }
 }

@@ -225,6 +225,90 @@ pub static COUNTRIES: &[Country] = &[
         tz: "Europe/Lisbon",
         areas: &[area!("PT", "BZN|PT", "Portugal", "10YPT-REN------W", 1)],
     },
+    Country {
+        id: "it",
+        name: "Italia",
+        cty: "Italy (IT)",
+        interval: "PT15M",
+        tz: "Europe/Rome",
+        areas: &[
+            area!("IT-NORD", "BZN|IT-NORD", "Nord", "10Y1001A1001A73I", 1),
+            area!(
+                "IT-CNOR",
+                "BZN|IT-CNOR",
+                "Centro-Nord",
+                "10Y1001A1001A70O",
+                2
+            ),
+            area!(
+                "IT-CSUD",
+                "BZN|IT-CSUD",
+                "Centro-Sud",
+                "10Y1001A1001A71M",
+                3
+            ),
+            area!("IT-SUD", "BZN|IT-SUD", "Sud", "10Y1001A1001A788", 4),
+            area!("IT-CALA", "BZN|IT-CALA", "Calabria", "10Y1001C--00096J", 5),
+            area!("IT-SICI", "BZN|IT-SICI", "Sicilia", "10Y1001A1001A75E", 6),
+            area!("IT-SARD", "BZN|IT-SARD", "Sardegna", "10Y1001A1001A74G", 7),
+        ],
+    },
+    Country {
+        id: "sk",
+        name: "Slovensko",
+        cty: "Slovakia (SK)",
+        interval: "PT15M",
+        tz: "Europe/Bratislava",
+        areas: &[area!("SK", "BZN|SK", "Slovensko", "10YSK-SEPS-----K", 1)],
+    },
+    Country {
+        id: "hu",
+        name: "Magyarország",
+        cty: "Hungary (HU)",
+        interval: "PT15M",
+        tz: "Europe/Budapest",
+        areas: &[area!("HU", "BZN|HU", "Magyarország", "10YHU-MAVIR----U", 1)],
+    },
+    Country {
+        id: "si",
+        name: "Slovenija",
+        cty: "Slovenia (SI)",
+        interval: "PT15M",
+        tz: "Europe/Ljubljana",
+        areas: &[area!("SI", "BZN|SI", "Slovenija", "10YSI-ELES-----O", 1)],
+    },
+    Country {
+        id: "hr",
+        name: "Hrvatska",
+        cty: "Croatia (HR)",
+        interval: "PT15M",
+        tz: "Europe/Zagreb",
+        areas: &[area!("HR", "BZN|HR", "Hrvatska", "10YHR-HEP------M", 1)],
+    },
+    Country {
+        id: "ro",
+        name: "România",
+        cty: "Romania (RO)",
+        interval: "PT15M",
+        tz: "Europe/Bucharest",
+        areas: &[area!("RO", "BZN|RO", "România", "10YRO-TEL------P", 1)],
+    },
+    Country {
+        id: "bg",
+        name: "Bulgaria",
+        cty: "Bulgaria (BG)",
+        interval: "PT15M",
+        tz: "Europe/Sofia",
+        areas: &[area!("BG", "BZN|BG", "Bulgaria", "10YCA-BULGARIA-R", 1)],
+    },
+    Country {
+        id: "gr",
+        name: "Greece",
+        cty: "Greece (GR)",
+        interval: "PT15M",
+        tz: "Europe/Athens",
+        areas: &[area!("GR", "BZN|GR", "Greece", "10YGR-HTSO-----Y", 1)],
+    },
 ];
 
 pub fn country(id: &str) -> Option<&'static Country> {
@@ -281,10 +365,12 @@ pub fn default_decimals(currency: &str) -> usize {
     }
 }
 
-pub const LANGUAGES: &[&str] = &["sv", "fi", "no", "dk", "de", "en", "nl", "fr", "es"];
+pub const LANGUAGES: &[&str] = &[
+    "sv", "fi", "no", "dk", "de", "en", "nl", "fr", "es", "it", "pl", "pt",
+];
 
 /// Language a url stands for through its first path segment (`/sv/SE3` is Swedish).
-/// `None` for paths that carry no language, like `/`, `/help` or `/pl/PL`.
+/// `None` for paths that carry no language, like `/`, `/help` or `/cz/CZ`.
 pub fn lang_from_path(path: &str) -> Option<&'static str> {
     let p = path.trim_start_matches('/');
     let first = p.split('/').next().unwrap_or("");
@@ -297,6 +383,9 @@ pub fn lang_from_path(path: &str) -> Option<&'static str> {
         "es" => "es",
         "fr" => "fr",
         "de" | "at" | "ch" => "de",
+        "it" => "it",
+        "pl" => "pl",
+        "pt" => "pt",
         _ => return None,
     })
 }
@@ -330,6 +419,8 @@ mod tests {
         assert_eq!(country_for_identifier("CTA|SE").unwrap().id, "sv");
         assert_eq!(country_for_identifier("Sweden (SE)").unwrap().id, "sv");
         assert_eq!(country_for_identifier("de-lu").unwrap().id, "de");
+        assert_eq!(country_for_identifier("BZN|IT-SICI").unwrap().id, "it");
+        assert_eq!(country_for_identifier("CTA|IT").unwrap().id, "it");
         assert_eq!(interval_for_identifier("AT"), Some("PT60M"));
         assert!(country_for_identifier("XX").is_none());
     }
@@ -348,11 +439,15 @@ mod tests {
         assert_eq!(lang_from_path("/be"), Some("nl"));
         assert_eq!(lang_from_path("/nl/NL"), Some("nl"));
         assert_eq!(lang_from_path("/"), None);
-        assert_eq!(lang_from_path("/pl/PL"), None);
+        assert_eq!(lang_from_path("/pl/PL"), Some("pl"));
+        assert_eq!(lang_from_path("/it/IT-NORD"), Some("it"));
+        assert_eq!(lang_from_path("/cz/CZ"), None);
         assert_eq!(lang_from_tag("da-DK"), Some("dk"));
         assert_eq!(lang_from_tag("nb"), Some("no"));
         assert_eq!(lang_from_tag("sv-SE"), Some("sv"));
-        assert_eq!(lang_from_tag("pl"), None);
+        assert_eq!(lang_from_tag("pl"), Some("pl"));
+        assert_eq!(lang_from_tag("pt-BR"), Some("pt"));
+        assert_eq!(lang_from_tag("cs"), None);
         assert_eq!(lang_tag("dk"), "da");
     }
 }
