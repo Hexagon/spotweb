@@ -697,7 +697,7 @@ pub async fn border_plan(app: &App, from: i64, to: i64) -> anyhow::Result<Arc<Bo
         .await
 }
 
-/// News items, newest first. Invalidated by the news job.
+/// News items, newest first. Invalidated when an item is pushed or deleted.
 pub async fn news(app: &App, f: queries::NewsFilter) -> anyhow::Result<Arc<Vec<queries::NewsRow>>> {
     let db = app.db.clone();
     let key = format!("{f:?}");
@@ -708,7 +708,7 @@ pub async fn news(app: &App, f: queries::NewsFilter) -> anyhow::Result<Arc<Vec<q
         .await
 }
 
-/// One news item with the items before and after it (same kind and zone)
+/// One news item with the items before and after it (same zone and country)
 pub type NewsPage = (
     queries::NewsRow,
     Option<queries::NewsRow>,

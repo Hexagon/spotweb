@@ -24,7 +24,6 @@ fn test_app() -> App {
         trusted_proxies: vec![],
         news_bind: None,
         news_token: Some("test-token-0123456789".into()),
-        news_auto: true,
     };
     let app = App::new(db, cfg).unwrap();
     // Seed: SE1 today + tomorrow at 15 minutes, exchange rates
@@ -1384,35 +1383,55 @@ async fn send(
 }
 
 #[tokio::test]
-async fn news_generated_and_shown() {
+async fn pushed_news_shown() {
     let app = test_app();
-    let (msg, changed) = crate::news::generate(&app).await.unwrap();
-    assert!(changed >= 2, "{msg}");
-    // Running again changes nothing
-    assert_eq!(crate::news::generate(&app).await.unwrap().1, 0);
-    app.cache.invalidate("news");
-    let d = today(&crate::timeutil::stockholm()).to_string();
-    let id = format!("{d}-se1");
+    let push = |body: &'static str| {
+        let app = app.clone();
+        async move {
+            let (s, body) = send(
+                super::news_router(app),
+                "POST",
+                "/api/v2/news",
+                Some("test-token-0123456789"),
+                body,
+            )
+            .await;
+            assert_eq!(s, StatusCode::OK, "{body}");
+            let v: Value = serde_json::from_str(&body).unwrap();
+            v["id"].as_str().unwrap().to_string()
+        }
+    };
+    let zone = push(
+        r#"{"slug": "cold-week", "area": "SE1", "importance": 1,
+        "texts": {"sv": {"title": "Kall vecka i SE1", "paragraphs": ["Elpriset stiger."]},
+                  "en": {"title": "Cold week in SE1", "paragraphs": ["Prices rise."]}}}"#,
+    )
+    .await;
+    let global = push(
+        r#"{"slug": "europe-wind", "importance": 3,
+        "texts": {"en": {"title": "Windy week in Europe", "paragraphs": ["Prices fall."]}}}"#,
+    )
+    .await;
 
     let (s, body, _) = get(&app, "/news/sv?lang=sv").await;
     assert_eq!(s, StatusCode::OK);
     assert!(
-        body.contains(&format!("/news/{id}")),
+        body.contains(&format!("/news/{zone}")),
         "country list links the item"
+    );
+    assert!(
+        !body.contains(&global),
+        "global item not in the country list"
     );
     assert!(body.contains("application/atom+xml"));
 
-    let (s, body, _) = get(&app, &format!("/news/{id}?lang=sv")).await;
+    let (s, body, _) = get(&app, &format!("/news/{zone}?lang=sv")).await;
     assert_eq!(s, StatusCode::OK);
     assert!(body.contains("NewsArticle"));
-    assert!(body.contains("Elpriset i SE1"), "Swedish text");
-    // Same prices every day: a routine report, kept out of search results
+    assert!(body.contains("Kall vecka i SE1"));
+    // Importance 1: kept out of search results
     assert!(body.contains("noindex, follow"));
     assert!(body.contains("/sv/SE1"), "links the zone page");
-
-    let (s, body, _) = get(&app, &format!("/news/{id}?lang=de")).await;
-    assert_eq!(s, StatusCode::OK);
-    assert!(body.contains("Strompreis"), "German text");
 
     let (s, body, _) = get(&app, "/news/feed.xml?lang=en&area=SE1").await;
     assert_eq!(s, StatusCode::OK);
@@ -1420,26 +1439,42 @@ async fn news_generated_and_shown() {
         body.starts_with("<?xml") && body.contains("<entry>"),
         "{body}"
     );
-    assert!(body.contains(&format!("/news/{id}?lang=en")));
+    assert!(body.contains(&format!("/news/{zone}?lang=en")));
 
-    // Zone and country items stay out of the global news
     let (_, body, _) = get(&app, "/news/feed.xml?lang=en").await;
-    assert!(!body.contains("<entry>"));
+    assert!(body.contains(&format!("/news/{global}?lang=en")));
+    assert!(
+        !body.contains(&zone),
+        "zone items stay out of the global news"
+    );
 
     let (s, body, _) = get(&app, "/api/v2/news?area=SE1&lang=en").await;
     assert_eq!(s, StatusCode::OK);
     let v: Value = serde_json::from_str(&body).unwrap();
-    assert!(v["data"].as_array().unwrap().iter().any(|i| i["id"] == id));
+    assert!(v["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|i| i["id"] == zone));
 
     let (_, body, _) = get(&app, "/sv/SE1?lang=sv").await;
     assert!(
-        body.contains(&format!("/news/{id}")),
-        "zone page shows its news: {}",
-        &body[body.find("news-card").unwrap_or(0)..][..600.min(body.len())]
+        body.contains(&format!("/news/{zone}")),
+        "zone page shows its news"
+    );
+    let (_, body, _) = get(&app, "/?lang=en").await;
+    assert!(
+        body.contains("Windy week in Europe"),
+        "start page shows global news"
     );
 
     let (_, body, _) = get(&app, "/sitemap.xml").await;
     assert!(body.contains("https://example.test/news/sv?lang=fi"));
+    assert!(
+        body.contains(&format!("/news/{global}")),
+        "indexable item in the sitemap"
+    );
+    assert!(!body.contains(&zone), "routine item not in the sitemap");
 
     let (s, _, _) = get(&app, "/news/2000-01-01-nothing").await;
     assert_eq!(s, StatusCode::NOT_FOUND);
@@ -1487,8 +1522,8 @@ async fn news_push_is_local_only() {
     let id = v["id"].as_str().unwrap().to_string();
     assert!(id.ends_with("-elpris-vinter"));
 
-    // Reserved and invalid slugs
-    let bad = item.replace("elpris-vinter", "se3");
+    // Invalid slug
+    let bad = item.replace("elpris-vinter", "Elpris vinter");
     let (s, _) = send(
         local(),
         "POST",

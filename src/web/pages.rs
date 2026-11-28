@@ -1096,11 +1096,10 @@ pub async fn llms(State(st): State<WebState>, headers: HeaderMap) -> Response {
          With `planned=true` the day-ahead scheduled exchange and capacity per border and hour, today and tomorrow.\n\
          - [Hydro reservoirs]({base}/api/v2/reservoirs?country=no): energy stored per ISO week (GWh) \
          compared with the same week of earlier years, per `area` or `country`.\n\
-         - [Status]({base}/api/v2/status): data freshness.\n         - [News]({base}/api/v2/news?lang=en&area=SE3): automatically written news per zone and day \
-         (headline facts such as negative prices, the highest or lowest price for a long time, \
-         big changes), Europe overviews and monthly summaries. Optional `lang`, `area`, `country`, \
-         `kind` (`day`, `month`, `europe`, `custom`), `day`, `min_importance` (1-3), `before` (ms) \
-         and `limit`. Each item has its text in `lang` and the facts in `data` (EUR/MWh). \
+         - [Status]({base}/api/v2/status): data freshness.\n         - [News]({base}/api/v2/news?lang=en): electricity price news, global or per country \
+         or zone, only in the languages it was written in. Optional `lang`, `area`, `country`, \
+         `day`, `min_importance` (1-3), `before` (ms) and `limit`. Each item has its text in `lang` \
+         and the facts it is based on in `data`. \
          Atom feeds: `{base}/news/feed.xml?lang=en` (global), `&country=sv` or `&area=SE3`.\n\n\
          ## Bidding zones\n\n\
          - [Map of all zones with current prices and flows]({base}/)\n",

@@ -12,16 +12,8 @@
   {%- for p in item.html %}
   <p>{{ p|safe }}</p>
   {%- endfor %}
-  {%- if generated %}
-  <p class="muted small">{{ t("pages.news.auto_note") }}</p>
-  {%- endif %}
   {%- if zone %}
   <p><a class="btn" href="{{ zone.url|attr }}">{{ t("pages.news.zone_link")|replace("{area}", zone.name) }} &rsaquo;</a></p>
-  {%- endif %}
-  {%- if same_day %}
-  <p class="small">{{ t("pages.news.same_day") }}
-    {%- for o in same_day %} <a href="{{ o.url|attr }}">{{ o.area }}</a>{% if not loop.last %},{% endif %}{% endfor %}
-  </p>
   {%- endif %}
   <nav class="news-pager small">
     {%- if prev %}<a href="{{ prev.url|attr }}" rel="prev">&lsaquo; {{ prev.title }}</a>{% endif %}
