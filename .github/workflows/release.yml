@@ -96,7 +96,7 @@ jobs:
       - name: Checksums
         working-directory: dist
         run: sha256sum spotweb-* > SHA256SUMS && cat SHA256SUMS
-      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
+      - uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab # v4.1.4
       - name: Sign (Sigstore keyless)
         working-directory: dist
         run: |
@@ -185,7 +185,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
+      - uses: sigstore/cosign-installer@881c63bd87e38389154debd8331404ce7ca8a3ab # v4.1.4
       - name: Sign image (Sigstore keyless)
         env:
           DIGEST: ${{ steps.push.outputs.digest }}
