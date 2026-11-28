@@ -481,7 +481,22 @@
     if (longtermRedraw) safe(longtermRedraw);
   });
 
-  const longtermTableArea = async (a) => {
+  /** Formats and units for the long-term chart, following the table's currency choice */
+  const longtermChart = (id, series, colors, d) => {
+    const u = `${d.cur}/kWh`;
+    const nf = new Intl.NumberFormat(locale, { minimumFractionDigits: d.decimals, maximumFractionDigits: d.decimals });
+    const o = baseChart();
+    o.yaxis.labels.formatter = (v) => (v === null || v === undefined ? "" : Number(v).toFixed(Math.min(d.decimals, 2)));
+    o.tooltip.y = { formatter: (v) => (v === null || v === undefined ? "-" : `${Number(v).toFixed(d.decimals)} ${u}`) };
+    o.series = series;
+    o.colors = colors;
+    o.stroke = { width: 2, curve: "smooth" };
+    o.tooltip.x.format = "MMM yyyy";
+    o.yaxis.min = minY(o.series);
+    draw(id, o, (v) => `${nf.format(v)} ${u}`);
+  };
+
+  const longtermArea = async (a) => {
     const cur = longtermCur(), d = longtermDisplay(cur);
     const data = await fetchSpot(a.name, "monthly", "2021-01-01", tomorrowIso(), cur);
     // Months as rows, years as columns
@@ -491,25 +506,17 @@
     for (let m = 0; m < 12; m++) html += `<tr><td>${t("months." + m)}</td>${years.map((y) => `<td class="num">${cell(y, m)}</td>`).join("")}</tr>`;
     $("#longterm-table").innerHTML = html + "</tbody>";
     longtermControls(cur);
+    longtermChart("longterm-area", [{ name: a.name, data: data.map((r) => ({ x: r.time, y: priceCRounded(r.price, d) })) }], [theme.c1], d);
   };
 
   const chartLongTermArea = async () => {
     const a = boot.area;
     if (!a || !$('[data-chart="longterm-area"]')) return;
-    longtermRedraw = () => longtermTableArea(a);
-    const tableDone = longtermTableArea(a);
-    const data = await fetchSpot(a.name, "monthly", "2021-01-01", tomorrowIso(), prefsIso());
-    const o = unitTooltip(baseChart());
-    o.series = [{ name: a.name, data: data.map((r) => ({ x: r.time, y: priceCRounded(r.price) })) }];
-    o.stroke = { width: 2, curve: "smooth" };
-    o.colors = [theme.c1];
-    o.tooltip.x.format = "MMM yyyy";
-    o.yaxis.min = minY(o.series);
-    draw("longterm-area", o);
-    await tableDone;
+    longtermRedraw = () => longtermArea(a);
+    await longtermArea(a);
   };
 
-  const longtermTableCountry = async () => {
+  const longtermCountry = async () => {
     const cur = longtermCur(), d = longtermDisplay(cur);
     const sets = await Promise.all(boot.areas.map((a) => fetchSpot(a.name, "monthly", "2021-01-01", tomorrowIso(), cur)));
     const months = [...new Set(sets.flat().map((r) => r.time))].sort((a, b) => b - a);
@@ -519,21 +526,15 @@
     }
     $("#longterm-table").innerHTML = html + "</tbody>";
     longtermControls(cur);
+    longtermChart("longterm-country",
+      boot.areas.map((a, i) => ({ name: a.name, data: sets[i].map((r) => ({ x: r.time, y: priceCRounded(r.price, d) })) })),
+      boot.areas.map((a) => areaColor(a)), d);
   };
 
   const chartLongTermCountry = async () => {
     if (!boot.areas || !$('[data-chart="longterm-country"]')) return;
-    longtermRedraw = longtermTableCountry;
-    const tableDone = longtermTableCountry();
-    const sets = await Promise.all(boot.areas.map((a) => fetchSpot(a.name, "monthly", "2021-01-01", tomorrowIso(), prefsIso())));
-    const o = unitTooltip(baseChart());
-    o.series = boot.areas.map((a, i) => ({ name: a.name, data: sets[i].map((r) => ({ x: r.time, y: priceCRounded(r.price) })) }));
-    o.colors = boot.areas.map((a) => areaColor(a));
-    o.stroke = { width: 2, curve: "smooth" };
-    o.tooltip.x.format = "MMM yyyy";
-    o.yaxis.min = minY(o.series);
-    draw("longterm-country", o);
-    await tableDone;
+    longtermRedraw = longtermCountry;
+    await longtermCountry();
   };
 
   const chartThirtyDays = async () => {
