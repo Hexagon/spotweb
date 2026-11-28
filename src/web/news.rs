@@ -1,5 +1,6 @@
 //! News pages (`/news`, `/news/{country}`, `/news/{id}`), the Atom feed, `/api/v2/news` and the
 //! news lists shown on the start, country and zone pages. See `crate::news`.
+#![allow(clippy::result_large_err)]
 
 use axum::extract::{Path, Query, State};
 use axum::http::{header, HeaderMap, StatusCode, Uri};
