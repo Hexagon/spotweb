@@ -114,7 +114,7 @@ data is unchanged (for `/api/v2/hass` the `updated` field is not part of the tag
 Prices are per MWh in EUR, or in `currency` (any ECB currency, `ORE` is SEK). Converted prices use the ECB rate of their
 own local day, the last bank day's rate for weekends and holidays, before they are grouped, so a monthly average in SEK
 is the average of what each day cost in SEK. `rates=latest` converts everything with the latest rate instead (2.6 and
-earlier always did). Converted responses also carry `currency` and `rates`. `period` is `hourly` (raw intervals, as in 1.x), `daily`,
+earlier always did). Converted responses also carry `currency` and `rates`, and every row the average `rate` (currency per EUR) it was converted with. `period` is `hourly` (raw intervals, as in 1.x), `daily`,
 `weekly` (new), `monthly`, `yearly`, `total` (time is `null`) or `minimum`. With `interval` only that resolution is used, exactly like
 1.x. Without it (new behaviour) the area's current resolution is preferred and older days fall back to what is available, so
 long ranges cover both hourly and 15-minute history. Averages are time weighted.
@@ -215,13 +215,13 @@ sha256sum --ignore-missing -c SHA256SUMS
 
 # Signature: proves the archive was built by this repository's release workflow
 cosign verify-blob \
-  --bundle spotweb-v2.7.1-x86_64-unknown-linux-musl.tar.gz.sigstore.json \
+  --bundle spotweb-v2.7.2-x86_64-unknown-linux-musl.tar.gz.sigstore.json \
   --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  spotweb-v2.7.1-x86_64-unknown-linux-musl.tar.gz
+  spotweb-v2.7.2-x86_64-unknown-linux-musl.tar.gz
 
 # Or with the GitHub CLI (build provenance attestation)
-gh attestation verify spotweb-v2.7.1-x86_64-unknown-linux-musl.tar.gz --repo Hexagon/spotweb
+gh attestation verify spotweb-v2.7.2-x86_64-unknown-linux-musl.tar.gz --repo Hexagon/spotweb
 ```
 
 ### Recommended setup (Linux, systemd)
@@ -247,10 +247,10 @@ A signed multi-arch image (amd64, arm64) is published to GHCR with each release 
 run it (details and `docker-compose.yml` in [docs/deployment.md](docs/deployment.md#docker)):
 
 ```sh
-cosign verify ghcr.io/hexagon/spotweb:2.7.1 \
+cosign verify ghcr.io/hexagon/spotweb:2.7.2 \
   --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
-docker run -d -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.7.1
+docker run -d -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.7.2
 ```
 
 ## Development

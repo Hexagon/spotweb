@@ -86,6 +86,20 @@ async fn spot_api_shape() {
     let v: Value = serde_json::from_str(&body).unwrap();
     assert!(v["data"][0]["time"].is_null());
     assert!(v["data"][0]["price"].as_f64().unwrap() > 500.0);
+    // Converted rows carry the rate they were converted with; EUR rows do not
+    let r = v["data"][0]["rate"].as_f64().unwrap();
+    let (_, body, _) = get(
+        &app,
+        &format!("/api/v2/spot?period=total&area=SE1&startDate={d}&endDate={d}"),
+    )
+    .await;
+    let eur: Value = serde_json::from_str(&body).unwrap();
+    assert!(eur["data"][0].get("rate").is_none());
+    let eur = eur["data"][0]["price"].as_f64().unwrap();
+    assert!(
+        (v["data"][0]["price"].as_f64().unwrap() - eur * r).abs() < 1e-6,
+        "{r}"
+    );
 
     let (s, body, _) = get(&app, "/api/v2/spot?period=nope&area=SE1").await;
     assert_eq!(s, StatusCode::INTERNAL_SERVER_ERROR);

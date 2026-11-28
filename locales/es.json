@@ -183,6 +183,7 @@
       "values_in": "Valores en",
       "note_eur": "Se muestra en EUR tal como se publican los precios, sin conversión.",
       "note_converted": "Convertido desde EUR con el tipo del BCE de cada día (EUR→{currency}), el del último día hábil para fines de semana y festivos.",
+      "rate": "Tipo de cambio",
       "note_no_fees": "Sus tarifas no están incluidas, ya que están indicadas en otra moneda."
     },
     "map": {

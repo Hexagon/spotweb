@@ -183,6 +183,7 @@
       "values_in": "Waarden in",
       "note_eur": "Getoond in EUR zoals de prijzen worden gepubliceerd, zonder omrekening.",
       "note_converted": "Omgerekend uit EUR met de ECB-koers van elke dag (EUR→{currency}), in weekenden en op feestdagen de koers van de laatste bankdag.",
+      "rate": "Wisselkoers",
       "note_no_fees": "Uw kosten zijn niet inbegrepen, omdat ze in een andere valuta zijn ingesteld."
     },
     "map": {
