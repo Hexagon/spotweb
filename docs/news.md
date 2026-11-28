@@ -43,7 +43,8 @@ Adds an item, or replaces the one with the same `day` and `slug`. The first publ
     "sv": { "title": "Kall vecka väntas höja elpriset i SE3", "paragraphs": ["...", "..."] },
     "en": { "title": "Cold week expected to raise prices in SE3", "paragraphs": ["...", "..."] }
   },
-  "facts": { "avg_tomorrow_eur_mwh": 85.2, "source": "spotweb /api/v2/spot" }
+  "facts": { "avg_tomorrow_eur_mwh": 85.2, "source": "spotweb /api/v2/spot" },
+  "ai_generated": true
 }
 ```
 
@@ -57,6 +58,7 @@ Adds an item, or replaces the one with the same `day` and `slug`. The first publ
 | `importance` | no | 1 routine (not indexed), 2 notable (default), 3 important (highlighted) |
 | `published` | no | ms since the epoch, default now, at most a day ahead |
 | `facts` | no | any JSON, kept with the item and returned by `/api/v2/news` |
+| `ai_generated` | no | `true` when the text was written by an AI system, default `false`; returned by `/api/v2/news` |
 
 Without `area` and `country` the item is **global** and appears on `/news`, the start page and the global feed.
 With them it appears for that country or zone only.
@@ -77,7 +79,7 @@ Removes an item.
 Items newest first: `lang` (text language, default `en`), `area`, `country` (`country=` with an empty value gives
 global items), `day`, `min_importance`, `before` (ms, for paging), `limit` (≤ 100). Only items that exist in `lang`
 are listed. Each item has `id`, `area`, `country`, `day`, `published`, `updated`, `importance`, `url`, `title`,
-`summary` and in `data` the texts and facts that were pushed.
+`summary`, `ai_generated` and in `data` the texts and facts that were pushed.
 
 ### Data for a writer
 

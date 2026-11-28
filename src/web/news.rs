@@ -516,7 +516,8 @@ pub async fn api_list(State(st): State<WebState>, Query(q): Query<ApiQuery>) -> 
             Some(json!({
                 "id": i.id, "area": i.area, "country": i.country, "day": i.day,
                 "published": i.published, "updated": i.updated, "importance": i.importance,
-                "url": news::path(i), "title": r.title, "summary": r.summary, "data": i.data,
+                "url": news::path(i), "title": r.title, "summary": r.summary,
+                "ai_generated": news::ai_generated(i), "data": i.data,
             }))
         })
         .collect();

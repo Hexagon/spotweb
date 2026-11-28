@@ -1451,11 +1451,14 @@ async fn pushed_news_shown() {
     let (s, body, _) = get(&app, "/api/v2/news?area=SE1&lang=en").await;
     assert_eq!(s, StatusCode::OK);
     let v: Value = serde_json::from_str(&body).unwrap();
-    assert!(v["data"]
+    let item = v["data"]
         .as_array()
         .unwrap()
         .iter()
-        .any(|i| i["id"] == zone));
+        .find(|i| i["id"] == zone)
+        .unwrap()
+        .clone();
+    assert_eq!(item["ai_generated"], false, "default without the field");
 
     let (_, body, _) = get(&app, "/sv/SE1?lang=sv").await;
     assert!(
@@ -1497,7 +1500,7 @@ async fn news_push_is_local_only() {
     let local = || super::news_router(app.clone());
     let item = r#"{"slug": "elpris-vinter", "country": "sv", "importance": 2,
         "texts": {"sv": {"title": "Elpriset i vinter", "paragraphs": ["Första <b>stycket</b>."]}},
-        "facts": {"source": "test"}}"#;
+        "facts": {"source": "test"}, "ai_generated": true}"#;
     let (s, _) = send(local(), "POST", "/api/v2/news", None, item).await;
     assert_eq!(s, StatusCode::UNAUTHORIZED);
     let (s, _) = send(
@@ -1521,6 +1524,10 @@ async fn news_push_is_local_only() {
     let v: Value = serde_json::from_str(&body).unwrap();
     let id = v["id"].as_str().unwrap().to_string();
     assert!(id.ends_with("-elpris-vinter"));
+    let (_, body, _) = get(&app, "/api/v2/news?country=sv&lang=sv").await;
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["data"][0]["id"], id);
+    assert_eq!(v["data"][0]["ai_generated"], true);
 
     // Invalid slug
     let bad = item.replace("elpris-vinter", "Elpris vinter");
