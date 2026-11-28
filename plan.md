@@ -345,6 +345,13 @@ nio språk. Punkt 49 (notisraden) blir den första delen av det här.
 - Återstår: gruppering av områden, reglerna i (c), veckosammanfattning (d), bilder för delning (e),
   `spotweb news --dry-run` mot historiken för att justera gränserna, och mätning i Search Console.
 
+### Status 28 nov 2026 (2.9.0)
+
+- De automatiskt genererade nyheterna (`day`, `europe`, `month`) och jobbet `news` är borttagna, liksom
+  `SPOTWEB_NEWS_AUTO`. Nyheter kommer bara från en extern skribent via den lokala nyhetstjänsten. Migration 9 tar
+  bort de genererade nyheterna och kolumnen `news.kind`; `kind` finns inte längre i `/api/v2/news`.
+- Reglerna i (c), veckosammanfattningen (d) och grupperingen av områden är nu skribentens sak, inte spotwebs.
+
 ## Ny startsida
 
 - ✅ Startsidan är en karta över elområdena med pris just nu (färgskala billigt–dyrt) och pilar för fysiskt nettoflöde

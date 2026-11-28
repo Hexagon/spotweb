@@ -1,5 +1,6 @@
 //! News pages (`/news`, `/news/{country}`, `/news/{id}`), the Atom feed, `/api/v2/news` and the
-//! news lists shown on the start, country and zone pages. See `crate::news`.
+//! news lists shown on the start, country and zone pages. The items are pushed through the
+//! local news service (`news_router`); see `crate::news`.
 #![allow(clippy::result_large_err)]
 
 use axum::extract::{Path, Query, State};
@@ -15,15 +16,11 @@ use super::pages::{
 use super::{data, detect_lang, query_lang, WebState};
 use crate::countries::{country as find_country, find_area, lang_tag, COUNTRIES, LANGUAGES};
 use crate::db::queries::{NewsFilter, NewsRow};
-use crate::news::{self, PriceFmt};
+use crate::news;
 use crate::timeutil::{local_date, market_tz, now_ms, ts};
 
 /// Items on a list page and in a feed
 const PAGE_SIZE: usize = 40;
-
-async fn price_fmt(st: &WebState, lang: &str) -> anyhow::Result<PriceFmt> {
-    Ok(PriceFmt::new(&*data::exchange_rates(&st.app).await?, lang))
-}
 
 /// Publication time as text in the market time zone (CET)
 fn published_text(st: &WebState, lang: &str, ms: i64) -> String {
@@ -36,12 +33,11 @@ fn published_text(st: &WebState, lang: &str, ms: i64) -> String {
 }
 
 /// An item as the templates use it
-fn card(st: &WebState, lang: &str, pf: &PriceFmt, item: &NewsRow) -> Option<Value> {
-    let r = news::render(item, &st.app.i18n, lang, pf)?;
+fn card(st: &WebState, lang: &str, item: &NewsRow) -> Option<Value> {
+    let r = news::render(item, lang)?;
     Some(json!({
         "id": item.id,
         "url": news::path(item),
-        "kind": item.kind,
         "area": item.area,
         "country": item.country,
         "importance": item.importance,
@@ -54,8 +50,8 @@ fn card(st: &WebState, lang: &str, pf: &PriceFmt, item: &NewsRow) -> Option<Valu
     }))
 }
 
-fn cards(st: &WebState, lang: &str, pf: &PriceFmt, items: &[NewsRow]) -> Vec<Value> {
-    items.iter().filter_map(|i| card(st, lang, pf, i)).collect()
+fn cards(st: &WebState, lang: &str, items: &[NewsRow]) -> Vec<Value> {
+    items.iter().filter_map(|i| card(st, lang, i)).collect()
 }
 
 /// Which list a page or feed shows
@@ -101,7 +97,6 @@ pub(super) async fn latest(
     let items = data::news(&st.app, filter(scope, limit, None))
         .await
         .map_err(internal)?;
-    let pf = price_fmt(st, lang).await.map_err(internal)?;
     let more = match scope {
         Scope::Europe => "/news".to_string(),
         Scope::Country(c) => format!("/news/{c}"),
@@ -112,7 +107,7 @@ pub(super) async fn latest(
     };
     ctx.insert(
         "news".into(),
-        json!({ "items": cards(st, lang, &pf, &items), "more": more }),
+        json!({ "items": cards(st, lang, &items), "more": more }),
     );
     ctx.insert("feed".into(), json!(feed_url(scope, lang)));
     Ok(())
@@ -198,8 +193,7 @@ async fn list(
     let items = data::news(&st.app, filter(scope, PAGE_SIZE, before))
         .await
         .map_err(internal)?;
-    let pf = price_fmt(st, &lang).await.map_err(internal)?;
-    let list = cards(st, &lang, &pf, &items);
+    let list = cards(st, &lang, &items);
     let older = (items.len() == PAGE_SIZE)
         .then(|| items.last().map(|i| i.published))
         .flatten();
@@ -255,8 +249,7 @@ async fn article(st: &WebState, id: &str, uri: &Uri, headers: &HeaderMap) -> Pag
         };
         return Ok(Redirect::temporary(&format!("{}?lang={to}", news::path(item))).into_response());
     }
-    let pf = price_fmt(st, &lang).await.map_err(internal)?;
-    let Some(c) = card(st, &lang, &pf, item) else {
+    let Some(c) = card(st, &lang, item) else {
         return Ok(not_found_page(st, uri, headers).await);
     };
     let i18n = &st.app.i18n;
@@ -312,8 +305,7 @@ async fn article(st: &WebState, id: &str, uri: &Uri, headers: &HeaderMap) -> Pag
     }
     crumbs.push(json!({ "@type": "ListItem", "position": crumbs.len() + 1, "name": title }));
     let org = json!({ "@type": "Organization", "name": i18n.t(&lang, "page.title"), "url": format!("{site}/"), "logo": format!("{site}/icon-512x512.png") });
-    let generated = item.kind != news::CUSTOM;
-    let mut article = json!({
+    let article = json!({
         "@type": "NewsArticle",
         "@id": format!("{url}#article"),
         "headline": title,
@@ -329,10 +321,6 @@ async fn article(st: &WebState, id: &str, uri: &Uri, headers: &HeaderMap) -> Pag
         "about": about,
         "isAccessibleForFree": true,
     });
-    if generated {
-        article["isBasedOn"] = json!("https://transparency.entsoe.eu/");
-        article["creditText"] = json!("ENTSO-E Transparency Platform");
-    }
     set_modified(
         &mut ctx,
         &local_date(&market_tz(), item.updated).to_string(),
@@ -341,37 +329,15 @@ async fn article(st: &WebState, id: &str, uri: &Uri, headers: &HeaderMap) -> Pag
     ld_graph(&mut ctx).push(json!({ "@type": "BreadcrumbList", "itemListElement": crumbs }));
     ctx.insert("og_type".into(), json!("article"));
     ctx.insert("item".into(), c);
-    ctx.insert("generated".into(), json!(generated));
     let link = |i: &Option<NewsRow>| {
         i.as_ref()
-            .and_then(|i| card(st, &lang, &pf, i))
+            .and_then(|i| card(st, &lang, i))
             .map(|c| json!({ "url": c["url"], "title": c["title"] }))
     };
     ctx.insert("prev".into(), json!(link(prev)));
     ctx.insert("next".into(), json!(link(next)));
     if let Some((cty, a)) = zone {
         ctx.insert("zone".into(), json!({ "name": a.name, "long": a.long, "url": format!("/{}/{}", cty.id, a.name), "country": cty.id }));
-    }
-    // The other zones of the country on the same day
-    if let (Some(cty), true) = (country, item.kind == "day") {
-        let same = data::news(
-            &st.app,
-            NewsFilter {
-                country: Some(cty.id.into()),
-                kind: Some("day".into()),
-                day: Some(item.day.clone()),
-                limit: 20,
-                ..Default::default()
-            },
-        )
-        .await
-        .map_err(internal)?;
-        let others: Vec<Value> = same
-            .iter()
-            .filter(|i| i.id != item.id)
-            .map(|i| json!({ "url": news::path(i), "area": i.area }))
-            .collect();
-        ctx.insert("same_day".into(), json!(others));
     }
     if let Some(cty) = country {
         ctx.insert("news_country".into(), json!(cty.id));
@@ -416,12 +382,9 @@ pub async fn feed(
         (None, Some(c)) => Scope::Country(c.id),
         _ => Scope::Europe,
     };
-    let (items, pf) = match (
-        data::news(&st.app, filter(scope, PAGE_SIZE, None)).await,
-        price_fmt(&st, &lang).await,
-    ) {
-        (Ok(i), Ok(p)) => (i, p),
-        (Err(e), _) | (_, Err(e)) => return internal(e),
+    let items = match data::news(&st.app, filter(scope, PAGE_SIZE, None)).await {
+        Ok(i) => i,
+        Err(e) => return internal(e),
     };
     let i18n = &st.app.i18n;
     let site = public_base(&st, &headers);
@@ -443,10 +406,10 @@ pub async fn feed(
     let self_url = format!("{site}{}", feed_url(scope, &lang));
     let mut xml = String::from(r#"<?xml version="1.0" encoding="utf-8"?>"#);
     xml.push_str(&format!(
-        r#"<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="{}"><title>{}</title><subtitle>{}</subtitle><id>{}</id><link rel="self" type="application/atom+xml" href="{}"/><link rel="alternate" type="text/html" href="{}"/><updated>{}</updated><author><name>{}</name><uri>{site}/</uri></author><icon>{site}/icon-192x192.png</icon><rights>Data: ENTSO-E Transparency Platform (CC BY 4.0)</rights>"#,
+        r#"<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="{}"><title>{}</title><subtitle>{}</subtitle><id>{}</id><link rel="self" type="application/atom+xml" href="{}"/><link rel="alternate" type="text/html" href="{}"/><updated>{}</updated><author><name>{}</name><uri>{site}/</uri></author><icon>{site}/icon-192x192.png</icon>"#,
         lang_tag(&lang),
         xml_escape(&title),
-        xml_escape(&i18n.t(&lang, "pages.news.auto_note")),
+        xml_escape(&i18n.t(&lang, "pages.news.description")),
         xml_escape(&format!("{site}{}", feed_path(scope))),
         xml_escape(&self_url),
         xml_escape(&format!("{site}{html_url}?lang={lang}")),
@@ -454,7 +417,7 @@ pub async fn feed(
         xml_escape(&i18n.t(&lang, "page.title")),
     ));
     for item in items.iter() {
-        let Some(r) = news::render(item, i18n, &lang, &pf) else {
+        let Some(r) = news::render(item, &lang) else {
             continue;
         };
         let link = format!("{site}{}?lang={lang}", news::path(item));
@@ -490,7 +453,6 @@ pub struct ApiQuery {
     lang: Option<String>,
     area: Option<String>,
     country: Option<String>,
-    kind: Option<String>,
     day: Option<String>,
     min_importance: Option<i64>,
     before: Option<i64>,
@@ -520,8 +482,8 @@ fn api_err(status: StatusCode, msg: &str) -> Response {
     api_json(status, json!({ "status": "error", "details": msg }))
 }
 
-/// `GET /api/v2/news`: items newest first, with their text in `lang` (default English) and
-/// the facts they are based on (`data`, prices in EUR/MWh)
+/// `GET /api/v2/news`: items newest first that exist in `lang` (default English), with their
+/// text and the facts the writer sent (`data.facts`)
 pub async fn api_list(State(st): State<WebState>, Query(q): Query<ApiQuery>) -> Response {
     let lang = q
         .lang
@@ -539,22 +501,20 @@ pub async fn api_list(State(st): State<WebState>, Query(q): Query<ApiQuery>) -> 
     let f = NewsFilter {
         area,
         country: q.country.map(|c| c.to_ascii_lowercase()),
-        kind: q.kind,
         day: q.day,
         min_importance: q.min_importance.unwrap_or(0),
         before: q.before,
         limit: q.limit.unwrap_or(20).clamp(1, 100),
     };
-    let (items, pf) = match (data::news(&st.app, f).await, price_fmt(&st, lang).await) {
-        (Ok(i), Ok(p)) => (i, p),
-        _ => return api_err(StatusCode::INTERNAL_SERVER_ERROR, "Query failed"),
+    let Ok(items) = data::news(&st.app, f).await else {
+        return api_err(StatusCode::INTERNAL_SERVER_ERROR, "Query failed");
     };
     let out: Vec<Value> = items
         .iter()
         .filter_map(|i| {
-            let r = news::render(i, &st.app.i18n, lang, &pf)?;
+            let r = news::render(i, lang)?;
             Some(json!({
-                "id": i.id, "kind": i.kind, "area": i.area, "country": i.country, "day": i.day,
+                "id": i.id, "area": i.area, "country": i.country, "day": i.day,
                 "published": i.published, "updated": i.updated, "importance": i.importance,
                 "url": news::path(i), "title": r.title, "summary": r.summary, "data": i.data,
             }))
@@ -562,7 +522,7 @@ pub async fn api_list(State(st): State<WebState>, Query(q): Query<ApiQuery>) -> 
         .collect();
     api_json(
         StatusCode::OK,
-        json!({ "status": "ok", "lang": lang, "unit": pf.unit(), "data": out }),
+        json!({ "status": "ok", "lang": lang, "data": out }),
     )
 }
 
@@ -589,8 +549,7 @@ fn authorized(st: &WebState, headers: &HeaderMap) -> bool {
 }
 
 /// `POST /api/v2/news` on the local news service: add or replace a pushed item (see
-/// [`news::PushedItem`]). Lets an editor or an external (AI) writer on the server publish news
-/// next to the generated items.
+/// [`news::PushedItem`]). Lets an editor or an external (AI) writer on the server publish news.
 pub async fn api_push(
     State(st): State<WebState>,
     headers: HeaderMap,
@@ -638,11 +597,11 @@ pub async fn api_delete(
     let res = st
         .app
         .db
-        .run(move |c| Ok(crate::db::queries::news_delete_custom(c, &id)?))
+        .run(move |c| Ok(crate::db::queries::news_delete(c, &id)?))
         .await;
     st.app.cache.invalidate("news");
     match res {
-        Ok(0) => api_err(StatusCode::NOT_FOUND, "no pushed item with that id"),
+        Ok(0) => api_err(StatusCode::NOT_FOUND, "no item with that id"),
         Ok(_) => api_json(StatusCode::OK, json!({ "status": "ok" })),
         Err(_) => api_err(StatusCode::INTERNAL_SERVER_ERROR, "Query failed"),
     }

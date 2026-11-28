@@ -148,9 +148,6 @@ pub struct Config {
     pub news_bind: Option<SocketAddr>,
     /// Optional bearer token the news service also requires (`SPOTWEB_NEWS_TOKEN`)
     pub news_token: Option<String>,
-    /// Built in news generation (`SPOTWEB_NEWS_AUTO`, default on). Off when news only comes
-    /// from an external writer through the API.
-    pub news_auto: bool,
 }
 
 fn env_opt(name: &str) -> Option<String> {
@@ -226,7 +223,6 @@ impl Config {
                 }
             },
             news_token: env_opt("SPOTWEB_NEWS_TOKEN"),
-            news_auto: env_opt("SPOTWEB_NEWS_AUTO").is_none_or(|v| is_truthy(&v)),
         })
     }
 }

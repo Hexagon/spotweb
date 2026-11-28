@@ -1,47 +1,22 @@
 # News
 
-spotweb writes short news items about electricity prices by itself and can also show items written by an external
-writer on the same server (an editor, a script or an AI agent). Both kinds appear on the same pages and feeds.
+spotweb shows news about electricity prices written by an external writer on the same server (an editor, a script or
+an AI agent) and pushed through the local news service. spotweb does not write any news by itself (it did in 2.8.0;
+those items are removed by migration 9 when upgrading).
 
 ## Where news appears
 
 | Url | What |
 | --- | ---- |
-| `/news` | Global news: items about no particular country (the daily Europe overview and pushed global items) |
-| `/news/{country}` | News for one country (`/news/sv`): its zones' daily reports and month summaries, and pushed items for that country |
+| `/news` | Global news: items about no particular country |
+| `/news/{country}` | News for one country (`/news/sv`), including its zones' items |
 | `/news/{id}` | One item, with `NewsArticle` and `BreadcrumbList` structured data |
 | `/news/feed.xml?lang=sv` | Atom feed of the global news; `&country=sv` or `&area=SE3` for a country or zone |
 | `/api/v2/news` | JSON, see below |
 | start, country and zone pages | a box with the latest global, country or zone items, and the feed in `<head>` |
 
-Every page takes `?lang=` like the rest of the site. Recent indexable items and the list pages are in `sitemap.xml`.
-
-## Built-in items
-
-The `news` job runs every hour at :10, right after every `prices` run, and at startup. It reads only the
-database (no ENTSO-e requests). It is idempotent: items have a fixed id and are only rewritten when their facts change.
-On an empty table it fills the last 30 days and 3 months, so a new installation starts with an archive.
-
-| Kind | Id | When |
-| ---- | -- | ---- |
-| `day` | `2026-11-29-se3` | per zone and delivery day, once the day's prices are complete (normally tomorrow, from about 13:00 CET) |
-| `europe` | `2026-11-29-europe` | per delivery day, once 75 % of the zones are complete: cheapest and most expensive zone, average, zones with negative prices |
-| `month` | `2026-11-se3` | per zone and finished month: average, min, max, compared with the month before and the same month a year earlier |
-
-The headline of a `day` item is the most notable fact: negative prices for at least an hour, the highest or lowest
-daily average for at least 90 days, a change of at least 25 % and 10 EUR/MWh against the day before, a record for at
-least 30 days, or else the plain average. Importance is 3 for records of a year or more and four or more hours of
-negative prices, 2 for any record, negative price or big change, 1 otherwise.
-
-The items are stored as facts (`news.data`, prices in EUR/MWh) and written with the templates under `pages.news` in
-`locales/*.json` when shown, so they exist in every language and in the currency of the page. Prices are
-`<span data-eur>` and follow the visitor's currency setting.
-
-Search engines: routine `day` items (importance 1) are `noindex, follow` and left out of the sitemap. They are many
-and alike, and the zone page already answers "price tomorrow". Notable days, Europe overviews, month summaries and
-pushed items of importance 2 or more are indexed.
-
-Turn the built-in items off with `SPOTWEB_NEWS_AUTO=0`, for example when an external writer covers everything.
+Every page takes `?lang=` like the rest of the site. Items of importance 2 or more are indexed by search engines; those
+of the last 30 days and the list pages are in `sitemap.xml`. Routine items (importance 1) get `noindex, follow`.
 
 ## Pushing news from the server (local news service)
 
@@ -74,7 +49,7 @@ Adds an item, or replaces the one with the same `day` and `slug`. The first publ
 
 | Field | Required | |
 | ----- | -------- | - |
-| `slug` | yes | `a-z`, `0-9` and `-`, 3–80 characters; zone names and `europe` are reserved. The id becomes `{day}-{slug}`. |
+| `slug` | yes | `a-z`, `0-9` and `-`, 3–80 characters. The id becomes `{day}-{slug}`. |
 | `texts` | yes | per language code (`sv fi no dk de en nl fr es it pl pt`): `title` (≤ 200 characters) and 1–20 `paragraphs` (≤ 2000 each). Plain text; html is escaped. |
 | `day` | no | `YYYY-MM-DD` the item is about, default today |
 | `area` | no | zone (`SE3`); sets the country too |
@@ -95,14 +70,14 @@ Answer: `{"status": "ok", "id": "2026-11-29-cold-week-ahead", "url": "/news/2026
 
 ### `DELETE /api/v2/news/{id}` (local service)
 
-Removes a pushed item. Built-in items cannot be removed (the job would write them again).
+Removes an item.
 
 ### `GET /api/v2/news` (public and local)
 
 Items newest first: `lang` (text language, default `en`), `area`, `country` (`country=` with an empty value gives
-global items), `kind` (`day`, `month`, `europe`, `custom`), `day`, `min_importance`, `before` (ms, for paging),
-`limit` (≤ 100). Each item has `id`, `kind`, `area`, `country`, `day`, `published`, `updated`, `importance`, `url`,
-`title`, `summary` and the facts in `data` (EUR/MWh for built-in items).
+global items), `day`, `min_importance`, `before` (ms, for paging), `limit` (≤ 100). Only items that exist in `lang`
+are listed. Each item has `id`, `area`, `country`, `day`, `published`, `updated`, `importance`, `url`, `title`,
+`summary` and in `data` the texts and facts that were pushed.
 
 ### Data for a writer
 

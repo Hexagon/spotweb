@@ -238,6 +238,15 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
     CREATE INDEX news_country ON news (country, published);
     "#,
     ),
+    (
+        9,
+        "only pushed news",
+        // The built-in news generation is gone: keep only the items an external writer pushed
+        r#"
+    DELETE FROM news WHERE kind <> 'custom';
+    ALTER TABLE news DROP COLUMN kind;
+    "#,
+    ),
 ];
 
 /// See [`Db::optimize`]
@@ -543,5 +552,39 @@ mod backup_tests {
         std::fs::write(&path, b"not a database at all").unwrap();
         assert!(quick_check(&path).is_err());
         let _ = std::fs::remove_dir_all(&dir);
+    }
+}
+
+#[cfg(test)]
+mod migration_tests {
+    use super::*;
+
+    #[test]
+    fn migration_9_keeps_only_pushed_news() {
+        let c = Connection::open_in_memory().unwrap();
+        for (v, _, sql) in MIGRATIONS.iter().filter(|m| m.0 <= 8) {
+            c.execute_batch(sql)
+                .unwrap_or_else(|e| panic!("migration {v}: {e}"));
+        }
+        c.execute_batch(
+            "INSERT INTO news VALUES ('2026-11-29-se3', 'day', 'SE3', 'sv', '2026-11-29', 1, 1, 1, '{}');
+             INSERT INTO news VALUES ('2026-11-europe', 'europe', '', '', '2026-11', 1, 1, 2, '{}');
+             INSERT INTO news VALUES ('2026-11-29-kall-vecka', 'custom', 'SE3', 'sv', '2026-11-29', 1, 1, 2, '{}');",
+        )
+        .unwrap();
+        let (_, _, sql) = MIGRATIONS.iter().find(|m| m.0 == 9).unwrap();
+        c.execute_batch(sql).unwrap();
+        let ids: Vec<String> = c
+            .prepare("SELECT id FROM news")
+            .unwrap()
+            .query_map([], |r| r.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(ids, ["2026-11-29-kall-vecka"]);
+        assert!(
+            c.prepare("SELECT kind FROM news").is_err(),
+            "kind is dropped"
+        );
     }
 }

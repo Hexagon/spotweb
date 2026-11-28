@@ -2,7 +2,7 @@
 {% block content %}
 <section class="card pad prose news-page">
   <h1 class="h2">{{ h1 }}</h1>
-  <p class="muted small">{{ t("pages.news.auto_note") }} <a href="{{ feed|attr }}" type="application/atom+xml">{{ t("pages.news.feed") }}</a></p>
+  <p class="muted small"><a href="{{ feed|attr }}" type="application/atom+xml">{{ t("pages.news.feed") }}</a></p>
   <nav class="news-filter small" aria-label="{{ t('pages.news.by_country') }}">
     <a href="/news"{% if not country %} class="active"{% endif %}>{{ t("pages.news.global") }}</a>
     {%- for c in news_countries %}
