@@ -10,7 +10,7 @@ readme = "README.md"
 [dependencies]
 anyhow = "1"
 axum = { version = "0.8", default-features = false, features = ["http1", "http2", "tokio", "query", "json", "matched-path"] }
-jiff = { version = "0.2", features = ["tzdb-bundle-always"] }
+jiff = { version = "1.0", features = ["tzdb-bundle-always"] }
 clap = { version = "4", features = ["derive", "env"] }
 minijinja = { version = "2", features = ["loader", "json"] }
 parking_lot = "0.13"
