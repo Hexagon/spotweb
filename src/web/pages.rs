@@ -19,9 +19,9 @@ use crate::db::queries::{GenerationRow, LoadRow, OutageRow};
 use crate::price::{process_price, PriceProps};
 use crate::timeutil::{add_days, day_range, interval_ms, now_ms, today, HOUR_MS};
 
-type PageResult = Result<Response, Response>;
+pub(super) type PageResult = Result<Response, Response>;
 
-fn internal(e: anyhow::Error) -> Response {
+pub(super) fn internal(e: anyhow::Error) -> Response {
     tracing::error!(error = %format!("{e:#}"), "page failed");
     (
         StatusCode::INTERNAL_SERVER_ERROR,
@@ -30,7 +30,7 @@ fn internal(e: anyhow::Error) -> Response {
         .into_response()
 }
 
-fn render(st: &WebState, name: &str, mut ctx: Value) -> PageResult {
+pub(super) fn render(st: &WebState, name: &str, mut ctx: Value) -> PageResult {
     let nonce = super::new_nonce();
     if let Value::Object(m) = &mut ctx {
         m.insert("nonce".into(), json!(nonce));
@@ -76,7 +76,7 @@ fn fmt_datetime(tz: &TimeZone, ms: i64) -> String {
 }
 
 /// Escape for embedding JSON inside a <script> element
-fn script_json(v: &Value) -> String {
+pub(super) fn script_json(v: &Value) -> String {
     v.to_string().replace("</", "<\\/")
 }
 
@@ -85,7 +85,7 @@ const ENTSOE_TERMS: &str = "https://transparencyplatform.zendesk.com/hc/en-us/ar
 
 /// How a page relates to languages and search engines
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Kind {
+pub(super) enum Kind {
     /// Translated page with one url per language (`?lang=`), linked with `hreflang`
     Localized,
     /// Kept out of search results
@@ -93,10 +93,10 @@ enum Kind {
 }
 
 /// `<title>`, meta description and search engine treatment of a page
-struct Head {
-    title: String,
-    description: String,
-    kind: Kind,
+pub(super) struct Head {
+    pub(super) title: String,
+    pub(super) description: String,
+    pub(super) kind: Kind,
 }
 
 fn zone_count() -> usize {
@@ -112,7 +112,7 @@ fn clean_path(path: &str) -> &str {
 }
 
 /// Context shared by all pages. `boot` is handed to app.js.
-async fn base(
+pub(super) async fn base(
     st: &WebState,
     lang: &str,
     page: &str,
@@ -212,7 +212,7 @@ async fn base(
 }
 
 /// Structured data nodes of a page; `[0]` is the WebSite, `[1]` the WebPage
-fn ld_graph(ctx: &mut Map<String, Value>) -> &mut Vec<Value> {
+pub(super) fn ld_graph(ctx: &mut Map<String, Value>) -> &mut Vec<Value> {
     ctx.entry("ld_graph")
         .or_insert_with(|| json!([]))
         .as_array_mut()
@@ -220,7 +220,7 @@ fn ld_graph(ctx: &mut Map<String, Value>) -> &mut Vec<Value> {
 }
 
 /// Replace the meta description once the page data is known
-fn set_description(ctx: &mut Map<String, Value>, d: &str) {
+pub(super) fn set_description(ctx: &mut Map<String, Value>, d: &str) {
     ctx.insert("description".into(), json!(d));
     if let Some(p) = ld_graph(ctx).get_mut(1) {
         p["description"] = json!(d);
@@ -228,7 +228,7 @@ fn set_description(ctx: &mut Map<String, Value>, d: &str) {
 }
 
 /// Mark the page as changed on `day` (pages with prices change every day)
-fn set_modified(ctx: &mut Map<String, Value>, day: &str) {
+pub(super) fn set_modified(ctx: &mut Map<String, Value>, day: &str) {
     if let Some(p) = ld_graph(ctx).get_mut(1) {
         p["dateModified"] = json!(day);
     }
@@ -289,7 +289,7 @@ fn url_encode(s: &str) -> String {
         .collect()
 }
 
-fn finish(mut ctx: Map<String, Value>, boot: Map<String, Value>) -> Value {
+pub(super) fn finish(mut ctx: Map<String, Value>, boot: Map<String, Value>) -> Value {
     if let Some(graph) = ctx.remove("ld_graph") {
         let ld = json!({ "@context": "https://schema.org", "@graph": graph });
         ctx.insert("jsonld".into(), json!(script_json(&ld)));
@@ -652,6 +652,7 @@ pub async fn index(State(st): State<WebState>, uri: Uri, headers: HeaderMap) -> 
     boot.insert("plan".into(), json!(&*plan));
     boot.insert("neighbours".into(), Value::Object(neighbours));
     boot.insert("default_area".into(), json!(default_map_area(&lang)));
+    super::news::latest(&st, &lang, super::news::Scope::Europe, 4, &mut ctx).await?;
     render(&st, "index.html", finish(ctx, boot))
 }
 
@@ -725,6 +726,7 @@ pub async fn country(
     boot.insert("flows".into(), flows);
     boot.insert("area_flows".into(), area_flows);
     reservoir_ctx(&st, data::FlowScope::Country(c.id), &mut ctx, &mut boot).await?;
+    super::news::latest(&st, &lang, super::news::Scope::Country(c.id), 6, &mut ctx).await?;
     render(&st, "country.html", finish(ctx, boot))
 }
 
@@ -880,6 +882,7 @@ pub async fn area(
     boot.insert("flows".into(), flows);
     boot.insert("area_flows".into(), area_flows);
     reservoir_ctx(&st, data::FlowScope::Area(a.name), &mut ctx, &mut boot).await?;
+    super::news::latest(&st, &lang, super::news::Scope::Area(a.name), 4, &mut ctx).await?;
     render(&st, "area.html", finish(ctx, boot))
 }
 
@@ -961,7 +964,7 @@ fn moved(to: String, uri: &Uri) -> Response {
     Redirect::permanent(&to).into_response()
 }
 
-fn public_base(st: &WebState, headers: &HeaderMap) -> String {
+pub(super) fn public_base(st: &WebState, headers: &HeaderMap) -> String {
     if let Some(u) = &st.app.cfg.public_url {
         return u.clone();
     }
@@ -1007,13 +1010,26 @@ pub async fn sitemap(State(st): State<WebState>, headers: HeaderMap) -> Response
     let base = public_base(&st, &headers);
     let day = today(&TimeZone::UTC).to_string();
     // (url, lastmod). Price pages change every day.
-    let mut urls: Vec<(String, Option<&str>)> = vec![];
+    let mut urls: Vec<(String, Option<String>)> = vec![];
     for p in localized_paths() {
-        urls.push((format!("{base}{p}"), Some(&day)));
+        urls.push((format!("{base}{p}"), Some(day.clone())));
         for l in LANGUAGES {
             if lang_from_path(&p) != Some(*l) {
-                urls.push((format!("{base}{p}?lang={l}"), Some(&day)));
+                urls.push((format!("{base}{p}?lang={l}"), Some(day.clone())));
             }
+        }
+    }
+    // News: list pages and recent articles, in the languages they exist in
+    let news = match super::news::sitemap_urls(&st).await {
+        Ok(n) => n,
+        Err(e) => return internal(e),
+    };
+    for (p, lastmod, langs) in news {
+        if langs.len() == LANGUAGES.len() {
+            urls.push((format!("{base}{p}"), lastmod.clone()));
+        }
+        for l in langs {
+            urls.push((format!("{base}{p}?lang={l}"), lastmod.clone()));
         }
     }
     // Translated pages without a date we know
@@ -1080,7 +1096,12 @@ pub async fn llms(State(st): State<WebState>, headers: HeaderMap) -> Response {
          With `planned=true` the day-ahead scheduled exchange and capacity per border and hour, today and tomorrow.\n\
          - [Hydro reservoirs]({base}/api/v2/reservoirs?country=no): energy stored per ISO week (GWh) \
          compared with the same week of earlier years, per `area` or `country`.\n\
-         - [Status]({base}/api/v2/status): data freshness.\n\n\
+         - [Status]({base}/api/v2/status): data freshness.\n         - [News]({base}/api/v2/news?lang=en&area=SE3): automatically written news per zone and day \
+         (headline facts such as negative prices, the highest or lowest price for a long time, \
+         big changes), Europe overviews and monthly summaries. Optional `lang`, `area`, `country`, \
+         `kind` (`day`, `month`, `europe`, `custom`), `day`, `min_importance` (1-3), `before` (ms) \
+         and `limit`. Each item has its text in `lang` and the facts in `data` (EUR/MWh). \
+         Atom feeds: `{base}/news/feed.xml?lang=en` (global), `&country=sv` or `&area=SE3`.\n\n\
          ## Bidding zones\n\n\
          - [Map of all zones with current prices and flows]({base}/)\n",
         site = i18n.t("en", "page.title"),
@@ -1119,6 +1140,7 @@ pub async fn llms(State(st): State<WebState>, headers: HeaderMap) -> Response {
          - [API documentation]({base}/api): all endpoints and parameters, data sources and how the data is converted\n\
          - [Home Assistant]({base}/homeassistant): REST sensor configuration\n\
          - [Custom period]({base}/custom): table of prices for any zone and period\n\
+         - [News]({base}/news): global electricity price news; per country at `/news/{{country}}`\n\
          - [Source code](https://github.com/Hexagon/spotweb)\n"
     ));
     (
@@ -1131,7 +1153,7 @@ pub async fn llms(State(st): State<WebState>, headers: HeaderMap) -> Response {
         .into_response()
 }
 
-async fn not_found_page(st: &WebState, uri: &Uri, headers: &HeaderMap) -> Response {
+pub(super) async fn not_found_page(st: &WebState, uri: &Uri, headers: &HeaderMap) -> Response {
     let lang = detect_lang(uri, headers);
     let head = Head {
         title: format!("404 - {}", st.app.i18n.t(&lang, "page.title")),

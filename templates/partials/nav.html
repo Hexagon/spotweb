@@ -28,6 +28,7 @@
       {%- if not (country is defined and country) %}
       <a href="/homeassistant" class="nav-link hide-sm{% if page == 'homeassistant' %} active{% endif %}">Home Assistant</a>
       {%- endif %}
+      <a href="/news" class="nav-link hide-sm{% if page[:4] == 'news' %} active{% endif %}">{{ t("nav.news") }}</a>
       <a href="/custom" class="nav-link hide-sm{% if page == 'custom' %} active{% endif %}">{{ t("nav.table") }}</a>
       <a href="/api" class="nav-link hide-sm{% if page == 'api' %} active{% endif %}">API</a>
       <a href="/help" class="nav-link hide-sm{% if page == 'help' %} active{% endif %}">{{ t("nav.help") }}</a>
@@ -36,6 +37,7 @@
         <summary class="icon-btn" aria-label="{{ t('a11y.menu') }}" title="{{ t('a11y.menu') }}"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg></summary>
         <div class="dropdown-menu dropdown-menu-right">
           <a href="/homeassistant"{% if page == 'homeassistant' %} class="active"{% endif %}>Home Assistant</a>
+          <a href="/news"{% if page[:4] == 'news' %} class="active"{% endif %}>{{ t("nav.news") }}</a>
           <a href="/custom"{% if page == 'custom' %} class="active"{% endif %}>{{ t("nav.table") }}</a>
           <a href="/api"{% if page == 'api' %} class="active"{% endif %}>API</a>
           <a href="/help"{% if page == 'help' %} class="active"{% endif %}>{{ t("nav.help") }}</a>

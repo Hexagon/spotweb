@@ -514,3 +514,17 @@ body.currency-eur .hide-eur { display: none; }
 .share-menu button, .share-menu a { display: block; text-align: left; background: none; border: 0; font: inherit; color: var(--text); padding: 6px 10px; border-radius: 6px; cursor: pointer; }
 .share-menu button:hover, .share-menu a:hover, .share-menu button:focus-visible, .share-menu a:focus-visible { background: var(--bg-2); text-decoration: none; }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 70; background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 999px; box-shadow: 0 6px 20px var(--shadow-lg); }
+
+/* News */
+.news-list { list-style: none; margin: 0; padding: 4px 16px; }
+.news-entry { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.news-entry:last-child { border-bottom: 0; }
+.news-important > a, .news-item.news-important h2 a { font-weight: 600; }
+.news-feed { margin-left: auto; }
+.news-filter { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 8px 0 16px; }
+.news-filter a.active { font-weight: 600; text-decoration: underline; }
+.news-item { padding: 12px 0; border-top: 1px solid var(--border); }
+.news-item h2 { margin: 0 0 2px; font-size: 1.05rem; }
+.news-item p { margin: 6px 0 0; }
+.breadcrumbs { margin: 4px 0 10px; }
+.news-pager { display: flex; justify-content: space-between; gap: 16px; margin-top: 16px; flex-wrap: wrap; }

@@ -19,7 +19,7 @@
   {%- for a in alternates or [] %}
   <link rel="alternate" hreflang="{{ a.hreflang }}" href="{{ a.href|attr }}">
   {%- endfor %}
-  <meta property="og:type" content="website">
+  <meta property="og:type" content="{{ og_type or 'website' }}">
   <meta property="og:site_name" content="{{ t('page.title') }}">
   <meta property="og:title" content="{{ head_title|attr }}">
   {%- if description %}
@@ -30,6 +30,9 @@
   {%- endif %}
   <meta property="og:image" content="{{ (site_url ~ '/icon-512x512.png')|attr }}">
   <meta name="twitter:card" content="summary">
+  {%- if feed %}
+  <link rel="alternate" type="application/atom+xml" title="{{ t('pages.news.title') }}" href="{{ feed|attr }}">
+  {%- endif %}
   <link rel="icon" type="image/png" href="/icon-192x192.png">
   <link rel="apple-touch-icon" href="/icon-192x192.png">
   <link rel="manifest" href="/manifest.json">

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card pad prose news-page">
+  <h1 class="h2">{{ h1 }}</h1>
+  <p class="muted small">{{ t("pages.news.auto_note") }} <a href="{{ feed|attr }}" type="application/atom+xml">{{ t("pages.news.feed") }}</a></p>
+  <nav class="news-filter small" aria-label="{{ t('pages.news.by_country') }}">
+    <a href="/news"{% if not country %} class="active"{% endif %}>{{ t("pages.news.global") }}</a>
+    {%- for c in news_countries %}
+    <a href="/news/{{ c }}"{% if country and country.id == c %} class="active"{% endif %}>{{ t("countries." ~ c) }}</a>
+    {%- endfor %}
+  </nav>
+  {%- if items %}
+  {%- for n in items %}
+  <article class="news-item{% if n.importance >= 3 %} news-important{% endif %}">
+    <h2 class="h3"><a href="{{ n.url|attr }}">{{ n.title }}</a></h2>
+    <time class="muted small" datetime="{{ n.published_iso }}">{{ n.published }}</time>
+    {%- for p in n.html[:1] %}
+    <p>{{ p|safe }}</p>
+    {%- endfor %}
+  </article>
+  {%- endfor %}
+  {%- else %}
+  <p class="muted">{{ t("pages.news.empty") }}</p>
+  {%- endif %}
+  {%- if older %}
+  <p><a href="?before={{ older }}" rel="next">{{ t("pages.news.older") }} &rsaquo;</a></p>
+  {%- endif %}
+</section>
+{% endblock %}

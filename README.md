@@ -70,6 +70,9 @@ spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried po
 | `SPOTWEB_API_RATE_LIMIT`   | off                      | Requests per minute and client IP to `/api/`; over that `429` with `Retry-After` (see [deployment](docs/deployment.md#rate-limiting)) |
 | `SPOTWEB_TRUSTED_PROXIES`  | –                        | Proxies (IPs or CIDRs, comma separated) whose `X-Forwarded-For`/`X-Real-IP` give the client IP, e.g. `127.0.0.1,::1` |
 | `SPOTWEB_SHUTDOWN_GRACE_SECS` | `15`                 | On shutdown, wait this long for running jobs before interrupting them |
+| `SPOTWEB_NEWS_AUTO`        | on                       | `0` turns the built-in news off (see [news](docs/news.md))      |
+| `SPOTWEB_NEWS_BIND`        | –                        | Loopback address (e.g. `127.0.0.1:6001`) of the local news service, where news can be pushed; off when unset |
+| `SPOTWEB_NEWS_TOKEN`       | –                        | Bearer token the local news service also requires               |
 | `RUST_LOG`                 | `spotweb=info,warn`      | Log filter, `--debug` for verbose logs                          |
 
 ### Schedule
@@ -85,6 +88,7 @@ Same timing as 1.x, in `SPOTWEB_SCHEDULE_TZ` (DST changes are handled):
 | `flows`      | every hour at :25, half of the borders per run, so each border every second hour (two requests per border) |
 | `outages`    | 08:05                                                             |
 | `schedules`  | 13:10 and 15:10, day-ahead scheduled exchanges and capacity for both directions of every border, today and tomorrow (skips what is complete) |
+| `news`       | every hour at :10, after every `prices` run and at startup; reads only the database (see [news](docs/news.md)) |
 | `reservoirs` | 10:35, the last eight weeks per zone (one request each); the first time a zone has data, its history since 2015 a year per request |
 
 Runs only fetch what can have changed:
@@ -173,6 +177,11 @@ that report it to ENTSO-e (A72). The latest week (`year`, `week`, `latest`, `cha
 year (`last_year`) and in the years before (`min`, `median`, `max`); `weeks` has the whole year for a chart. ENTSO-e
 publishes stored energy, not a filling percentage: `share_of_max` is the latest value as a share of the highest stored.
 
+`GET /api/v2/news?lang=sv&area=SE3` – automatically written news (daily reports per zone, Europe overviews, month
+summaries) and items pushed on the server, with their text in `lang` and the facts in `data`. Atom feeds at
+`/news/feed.xml?lang=sv` (global), `&country=sv` or `&area=SE3`. See [docs/news.md](docs/news.md), also for pushing
+news through the local news service.
+
 `GET /api/v2/status` – latest data, last job runs, `healthy`/`problems` and HTTP statistics (`http`). `GET /healthz` – liveness probe.
 `GET /healthz/data` – `200` when prices are complete for today (and tomorrow after 14:00 CET) and load and generation are
 current, else `503`.
@@ -215,13 +224,13 @@ sha256sum --ignore-missing -c SHA256SUMS
 
 # Signature: proves the archive was built by this repository's release workflow
 cosign verify-blob \
-  --bundle spotweb-v2.7.2-x86_64-unknown-linux-musl.tar.gz.sigstore.json \
+  --bundle spotweb-v2.8.0-x86_64-unknown-linux-musl.tar.gz.sigstore.json \
   --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  spotweb-v2.7.2-x86_64-unknown-linux-musl.tar.gz
+  spotweb-v2.8.0-x86_64-unknown-linux-musl.tar.gz
 
 # Or with the GitHub CLI (build provenance attestation)
-gh attestation verify spotweb-v2.7.2-x86_64-unknown-linux-musl.tar.gz --repo Hexagon/spotweb
+gh attestation verify spotweb-v2.8.0-x86_64-unknown-linux-musl.tar.gz --repo Hexagon/spotweb
 ```
 
 ### Recommended setup (Linux, systemd)
@@ -247,10 +256,10 @@ A signed multi-arch image (amd64, arm64) is published to GHCR with each release 
 run it (details and `docker-compose.yml` in [docs/deployment.md](docs/deployment.md#docker)):
 
 ```sh
-cosign verify ghcr.io/hexagon/spotweb:2.7.2 \
+cosign verify ghcr.io/hexagon/spotweb:2.8.0 \
   --certificate-identity-regexp '^https://github.com/Hexagon/spotweb/\.github/workflows/release\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
-docker run -d -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.7.2
+docker run -d -p 127.0.0.1:6000:6000 -e API_TOKEN=... -v spotweb-data:/data ghcr.io/hexagon/spotweb:2.8.0
 ```
 
 ## Development

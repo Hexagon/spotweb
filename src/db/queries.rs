@@ -1273,6 +1273,157 @@ pub fn reservoir_rows(c: &Connection, areas: &[&str]) -> rusqlite::Result<Vec<(S
     Ok(out)
 }
 
+// ---------------------------------------------------------------------------
+// News
+// ---------------------------------------------------------------------------
+
+/// One generated news item, see `crate::news`
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct NewsRow {
+    pub id: String,
+    pub kind: String,
+    /// Bidding zone (`SE3`), empty for items about all of Europe
+    pub area: String,
+    /// Country id (`sv`), empty for items about all of Europe
+    pub country: String,
+    /// The day (`YYYY-MM-DD`) or month (`YYYY-MM`) the item is about
+    pub day: String,
+    pub published: i64,
+    pub updated: i64,
+    pub importance: i64,
+    pub data: serde_json::Value,
+}
+
+/// Insert new items and update changed ones; `published` of an existing item is kept.
+/// Returns the number of items inserted or changed.
+pub fn upsert_news(c: &mut Connection, rows: &[NewsRow]) -> rusqlite::Result<usize> {
+    let tx = c.transaction()?;
+    let mut changed = 0;
+    {
+        let mut st = tx.prepare_cached(
+            "INSERT INTO news (id, kind, area, country, day, published, updated, importance, data)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+             ON CONFLICT (id) DO UPDATE SET updated = excluded.updated,
+                 importance = excluded.importance, data = excluded.data
+             WHERE data IS NOT excluded.data OR importance IS NOT excluded.importance",
+        )?;
+        for r in rows {
+            changed += st.execute(params![
+                r.id,
+                r.kind,
+                r.area,
+                r.country,
+                r.day,
+                r.published,
+                r.updated,
+                r.importance,
+                r.data.to_string()
+            ])?;
+        }
+    }
+    tx.commit()?;
+    Ok(changed)
+}
+
+/// Which items to list, newest first
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+pub struct NewsFilter {
+    pub area: Option<String>,
+    pub country: Option<String>,
+    pub kind: Option<String>,
+    pub day: Option<String>,
+    pub min_importance: i64,
+    /// Only items published before this time (ms), for paging
+    pub before: Option<i64>,
+    pub limit: usize,
+}
+
+fn news_row(r: &rusqlite::Row) -> rusqlite::Result<NewsRow> {
+    let data: String = r.get(8)?;
+    Ok(NewsRow {
+        id: r.get(0)?,
+        kind: r.get(1)?,
+        area: r.get(2)?,
+        country: r.get(3)?,
+        day: r.get(4)?,
+        published: r.get(5)?,
+        updated: r.get(6)?,
+        importance: r.get(7)?,
+        data: serde_json::from_str(&data).unwrap_or_default(),
+    })
+}
+
+const NEWS_COLUMNS: &str = "id, kind, area, country, day, published, updated, importance, data";
+
+pub fn news_list(c: &Connection, f: &NewsFilter) -> rusqlite::Result<Vec<NewsRow>> {
+    let mut sql = format!("SELECT {NEWS_COLUMNS} FROM news WHERE importance >= ?1");
+    let mut args: Vec<rusqlite::types::Value> = vec![f.min_importance.into()];
+    let mut add = |col: &str, v: rusqlite::types::Value| {
+        args.push(v);
+        sql.push_str(&format!(" AND {col} ?{}", args.len()));
+    };
+    if let Some(a) = &f.area {
+        add("area =", a.clone().into());
+    }
+    if let Some(cty) = &f.country {
+        add("country =", cty.clone().into());
+    }
+    if let Some(k) = &f.kind {
+        add("kind =", k.clone().into());
+    }
+    if let Some(d) = &f.day {
+        add("day =", d.clone().into());
+    }
+    if let Some(b) = f.before {
+        add("published <", b.into());
+    }
+    sql.push_str(&format!(
+        " ORDER BY published DESC, importance DESC, id LIMIT {}",
+        f.limit.clamp(1, 1000)
+    ));
+    let mut st = c.prepare_cached(&sql)?;
+    let rows = st.query_map(rusqlite::params_from_iter(args), news_row)?;
+    rows.collect()
+}
+
+pub fn news_get(c: &Connection, id: &str) -> rusqlite::Result<Option<NewsRow>> {
+    c.query_row(
+        &format!("SELECT {NEWS_COLUMNS} FROM news WHERE id = ?1"),
+        params![id],
+        news_row,
+    )
+    .optional()
+}
+
+/// The items of the same kind and zone just before and just after `day`
+pub fn news_neighbours(
+    c: &Connection,
+    item: &NewsRow,
+) -> rusqlite::Result<(Option<NewsRow>, Option<NewsRow>)> {
+    let q = |cmp: &str, order: &str| {
+        format!(
+            "SELECT {NEWS_COLUMNS} FROM news WHERE kind = ?1 AND area = ?2 AND day {cmp} ?3
+             ORDER BY day {order} LIMIT 1"
+        )
+    };
+    let args = params![item.kind, item.area, item.day];
+    let prev = c.query_row(&q("<", "DESC"), args, news_row).optional()?;
+    let next = c.query_row(&q(">", "ASC"), args, news_row).optional()?;
+    Ok((prev, next))
+}
+
+/// Delete a pushed item (generated items are made again by the next run, so they cannot be)
+pub fn news_delete_custom(c: &Connection, id: &str) -> rusqlite::Result<usize> {
+    c.execute(
+        "DELETE FROM news WHERE id = ?1 AND kind = 'custom'",
+        params![id],
+    )
+}
+
+pub fn news_count(c: &Connection) -> rusqlite::Result<i64> {
+    c.query_row("SELECT COUNT(*) FROM news", [], |r| r.get(0))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

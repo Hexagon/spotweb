@@ -3,6 +3,7 @@
 mod api;
 pub mod data;
 pub mod metrics;
+mod news;
 mod pages;
 pub mod ratelimit;
 
@@ -464,6 +465,11 @@ pub fn router(app: App) -> Router {
         .route("/sitemap.xml", get(pages::sitemap))
         .route("/robots.txt", get(pages::robots))
         .route("/llms.txt", get(pages::llms))
+        .route("/news", get(news::index))
+        .route("/news/", get(news::index))
+        .route("/news/feed.xml", get(news::feed))
+        .route("/news/{key}", get(news::key))
+        .route("/api/v2/news", get(news::api_list))
         .route("/api/v2/spot", get(api::spot))
         .route("/api/v2/hass", get(api::hass))
         .route("/api/v2/cheapest", get(api::cheapest))
@@ -480,6 +486,22 @@ pub fn router(app: App) -> Router {
         r = r.route(&format!("/{file}"), get(static_handler));
     }
     layers(r.fallback(pages::not_found), state, REQUEST_TIMEOUT)
+}
+
+/// The local news service (`SPOTWEB_NEWS_BIND`): load and remove news, read them back. Only
+/// served on a loopback address, never with the public routes.
+pub fn news_router(app: App) -> Router {
+    let state = WebState {
+        env: Arc::new(template_env(&app)),
+        app,
+    };
+    Router::new()
+        .route("/api/v2/news", get(news::api_list).post(news::api_push))
+        .route("/api/v2/news/{id}", axum::routing::delete(news::api_delete))
+        .layer(axum::extract::DefaultBodyLimit::max(256 * 1024))
+        .layer(CatchPanicLayer::custom(panic_response))
+        .layer(TraceLayer::new_for_http())
+        .with_state(state)
 }
 
 /// Longest time a request may take before it is answered with `503 Service Unavailable`
