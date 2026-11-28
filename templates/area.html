@@ -11,7 +11,10 @@
   {{ m.production_card(production) }}
 </div>
 
-{{ m.ad(adsense) }}
+<div class="grid grid-2">
+  {{ m.news_card(news, feed, t("pages.news.latest_in") ~ " " ~ area.name) }}
+  {{ m.ad(adsense) }}
+</div>
 
 <div class="grid grid-2">
   {{ m.chart_card(t("generation.production") ~ " - " ~ area.name ~ " - " ~ t("chart.yesterday_and_today"), "production") }}

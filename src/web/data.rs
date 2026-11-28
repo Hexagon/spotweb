@@ -696,3 +696,43 @@ pub async fn border_plan(app: &App, from: i64, to: i64) -> anyhow::Result<Arc<Bo
         )
         .await
 }
+
+/// News items, newest first. Invalidated by the news job.
+pub async fn news(app: &App, f: queries::NewsFilter) -> anyhow::Result<Arc<Vec<queries::NewsRow>>> {
+    let db = app.db.clone();
+    let key = format!("{f:?}");
+    app.cache
+        .get_or_load("news", key, Duration::from_secs(30 * MIN), || async move {
+            db.run(move |c| Ok(queries::news_list(c, &f)?)).await
+        })
+        .await
+}
+
+/// One news item with the items before and after it (same kind and zone)
+pub type NewsPage = (
+    queries::NewsRow,
+    Option<queries::NewsRow>,
+    Option<queries::NewsRow>,
+);
+
+pub async fn news_item(app: &App, id: &str) -> anyhow::Result<Arc<Option<NewsPage>>> {
+    let db = app.db.clone();
+    let id = id.to_string();
+    app.cache
+        .get_or_load(
+            "news",
+            format!("item:{id}"),
+            Duration::from_secs(30 * MIN),
+            || async move {
+                db.run(move |c| {
+                    let Some(item) = queries::news_get(c, &id)? else {
+                        return Ok(None);
+                    };
+                    let (prev, next) = queries::news_neighbours(c, &item)?;
+                    Ok(Some((item, prev, next)))
+                })
+                .await
+            },
+        )
+        .await
+}

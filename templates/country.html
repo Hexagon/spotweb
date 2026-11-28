@@ -10,8 +10,9 @@
 
 <div class="grid grid-2">
   {{ m.production_card(production) }}
-  {{ m.ad(adsense) }}
+  {{ m.news_card(news, feed, t("pages.news.latest_in") ~ " " ~ t("countries." ~ country.id)) }}
 </div>
+{{ m.ad(adsense) }}
 
 <div class="grid grid-2">
   {{ m.chart_card(t("overview.all_areas_today"), "all-today", m.price_kind()) }}

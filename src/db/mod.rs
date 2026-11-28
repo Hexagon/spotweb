@@ -216,6 +216,28 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
     CREATE INDEX border_plan_period ON border_plan (kind, period);
     "#,
     ),
+    (
+        8,
+        "automatic news",
+        // Generated news items. `data` holds the facts (prices in EUR/MWh); the text is
+        // rendered per language when shown, so every language gets every item.
+        r#"
+    CREATE TABLE news (
+        id         TEXT    PRIMARY KEY NOT NULL,
+        kind       TEXT    NOT NULL,
+        area       TEXT    NOT NULL,
+        country    TEXT    NOT NULL,
+        day        TEXT    NOT NULL,
+        published  INTEGER NOT NULL,
+        updated    INTEGER NOT NULL,
+        importance INTEGER NOT NULL,
+        data       TEXT    NOT NULL
+    );
+    CREATE INDEX news_published ON news (published);
+    CREATE INDEX news_area ON news (area, published);
+    CREATE INDEX news_country ON news (country, published);
+    "#,
+    ),
 ];
 
 /// See [`Db::optimize`]

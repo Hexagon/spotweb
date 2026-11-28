@@ -187,3 +187,26 @@
   <p class="pad muted small chart-note">{{ t("map.flow_chart_hint") }}</p>
 </section>
 {% endmacro %}
+
+{# Latest news of a page (`news` from `web::news::latest`) #}
+{% macro news_card(news, feed, title) %}
+<section class="card news-card">
+  <header class="card-head">
+    <h2>{{ title }}</h2>
+    <a class="news-feed small" href="{{ feed|attr }}" type="application/atom+xml" title="{{ t('pages.news.feed') }}">{{ t("pages.news.feed_short") }}</a>
+  </header>
+  {%- if news.items %}
+  <ul class="news-list">
+    {%- for n in news.items %}
+    <li class="news-entry{% if n.importance >= 3 %} news-important{% endif %}">
+      <a href="{{ n.url|attr }}">{{ n.title }}</a>
+      <time class="muted small" datetime="{{ n.published_iso }}">{{ n.published }}</time>
+    </li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  <p class="pad muted">{{ t("pages.news.empty") }}</p>
+  {%- endif %}
+  <a class="card-foot" href="{{ news.more|attr }}">{{ t("pages.news.all") }} &rsaquo;</a>
+</section>
+{% endmacro %}

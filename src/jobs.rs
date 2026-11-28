@@ -30,10 +30,11 @@ pub enum Job {
     Flows,
     Reservoirs,
     Schedules,
+    News,
 }
 
 impl Job {
-    pub const ALL: [Job; 8] = [
+    pub const ALL: [Job; 9] = [
         Job::Currency,
         Job::Prices,
         Job::Load,
@@ -42,6 +43,7 @@ impl Job {
         Job::Outages,
         Job::Reservoirs,
         Job::Schedules,
+        Job::News,
     ];
 
     pub fn name(&self) -> &'static str {
@@ -54,6 +56,7 @@ impl Job {
             Job::Flows => "flows",
             Job::Reservoirs => "reservoirs",
             Job::Schedules => "schedules",
+            Job::News => "news",
         }
     }
 
@@ -82,6 +85,9 @@ impl Job {
         const RESERVOIRS: &[Schedule] = &[at(&[10], &[35])];
         // After the day-ahead auction (results from about 12:45), and again for late publications
         const SCHEDULES: &[Schedule] = &[at(&[13, 15], &[10])];
+        // Also run after every price job; this catches the rest
+        // (month summaries after midnight, items for zones published late)
+        const NEWS: &[Schedule] = &[every_hour(&[10])];
         match self {
             Job::Prices => PRICES,
             Job::Currency => CURRENCY,
@@ -91,6 +97,7 @@ impl Job {
             Job::Flows => FLOWS,
             Job::Reservoirs => RESERVOIRS,
             Job::Schedules => SCHEDULES,
+            Job::News => NEWS,
         }
     }
 
@@ -119,6 +126,7 @@ impl Job {
             Job::Flows => &["flow"],
             Job::Reservoirs => &["reservoir"],
             Job::Schedules => &["plan"],
+            Job::News => &["news"],
         }
     }
 }
@@ -224,7 +232,7 @@ pub async fn run(app: &App, job: Job, scheduled: bool) -> anyhow::Result<String>
             for realm in job.cache_realms() {
                 app.cache.invalidate(realm);
             }
-            if job != Job::Currency && job != Job::Outages {
+            if !matches!(job, Job::Currency | Job::Outages | Job::News) {
                 // New rows can change the best query plans
                 if let Err(e) = app.db.run(|c| crate::db::optimize(c, false)).await {
                     tracing::warn!(error = %format!("{e:#}"), "database optimize failed");
@@ -317,7 +325,8 @@ pub async fn wait_until_idle(app: &App, limit: Duration) -> bool {
 }
 
 async fn run_inner(app: &App, job: Job, scheduled: bool) -> anyhow::Result<Outcome> {
-    if job != Job::Currency && !app.entsoe.has_token() {
+    // Currency comes from ECB and news only reads the database
+    if !matches!(job, Job::Currency | Job::News) && !app.entsoe.has_token() {
         return Ok(Outcome {
             message: "skipped, no ENTSO-e API token (API_TOKEN)".into(),
             ..Default::default()
@@ -332,7 +341,23 @@ async fn run_inner(app: &App, job: Job, scheduled: bool) -> anyhow::Result<Outco
         Job::Flows => update_flows(app, scheduled).await,
         Job::Reservoirs => update_reservoirs(app).await,
         Job::Schedules => update_schedules(app).await,
+        Job::News => update_news(app).await,
     }
+}
+
+async fn update_news(app: &App) -> anyhow::Result<Outcome> {
+    if !app.cfg.news_auto {
+        return Ok(Outcome {
+            message: "skipped, built in news off (SPOTWEB_NEWS_AUTO)".into(),
+            ..Default::default()
+        });
+    }
+    let (message, changed) = crate::news::generate(app).await?;
+    Ok(Outcome {
+        message,
+        failures: vec![],
+        changed: changed > 0,
+    })
 }
 
 async fn update_currency(app: &App) -> anyhow::Result<Outcome> {
@@ -1373,6 +1398,10 @@ pub async fn start_scheduler(app: App) -> anyhow::Result<Scheduler> {
                 let app = app.clone();
                 tokio::spawn(async move {
                     let _ = run(&app, job, true).await;
+                    if job == Job::Prices {
+                        // New prices (normally tomorrow's) are news. Cheap when nothing changed.
+                        let _ = run(&app, Job::News, true).await;
+                    }
                 });
                 after = at;
             }
@@ -1389,6 +1418,7 @@ pub async fn start_scheduler(app: App) -> anyhow::Result<Scheduler> {
         tokio::spawn(async move {
             let _ = run(&app3, Job::Currency, false).await;
             let _ = run(&app3, Job::Prices, false).await;
+            let _ = run(&app3, Job::News, false).await;
         });
     });
     Ok(Scheduler { tasks })
@@ -1710,6 +1740,9 @@ mod tests {
             csp: crate::web::Csp::Enforce,
             api_rate_limit: None,
             trusted_proxies: vec![],
+            news_bind: None,
+            news_token: None,
+            news_auto: true,
         };
         let mut app = App::new(Db::open_memory(), cfg).unwrap();
         let entsoe = crate::entsoe::Client::with_endpoint(

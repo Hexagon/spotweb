@@ -10,6 +10,7 @@ mod flows;
 mod health;
 mod i18n;
 mod jobs;
+mod news;
 mod price;
 mod reservoir;
 mod timeutil;
@@ -142,6 +143,14 @@ pub struct Config {
     pub api_rate_limit: Option<u32>,
     /// Proxies whose `X-Forwarded-For`/`X-Real-IP` are believed (`SPOTWEB_TRUSTED_PROXIES`)
     pub trusted_proxies: Vec<web::ratelimit::IpNet>,
+    /// Local address of the news service (`SPOTWEB_NEWS_BIND`, loopback only), where news can be
+    /// loaded with `POST /api/v2/news`. Not started when unset; never on the public port.
+    pub news_bind: Option<SocketAddr>,
+    /// Optional bearer token the news service also requires (`SPOTWEB_NEWS_TOKEN`)
+    pub news_token: Option<String>,
+    /// Built in news generation (`SPOTWEB_NEWS_AUTO`, default on). Off when news only comes
+    /// from an external writer through the API.
+    pub news_auto: bool,
 }
 
 fn env_opt(name: &str) -> Option<String> {
@@ -203,6 +212,21 @@ impl Config {
             csp,
             api_rate_limit,
             trusted_proxies,
+            news_bind: match env_opt("SPOTWEB_NEWS_BIND") {
+                None => None,
+                Some(s) => {
+                    let addr: SocketAddr = s.parse().map_err(|_| {
+                        anyhow::anyhow!("SPOTWEB_NEWS_BIND must be ip:port, not {s:?}")
+                    })?;
+                    anyhow::ensure!(
+                        addr.ip().is_loopback(),
+                        "SPOTWEB_NEWS_BIND must be a loopback address (127.0.0.1 or ::1), not {addr}"
+                    );
+                    Some(addr)
+                }
+            },
+            news_token: env_opt("SPOTWEB_NEWS_TOKEN"),
+            news_auto: env_opt("SPOTWEB_NEWS_AUTO").is_none_or(|v| is_truthy(&v)),
         })
     }
 }
@@ -350,6 +374,21 @@ async fn serve(app: App, args: ServeArgs) -> anyhow::Result<()> {
             trusted_proxies = app.cfg.trusted_proxies.len(),
             "rate limiting /api/ per client IP"
         );
+    }
+    if let Some(news_addr) = app.cfg.news_bind {
+        let news_listener = tokio::net::TcpListener::bind(news_addr)
+            .await
+            .with_context(|| format!("binding news service {news_addr}"))?;
+        let router = web::news_router(app.clone());
+        tracing::info!(%news_addr, token = app.cfg.news_token.is_some(), "local news service listening");
+        tokio::spawn(async move {
+            if let Err(e) = axum::serve(news_listener, router)
+                .with_graceful_shutdown(shutdown_signal())
+                .await
+            {
+                tracing::error!(error = %e, "news service stopped");
+            }
+        });
     }
     tracing::info!(%addr, db = %app.db.path().display(), version = env!("CARGO_PKG_VERSION"), "spotweb listening");
     axum::serve(

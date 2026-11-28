@@ -329,6 +329,22 @@ nio språk. Punkt 49 (notisraden) blir den första delen av det här.
       på sidorna, alltså punkt 49; (b) `/news`, sidor per nyhet, RSS, API och sitemap; (c) reglerna för magasin,
       kärnkraft, förnybart/CO₂ och flaskhalsar; (d) veckosammanfattningen; (e) bilder för delning.
 
+### Status 28 nov 2026 (2.8.0)
+
+- ✅ (a) och (b) i en första version: tabellen `news` (migration 8), jobbet `news` (varje timme :10, efter varje
+  prisjobb och vid start), reglerna för priser och sidorna `/news`, `/news/{land}`, `/news/{id}`, Atom-flöden,
+  `/api/v2/news`, sitemap, nyhetsrutor på start-, lands- och områdessidorna, länk i menyn. Text på alla tolv språk.
+- Skillnader mot planen ovan:
+  - En rapport per område och dag (`day`) där rubriken väljer det mest anmärkningsvärda (negativa priser, rekord,
+    stor förändring), i stället för en nyhet per regel. Gruppering av flera områden återstår.
+  - Plus `europe` (billigast/dyrast per dag) och `month` (månadssammanfattning per område).
+  - Rutinrapporter (prioritet 1) får en egen sida men `noindex, follow` och är inte med i sitemap.
+  - **Globala nyheter och nyheter per land är skilda:** `/news` och startsidan visar bara nyheter utan land.
+  - **Extern skribent:** nyheter kan laddas in lokalt på servern (`SPOTWEB_NEWS_BIND`, bara loopback), till exempel
+    från en AI-agent. De visas bara på de språk de skickats med. Se `docs/news.md`.
+- Återstår: gruppering av områden, reglerna i (c), veckosammanfattning (d), bilder för delning (e),
+  `spotweb news --dry-run` mot historiken för att justera gränserna, och mätning i Search Console.
+
 ## Ny startsida
 
 - ✅ Startsidan är en karta över elområdena med pris just nu (färgskala billigt–dyrt) och pilar för fysiskt nettoflöde

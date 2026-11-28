@@ -22,6 +22,9 @@ fn test_app() -> App {
         csp: crate::web::Csp::Enforce,
         api_rate_limit: None,
         trusted_proxies: vec![],
+        news_bind: None,
+        news_token: Some("test-token-0123456789".into()),
+        news_auto: true,
     };
     let app = App::new(db, cfg).unwrap();
     // Seed: SE1 today + tomorrow at 15 minutes, exchange rates
@@ -1358,4 +1361,172 @@ async fn spot_api_converts_with_the_rate_of_each_day() {
     );
     let (_, body, _) = get(&app, &format!("{q}&currency=SEK&rates=weekly")).await;
     assert!(body.contains("error"), "{body}");
+}
+
+async fn send(
+    router: axum::Router,
+    method: &str,
+    uri: &str,
+    auth: Option<&str>,
+    body: &str,
+) -> (StatusCode, String) {
+    let mut req = Request::builder().method(method).uri(uri);
+    if let Some(t) = auth {
+        req = req.header("authorization", format!("Bearer {t}"));
+    }
+    let res = router
+        .oneshot(req.body(Body::from(body.to_string())).unwrap())
+        .await
+        .unwrap();
+    let status = res.status();
+    let body = res.into_body().collect().await.unwrap().to_bytes();
+    (status, String::from_utf8_lossy(&body).to_string())
+}
+
+#[tokio::test]
+async fn news_generated_and_shown() {
+    let app = test_app();
+    let (msg, changed) = crate::news::generate(&app).await.unwrap();
+    assert!(changed >= 2, "{msg}");
+    // Running again changes nothing
+    assert_eq!(crate::news::generate(&app).await.unwrap().1, 0);
+    app.cache.invalidate("news");
+    let d = today(&crate::timeutil::stockholm()).to_string();
+    let id = format!("{d}-se1");
+
+    let (s, body, _) = get(&app, "/news/sv?lang=sv").await;
+    assert_eq!(s, StatusCode::OK);
+    assert!(
+        body.contains(&format!("/news/{id}")),
+        "country list links the item"
+    );
+    assert!(body.contains("application/atom+xml"));
+
+    let (s, body, _) = get(&app, &format!("/news/{id}?lang=sv")).await;
+    assert_eq!(s, StatusCode::OK);
+    assert!(body.contains("NewsArticle"));
+    assert!(body.contains("Elpriset i SE1"), "Swedish text");
+    // Same prices every day: a routine report, kept out of search results
+    assert!(body.contains("noindex, follow"));
+    assert!(body.contains("/sv/SE1"), "links the zone page");
+
+    let (s, body, _) = get(&app, &format!("/news/{id}?lang=de")).await;
+    assert_eq!(s, StatusCode::OK);
+    assert!(body.contains("Strompreis"), "German text");
+
+    let (s, body, _) = get(&app, "/news/feed.xml?lang=en&area=SE1").await;
+    assert_eq!(s, StatusCode::OK);
+    assert!(
+        body.starts_with("<?xml") && body.contains("<entry>"),
+        "{body}"
+    );
+    assert!(body.contains(&format!("/news/{id}?lang=en")));
+
+    // Zone and country items stay out of the global news
+    let (_, body, _) = get(&app, "/news/feed.xml?lang=en").await;
+    assert!(!body.contains("<entry>"));
+
+    let (s, body, _) = get(&app, "/api/v2/news?area=SE1&lang=en").await;
+    assert_eq!(s, StatusCode::OK);
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert!(v["data"].as_array().unwrap().iter().any(|i| i["id"] == id));
+
+    let (_, body, _) = get(&app, "/sv/SE1?lang=sv").await;
+    assert!(
+        body.contains(&format!("/news/{id}")),
+        "zone page shows its news: {}",
+        &body[body.find("news-card").unwrap_or(0)..][..600.min(body.len())]
+    );
+
+    let (_, body, _) = get(&app, "/sitemap.xml").await;
+    assert!(body.contains("https://example.test/news/sv?lang=fi"));
+
+    let (s, _, _) = get(&app, "/news/2000-01-01-nothing").await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn news_push_is_local_only() {
+    let app = test_app();
+    // The public server has no write route
+    let (s, _) = send(
+        super::router(app.clone()),
+        "POST",
+        "/api/v2/news",
+        Some("test-token-0123456789"),
+        "{}",
+    )
+    .await;
+    assert_ne!(s, StatusCode::OK);
+
+    let local = || super::news_router(app.clone());
+    let item = r#"{"slug": "elpris-vinter", "country": "sv", "importance": 2,
+        "texts": {"sv": {"title": "Elpriset i vinter", "paragraphs": ["Första <b>stycket</b>."]}},
+        "facts": {"source": "test"}}"#;
+    let (s, _) = send(local(), "POST", "/api/v2/news", None, item).await;
+    assert_eq!(s, StatusCode::UNAUTHORIZED);
+    let (s, _) = send(
+        local(),
+        "POST",
+        "/api/v2/news",
+        Some("wrong-token-0123456789"),
+        item,
+    )
+    .await;
+    assert_eq!(s, StatusCode::UNAUTHORIZED);
+    let (s, body) = send(
+        local(),
+        "POST",
+        "/api/v2/news",
+        Some("test-token-0123456789"),
+        item,
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{body}");
+    let v: Value = serde_json::from_str(&body).unwrap();
+    let id = v["id"].as_str().unwrap().to_string();
+    assert!(id.ends_with("-elpris-vinter"));
+
+    // Reserved and invalid slugs
+    let bad = item.replace("elpris-vinter", "se3");
+    let (s, _) = send(
+        local(),
+        "POST",
+        "/api/v2/news",
+        Some("test-token-0123456789"),
+        &bad,
+    )
+    .await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+
+    // Only in Swedish: shown in Swedish, other languages are sent there
+    let (s, body, _) = get(&app, &format!("/news/{id}?lang=sv")).await;
+    assert_eq!(s, StatusCode::OK);
+    assert!(
+        body.contains("Första &lt;b&gt;stycket&lt;/b&gt;."),
+        "pushed text is escaped"
+    );
+    assert!(!body.contains(r#"hreflang="de""#));
+    let (s, _, h) = get(&app, &format!("/news/{id}?lang=de")).await;
+    assert_eq!(s, StatusCode::TEMPORARY_REDIRECT);
+    assert_eq!(h["location"], format!("/news/{id}?lang=sv"));
+    let (_, body, _) = get(&app, "/news/sv?lang=sv").await;
+    assert!(body.contains("Elpriset i vinter"));
+    let (_, body, _) = get(&app, "/news/sv?lang=en").await;
+    assert!(
+        !body.contains("Elpriset i vinter"),
+        "not listed in other languages"
+    );
+
+    let (s, _) = send(
+        local(),
+        "DELETE",
+        &format!("/api/v2/news/{id}"),
+        Some("test-token-0123456789"),
+        "",
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    let (s, _, _) = get(&app, &format!("/news/{id}?lang=sv")).await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
 }
