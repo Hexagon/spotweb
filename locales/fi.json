@@ -45,11 +45,12 @@
       "title": "Tiedot ja käyttöehdot",
       "all_history": "Kaikki tilastot haetaan lähteestä",
       "currency_fetched_from": "Nykyinen valuuttakurssi haetaan lähteestä",
-      "all_values_from": "Kaikki arvot, myös historialliset, muunnetaan euroista nykyisellä kurssilla",
+      "all_values_from": "Tämän päivän ja huomisen hinnat muunnetaan euroista nykyisellä kurssilla",
       "disclaimer_and_private_use": "Esitetyt luvut vastaavat todellisuutta, mutta niiden oikeellisuudesta ei anneta takuuta. Sivusto ja siihen liittyvät palvelut tarjotaan yksityiseen käyttöön ja sen käyttö on omalla vastuullasi.",
       "not_affiliated": "spotweb on itsenäinen projekti, eikä se ole ENTSO-E:n kanssa yhteydessä tai sen hyväksymä. ENTSO-E:n tietoja käytetään Transparency Platformin käyttöehtojen mukaisesti.",
       "open_source_software": "Sivun lähdekoodi on täysin avoin ja saatavilla osoitteessa ",
-      "bugs_and_issues": "Virheistä ja ongelmista ilmoitetaan GitHubin 'Issues'-osiossa. Voit myös ottaa yhteyttä sähköpostitse osoitteeseen hexagon{a}56k.guru."
+      "bugs_and_issues": "Virheistä ja ongelmista ilmoitetaan GitHubin 'Issues'-osiossa. Voit myös ottaa yhteyttä sähköpostitse osoitteeseen hexagon{a}56k.guru.",
+      "history_converted": "Historialliset hinnat on muunnettu kunkin päivän EKP:n kurssilla."
     },
     "overview": {
       "thirty_day_chart": "30 päivän historia",
@@ -177,7 +178,12 @@
       "priceFactorDescriptionPart2": "(maksut)) *",
       "priceFactorDescriptionPart3": "(ALV). Tämä on mukautettu nykyisten asetustesi mukaan.",
       "nonPriceFactorDescription": "Taulukon sähkön hinta on nykyinen spot-hinta. Huomioi, että lisäksi voi tulla muita maksuja ja arvonlisävero. Voit valita sivun asetuksista, näytetäänkö spot-hinta vai todellinen hinta.",
-      "month": "Kuukausi"
+      "month": "Kuukausi",
+      "currency_label": "Taulukon valuutta",
+      "values_in": "Arvot yksikössä",
+      "note_eur": "Näytetään euroina sellaisina kuin hinnat julkaistaan, ilman valuuttamuunnosta.",
+      "note_converted": "Muunnettu euroista kunkin päivän EKP:n kurssilla (EUR→{currency}), viikonloppuisin ja pyhäpäivinä edellisen pankkipäivän kurssilla.",
+      "note_no_fees": "Maksujasi ei ole mukana, koska ne on annettu eri valuutassa."
     },
     "map": {
       "title": "Sähkön hinta ja siirrot nyt",
@@ -387,7 +393,7 @@
       "src_license": "ENTSO-E:n tietoja käytetään uudelleen ENTSO-E Transparency Platformin <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">käyttöehtojen</a> mukaisesti (CC BY 4.0). Jokainen vastaus kertoo lähteen kentässä <code>source</code>, ja vastauksissa, joiden hinnat on muunnettu, on lisäksi <code>note</code>. Mainitse lähteeksi \"ENTSO-E Transparency Platform\", kun käytät tietoja uudelleen, ja kerro tarvittaessa, että ne on muunnettu.",
       "processing_title": "Muunnetut ja lasketut tiedot",
       "processing_intro": "Ellet hae raakatietoja euroina, saamasi luvut eivät ole täsmälleen ENTSO-E:n julkaisemia. spotweb käsittelee tietoja näin:",
-      "proc_currency": "<strong>Valuutta:</strong> muut kuin euromääräiset hinnat muunnetaan yksiköstä EUR/MWh EKP:n <em>uusimmalla</em> viitekurssilla. Tämä koskee myös historiallisia hintoja, joten vanhat hinnat esimerkiksi kruunuina voivat poiketa siitä, mitä silloin maksettiin. Hae euroina, jos tarvitset alkuperäiset arvot.",
+      "proc_currency": "<strong>Valuutta:</strong> <code>currency</code>-parametrilla jokainen hinta muunnetaan EUR/MWh:sta oman päivänsä EKP:n viitekurssilla (viikonloppuisin ja pyhäpäivinä edellisen pankkipäivän kurssilla) ennen ryhmittelyä, joten historialliset hinnat vastaavat silloista kurssia. Tämän päivän ja huomisen hinnat käyttävät viimeisintä kurssia. <code>rates=latest</code> muuntaa kaiken viimeisimmällä kurssilla kuten ennen. Pyydä EUR, jos tarvitset alkuperäiset arvot.",
       "proc_units": "<strong>Yksikkö:</strong> <code>/api/v2/spot</code> ja <code>/api/v2/cheapest</code> vastaavat valuuttana megawattituntia kohden. <code>/api/v2/hass</code> vastaa kilowattituntia kohden (jaettu 1000:lla), parametrilla <code>currency=ORE</code> äyreinä (kerrottu 100:lla), antamillasi arvoilla <code>multiplier</code>, <code>extra</code> ja <code>factor</code>, pyöristettynä <code>decimals</code> desimaaliin ja tekstinä.",
       "proc_grouping": "<strong>Keskiarvot:</strong> <code>daily</code>, <code>weekly</code>, <code>monthly</code>, <code>yearly</code> ja <code>total</code> sekä keskiarvot rajapinnoissa <code>/api/v2/hass</code> ja <code>/api/v2/cheapest</code> laskee spotweb intervallihintojen aikapainotettuina keskiarvoina hinta-alueen paikallisessa ajassa. <code>min</code> ja <code>max</code> ovat alin ja ylin intervallihinta. Sähköyhtiöiden kuukausihinta on painotettu kulutuksella ja on yleensä eri.",
       "proc_resolution": "<strong>Tarkkuus:</strong> ilman parametria <code>interval</code> kunakin paikallisena päivänä käytetään hinta-alueen nykyistä markkinatarkkuutta (15 tai 60 minuuttia) tai muutosta edeltävinä päivinä tarkinta saatavilla olevaa. Parametrilla <code>interval=PT15M</code> tai <code>PT60M</code> palautetaan vain juuri sillä tarkkuudella tallennetut hinnat; mitään ei interpoloida eikä muunneta toiseen tarkkuuteen.",

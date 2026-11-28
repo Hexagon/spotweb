@@ -28,6 +28,78 @@ pub async fn exchange_rates(app: &App) -> anyhow::Result<Arc<ExchangeRates>> {
         .await
 }
 
+/// ISO code for a currency parameter: `öre` is SEK, case is ignored
+pub fn iso_currency(cur: &str) -> String {
+    match cur.trim().to_uppercase().as_str() {
+        "ÖRE" | "ORE" => "SEK".into(),
+        c => c.into(),
+    }
+}
+
+/// Stored ECB rates of one currency, oldest first
+#[derive(Debug, Default)]
+pub struct RateHistory(pub Vec<(i64, f64)>);
+
+impl RateHistory {
+    /// Rate for the day that starts at `day` (midnight UTC of the local date): the latest rate published on or
+    /// before that date, so weekends and holidays use the last bank day. Days before the first rate use it.
+    pub fn at(&self, day: i64) -> Option<f64> {
+        let i = self.0.partition_point(|r| r.0 <= day);
+        self.0.get(i.saturating_sub(1)).map(|r| r.1)
+    }
+}
+
+/// Rate history for `currency` (ISO). Invalidated by the currency job like the latest rates.
+pub async fn rate_history(app: &App, currency: &str) -> anyhow::Result<Arc<RateHistory>> {
+    let db = app.db.clone();
+    let cur = currency.to_string();
+    app.cache
+        .get_or_load(
+            "exrate",
+            format!("hist:{cur}"),
+            Duration::from_secs(6 * 3600),
+            || async move {
+                Ok(RateHistory(
+                    db.run(move |c| Ok(queries::exchange_rate_history(c, &cur)?))
+                        .await?,
+                ))
+            },
+        )
+        .await
+}
+
+/// Convert selected rows from EUR with the rate of each row's local date
+pub fn convert_daily(
+    rows: &[(i64, f64, i64)],
+    rates: &RateHistory,
+    tz: &TimeZone,
+) -> Vec<(i64, f64, i64)> {
+    // Rows are sorted by time, so the rate only has to be looked up once per local day
+    let mut day_end = i64::MIN;
+    let mut rate = f64::NAN;
+    rows.iter()
+        .map(|&(t, p, d)| {
+            if t >= day_end {
+                let date = crate::timeutil::local_date(tz, t);
+                let utc = date
+                    .to_zoned(TimeZone::UTC)
+                    .map(|z| z.timestamp().as_millisecond())
+                    .unwrap_or(t);
+                rate = rates.at(utc).unwrap_or(f64::NAN);
+                day_end = date
+                    .tomorrow()
+                    .map(|n| {
+                        crate::timeutil::local_midnight(tz, n)
+                            .timestamp()
+                            .as_millisecond()
+                    })
+                    .unwrap_or(i64::MAX);
+            }
+            (t, p * rate, d)
+        })
+        .collect()
+}
+
 /// Selected (interval-resolved) rows for an area: `(time, price EUR/MWh, duration ms)`
 /// Time zone part of a cache key
 fn tz_key(tz: &TimeZone) -> &str {
@@ -64,6 +136,7 @@ pub async fn spot_selected(
 /// so they are cached in their own realm and only the current group is recomputed. The
 /// start page asks for monthly prices since 2021 per area, which would otherwise read and
 /// group the whole history again after every price job.
+#[allow(clippy::too_many_arguments)]
 pub async fn spot_grouped(
     app: &App,
     area: &str,
@@ -72,6 +145,7 @@ pub async fn spot_grouped(
     grouping: Grouping,
     mode: &IntervalMode,
     tz: TimeZone,
+    currency: Option<&str>,
 ) -> anyhow::Result<Arc<Vec<SpotApiRow>>> {
     let calendar = matches!(
         grouping,
@@ -89,10 +163,21 @@ pub async fn spot_grouped(
                     grouping,
                     mode,
                     tz.clone(),
+                    currency,
                 )
                 .await?;
-                let open =
-                    grouped_range(app, "spotprice", area, split, to, grouping, mode, tz).await?;
+                let open = grouped_range(
+                    app,
+                    "spotprice",
+                    area,
+                    split,
+                    to,
+                    grouping,
+                    mode,
+                    tz,
+                    currency,
+                )
+                .await?;
                 let mut rows = Vec::with_capacity(closed.len() + open.len());
                 rows.extend(closed.iter().cloned());
                 rows.extend(open.iter().cloned());
@@ -100,7 +185,18 @@ pub async fn spot_grouped(
             }
         }
     }
-    grouped_range(app, "spotprice", area, from, to, grouping, mode, tz).await
+    grouped_range(
+        app,
+        "spotprice",
+        area,
+        from,
+        to,
+        grouping,
+        mode,
+        tz,
+        currency,
+    )
+    .await
 }
 
 /// Cache realm for grouped prices of closed calendar groups. Not invalidated by the price
@@ -117,10 +213,13 @@ async fn grouped_range(
     grouping: Grouping,
     mode: &IntervalMode,
     tz: TimeZone,
+    currency: Option<&str>,
 ) -> anyhow::Result<Arc<Vec<SpotApiRow>>> {
+    let currency = currency.map(iso_currency).filter(|c| c != "EUR");
     let key = format!(
-        "grp:{area}:{from}:{to}:{grouping:?}:{mode:?}:{}",
-        tz_key(&tz)
+        "grp:{area}:{from}:{to}:{grouping:?}:{mode:?}:{}:{}",
+        tz_key(&tz),
+        currency.as_deref().unwrap_or("EUR")
     );
     let ttl = if realm == HISTORY_REALM {
         6 * 3600
@@ -133,17 +232,25 @@ async fn grouped_range(
     let (area, mode) = (area.to_string(), mode.clone());
     app.cache
         .get_or_load(realm, key, Duration::from_secs(ttl), || async move {
+            let rates = match &currency {
+                Some(c) => Some(rate_history(&app2, c).await?),
+                None => None,
+            };
+            let conv = |sel: &[(i64, f64, i64)]| match &rates {
+                Some(r) => group(&convert_daily(sel, r, &tz), grouping, &tz),
+                None => group(sel, grouping, &tz),
+            };
             if matches!(grouping, Grouping::Hourly | Grouping::Minimum) {
                 // Short ranges (max 31 days), share the selected rows with the pages
                 let sel = spot_selected(&app2, &area, from, to, &mode, tz.clone()).await?;
-                return Ok(group(&sel, grouping, &tz));
+                return Ok(conv(&sel));
             }
             // Long ranges: do not keep the (large) selected rows in the cache
             let rows = app2
                 .db
                 .run(move |c| Ok(queries::spot_rows(c, &area, from, to)?))
                 .await?;
-            Ok(group(&select_rows(&rows, &mode, &tz), grouping, &tz))
+            Ok(conv(&select_rows(&rows, &mode, &tz)))
         })
         .await
 }

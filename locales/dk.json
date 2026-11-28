@@ -45,11 +45,12 @@
       "title": "Information og vilkår for brug",
       "all_history": "Al statistik og data er taget fra",
       "currency_fetched_from": "Den aktuelle valutakurs er taget fra",
-      "all_values_from": "Alle værdier, inklusive historiske værdier, er omregnet fra EUR til den aktuelle valutakurs",
+      "all_values_from": "Dagens og morgendagens priser er omregnet fra EUR til den aktuelle kurs",
       "disclaimer_and_private_use": "De præsenterede tal afspejler virkeligheden, så vidt det er muligt, men leveres uden nogen form for garanti. Siden og dens tjenester tilbydes til privat brug, og anvendelsen sker på eget ansvar.",
       "not_affiliated": "spotweb er et uafhængigt projekt uden tilknytning til ENTSO-E og er ikke godkendt af ENTSO-E. Data fra ENTSO-E genbruges i henhold til Transparency Platforms brugsvilkår.",
       "open_source_software": "Kildekoden for siden er åben og er frit tilgængelig på ",
-      "bugs_and_issues": "Bugs og problemer rapporteres via 'Issues' på GitHub. Kontakt via e-mail til hexagon{a}56k.guru."
+      "bugs_and_issues": "Bugs og problemer rapporteres via 'Issues' på GitHub. Kontakt via e-mail til hexagon{a}56k.guru.",
+      "history_converted": "Historiske priser er omregnet med ECB's kurs for hver dag."
     },
     "overview": {
       "thirty_day_chart": "30 dages historik",
@@ -177,7 +178,12 @@
       "priceFactorDescriptionPart2": "(gebyrer)) *",
       "priceFactorDescriptionPart3": "(moms). Justeret ifølge dine nuværende indstillinger.",
       "nonPriceFactorDescription": "Elprisen i tabellen repræsenterer den aktuelle spotpris. Vær opmærksom på, at yderligere gebyrer og moms kan pålægges. Du kan vælge at vise enten spotprisen eller den faktiske pris via indstillingerne på siden.",
-      "month": "Måned"
+      "month": "Måned",
+      "currency_label": "Valuta i tabellen",
+      "values_in": "Værdier i",
+      "note_eur": "Vises i EUR, som priserne offentliggøres, uden valutaomregning.",
+      "note_converted": "Omregnet fra EUR med ECB's kurs for hver dag (EUR→{currency}), seneste bankdags kurs for weekender og helligdage.",
+      "note_no_fees": "Dine afgifter er ikke med, da de er angivet i en anden valuta."
     },
     "map": {
       "title": "Elpris og elflow lige nu",
@@ -387,7 +393,7 @@
       "src_license": "Data fra ENTSO-E genbruges i henhold til <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">brugsvilkårene</a> for ENTSO-E Transparency Platform (CC BY 4.0). Hvert svar angiver kilden i <code>source</code>, og svar med omregnede priser har desuden en <code>note</code>. Angiv \"ENTSO-E Transparency Platform\" som kilde, når du genbruger data, og at de er omregnet, hvor det gælder.",
       "processing_title": "Omregnede og beregnede data",
       "processing_intro": "Medmindre du henter rådata i EUR, får du ikke præcis de tal, ENTSO-E offentliggør. Sådan behandler spotweb data:",
-      "proc_currency": "<strong>Valuta:</strong> priser i anden valuta end EUR omregnes fra EUR/MWh med ECB's <em>seneste</em> referencekurs. Det gælder også historiske priser, så ældre priser i for eksempel DKK kan afvige fra det, der blev betalt dengang. Hent EUR, hvis du har brug for de oprindelige værdier.",
+      "proc_currency": "<strong>Valuta:</strong> med <code>currency</code> omregnes hver pris fra EUR/MWh med ECB's referencekurs for sin egen dag (seneste bankdags kurs for weekender og helligdage), før den grupperes, så historiske priser passer med kursen dengang. Dagens og morgendagens priser bruger den senest offentliggjorte kurs. <code>rates=latest</code> omregner alt med den seneste kurs som før. Hent EUR, hvis du har brug for de oprindelige værdier.",
       "proc_units": "<strong>Enhed:</strong> <code>/api/v2/spot</code> og <code>/api/v2/cheapest</code> svarer i valuta pr. MWh. <code>/api/v2/hass</code> svarer pr. kWh (divideret med 1000), i øre med <code>currency=ORE</code> (ganget med 100), med dine <code>multiplier</code>, <code>extra</code> og <code>factor</code> anvendt, afrundet til <code>decimals</code> decimaler og som tekst.",
       "proc_grouping": "<strong>Gennemsnit:</strong> <code>daily</code>, <code>weekly</code>, <code>monthly</code>, <code>yearly</code> og <code>total</code> samt gennemsnittene i <code>/api/v2/hass</code> og <code>/api/v2/cheapest</code> beregnes af spotweb som tidsvægtede gennemsnit af intervalpriserne, grupperet i prisområdets lokale tid. <code>min</code> og <code>max</code> er laveste og højeste intervalpris. Elselskabernes månedspris er vægtet efter forbrug og er som regel en anden.",
       "proc_resolution": "<strong>Opløsning:</strong> uden <code>interval</code> bruges prisområdets nuværende markedsopløsning (15 eller 60 minutter) for hver lokal dag, eller den fineste opløsning, der findes, for dage før et skift. Med <code>interval=PT15M</code> eller <code>PT60M</code> returneres kun priser gemt med netop den opløsning; intet interpoleres eller omregnes til en anden opløsning.",

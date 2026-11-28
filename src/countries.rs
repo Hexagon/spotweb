@@ -26,6 +26,9 @@ pub struct Country {
     pub id: &'static str,
     pub name: &'static str,
     pub cty: &'static str,
+    /// Local currency (ISO 4217, ECB reference rate). EUR for euro countries, also for Croatia (euro since
+    /// 2023) and Bulgaria (euro since 2026), whose old currencies ECB no longer publishes.
+    pub currency: &'static str,
     /// Current market time unit / preferred resolution (ISO 8601 duration)
     pub interval: &'static str,
     /// IANA time zone used for "today", day and month grouping
@@ -59,6 +62,7 @@ macro_rules! area {
 pub static COUNTRIES: &[Country] = &[
     Country {
         id: "sv",
+        currency: "SEK",
         name: "Sverige",
         cty: "Sweden (SE)",
         interval: "PT15M",
@@ -84,6 +88,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "no",
+        currency: "NOK",
         name: "Norge",
         cty: "Norway (NO)",
         interval: "PT15M",
@@ -98,6 +103,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "fi",
+        currency: "EUR",
         name: "Finland",
         cty: "Finland (FI)",
         interval: "PT15M",
@@ -106,6 +112,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "dk",
+        currency: "DKK",
         name: "Danmark",
         cty: "Denmark (DK)",
         interval: "PT15M",
@@ -117,6 +124,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "ee",
+        currency: "EUR",
         name: "Eesti",
         cty: "Estonia (EE)",
         interval: "PT15M",
@@ -125,6 +133,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "lv",
+        currency: "EUR",
         name: "Latvija",
         cty: "Latvia (LV)",
         interval: "PT15M",
@@ -133,6 +142,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "lt",
+        currency: "EUR",
         name: "Lietuva",
         cty: "Lithuania (LT)",
         interval: "PT15M",
@@ -141,6 +151,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "de",
+        currency: "EUR",
         name: "Deutschland",
         cty: "Germany (DE)",
         interval: "PT15M",
@@ -155,6 +166,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "at",
+        currency: "EUR",
         name: "Österreich",
         cty: "Austria (AT)",
         interval: "PT60M",
@@ -163,6 +175,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "be",
+        currency: "EUR",
         name: "Belgium",
         cty: "Belgium (BE)",
         interval: "PT15M",
@@ -171,6 +184,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "nl",
+        currency: "EUR",
         name: "Nederland",
         cty: "Netherlands (NL)",
         interval: "PT15M",
@@ -179,6 +193,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "ch",
+        currency: "CHF",
         name: "Switzerland",
         cty: "Switzerland (CH)",
         interval: "PT60M",
@@ -187,6 +202,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "cz",
+        currency: "CZK",
         name: "Česko",
         cty: "Czechia (CZ)",
         interval: "PT15M",
@@ -195,6 +211,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "es",
+        currency: "EUR",
         name: "Spain",
         cty: "Spain (ES)",
         interval: "PT15M",
@@ -203,6 +220,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "fr",
+        currency: "EUR",
         name: "France",
         cty: "France (FR)",
         interval: "PT15M",
@@ -211,6 +229,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "pl",
+        currency: "PLN",
         name: "Poland",
         cty: "Poland (PL)",
         interval: "PT15M",
@@ -219,6 +238,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "pt",
+        currency: "EUR",
         name: "Portugal",
         cty: "Portugal (PT)",
         interval: "PT15M",
@@ -227,6 +247,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "it",
+        currency: "EUR",
         name: "Italia",
         cty: "Italy (IT)",
         interval: "PT15M",
@@ -255,6 +276,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "sk",
+        currency: "EUR",
         name: "Slovensko",
         cty: "Slovakia (SK)",
         interval: "PT15M",
@@ -263,6 +285,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "hu",
+        currency: "HUF",
         name: "Magyarország",
         cty: "Hungary (HU)",
         interval: "PT15M",
@@ -271,6 +294,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "si",
+        currency: "EUR",
         name: "Slovenija",
         cty: "Slovenia (SI)",
         interval: "PT15M",
@@ -279,6 +303,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "hr",
+        currency: "EUR",
         name: "Hrvatska",
         cty: "Croatia (HR)",
         interval: "PT15M",
@@ -287,6 +312,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "ro",
+        currency: "RON",
         name: "România",
         cty: "Romania (RO)",
         interval: "PT15M",
@@ -295,6 +321,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "bg",
+        currency: "EUR",
         name: "Bulgaria",
         cty: "Bulgaria (BG)",
         interval: "PT15M",
@@ -303,6 +330,7 @@ pub static COUNTRIES: &[Country] = &[
     },
     Country {
         id: "gr",
+        currency: "EUR",
         name: "Greece",
         cty: "Greece (GR)",
         interval: "PT15M",
@@ -355,6 +383,24 @@ pub fn default_currency(lang: &str) -> &'static str {
         "pl" => "PLN",
         _ => "EUR",
     }
+}
+
+/// Currencies in the settings: EUR, öre and every local currency
+pub const CURRENCY_CHOICES: &[&str] = &[
+    "öre", "SEK", "NOK", "DKK", "EUR", "PLN", "CZK", "HUF", "RON", "CHF",
+];
+
+/// Every local currency of a supported country other than EUR
+#[cfg(test)]
+pub fn local_currencies() -> Vec<&'static str> {
+    let mut v: Vec<_> = COUNTRIES
+        .iter()
+        .map(|c| c.currency)
+        .filter(|c| *c != "EUR")
+        .collect();
+    v.sort_unstable();
+    v.dedup();
+    v
 }
 
 pub fn default_decimals(currency: &str) -> usize {
@@ -410,6 +456,18 @@ pub fn lang_from_tag(tag: &str) -> Option<&'static str> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn every_local_currency_can_be_chosen() {
+        for c in super::local_currencies() {
+            assert!(
+                super::CURRENCY_CHOICES.contains(&c),
+                "{c} missing in CURRENCY_CHOICES"
+            );
+        }
+        assert_eq!(super::country("ch").map(|c| c.currency), Some("CHF"));
+        assert_eq!(super::country("hr").map(|c| c.currency), Some("EUR"));
+    }
+
     use super::*;
 
     #[test]

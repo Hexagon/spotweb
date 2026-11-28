@@ -51,14 +51,24 @@
     return r === undefined ? NaN : r;
   };
 
-  /** EUR/MWh -> formatted price per kWh in the selected currency (same math as 1.x processPrice) */
-  const priceNum = (eurMwh) => {
-    if (eurMwh === null || eurMwh === undefined || Number.isNaN(eurMwh)) return null;
-    let p = (eurMwh * rate(prefs.currency)) / 1000;
-    if (prefs.pricefactor) p = (p * prefs.multiplier + prefs.extra) * prefs.factor;
-    if (prefs.currency === "öre") p *= 100;
+  /** ISO code of a currency setting (öre is shown in SEK/100) */
+  const isoCur = (c) => (c === "öre" ? "SEK" : c);
+  /** How prices are shown: currency (öre for SEK/100), with fees and factors or not, decimals */
+  const prefsDisplay = () => ({ cur: prefs.currency, factor: prefs.pricefactor, decimals: prefs.decimals });
+  /** currency/MWh (already converted to `d.cur`) -> number per kWh as shown (same math as 1.x processPrice) */
+  const displayNum = (mwh, d) => {
+    if (mwh === null || mwh === undefined || Number.isNaN(mwh)) return null;
+    let p = mwh / 1000;
+    if (d.factor) p = (p * prefs.multiplier + prefs.extra) * prefs.factor;
+    if (d.cur === "öre") p *= 100;
     return Number.isFinite(p) ? p : null;
   };
+  /** EUR/MWh -> price per kWh in the selected currency, converted with the latest rate (for today and tomorrow) */
+  const priceNum = (eurMwh) => (eurMwh === null || eurMwh === undefined ? null : displayNum(eurMwh * rate(prefs.currency), prefsDisplay()));
+  /** Price already converted to the selected currency (`fetchSpot(…, prefsIso())`), formatted */
+  const prefsIso = () => isoCur(prefs.currency);
+  const priceC = (mwh, d = prefsDisplay()) => { const p = displayNum(mwh, d); return p === null ? "-" : p.toFixed(d.decimals); };
+  const priceCRounded = (mwh, d = prefsDisplay()) => { const p = displayNum(mwh, d); return p === null ? null : Number(p.toFixed(d.decimals)); };
   const price = (eurMwh) => {
     const p = priceNum(eurMwh);
     return p === null ? "-" : p.toFixed(prefs.decimals);
@@ -413,8 +423,12 @@
   // API helpers
   const isoDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const apiCache = {};
-  const fetchSpot = (area, period, start, end) => {
-    const url = `/api/v2/spot?${new URLSearchParams({ area, period, startDate: start, endDate: end })}`;
+  /** Prices in `cur`/MWh. Other currencies than EUR are converted by the server with the ECB rate of each day,
+   * so history is not converted with today's rate. */
+  const fetchSpot = (area, period, start, end, cur = "EUR") => {
+    const q = { area, period, startDate: start, endDate: end };
+    if (cur !== "EUR") q.currency = cur;
+    const url = `/api/v2/spot?${new URLSearchParams(q)}`;
     if (!apiCache[url]) {
       // A failed request is forgotten, so the next draw tries again
       apiCache[url] = fetch(url)
@@ -427,41 +441,99 @@
   const tomorrowIso = () => { const d = new Date(); d.setDate(d.getDate() + 1); return isoDate(d); };
   const monthName = (ms) => { const d = new Date(ms); return `${t("months." + d.getMonth())} ${d.getFullYear()}`; };
 
+  // Long-term tables: EUR as published, the local currency of the country, or the selected currency.
+  // `sw_longterm_currency` is "EUR" or "local"; unset follows the selected currency.
+  const localCur = () => (boot.country && boot.country.currency) || "EUR";
+  const longtermCur = () => {
+    const v = store.get("sw_longterm_currency");
+    if (v === "EUR") return "EUR";
+    if (v === "local") return localCur();
+    return prefsIso();
+  };
+  /** How the long-term table shows `cur`: like the settings when it is the selected currency, else the plain spot price */
+  const longtermDisplay = (cur) => (cur === prefsIso() ? prefsDisplay() : { cur, factor: false, decimals: defaultDecimals(cur) });
+  const longtermControls = (cur) => {
+    const box = $("[data-longterm-currency]");
+    if (!box) return;
+    const choices = [...new Set(["EUR", localCur(), prefsIso()])];
+    const seg = $(".segmented", box);
+    seg.classList.toggle("hidden", choices.length < 2);
+    seg.innerHTML = choices.map((c) => `<button type="button" data-cur="${esc(c)}" aria-pressed="${c === cur}">${esc(c)}</button>`).join("");
+    const d = longtermDisplay(cur);
+    const u = `${d.cur}/kWh`;
+    let note;
+    if (cur === "EUR") note = t("longtermchart.note_eur");
+    else note = t("longtermchart.note_converted").replace("{currency}", cur);
+    if (prefs.pricefactor && !d.factor) note += " " + t("longtermchart.note_no_fees");
+    const el = $("[data-longterm-note]", box);
+    el.textContent = `${t("longtermchart.values_in")} ${u}. ${note}`;
+    el.classList.toggle("is-converted", cur !== "EUR");
+    box.hidden = false;
+  };
+  let longtermRedraw = null;
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest("[data-longterm-currency] button[data-cur]");
+    if (!b) return;
+    const c = b.dataset.cur;
+    if (c === "EUR") store.set("sw_longterm_currency", "EUR");
+    else if (c === localCur()) store.set("sw_longterm_currency", "local");
+    else { try { localStorage.removeItem("sw_longterm_currency"); } catch (_e) { /* private mode */ } }
+    if (longtermRedraw) safe(longtermRedraw);
+  });
+
+  const longtermTableArea = async (a) => {
+    const cur = longtermCur(), d = longtermDisplay(cur);
+    const data = await fetchSpot(a.name, "monthly", "2021-01-01", tomorrowIso(), cur);
+    // Months as rows, years as columns
+    const years = [...new Set(data.map((r) => new Date(r.time).getFullYear()))].sort();
+    const cell = (y, m) => { const r = data.find((x) => { const z = new Date(x.time); return z.getFullYear() === y && z.getMonth() === m; }); return r ? priceC(r.price, d) : "-"; };
+    let html = `<thead><tr><th>${t("longtermchart.month")}</th>${years.map((y) => `<th class="num">${y}</th>`).join("")}</tr></thead><tbody>`;
+    for (let m = 0; m < 12; m++) html += `<tr><td>${t("months." + m)}</td>${years.map((y) => `<td class="num">${cell(y, m)}</td>`).join("")}</tr>`;
+    $("#longterm-table").innerHTML = html + "</tbody>";
+    longtermControls(cur);
+  };
+
   const chartLongTermArea = async () => {
     const a = boot.area;
     if (!a || !$('[data-chart="longterm-area"]')) return;
-    const data = await fetchSpot(a.name, "monthly", "2021-01-01", tomorrowIso());
+    longtermRedraw = () => longtermTableArea(a);
+    const tableDone = longtermTableArea(a);
+    const data = await fetchSpot(a.name, "monthly", "2021-01-01", tomorrowIso(), prefsIso());
     const o = unitTooltip(baseChart());
-    o.series = [{ name: a.name, data: data.map((r) => ({ x: r.time, y: priceRounded(r.price) })) }];
+    o.series = [{ name: a.name, data: data.map((r) => ({ x: r.time, y: priceCRounded(r.price) })) }];
     o.stroke = { width: 2, curve: "smooth" };
     o.colors = [theme.c1];
     o.tooltip.x.format = "MMM yyyy";
     o.yaxis.min = minY(o.series);
     draw("longterm-area", o);
-    // Months as rows, years as columns
-    const years = [...new Set(data.map((r) => new Date(r.time).getFullYear()))].sort();
-    const cell = (y, m) => { const r = data.find((d) => { const x = new Date(d.time); return x.getFullYear() === y && x.getMonth() === m; }); return r ? price(r.price) : "-"; };
-    let html = `<thead><tr><th>${t("longtermchart.month")}</th>${years.map((y) => `<th class="num">${y}</th>`).join("")}</tr></thead><tbody>`;
-    for (let m = 0; m < 12; m++) html += `<tr><td>${t("months." + m)}</td>${years.map((y) => `<td class="num">${cell(y, m)}</td>`).join("")}</tr>`;
+    await tableDone;
+  };
+
+  const longtermTableCountry = async () => {
+    const cur = longtermCur(), d = longtermDisplay(cur);
+    const sets = await Promise.all(boot.areas.map((a) => fetchSpot(a.name, "monthly", "2021-01-01", tomorrowIso(), cur)));
+    const months = [...new Set(sets.flat().map((r) => r.time))].sort((a, b) => b - a);
+    let html = `<thead><tr><th>${t("longtermchart.month")}</th>${boot.areas.map((a) => `<th class="num">${a.name}</th>`).join("")}</tr></thead><tbody>`;
+    for (const m of months) {
+      html += `<tr><td>${monthName(m)}</td>${sets.map((s) => { const r = s.find((x) => x.time === m); return `<td class="num">${r ? priceC(r.price, d) : "-"}</td>`; }).join("")}</tr>`;
+    }
     $("#longterm-table").innerHTML = html + "</tbody>";
+    longtermControls(cur);
   };
 
   const chartLongTermCountry = async () => {
     if (!boot.areas || !$('[data-chart="longterm-country"]')) return;
-    const sets = await Promise.all(boot.areas.map((a) => fetchSpot(a.name, "monthly", "2021-01-01", tomorrowIso())));
+    longtermRedraw = longtermTableCountry;
+    const tableDone = longtermTableCountry();
+    const sets = await Promise.all(boot.areas.map((a) => fetchSpot(a.name, "monthly", "2021-01-01", tomorrowIso(), prefsIso())));
     const o = unitTooltip(baseChart());
-    o.series = boot.areas.map((a, i) => ({ name: a.name, data: sets[i].map((r) => ({ x: r.time, y: priceRounded(r.price) })) }));
+    o.series = boot.areas.map((a, i) => ({ name: a.name, data: sets[i].map((r) => ({ x: r.time, y: priceCRounded(r.price) })) }));
     o.colors = boot.areas.map((a) => areaColor(a));
     o.stroke = { width: 2, curve: "smooth" };
     o.tooltip.x.format = "MMM yyyy";
     o.yaxis.min = minY(o.series);
     draw("longterm-country", o);
-    const months = [...new Set(sets.flat().map((r) => r.time))].sort((a, b) => b - a);
-    let html = `<thead><tr><th>${t("longtermchart.month")}</th>${boot.areas.map((a) => `<th class="num">${a.name}</th>`).join("")}</tr></thead><tbody>`;
-    for (const m of months) {
-      html += `<tr><td>${monthName(m)}</td>${sets.map((s) => { const r = s.find((x) => x.time === m); return `<td class="num">${r ? price(r.price) : "-"}</td>`; }).join("")}</tr>`;
-    }
-    $("#longterm-table").innerHTML = html + "</tbody>";
+    await tableDone;
   };
 
   const chartThirtyDays = async () => {
@@ -470,9 +542,9 @@
     const start = new Date(Date.now() - 30 * 24 * 3600 * 1000);
     const compare = $("#compare-select") ? $("#compare-select").value : "";
     const names = [a.name].concat(compare ? [compare] : []);
-    const sets = await Promise.all(names.map((n) => fetchSpot(n, "daily", isoDate(start), tomorrowIso())));
+    const sets = await Promise.all(names.map((n) => fetchSpot(n, "daily", isoDate(start), tomorrowIso(), prefsIso())));
     const o = unitTooltip(baseChart());
-    o.series = names.map((n, i) => ({ name: n, data: sets[i].map((r) => ({ x: r.time, y: priceRounded(r.price) })) }));
+    o.series = names.map((n, i) => ({ name: n, data: sets[i].map((r) => ({ x: r.time, y: priceCRounded(r.price) })) }));
     o.stroke = { width: 2, curve: "smooth" };
     o.colors = [theme.c1, theme.c3];
     o.tooltip.x.format = "yyyy-MM-dd";
@@ -539,7 +611,10 @@
     const run = async () => {
       const fd = new FormData(form);
       const params = new URLSearchParams({ area: fd.get("area"), period: fd.get("period"), startDate: fd.get("startDate"), endDate: fd.get("endDate") });
-      const res = await fetch(`/api/v2/spot?${params}`).then((r) => r.json());
+      // Converted by the server with the rate of each day
+      const conv = new URLSearchParams(params);
+      if (prefsIso() !== "EUR") conv.set("currency", prefsIso());
+      const res = await fetch(`/api/v2/spot?${conv}`).then((r) => r.json());
       const data = res.status === "ok" ? res.data : [];
       const err = $("#custom-error");
       if (err) { err.textContent = res.status === "ok" ? "" : res.details || t("custom.error"); err.classList.toggle("hidden", res.status === "ok"); }
@@ -547,20 +622,20 @@
       $("#custom-permalink").href = `/custom?${params}`;
       $("#custom-json").href = `/api/v2/spot?${params}`;
       const avg = data.length ? data.reduce((a, r) => a + r.price, 0) / data.length : null;
-      $("#custom-avg").textContent = `${price(avg)} ${unit()}`;
-      $("#custom-min").textContent = `${price(data.length ? Math.min(...data.map((r) => r.min)) : null)} ${unit()}`;
-      $("#custom-max").textContent = `${price(data.length ? Math.max(...data.map((r) => r.max)) : null)} ${unit()}`;
+      $("#custom-avg").textContent = `${priceC(avg)} ${unit()}`;
+      $("#custom-min").textContent = `${priceC(data.length ? Math.min(...data.map((r) => r.min)) : null)} ${unit()}`;
+      $("#custom-max").textContent = `${priceC(data.length ? Math.max(...data.map((r) => r.max)) : null)} ${unit()}`;
       const fmt = (ms) => (ms === null ? t("custom.total") : new Date(ms).toLocaleString(locale));
       let html = `<thead><tr><th>${t("custom.datetime")}</th><th class="num">${priceKind()}</th><th class="num">${t("custom.min")}</th><th class="num">${t("custom.max")}</th><th>${t("customize.unit")}</th></tr></thead><tbody>`;
       const shown = data.slice(0, 5000);
-      for (const r of shown) html += `<tr><td>${fmt(r.time)}</td><td class="num">${price(r.price)}</td><td class="num">${price(r.min)}</td><td class="num">${price(r.max)}</td><td>${unit()}</td></tr>`;
+      for (const r of shown) html += `<tr><td>${fmt(r.time)}</td><td class="num">${priceC(r.price)}</td><td class="num">${priceC(r.min)}</td><td class="num">${priceC(r.max)}</td><td>${unit()}</td></tr>`;
       $("#custom-table").innerHTML = html + "</tbody>";
-      const csv = [`# Source: ${res.source || "ENTSO-E Transparency Platform (https://transparency.entsoe.eu/)"}. Converted to ${unit()} with ECB reference rates by spotweb`, prefs.pricefactor
+      const csv = [`# Source: ${res.source || "ENTSO-E Transparency Platform (https://transparency.entsoe.eu/)"}. ${prefsIso() === "EUR" ? "EUR, not converted" : `Converted to ${unit()} with the ECB reference rate of each day by spotweb`}`, prefs.pricefactor
         ? `# Custom price: ((spot * ${prefs.multiplier}) + ${prefs.extra}) * ${prefs.factor}`
-        : "# Spot price, without fees or taxes", "time,price,min,max,unit"].concat(data.map((r) => [r.time === null ? "" : new Date(r.time).toISOString(), price(r.price), price(r.min), price(r.max), unit()].join(","))).join("\n");
+        : "# Spot price, without fees or taxes", "time,price,min,max,unit"].concat(data.map((r) => [r.time === null ? "" : new Date(r.time).toISOString(), priceC(r.price), priceC(r.min), priceC(r.max), unit()].join(","))).join("\n");
       $("#custom-csv").href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
       const o = unitTooltip(baseChart());
-      o.series = [{ name: fd.get("area"), data: data.filter((r) => r.time !== null).map((r) => ({ x: r.time, y: priceRounded(r.price) })) }];
+      o.series = [{ name: fd.get("area"), data: data.filter((r) => r.time !== null).map((r) => ({ x: r.time, y: priceCRounded(r.price) })) }];
       o.stroke = { width: 2, curve: fd.get("period") === "hourly" ? "stepline" : "smooth" };
       o.colors = [theme.c1];
       o.yaxis.min = minY(o.series);

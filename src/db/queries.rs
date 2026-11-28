@@ -135,6 +135,7 @@ pub fn exchange_rates(c: &Connection) -> rusqlite::Result<ExchangeRates> {
 ///
 /// Checks `period`, not `date`: rows imported from 1.x have the *fetch* date in `date` (and local midnight of
 /// that day in `period`), so the ECB rate published on the same day would wrongly look like it was already stored.
+#[cfg(test)]
 pub fn has_exchange_rates_for(c: &Connection, period: i64) -> rusqlite::Result<bool> {
     let n: i64 = c.query_row(
         "SELECT COUNT(*) FROM exchangerate WHERE period = ?1",
@@ -144,23 +145,69 @@ pub fn has_exchange_rates_for(c: &Connection, period: i64) -> rusqlite::Result<b
     Ok(n > 0)
 }
 
+/// Whether ECB rates (stored at midnight UTC) go back to `period`, so the full history file does not have to
+/// be read. Rows imported from 1.x (local midnight) do not count.
+pub fn has_exchange_rate_history_from(c: &Connection, period: i64) -> rusqlite::Result<bool> {
+    let first: Option<i64> = c.query_row(
+        "SELECT MIN(period) FROM exchangerate WHERE currency = 'USD' AND period % 86400000 = 0",
+        [],
+        |r| r.get(0),
+    )?;
+    Ok(first.is_some_and(|p| p <= period))
+}
+
+/// Store rates for one ECB date. Returns the number of rows that were added or changed.
+#[cfg(test)]
 pub fn insert_exchange_rates(
     c: &mut Connection,
     date: &str,
     period: i64,
     entries: &BTreeMap<String, f64>,
-) -> rusqlite::Result<()> {
+) -> rusqlite::Result<usize> {
+    insert_exchange_rate_days(c, &[(date, period, entries)])
+}
+
+/// Store rates for several ECB dates in one transaction: `(date, period, rates)`. Rows that are already
+/// stored with the same value are not rewritten. Returns the number of rows that were added or changed.
+pub fn insert_exchange_rate_days(
+    c: &mut Connection,
+    days: &[(&str, i64, &BTreeMap<String, f64>)],
+) -> rusqlite::Result<usize> {
     let tx = c.transaction()?;
+    let mut changed = 0;
     {
         let mut st = tx.prepare_cached(
             "INSERT INTO exchangerate (currency, period, date, value) VALUES (?1, ?2, ?3, ?4)
-             ON CONFLICT (currency, period) DO UPDATE SET value = excluded.value, date = excluded.date",
+             ON CONFLICT (currency, period) DO UPDATE SET value = excluded.value, date = excluded.date
+             WHERE value IS NOT excluded.value OR date IS NOT excluded.date",
         )?;
-        for (cur, v) in entries {
-            st.execute(params![cur, period, date, v])?;
+        for (date, period, entries) in days {
+            for (cur, v) in *entries {
+                changed += st.execute(params![cur, period, date, v])?;
+            }
         }
     }
-    tx.commit()
+    tx.commit()?;
+    Ok(changed)
+}
+
+/// Remove rows imported from 1.x (stored at local midnight with the fetch date) from `from` on, once ECB's own
+/// history covers those days. Returns the number of rows removed.
+pub fn remove_v1_exchange_rates(c: &Connection, from: i64) -> rusqlite::Result<usize> {
+    c.execute(
+        "DELETE FROM exchangerate WHERE period >= ?1 AND period % 86400000 != 0",
+        params![from],
+    )
+}
+
+/// Every stored rate for `currency` as `(period, value)`, oldest first. The rate of an ECB date applies from
+/// midnight UTC of that date until the next published rate.
+pub fn exchange_rate_history(c: &Connection, currency: &str) -> rusqlite::Result<Vec<(i64, f64)>> {
+    let mut st = c.prepare_cached(
+        "SELECT period, value FROM exchangerate WHERE currency = ?1 ORDER BY period",
+    )?;
+    let rows = st.query_map(params![currency], |r| Ok((r.get(0)?, r.get(1)?)))?;
+    rows.collect()
 }
 
 // ---------------------------------------------------------------------------
@@ -1541,6 +1588,36 @@ mod tests {
                 ("solar".to_string(), 100.0)
             ]
         );
+    }
+
+    #[test]
+    fn exchange_rate_history_and_v1_rows() {
+        let db = Db::open_memory();
+        let mut c = db.conn().unwrap();
+        const DAY: i64 = 86_400_000;
+        let mut e = BTreeMap::new();
+        e.insert("USD".to_string(), 1.1);
+        e.insert("SEK".to_string(), 11.0);
+        // A 1.x row at local midnight, then ECB days
+        insert_exchange_rates(&mut c, "2021-01-05", 10 * DAY - 3_600_000, &e).unwrap();
+        assert!(!has_exchange_rate_history_from(&c, 10 * DAY).unwrap());
+        let days = [("1970-01-10", 9 * DAY, &e), ("1970-01-11", 10 * DAY, &e)];
+        assert_eq!(insert_exchange_rate_days(&mut c, &days).unwrap(), 4);
+        // Unchanged rows are not rewritten
+        assert_eq!(insert_exchange_rate_days(&mut c, &days).unwrap(), 0);
+        assert!(has_exchange_rate_history_from(&c, 9 * DAY).unwrap());
+        assert!(!has_exchange_rate_history_from(&c, 8 * DAY).unwrap());
+        assert_eq!(exchange_rate_history(&c, "SEK").unwrap().len(), 3);
+        assert_eq!(remove_v1_exchange_rates(&c, 9 * DAY).unwrap(), 2);
+        assert_eq!(
+            exchange_rate_history(&c, "SEK").unwrap(),
+            vec![(9 * DAY, 11.0), (10 * DAY, 11.0)]
+        );
+        let h = crate::web::data::RateHistory(vec![(9 * DAY, 11.0), (12 * DAY, 12.0)]);
+        assert_eq!(h.at(8 * DAY), Some(11.0));
+        assert_eq!(h.at(11 * DAY), Some(11.0));
+        assert_eq!(h.at(12 * DAY), Some(12.0));
+        assert_eq!(crate::web::data::RateHistory::default().at(0), None);
     }
 
     #[test]

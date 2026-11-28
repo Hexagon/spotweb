@@ -45,11 +45,12 @@
       "title": "Informatie en gebruiksvoorwaarden",
       "all_history": "Alle statistieken worden opgehaald van",
       "currency_fetched_from": "Huidige wisselkoers opgehaald van",
-      "all_values_from": "Alle waarden, inclusief historische waarden, worden omgerekend vanuit EUR tegen de huidige koers.",
+      "all_values_from": "De prijzen van vandaag en morgen worden tegen de huidige koers uit EUR omgerekend",
       "disclaimer_and_private_use": "De getoonde cijfers zouden correct moeten zijn, maar worden geleverd zonder garanties. De site en aanverwante diensten worden aangeboden voor privégebruik, op eigen risico.",
       "not_affiliated": "spotweb is een onafhankelijk project, niet verbonden aan of goedgekeurd door ENTSO-E. Gegevens van ENTSO-E worden hergebruikt volgens de gebruiksvoorwaarden van het Transparency Platform.",
       "open_source_software": "De broncode van de pagina is volledig openbaar en is beschikbaar op ",
-      "bugs_and_issues": "Bugs en problemen worden gemeld via 'Issues' op GitHub. Contact opnemen kan ook via e-mail naar hexagon{a}56k.guru."
+      "bugs_and_issues": "Bugs en problemen worden gemeld via 'Issues' op GitHub. Contact opnemen kan ook via e-mail naar hexagon{a}56k.guru.",
+      "history_converted": "Historische prijzen worden omgerekend met de ECB-koers van elke dag."
     },
     "overview": {
       "thirty_day_chart": "30 dagen historiek",
@@ -177,7 +178,12 @@
       "priceFactorDescriptionPart2": "(kosten)) *",
       "priceFactorDescriptionPart3": "(btw). Dit wordt aangepast volgens uw huidige instellingen.",
       "nonPriceFactorDescription": "De elektriciteitsprijs in de tabel is de huidige spotprijs. Hou er rekening mee dat er extra kosten en belastingen van toepassing kunnen zijn. Je kunt ervoor kiezen om de spotprijs of de actuele prijs weer te geven via de instellingen op de pagina.",
-      "month": "Maand"
+      "month": "Maand",
+      "currency_label": "Valuta in de tabel",
+      "values_in": "Waarden in",
+      "note_eur": "Getoond in EUR zoals de prijzen worden gepubliceerd, zonder omrekening.",
+      "note_converted": "Omgerekend uit EUR met de ECB-koers van elke dag (EUR→{currency}), in weekenden en op feestdagen de koers van de laatste bankdag.",
+      "note_no_fees": "Uw kosten zijn niet inbegrepen, omdat ze in een andere valuta zijn ingesteld."
     },
     "map": {
       "title": "Stroomprijzen en elektriciteitsstromen nu",
@@ -387,7 +393,7 @@
       "src_license": "De gegevens van ENTSO-E worden hergebruikt volgens de <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">gebruiksvoorwaarden</a> van het ENTSO-E Transparency Platform (CC BY 4.0). Elk antwoord noemt de bron in <code>source</code>, en antwoorden met omgerekende prijzen hebben ook een <code>note</code>. Vermeld \"ENTSO-E Transparency Platform\" als bron bij hergebruik, en dat de gegevens zijn omgerekend waar dat geldt.",
       "processing_title": "Omgerekende en berekende gegevens",
       "processing_intro": "Tenzij u ruwe prijzen in EUR opvraagt, krijgt u niet precies de cijfers die ENTSO-E publiceert. Dit doet spotweb met de gegevens:",
-      "proc_currency": "<strong>Valuta:</strong> prijzen in een andere valuta dan EUR worden omgerekend vanuit EUR/MWh met de <em>meest recente</em> referentiekoers van de ECB. Dat geldt ook voor historische prijzen, dus oudere prijzen in bijvoorbeeld SEK kunnen afwijken van wat toen werd betaald. Vraag EUR op als u de oorspronkelijke waarden nodig hebt.",
+      "proc_currency": "<strong>Valuta:</strong> met <code>currency</code> wordt elke prijs vóór het groeperen uit EUR/MWh omgerekend met de ECB-referentiekoers van de eigen dag (de koers van de laatste bankdag in weekenden en op feestdagen), dus historische prijzen kloppen met de koers van toen. Vandaag en morgen gebruiken de laatst gepubliceerde koers. <code>rates=latest</code> rekent alles om met de laatste koers, zoals voorheen. Vraag EUR op als u de oorspronkelijke waarden nodig hebt.",
       "proc_units": "<strong>Eenheid:</strong> <code>/api/v2/spot</code> en <code>/api/v2/cheapest</code> antwoorden in valuta per MWh. <code>/api/v2/hass</code> antwoordt per kWh (gedeeld door 1000), in öre met <code>currency=ORE</code> (maal 100), met uw <code>multiplier</code>, <code>extra</code> en <code>factor</code> toegepast, afgerond op <code>decimals</code> decimalen en als tekst.",
       "proc_grouping": "<strong>Gemiddelden:</strong> <code>daily</code>, <code>weekly</code>, <code>monthly</code>, <code>yearly</code> en <code>total</code>, en de gemiddelden in <code>/api/v2/hass</code> en <code>/api/v2/cheapest</code>, berekent spotweb als tijdgewogen gemiddelden van de intervalprijzen, gegroepeerd in de lokale tijd van de biedzone. <code>min</code> en <code>max</code> zijn de laagste en hoogste intervalprijs. De maandprijs van een leverancier is gewogen naar verbruik en wijkt meestal af.",
       "proc_resolution": "<strong>Resolutie:</strong> zonder <code>interval</code> gebruikt elke lokale dag de huidige marktresolutie van de zone (15 of 60 minuten), of de fijnste beschikbare resolutie voor dagen vóór een overgang. Met <code>interval=PT15M</code> of <code>PT60M</code> worden alleen prijzen teruggegeven die precies in die resolutie zijn opgeslagen; niets wordt geïnterpoleerd of naar een andere resolutie omgerekend.",

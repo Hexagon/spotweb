@@ -45,11 +45,12 @@
       "title": "Informacje i warunki korzystania",
       "all_history": "Wszystkie statystyki pochodzą z",
       "currency_fetched_from": "Aktualny kurs wymiany pobrany z",
-      "all_values_from": "Wszystkie wartości, także historyczne, są przeliczane z EUR po aktualnym kursie",
+      "all_values_from": "Dzisiejsze i jutrzejsze ceny są przeliczane z EUR po bieżącym kursie",
       "disclaimer_and_private_use": "Pokazane dane powinny być poprawne, ale są udostępniane bez gwarancji. Strona i powiązane usługi są przeznaczone do użytku prywatnego, na własne ryzyko.",
       "not_affiliated": "spotweb to niezależny projekt, niezwiązany z ENTSO-E ani przez nią nierekomendowany. Dane ENTSO-E są wykorzystywane zgodnie z warunkami korzystania z Transparency Platform.",
       "open_source_software": "Kod źródłowy strony jest w pełni otwarty i dostępny na ",
-      "bugs_and_issues": "Błędy i problemy zgłasza się przez 'Issues' na GitHubie. Można też napisać na adres hexagon{a}56k.guru."
+      "bugs_and_issues": "Błędy i problemy zgłasza się przez 'Issues' na GitHubie. Można też napisać na adres hexagon{a}56k.guru.",
+      "history_converted": "Ceny historyczne są przeliczane po kursie EBC z danego dnia."
     },
     "overview": {
       "thirty_day_chart": "Historia 30 dni",
@@ -177,7 +178,12 @@
       "priceFactorDescriptionPart2": "(opłaty)) *",
       "priceFactorDescriptionPart3": "(podatek). Jest dostosowana do Twoich bieżących ustawień.",
       "nonPriceFactorDescription": "Cena prądu w tabeli to aktualna cena spot. Pamiętaj, że mogą dojść dodatkowe opłaty i podatki. W ustawieniach strony możesz wybrać wyświetlanie ceny spot lub ceny rzeczywistej.",
-      "month": "Miesiąc"
+      "month": "Miesiąc",
+      "currency_label": "Waluta w tabeli",
+      "values_in": "Wartości w",
+      "note_eur": "Pokazane w EUR, tak jak ceny są publikowane, bez przeliczania.",
+      "note_converted": "Przeliczone z EUR po kursie EBC z danego dnia (EUR→{currency}), w weekendy i święta po kursie z ostatniego dnia roboczego.",
+      "note_no_fees": "Twoje opłaty nie są uwzględnione, ponieważ są podane w innej walucie."
     },
     "map": {
       "title": "Ceny prądu i przepływy energii teraz",
@@ -387,7 +393,7 @@
       "src_license": "Dane ENTSO-E są wykorzystywane zgodnie z <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">warunkami korzystania</a> z ENTSO-E Transparency Platform (CC BY 4.0). Każda odpowiedź podaje źródło w <code>source</code>, a odpowiedzi z przeliczonymi cenami mają też <code>note</code>. Podaj \"ENTSO-E Transparency Platform\" przy ponownym wykorzystaniu danych i zaznacz, że zostały przeliczone, jeśli tak jest.",
       "processing_title": "Dane przeliczone i obliczone",
       "processing_intro": "O ile nie poprosisz o surowe ceny w EUR, otrzymujesz dane, które nie są dokładnie tymi publikowanymi przez ENTSO-E. Oto co spotweb robi z danymi:",
-      "proc_currency": "<strong>Waluta:</strong> ceny w walucie innej niż EUR są przeliczane z EUR/MWh według <em>najnowszego</em> kursu referencyjnego EBC. Dotyczy to także cen historycznych, więc starsze ceny np. w PLN mogą różnić się od tego, co wtedy płacono. Poproś o EUR, jeśli potrzebujesz oryginalnych wartości.",
+      "proc_currency": "<strong>Waluta:</strong> z <code>currency</code> każda cena jest przeliczana z EUR/MWh po kursie referencyjnym EBC z jej własnego dnia (w weekendy i święta po kursie z ostatniego dnia roboczego) przed grupowaniem, więc ceny historyczne odpowiadają ówczesnemu kursowi. Dziś i jutro używają ostatniego opublikowanego kursu. <code>rates=latest</code> przelicza wszystko po najnowszym kursie, jak wcześniej. Pobierz EUR, jeśli potrzebujesz oryginalnych wartości.",
       "proc_units": "<strong>Jednostka:</strong> <code>/api/v2/spot</code> i <code>/api/v2/cheapest</code> odpowiadają w walucie za MWh. <code>/api/v2/hass</code> odpowiada za kWh (podzielone przez 1000), w öre przy <code>currency=ORE</code> (pomnożone przez 100), z zastosowanymi <code>multiplier</code>, <code>extra</code> i <code>factor</code>, zaokrąglone do <code>decimals</code> miejsc po przecinku i jako tekst.",
       "proc_grouping": "<strong>Średnie:</strong> <code>daily</code>, <code>weekly</code>, <code>monthly</code>, <code>yearly</code> i <code>total</code> oraz średnie w <code>/api/v2/hass</code> i <code>/api/v2/cheapest</code> są obliczane przez spotweb jako średnie ważone czasem z cen interwałów, grupowane w czasie lokalnym obszaru cenowego. <code>min</code> i <code>max</code> to najniższa i najwyższa cena interwału. Miesięczna cena sprzedawcy jest ważona zużyciem i zwykle się różni.",
       "proc_resolution": "<strong>Rozdzielczość:</strong> bez <code>interval</code> każdy dzień lokalny używa bieżącej rozdzielczości rynkowej obszaru (15 lub 60 minut) albo najdokładniejszej dostępnej rozdzielczości dla dni sprzed zmiany. Z <code>interval=PT15M</code> lub <code>PT60M</code> zwracane są tylko ceny zapisane dokładnie w tej rozdzielczości; nic nie jest interpolowane ani uśredniane do innej rozdzielczości.",

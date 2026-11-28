@@ -45,11 +45,12 @@
       "title": "Information and Terms of Use",
       "all_history": "All statistics are retrieved from",
       "currency_fetched_from": "Current exchange rate fetched from",
-      "all_values_from": "All values, including historical ones, are converted from EUR at the current rate",
+      "all_values_from": "Today's and tomorrow's prices are converted from EUR at the current rate",
       "disclaimer_and_private_use": "The figures shown should be correct, but are supplied without guarantees. The site and related services are provided for private use, at your own risk.",
       "not_affiliated": "spotweb is an independent project, not affiliated with or endorsed by ENTSO-E. Data from ENTSO-E is re-used in accordance with the Transparency Platform terms of use.",
       "open_source_software": "The source code of the page is completely open and is available at ",
-      "bugs_and_issues": "Bugs and issues are reported through 'Issues' on GitHub. Contact can also be made via email to hexagon{a}56k.guru."
+      "bugs_and_issues": "Bugs and issues are reported through 'Issues' on GitHub. Contact can also be made via email to hexagon{a}56k.guru.",
+      "history_converted": "Historical prices are converted at the ECB rate of each day."
     },
     "overview": {
       "thirty_day_chart": "30 day history",
@@ -177,7 +178,12 @@
       "priceFactorDescriptionPart2": "(fees)) *",
       "priceFactorDescriptionPart3": "(tax). This is adjusted according to your current settings.",
       "nonPriceFactorDescription": "The electricity price in the table represents the current spot price. Keep in mind that additional fees and taxes may apply. You can choose to display either the spot price or the actual price through the settings on the page.",
-      "month": "Month"
+      "month": "Month",
+      "currency_label": "Currency in the table",
+      "values_in": "Values in",
+      "note_eur": "Shown in EUR as the prices are published, not converted.",
+      "note_converted": "Converted from EUR with the ECB rate of each day (EUR→{currency}), the last bank day's rate for weekends and holidays.",
+      "note_no_fees": "Your fees are not included, as they are set in another currency."
     },
     "map": {
       "title": "Electricity prices and power flows right now",
@@ -387,7 +393,7 @@
       "src_license": "The ENTSO-E data is re-used under the <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">terms of use</a> of the ENTSO-E Transparency Platform (CC BY 4.0). Every response names the source in <code>source</code>, and responses with converted prices also have a <code>note</code>. Credit \"ENTSO-E Transparency Platform\" when you re-use the data, and say that it has been converted where that applies.",
       "processing_title": "Converted and calculated data",
       "processing_intro": "Unless you ask for raw prices in EUR, what you get is not exactly the figures ENTSO-E publishes. This is what spotweb does with the data:",
-      "proc_currency": "<strong>Currency:</strong> prices in any currency other than EUR are converted from EUR/MWh with the <em>latest</em> ECB reference rate. This also applies to historical prices, so older prices in for example SEK can differ from what was paid at the time. Ask for EUR if you need the original values.",
+      "proc_currency": "<strong>Currency:</strong> with <code>currency</code>, every price is converted from EUR/MWh with the ECB reference rate of its own day (the last bank day's rate for weekends and holidays) before it is grouped, so historical prices in for example SEK match the rate at the time. Today and tomorrow use the latest published rate. <code>rates=latest</code> converts everything with the latest rate, as before. Ask for EUR if you need the original values.",
       "proc_units": "<strong>Unit:</strong> <code>/api/v2/spot</code> and <code>/api/v2/cheapest</code> answer in currency per MWh. <code>/api/v2/hass</code> answers per kWh (divided by 1000), in öre with <code>currency=ORE</code> (multiplied by 100), with your <code>multiplier</code>, <code>extra</code> and <code>factor</code> applied, rounded to <code>decimals</code> decimals and as text.",
       "proc_grouping": "<strong>Averages:</strong> <code>daily</code>, <code>weekly</code>, <code>monthly</code>, <code>yearly</code> and <code>total</code>, and the averages in <code>/api/v2/hass</code> and <code>/api/v2/cheapest</code>, are calculated by spotweb as time-weighted averages of the interval prices, grouped in the local time of the bidding zone. <code>min</code> and <code>max</code> are the lowest and highest interval price. A supplier's monthly price is weighted by consumption and usually differs.",
       "proc_resolution": "<strong>Resolution:</strong> without <code>interval</code>, each local day uses the zone's current market resolution (15 or 60 minutes), or the finest resolution available for days before a change. With <code>interval=PT15M</code> or <code>PT60M</code> only prices stored in exactly that resolution are returned; nothing is interpolated or averaged into another resolution.",

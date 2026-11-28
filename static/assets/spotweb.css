@@ -361,6 +361,9 @@ body.currency-eur .hide-eur { display: none; }
 .map-title-short { display: none; }
 .segmented { display: inline-flex; background: var(--card-2); border: 1px solid var(--border); border-radius: 9px; padding: 2px; flex: 0 0 auto; }
 .segmented button { background: none; border: 0; color: var(--muted); padding: 5px 12px; border-radius: 7px; cursor: pointer; font-size: .88rem; }
+.longterm-currency { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding-top: 0; }
+.longterm-currency p { margin: 0; flex: 1 1 260px; color: var(--muted); }
+.longterm-currency p.is-converted { color: var(--text); border-left: 3px solid var(--warning); padding-left: 8px; }
 .segmented button[aria-pressed="true"] { background: var(--card); color: var(--text); box-shadow: 0 1px 3px var(--shadow); }
 .map-wrap { position: relative; background: radial-gradient(ellipse at 60% 30%, var(--map-glow) 0%, var(--bg) 75%); }
 .zone-map { display: block; width: 100%; height: clamp(420px, calc(100vh - 190px), 960px); user-select: none; -webkit-user-select: none; touch-action: pan-x pan-y; cursor: grab; }

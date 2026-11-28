@@ -140,6 +140,10 @@ async fn base(
     ctx.insert("sub_unit".into(), json!(currency == "öre"));
     ctx.insert("er".into(), json!(&*er));
     ctx.insert("languages".into(), json!(LANGUAGES));
+    ctx.insert(
+        "currency_choices".into(),
+        json!(crate::countries::CURRENCY_CHOICES),
+    );
 
     // Every language version of a translated page has its own url: the plain url in the
     // language of its path (`/sv/SE3` is Swedish), `?lang=xx` for the others. Paths without
@@ -1061,7 +1065,8 @@ pub async fn llms(State(st): State<WebState>, headers: HeaderMap) -> Response {
          - [Spot prices]({base}/api/v2/spot?period=daily&area=SE3&startDate={from}&endDate={d}&currency=EUR): \
          `period` = `hourly` (raw intervals), `daily`, `weekly`, `monthly`, `yearly` or `total`; \
          `area` = zone code from the list below; `startDate`/`endDate` = `YYYY-MM-DD`; \
-         optional `currency` (any ECB currency, default EUR) and `interval` (`PT15M`/`PT60M`). \
+         optional `currency` (any ECB currency, default EUR; converted with the rate of each day, \
+         `rates=latest` for the latest rate) and `interval` (`PT15M`/`PT60M`). \
          At most 31 days per request for `hourly`, 366 days for `daily`. Returns \
          `[{{time, price, min, max}}]` in currency/MWh.\n\
          - [Yesterday, today and tomorrow]({base}/api/v2/hass?area=SE3&currency=SEK): \
