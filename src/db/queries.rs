@@ -737,6 +737,88 @@ pub fn future_outages(c: &Connection, country: &str, now: i64) -> rusqlite::Resu
     rows.collect()
 }
 
+/// One TimeSeries of an outage document with everything stored about it, for the local API
+#[derive(Debug, Clone, Serialize)]
+pub struct OutageDetail {
+    /// Document mRID and the index of the TimeSeries in it
+    pub id: String,
+    pub ts: i64,
+    pub revision: Option<i64>,
+    pub published: Option<i64>,
+    pub area: Option<String>,
+    pub country: Option<String>,
+    pub business_type: Option<String>,
+    pub document_type: Option<String>,
+    pub start: Option<i64>,
+    pub end: Option<i64>,
+    pub resource_name: Option<String>,
+    pub location: Option<String>,
+    pub psr_name: Option<String>,
+    pub psr_type: Option<String>,
+    pub nominal_mw: Option<f64>,
+    pub reason_code: Option<String>,
+    pub reason_text: Option<String>,
+    /// `(start, end, MW available)` blocks reported for the outage
+    pub availability: Vec<(i64, i64, f64)>,
+}
+
+/// Active outages of `country` (or of every country) that overlap `[from, to)`, newest
+/// publication first
+pub fn outage_details(
+    c: &Connection,
+    country: Option<&str>,
+    from: i64,
+    to: i64,
+) -> rusqlite::Result<Vec<OutageDetail>> {
+    let mut st = c.prepare_cached(&format!(
+        "SELECT o.mrid, o.ts, o.revision, o.published, o.area, o.country, o.business_type,
+            o.document_type, o.start_date, o.end_date, o.resource_name, o.location, o.psr_name,
+            o.psr_type, o.psr_nominal_power, o.reason_code, o.reason_text
+         FROM outage o
+         WHERE (?1 IS NULL OR o.country = ?1) AND o.start_date < ?3 AND o.end_date > ?2
+             AND {OUTAGE_ACTIVE}
+         ORDER BY COALESCE(o.published, o.start_date) DESC, o.mrid, o.ts"
+    ))?;
+    let mut rows: Vec<OutageDetail> = st
+        .query_map(params![country, from, to], |r| {
+            Ok(OutageDetail {
+                id: r.get(0)?,
+                ts: r.get(1)?,
+                revision: r.get(2)?,
+                published: r.get(3)?,
+                area: r.get(4)?,
+                country: r.get(5)?,
+                business_type: r.get(6)?,
+                document_type: r.get(7)?,
+                start: r.get(8)?,
+                end: r.get(9)?,
+                resource_name: r.get(10)?,
+                location: r.get(11)?,
+                psr_name: r
+                    .get::<_, Option<String>>(12)?
+                    .filter(|s| s != "undefined" && !s.is_empty()),
+                psr_type: r.get(13)?,
+                nominal_mw: r.get(14)?,
+                reason_code: r.get(15)?,
+                reason_text: r.get(16)?,
+                availability: vec![],
+            })
+        })?
+        .collect::<rusqlite::Result<_>>()?;
+    let mut av = c.prepare_cached(
+        "SELECT start_date, end_date, quantity FROM outage_availability
+         WHERE mrid = ?1 AND ts = ?2 ORDER BY start_date",
+    )?;
+    for o in &mut rows {
+        o.availability = av
+            .query_map(params![o.id, o.ts], |r| {
+                Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+            })?
+            .collect::<rusqlite::Result<_>>()?;
+    }
+    Ok(rows)
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct NewOutage {
     /// Document mRID, shared by all TimeSeries of the document
@@ -746,6 +828,10 @@ pub struct NewOutage {
     pub revision: Option<i64>,
     /// `docStatus` of the document: A05 active, A09 cancelled, A13 withdrawn
     pub doc_status: Option<String>,
+    /// When ENTSO-e received this revision (`createdDateTime`), ms
+    pub published: Option<i64>,
+    /// Bidding zone the document was fetched for (`SE3`)
+    pub area: Option<String>,
     pub business_type: Option<String>,
     pub document_type: Option<String>,
     pub start_date: Option<i64>,
@@ -791,8 +877,8 @@ pub fn replace_outages(
         let mut ins = tx.prepare_cached(
             "INSERT INTO outage (mrid, ts, revision, doc_status, business_type, document_type, start_date, end_date,
                 resource_name, location, country, psr_name, psr_nominal_power_unit, psr_nominal_power, psr_type,
-                reason_code, reason_text)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)",
+                reason_code, reason_text, published, area)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)",
         )?;
         let mut ins_a = tx.prepare_cached("INSERT INTO outage_availability (mrid, ts, start_date, end_date, quantity) VALUES (?1, ?2, ?3, ?4, ?5)")?;
         let mut stored =
@@ -845,7 +931,9 @@ pub fn replace_outages(
                 o.psr_nominal_power,
                 o.psr_type,
                 o.reason_code,
-                o.reason_text
+                o.reason_text,
+                o.published,
+                o.area
             ])?;
             for (s, e, q) in &o.availability {
                 ins_a.execute(params![o.mrid, o.ts, s, e, q])?;

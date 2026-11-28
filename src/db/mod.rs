@@ -247,6 +247,18 @@ const MIGRATIONS: &[(i64, &str, &str)] = &[
     ALTER TABLE news DROP COLUMN kind;
     "#,
     ),
+    (
+        10,
+        "outage zone and publication time",
+        // Revisions are cleared so documents still published by ENTSO-e are written again,
+        // with their zone and publication time, the next time outages are fetched
+        r#"
+    ALTER TABLE outage ADD COLUMN area TEXT;
+    ALTER TABLE outage ADD COLUMN published INTEGER;
+    UPDATE outage SET revision = NULL;
+    CREATE INDEX outage_dates ON outage (end_date, start_date);
+    "#,
+    ),
 ];
 
 /// See [`Db::optimize`]

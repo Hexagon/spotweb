@@ -52,10 +52,20 @@ fn json_response(status: StatusCode, body: impl Serialize, max_age: u32) -> Resp
     res
 }
 
-/// 1.x answered every error with HTTP 500 and this body
+/// A failed query: HTTP 500 with the error body of 1.x
 fn api_error(details: &str) -> Response {
     json_response(
         StatusCode::INTERNAL_SERVER_ERROR,
+        json!({ "status": "error", "details": details }),
+        0,
+    )
+}
+
+/// A bad request (unknown zone, invalid parameters): HTTP 400 with the same body. 1.x and
+/// spotweb up to 2.9 answered these with 500 too.
+pub(super) fn bad_request(details: &str) -> Response {
+    json_response(
+        StatusCode::BAD_REQUEST,
         json!({ "status": "error", "details": details }),
         0,
     )
@@ -135,24 +145,24 @@ pub async fn spot(
 ) -> Response {
     let q = query_map(pairs);
     let Some(grouping) = param(&q, "period").and_then(Grouping::parse) else {
-        return api_error("Period not valid");
+        return bad_request("Period not valid");
     };
     let area = param(&q, "area").unwrap_or("").to_uppercase();
     // 1.x looked the name up as is and answered unknown areas with empty data; it only ever
     // stored the area names that `find_area` knows, so nothing that used to work is rejected.
     let Some((country, area_def)) = find_area(&area) else {
-        return api_error("Unknown area");
+        return bad_request("Unknown area");
     };
     let tz = country.timezone();
     let (Some(start), Some(end)) = (
         param(&q, "startDate").and_then(|s| parse_api_date(s, &tz)),
         param(&q, "endDate").and_then(|s| parse_api_date(s, &tz)),
     ) else {
-        return api_error("Missing/invalid parameters");
+        return bad_request("Missing/invalid parameters");
     };
     if let Some(max) = max_span_days(grouping) {
         if i64::from((end - start).get_days()) + 1 > max {
-            return api_error(&format!(
+            return bad_request(&format!(
                 "Date range too long, max {max} days for this period"
             ));
         }
@@ -164,7 +174,7 @@ pub async fn spot(
     let latest = match param(&q, "rates").map(str::to_ascii_lowercase).as_deref() {
         None | Some("daily") => false,
         Some("latest") => true,
-        Some(_) => return api_error("Rates not valid, use daily or latest"),
+        Some(_) => return bad_request("Rates not valid, use daily or latest"),
     };
     let currency = param(&q, "currency")
         .map(data::iso_currency)
@@ -174,7 +184,7 @@ pub async fn spot(
         Some(cur) => match data::exchange_rates(&st.app).await {
             Ok(er) => match er.rate(cur) {
                 Some(r) => r,
-                None => return api_error("Unknown currency"),
+                None => return bad_request("Unknown currency"),
             },
             Err(e) => {
                 tracing::error!(error = %e, "exchange rate query failed");
@@ -255,15 +265,15 @@ pub async fn hass(
         None => Some(5),
     };
     let (Some(area), Some(currency), Some(decimals)) = (area, currency, decimals) else {
-        return api_error("Missing/invalid parameters");
+        return bad_request("Missing/invalid parameters");
     };
     // 1.x used `Number.prototype.toFixed`, which accepts 0-100 decimals
     if multiplier.is_nan() || factor.is_nan() || extra.is_nan() || !(0..=100).contains(&decimals) {
-        return api_error("Missing/invalid parameters");
+        return bad_request("Missing/invalid parameters");
     }
     let Some((country, area_def)) = find_area(&area) else {
         // 1.x answered with empty data, which hid typos
-        return api_error("Unknown area");
+        return bad_request("Unknown area");
     };
     let tz = country.timezone();
     let mode = interval_mode(&q, &area);
@@ -273,7 +283,7 @@ pub async fn hass(
         Err(_) => return api_error("Query failed"),
     };
     let Some(rate) = er.rate(&currency) else {
-        return api_error("Unknown currency");
+        return bad_request("Unknown currency");
     };
     let props = PriceProps {
         extra,
@@ -370,11 +380,11 @@ pub async fn cheapest(
     let q = query_map(pairs);
     let area = param(&q, "area").unwrap_or("").to_uppercase();
     let Some((country, area_def)) = find_area(&area) else {
-        return api_error("Unknown area");
+        return bad_request("Unknown area");
     };
     let tz = country.timezone();
     let Some(hours) = param(&q, "hours").and_then(js_parse_float) else {
-        return api_error("Missing/invalid parameters");
+        return bad_request("Missing/invalid parameters");
     };
     let consecutive = match param(&q, "consecutive")
         .map(str::to_ascii_lowercase)
@@ -382,7 +392,7 @@ pub async fn cheapest(
     {
         None | Some("true" | "1" | "yes") => true,
         Some("false" | "0" | "no") => false,
-        Some(_) => return api_error("Missing/invalid parameters"),
+        Some(_) => return bad_request("Missing/invalid parameters"),
     };
     let now = now_ms();
     let from = match param(&q, "from") {
@@ -394,14 +404,14 @@ pub async fn cheapest(
         Some(s) => parse_api_instant(s, &tz, true),
     };
     let (Some(from), Some(to)) = (from, to) else {
-        return api_error("Missing/invalid parameters");
+        return bad_request("Missing/invalid parameters");
     };
     if to <= from || to - from > CHEAPEST_MAX_SPAN_MS {
-        return api_error("Time range not valid, max 7 days");
+        return bad_request("Time range not valid, max 7 days");
     }
     let duration = (hours * HOUR_MS as f64).round() as i64;
     if !hours.is_finite() || duration <= 0 || duration > to - from {
-        return api_error("Hours not valid, must be more than 0 and fit between from and to");
+        return bad_request("Hours not valid, must be more than 0 and fit between from and to");
     }
 
     let rate = match param(&q, "currency") {
@@ -409,7 +419,7 @@ pub async fn cheapest(
         Some(cur) => match data::exchange_rates(&st.app).await {
             Ok(er) => match er.rate(cur) {
                 Some(r) => r,
-                None => return api_error("Unknown currency"),
+                None => return bad_request("Unknown currency"),
             },
             Err(e) => {
                 tracing::error!(error = %e, "exchange rate query failed");
@@ -577,7 +587,7 @@ pub async fn flows(
 async fn area_flows(st: &WebState, q: &HashMap<String, String>) -> Response {
     let (scope, tz, label) = if let Some(a) = param(q, "area") {
         let Some((c, a)) = find_area(&a.to_uppercase()) else {
-            return api_error("Unknown area");
+            return bad_request("Unknown area");
         };
         (
             data::FlowScope::Area(a.name),
@@ -587,7 +597,7 @@ async fn area_flows(st: &WebState, q: &HashMap<String, String>) -> Response {
     } else {
         let id = param(q, "country").unwrap_or("").to_lowercase();
         let Some(c) = crate::countries::COUNTRIES.iter().find(|c| c.id == id) else {
-            return api_error("Unknown country");
+            return bad_request("Unknown country");
         };
         (
             data::FlowScope::Country(c.id),
@@ -601,14 +611,14 @@ async fn area_flows(st: &WebState, q: &HashMap<String, String>) -> Response {
         Some(s) => parse_api_date(s, &tz),
     };
     let (Some(start), Some(end)) = (date("start", add_days(t, -1)), date("end", t)) else {
-        return api_error("Missing/invalid parameters");
+        return bad_request("Missing/invalid parameters");
     };
     let days = i64::from((end - start).get_days()) + 1;
     if days < 1 {
-        return api_error("Missing/invalid parameters");
+        return bad_request("Missing/invalid parameters");
     }
     if days > FLOW_MAX_DAYS {
-        return api_error(&format!("Date range too long, max {FLOW_MAX_DAYS} days"));
+        return bad_request(&format!("Date range too long, max {FLOW_MAX_DAYS} days"));
     }
     let from = day_range(&tz, start).0;
     let to = day_range(&tz, end).1;
@@ -747,17 +757,17 @@ pub async fn reservoirs(
     let q = query_map(pairs);
     let (scope, label) = if let Some(a) = param(&q, "area") {
         let Some((_, a)) = find_area(&a.to_uppercase()) else {
-            return api_error("Unknown area");
+            return bad_request("Unknown area");
         };
         (data::FlowScope::Area(a.name), ("area", a.name))
     } else if let Some(id) = param(&q, "country") {
         let id = id.to_lowercase();
         let Some(c) = crate::countries::COUNTRIES.iter().find(|c| c.id == id) else {
-            return api_error("Unknown country");
+            return bad_request("Unknown country");
         };
         (data::FlowScope::Country(c.id), ("country", c.id))
     } else {
-        return api_error("Missing/invalid parameters");
+        return bad_request("Missing/invalid parameters");
     };
     match data::reservoirs(&st.app, scope).await {
         Ok(o) => json_response(
@@ -768,7 +778,7 @@ pub async fn reservoirs(
                 "license": "CC-BY-4.0",
                 label.0: label.1,
                 "unit": "GWh",
-                "data": &*o,
+                "data": (*o).clone().at(now_ms()),
             }),
             3600,
         ),

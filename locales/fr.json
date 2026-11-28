@@ -404,7 +404,7 @@
       "general_title": "Généralités",
       "gen_format": "Tous les points d'accès répondent aux requêtes <code>GET</code> en JSON. Les noms de paramètres sont sensibles à la casse, les valeurs comme la zone et la devise ne le sont pas.",
       "gen_time": "Les dates (<code>YYYY-MM-DD</code>) sont lues dans le fuseau horaire local de la zone. Les heures des réponses sont en UTC, soit en ISO 8601, soit, dans <code>/api/v2/spot</code>, en millisecondes depuis le 1970-01-01.",
-      "gen_errors": "Les erreurs reçoivent le statut HTTP 500 et <code>{\"status\": \"error\", \"details\": \"…\"}</code>, par exemple pour une zone ou une devise inconnue, des paramètres manquants ou une période trop longue. Dans <code>/api/v2/hass</code>, les prix manquants valent <code>\"-\"</code>.",
+      "gen_errors": "Les erreurs reçoivent le statut HTTP 400 et <code>{\"status\": \"error\", \"details\": \"…\"}</code>, par exemple pour une zone ou une devise inconnue, des paramètres manquants ou une période trop longue. Un échec de la requête en base de données renvoie 500. Dans <code>/api/v2/hass</code>, les prix manquants valent <code>\"-\"</code>.",
       "gen_cache": "Les réponses ont un en-tête <code>Cache-Control</code> (en général une minute pour les données actuelles et une heure pour l'historique) et un <code>ETag</code> : une requête avec <code>If-None-Match</code> donne <code>304 Not Modified</code> si rien n'a changé.",
       "example": "Exemple",
       "or": "ou",

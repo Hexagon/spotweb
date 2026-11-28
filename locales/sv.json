@@ -404,7 +404,7 @@
       "general_title": "Allmänt",
       "gen_format": "Alla anrop svarar på <code>GET</code> med JSON. Parameternamn är skiftlägeskänsliga, värden som elområde och valuta är det inte.",
       "gen_time": "Datum (<code>YYYY-MM-DD</code>) tolkas i elområdets lokala tidszon. Tider i svaren är i UTC, antingen som ISO 8601 eller, i <code>/api/v2/spot</code>, som millisekunder sedan 1970-01-01.",
-      "gen_errors": "Fel besvaras med HTTP-status 500 och <code>{\"status\": \"error\", \"details\": \"…\"}</code>, till exempel vid okänt elområde eller okänd valuta, saknade parametrar eller för långt datumintervall. I <code>/api/v2/hass</code> är saknade priser <code>\"-\"</code>.",
+      "gen_errors": "Fel besvaras med HTTP-status 400 och <code>{\"status\": \"error\", \"details\": \"…\"}</code>, till exempel vid okänt elområde eller okänd valuta, saknade parametrar eller för långt datumintervall. Ett misslyckat databasanrop ger 500. I <code>/api/v2/hass</code> är saknade priser <code>\"-\"</code>.",
       "gen_cache": "Svaren har en <code>Cache-Control</code>-header (oftast en minut för aktuell data och en timme för historik) och en <code>ETag</code>, så ett anrop med <code>If-None-Match</code> ger <code>304 Not Modified</code> när inget har ändrats.",
       "example": "Exempel",
       "or": "eller",

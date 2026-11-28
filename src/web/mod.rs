@@ -2,6 +2,7 @@
 
 mod api;
 pub mod data;
+mod local;
 pub mod metrics;
 mod news;
 mod pages;
@@ -488,16 +489,26 @@ pub fn router(app: App) -> Router {
     layers(r.fallback(pages::not_found), state, REQUEST_TIMEOUT)
 }
 
-/// The local news service (`SPOTWEB_NEWS_BIND`): load and remove news, read them back. Only
-/// served on a loopback address, never with the public routes.
+/// The local news service (`SPOTWEB_NEWS_BIND`): load and remove news, read them back, and
+/// the closed data views under `/api/v2/local/` (see `local`). Only served on a loopback
+/// address, never with the public routes.
 pub fn news_router(app: App) -> Router {
     let state = WebState {
         env: Arc::new(template_env(&app)),
         app,
     };
+    let closed = Router::new()
+        .route("/api/v2/local/outages", get(local::outages))
+        .route("/api/v2/local/day", get(local::day))
+        .route("/api/v2/local/zones", get(local::zones))
+        .route_layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            local::require_token,
+        ));
     Router::new()
         .route("/api/v2/news", get(news::api_list).post(news::api_push))
         .route("/api/v2/news/{id}", axum::routing::delete(news::api_delete))
+        .merge(closed)
         .layer(axum::extract::DefaultBodyLimit::max(256 * 1024))
         .layer(CatchPanicLayer::custom(panic_response))
         .layer(TraceLayer::new_for_http())

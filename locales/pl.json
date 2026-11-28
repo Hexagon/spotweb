@@ -404,7 +404,7 @@
       "general_title": "Ogólne",
       "gen_format": "Wszystkie endpointy odpowiadają na zapytania <code>GET</code> w formacie JSON. Nazwy parametrów rozróżniają wielkość liter, wartości takie jak obszar i waluta nie.",
       "gen_time": "Daty (<code>YYYY-MM-DD</code>) są odczytywane w lokalnej strefie czasowej obszaru cenowego. Czasy w odpowiedziach są w UTC, w formacie ISO 8601 lub, w <code>/api/v2/spot</code>, jako milisekundy od 1970-01-01.",
-      "gen_errors": "Błędy są zwracane ze statusem HTTP 500 i <code>{\"status\": \"error\", \"details\": \"…\"}</code>, np. dla nieznanego obszaru lub waluty, brakujących parametrów albo zbyt długiego zakresu dat. W <code>/api/v2/hass</code> brakujące ceny to <code>\"-\"</code>.",
+      "gen_errors": "Błędy są zwracane ze statusem HTTP 400 i <code>{\"status\": \"error\", \"details\": \"…\"}</code>, np. dla nieznanego obszaru lub waluty, brakujących parametrów albo zbyt długiego zakresu dat. Nieudane zapytanie do bazy danych zwraca 500. W <code>/api/v2/hass</code> brakujące ceny to <code>\"-\"</code>.",
       "gen_cache": "Odpowiedzi mają nagłówek <code>Cache-Control</code> (zwykle minuta dla bieżących danych i godzina dla historii) oraz <code>ETag</code>, więc zapytanie z <code>If-None-Match</code> daje <code>304 Not Modified</code>, gdy nic się nie zmieniło.",
       "example": "Przykład",
       "or": "lub",

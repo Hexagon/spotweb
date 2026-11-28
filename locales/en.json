@@ -404,7 +404,7 @@
       "general_title": "General",
       "gen_format": "All endpoints answer <code>GET</code> requests with JSON. Parameter names are case sensitive, values such as area and currency are not.",
       "gen_time": "Dates (<code>YYYY-MM-DD</code>) are read in the local time zone of the bidding zone. Times in the responses are in UTC, either as ISO 8601 or, in <code>/api/v2/spot</code>, as milliseconds since 1970-01-01.",
-      "gen_errors": "Errors are answered with HTTP status 500 and <code>{\"status\": \"error\", \"details\": \"…\"}</code>, for example for an unknown area or currency, missing parameters or a too long date range. In <code>/api/v2/hass</code> missing prices are <code>\"-\"</code>.",
+      "gen_errors": "Errors are answered with HTTP status 400 and <code>{\"status\": \"error\", \"details\": \"…\"}</code>, for example for an unknown area or currency, missing parameters or a too long date range. A failed database query gives 500. In <code>/api/v2/hass</code> missing prices are <code>\"-\"</code>.",
       "gen_cache": "Responses have a <code>Cache-Control</code> header (usually one minute for current data and one hour for history) and an <code>ETag</code>, so a request with <code>If-None-Match</code> gives <code>304 Not Modified</code> when nothing has changed.",
       "example": "Example",
       "or": "or",
