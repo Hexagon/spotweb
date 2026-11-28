@@ -183,6 +183,7 @@
       "values_in": "Valeurs en",
       "note_eur": "Affiché en EUR tel que les prix sont publiés, sans conversion.",
       "note_converted": "Converti depuis l'EUR au taux BCE de chaque jour (EUR→{currency}), au taux du dernier jour ouvré pour les week-ends et jours fériés.",
+      "rate": "Taux de change",
       "note_no_fees": "Vos frais ne sont pas inclus, car ils sont indiqués dans une autre devise."
     },
     "map": {

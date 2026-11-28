@@ -183,6 +183,7 @@
       "values_in": "Wartości w",
       "note_eur": "Pokazane w EUR, tak jak ceny są publikowane, bez przeliczania.",
       "note_converted": "Przeliczone z EUR po kursie EBC z danego dnia (EUR→{currency}), w weekendy i święta po kursie z ostatniego dnia roboczego.",
+      "rate": "Kurs walutowy",
       "note_no_fees": "Twoje opłaty nie są uwzględnione, ponieważ są podane w innej walucie."
     },
     "map": {

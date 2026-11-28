@@ -183,6 +183,7 @@
       "values_in": "Values in",
       "note_eur": "Shown in EUR as the prices are published, not converted.",
       "note_converted": "Converted from EUR with the ECB rate of each day (EUR→{currency}), the last bank day's rate for weekends and holidays.",
+      "rate": "Exchange rate",
       "note_no_fees": "Your fees are not included, as they are set in another currency."
     },
     "map": {

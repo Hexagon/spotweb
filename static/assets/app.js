@@ -209,7 +209,8 @@
       const ys = (s.data || []).map((p) => p.y).filter((v) => typeof v === "number" && Number.isFinite(v));
       if (!ys.length) return "";
       const avg = ys.reduce((a, v) => a + v, 0) / ys.length;
-      return `${s.name}: ${fmt(Math.min(...ys))} – ${fmt(Math.max(...ys))}, ${t("a11y.average")} ${fmt(avg)}`;
+      const f = s.fmt || fmt;
+      return `${s.name}: ${f(Math.min(...ys))} – ${f(Math.max(...ys))}, ${t("a11y.average")} ${f(avg)}`;
     }).filter(Boolean);
     return [title, ...parts].filter(Boolean).join(". ");
   };
@@ -481,19 +482,43 @@
     if (longtermRedraw) safe(longtermRedraw);
   });
 
-  /** Formats and units for the long-term chart, following the table's currency choice */
-  const longtermChart = (id, series, colors, d) => {
+  /** Formats and units for the long-term chart, following the table's currency choice. With converted prices,
+   * `rows` (the server's monthly rows, which carry the average rate) adds the exchange rate on a second axis. */
+  const longtermChart = (id, series, colors, d, rows) => {
     const u = `${d.cur}/kWh`;
     const nf = new Intl.NumberFormat(locale, { minimumFractionDigits: d.decimals, maximumFractionDigits: d.decimals });
+    const fmt = (v) => `${nf.format(v)} ${u}`;
     const o = baseChart();
-    o.yaxis.labels.formatter = (v) => (v === null || v === undefined ? "" : Number(v).toFixed(Math.min(d.decimals, 2)));
-    o.tooltip.y = { formatter: (v) => (v === null || v === undefined ? "-" : `${Number(v).toFixed(d.decimals)} ${u}`) };
+    const priceAxis = o.yaxis;
+    priceAxis.labels.formatter = (v) => (v === null || v === undefined ? "" : Number(v).toFixed(Math.min(d.decimals, 2)));
+    priceAxis.min = minY(series);
     o.series = series;
     o.colors = colors;
     o.stroke = { width: 2, curve: "smooth" };
     o.tooltip.x.format = "MMM yyyy";
-    o.yaxis.min = minY(o.series);
-    draw(id, o, (v) => `${nf.format(v)} ${u}`);
+    const priceTip = (v) => (v === null || v === undefined ? "-" : `${Number(v).toFixed(d.decimals)} ${u}`);
+    o.tooltip.y = { formatter: priceTip };
+    const iso = isoCur(d.cur);
+    const rated = iso !== "EUR" && (rows || []).filter((r) => typeof r.rate === "number" && Number.isFinite(r.rate));
+    if (rated && rated.length) {
+      const ru = `${iso}/EUR`;
+      const rf = new Intl.NumberFormat(locale, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+      const rateFmt = (v) => `${rf.format(v)} ${ru}`;
+      const rateName = `${t("longtermchart.rate")} (${ru})`;
+      o.series = series.concat([{ name: rateName, fmt: rateFmt, data: rated.map((r) => ({ x: r.time, y: r.rate })) }]);
+      o.colors = colors.concat([theme.text]);
+      o.stroke = { width: series.map(() => 2).concat([1.5]), curve: "smooth", dashArray: series.map(() => 0).concat([5]) };
+      priceAxis.seriesName = series.map((s) => s.name);
+      const dec = Math.max(...rated.map((r) => r.rate)) >= 100 ? 0 : 2;
+      o.yaxis = [priceAxis, {
+        seriesName: rateName, opposite: true, forceNiceScale: true,
+        title: { text: ru, style: { color: theme.text, fontWeight: 400 } },
+        labels: { formatter: (v) => (v === null || v === undefined ? "" : Number(v).toFixed(dec)) },
+      }];
+      const n = series.length;
+      o.tooltip.y = { formatter: (v, ctx) => (ctx && ctx.seriesIndex === n ? (v === null || v === undefined ? "-" : rateFmt(v)) : priceTip(v)) };
+    }
+    draw(id, o, fmt);
   };
 
   const longtermArea = async (a) => {
@@ -506,7 +531,7 @@
     for (let m = 0; m < 12; m++) html += `<tr><td>${t("months." + m)}</td>${years.map((y) => `<td class="num">${cell(y, m)}</td>`).join("")}</tr>`;
     $("#longterm-table").innerHTML = html + "</tbody>";
     longtermControls(cur);
-    longtermChart("longterm-area", [{ name: a.name, data: data.map((r) => ({ x: r.time, y: priceCRounded(r.price, d) })) }], [theme.c1], d);
+    longtermChart("longterm-area", [{ name: a.name, data: data.map((r) => ({ x: r.time, y: priceCRounded(r.price, d) })) }], [theme.c1], d, data);
   };
 
   const chartLongTermArea = async () => {
@@ -528,7 +553,7 @@
     longtermControls(cur);
     longtermChart("longterm-country",
       boot.areas.map((a, i) => ({ name: a.name, data: sets[i].map((r) => ({ x: r.time, y: priceCRounded(r.price, d) })) })),
-      boot.areas.map((a) => areaColor(a)), d);
+      boot.areas.map((a) => areaColor(a)), d, sets.reduce((a, b) => (b.length > a.length ? b : a), []));
   };
 
   const chartLongTermCountry = async () => {

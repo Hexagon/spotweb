@@ -24,6 +24,9 @@ pub struct SpotApiRow {
     pub price: f64,
     pub min: f64,
     pub max: f64,
+    /// Average exchange rate (currency per EUR) the group was converted with; only in converted responses
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rate: Option<f64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -182,6 +185,7 @@ pub fn group(rows: &[(i64, f64, i64)], g: Grouping, tz: &TimeZone) -> Vec<SpotAp
             price: s / w,
             min,
             max,
+            rate: None,
         })
         .collect()
 }
@@ -191,6 +195,7 @@ pub fn convert(rows: &mut [SpotApiRow], rate: f64) {
         r.price *= rate;
         r.min *= rate;
         r.max *= rate;
+        r.rate = Some(rate);
     }
 }
 

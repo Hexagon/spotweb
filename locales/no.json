@@ -183,6 +183,7 @@
       "values_in": "Verdier i",
       "note_eur": "Vises i EUR slik prisene publiseres, uten valutaomregning.",
       "note_converted": "Omregnet fra EUR med ECBs kurs for hver dag (EUR→{currency}), siste bankdags kurs for helger og helligdager.",
+      "rate": "Valutakurs",
       "note_no_fees": "Avgiftene dine er ikke med, fordi de er oppgitt i en annen valuta."
     },
     "map": {

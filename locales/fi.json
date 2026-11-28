@@ -183,6 +183,7 @@
       "values_in": "Arvot yksikössä",
       "note_eur": "Näytetään euroina sellaisina kuin hinnat julkaistaan, ilman valuuttamuunnosta.",
       "note_converted": "Muunnettu euroista kunkin päivän EKP:n kurssilla (EUR→{currency}), viikonloppuisin ja pyhäpäivinä edellisen pankkipäivän kurssilla.",
+      "rate": "Valuuttakurssi",
       "note_no_fees": "Maksujasi ei ole mukana, koska ne on annettu eri valuutassa."
     },
     "map": {

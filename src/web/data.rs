@@ -237,7 +237,16 @@ async fn grouped_range(
                 None => None,
             };
             let conv = |sel: &[(i64, f64, i64)]| match &rates {
-                Some(r) => group(&convert_daily(sel, r, &tz), grouping, &tz),
+                Some(r) => {
+                    let mut out = group(&convert_daily(sel, r, &tz), grouping, &tz);
+                    // The rate of each group: the same rows priced at 1 EUR, so it is time weighted like the price
+                    let ones: Vec<_> = sel.iter().map(|&(t, _, d)| (t, 1.0, d)).collect();
+                    let avg = group(&convert_daily(&ones, r, &tz), grouping, &tz);
+                    for (o, a) in out.iter_mut().zip(avg) {
+                        o.rate = a.price.is_finite().then_some(a.price);
+                    }
+                    out
+                }
                 None => group(sel, grouping, &tz),
             };
             if matches!(grouping, Grouping::Hourly | Grouping::Minimum) {

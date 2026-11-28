@@ -183,6 +183,7 @@
       "values_in": "Werte in",
       "note_eur": "In EUR, wie die Preise veröffentlicht werden, ohne Umrechnung.",
       "note_converted": "Aus EUR umgerechnet mit dem EZB-Kurs des jeweiligen Tages (EUR→{currency}), an Wochenenden und Feiertagen mit dem Kurs des letzten Bankarbeitstags.",
+      "rate": "Wechselkurs",
       "note_no_fees": "Ihre Gebühren sind nicht enthalten, da sie in einer anderen Währung angegeben sind."
     },
     "map": {
