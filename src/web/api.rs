@@ -21,6 +21,8 @@ use crate::timeutil::{
 pub const SOURCE: &str = "ENTSO-E Transparency Platform (https://transparency.entsoe.eu/)";
 /// Note on changes made to the data, as asked by CC-BY 4.0
 const CONVERSION_NOTE: &str = "Converted from EUR/MWh with ECB reference rates by spotweb";
+const DAILY_CONVERSION_NOTE: &str =
+    "Converted from EUR/MWh with the ECB reference rate of each day (the last bank day for weekends and holidays) by spotweb";
 
 /// Longest range (in days, end date inclusive) one `/api/v2/spot` request may cover.
 /// Aggregated groupings are not limited; raw and daily data are, to keep the API
@@ -122,7 +124,11 @@ fn interval_mode(q: &HashMap<String, String>, area: &str) -> IntervalMode {
     }
 }
 
-/// `GET /api/v2/spot?period=hourly&area=SE1&startDate=2024-01-01&endDate=2024-01-31[&currency=SEK][&interval=PT15M]`
+/// `GET /api/v2/spot?period=hourly&area=SE1&startDate=2024-01-01&endDate=2024-01-31[&currency=SEK][&rates=daily|latest][&interval=PT15M]`
+///
+/// With `currency`, every price is converted with the ECB rate of its own (local) day before it is grouped,
+/// the last bank day's rate for weekends and holidays. `rates=latest` converts everything with the latest rate
+/// instead, which is what 2.6 and earlier did.
 pub async fn spot(
     State(st): State<WebState>,
     Query(pairs): Query<Vec<(String, String)>>,
@@ -155,7 +161,15 @@ pub async fn spot(
     let to = day_range(&tz, end).1;
     let mode = interval_mode(&q, &area);
 
-    let rate = match param(&q, "currency") {
+    let latest = match param(&q, "rates").map(str::to_ascii_lowercase).as_deref() {
+        None | Some("daily") => false,
+        Some("latest") => true,
+        Some(_) => return api_error("Rates not valid, use daily or latest"),
+    };
+    let currency = param(&q, "currency")
+        .map(data::iso_currency)
+        .filter(|c| c != "EUR");
+    let rate = match &currency {
         None => 1.0,
         Some(cur) => match data::exchange_rates(&st.app).await {
             Ok(er) => match er.rate(cur) {
@@ -168,17 +182,24 @@ pub async fn spot(
             }
         },
     };
+    let daily = if latest { None } else { currency.as_deref() };
 
-    match data::spot_grouped(&st.app, area_def.name, from, to, grouping, &mode, tz).await {
+    match data::spot_grouped(&st.app, area_def.name, from, to, grouping, &mode, tz, daily).await {
         Ok(rows) => {
             let mut rows = (*rows).clone();
-            if rate != 1.0 {
+            if latest && currency.is_some() {
                 convert(&mut rows, rate);
             }
             let max_age = if to < now_ms() { 3600 } else { 60 };
             let mut body = json!({ "status": "ok", "source": SOURCE, "data": rows });
-            if rate != 1.0 {
-                body["note"] = json!(CONVERSION_NOTE);
+            if let Some(cur) = &currency {
+                body["note"] = json!(if latest {
+                    CONVERSION_NOTE
+                } else {
+                    DAILY_CONVERSION_NOTE
+                });
+                body["currency"] = json!(cur);
+                body["rates"] = json!(if latest { "latest" } else { "daily" });
             }
             json_response(StatusCode::OK, body, max_age)
         }

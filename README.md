@@ -65,7 +65,8 @@ spotweb back-fills prices since 2021, which takes a while (ENTSO-e is queried po
 | `SPOTWEB_HTTP_SUMMARY_SECS` | `60`                    | Log HTTP counts, p50/p95 and 4xx/5xx per route this often; `0` is off |
 | `SPOTWEB_NO_SCHEDULER`     | off                      | `1`/`true`/`yes`/`on` is the same as `--no-scheduler`: no scheduled data updates |
 | `SPOTWEB_ENTSOE_ENDPOINT`  | `https://web-api.tp.entsoe.eu/api` | ENTSO-e API url, for a proxy or a mock in tests       |
-| `SPOTWEB_ECB_ENDPOINT`     | `https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml` | ECB exchange rate url, for a mirror or a mock in tests |
+| `SPOTWEB_ECB_ENDPOINT`     | `https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist-90d.xml` | ECB exchange rates of the last 90 days (the daily file works too), for a mirror or a mock in tests |
+| `SPOTWEB_ECB_HISTORY_ENDPOINT` | `https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml` | All ECB exchange rates since 1999, read when the stored history is incomplete |
 | `SPOTWEB_API_RATE_LIMIT`   | off                      | Requests per minute and client IP to `/api/`; over that `429` with `Retry-After` (see [deployment](docs/deployment.md#rate-limiting)) |
 | `SPOTWEB_TRUSTED_PROXIES`  | –                        | Proxies (IPs or CIDRs, comma separated) whose `X-Forwarded-For`/`X-Real-IP` give the client IP, e.g. `127.0.0.1,::1` |
 | `SPOTWEB_SHUTDOWN_GRACE_SECS` | `15`                 | On shutdown, wait this long for running jobs before interrupting them |
@@ -78,7 +79,7 @@ Same timing as 1.x, in `SPOTWEB_SCHEDULE_TZ` (DST changes are handled):
 | Job          | When                                                              |
 | ------------ | ----------------------------------------------------------------- |
 | `prices`     | every hour, 12:45 and 13:15/13:30/13:45 (day-ahead auction), and at startup |
-| `currency`   | 09:05 and 16:20 (after ECB publishes), and at startup             |
+| `currency`   | 09:05 and 16:20 (after ECB publishes), and at startup. Reads the last 90 days, which fills days it missed; the first time (or after an upgrade) the whole history since 1999 |
 | `load`       | every hour at :05                                                 |
 | `production` | every hour at :50                                                 |
 | `flows`      | every hour at :25, half of the borders per run, so each border every second hour (two requests per border) |
@@ -104,13 +105,16 @@ Free and without key. Errors are returned as HTTP 500 with `{"status":"error","d
 Successful responses carry an `ETag`; send it back in `If-None-Match` to get an empty `304 Not Modified` while the
 data is unchanged (for `/api/v2/hass` the `updated` field is not part of the tag).
 
-`GET /api/v2/spot?period=daily&area=SE3&startDate=2024-01-01&endDate=2024-01-31[&currency=SEK][&interval=PT15M]`
+`GET /api/v2/spot?period=daily&area=SE3&startDate=2024-01-01&endDate=2024-01-31[&currency=SEK][&rates=daily|latest][&interval=PT15M]`
 
 ```json
 { "status": "ok", "source": "ENTSO-E Transparency Platform (https://transparency.entsoe.eu/)", "data": [{ "time": 1704063600000, "price": 102.1, "min": 55.3, "max": 160.2 }] }
 ```
 
-Prices are per MWh in EUR, or in `currency` (any ECB currency). `period` is `hourly` (raw intervals, as in 1.x), `daily`,
+Prices are per MWh in EUR, or in `currency` (any ECB currency, `ORE` is SEK). Converted prices use the ECB rate of their
+own local day, the last bank day's rate for weekends and holidays, before they are grouped, so a monthly average in SEK
+is the average of what each day cost in SEK. `rates=latest` converts everything with the latest rate instead (2.6 and
+earlier always did). Converted responses also carry `currency` and `rates`. `period` is `hourly` (raw intervals, as in 1.x), `daily`,
 `weekly` (new), `monthly`, `yearly`, `total` (time is `null`) or `minimum`. With `interval` only that resolution is used, exactly like
 1.x. Without it (new behaviour) the area's current resolution is preferred and older days fall back to what is available, so
 long ranges cover both hourly and 15-minute history. Averages are time weighted.

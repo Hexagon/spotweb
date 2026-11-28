@@ -39,6 +39,10 @@
       <p>{{ t("longtermchart.countryDescriptionPart1") }} {{ t("countries." ~ country.id) }}{{ t("longtermchart.countryDescriptionPart2") }}</p>
       {% include "partials/pricefactor_note.html" %}
     </div>
+    <div class="pad longterm-currency" data-longterm-currency hidden>
+      <div class="segmented" role="group" aria-label="{{ t('longtermchart.currency_label') }}"></div>
+      <p class="small" data-longterm-note aria-live="polite"></p>
+    </div>
     <div class="table-scroll"><table class="table compact" id="longterm-table"></table></div>
   </section>
   {{ m.outages_card(outages, country) }}

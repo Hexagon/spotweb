@@ -45,11 +45,12 @@
       "title": "Informazioni e condizioni d'uso",
       "all_history": "Tutte le statistiche provengono da",
       "currency_fetched_from": "Tasso di cambio attuale preso da",
-      "all_values_from": "Tutti i valori, compresi quelli storici, sono convertiti da EUR al tasso attuale",
+      "all_values_from": "I prezzi di oggi e di domani sono convertiti da EUR al tasso attuale",
       "disclaimer_and_private_use": "I dati mostrati dovrebbero essere corretti, ma sono forniti senza garanzie. Il sito e i servizi collegati sono offerti per uso privato, a proprio rischio.",
       "not_affiliated": "spotweb è un progetto indipendente, non affiliato né approvato da ENTSO-E. I dati di ENTSO-E sono riutilizzati secondo le condizioni d'uso della Transparency Platform.",
       "open_source_software": "Il codice sorgente della pagina è completamente aperto ed è disponibile su ",
-      "bugs_and_issues": "Errori e problemi si segnalano tramite 'Issues' su GitHub. È possibile anche scrivere a hexagon{a}56k.guru."
+      "bugs_and_issues": "Errori e problemi si segnalano tramite 'Issues' su GitHub. È possibile anche scrivere a hexagon{a}56k.guru.",
+      "history_converted": "I prezzi storici sono convertiti al tasso BCE di ciascun giorno."
     },
     "overview": {
       "thirty_day_chart": "Storico di 30 giorni",
@@ -177,7 +178,12 @@
       "priceFactorDescriptionPart2": "(oneri)) *",
       "priceFactorDescriptionPart3": "(imposte). È adattato alle tue impostazioni attuali.",
       "nonPriceFactorDescription": "Il prezzo dell'elettricità nella tabella è il prezzo spot. Tieni presente che possono aggiungersi oneri e imposte. Puoi scegliere di mostrare il prezzo spot o il prezzo effettivo dalle impostazioni della pagina.",
-      "month": "Mese"
+      "month": "Mese",
+      "currency_label": "Valuta nella tabella",
+      "values_in": "Valori in",
+      "note_eur": "Mostrato in EUR come vengono pubblicati i prezzi, senza conversione.",
+      "note_converted": "Convertito da EUR al tasso BCE di ciascun giorno (EUR→{currency}), al tasso dell'ultimo giorno lavorativo per fine settimana e festivi.",
+      "note_no_fees": "Le tue tariffe non sono incluse, perché sono indicate in un'altra valuta."
     },
     "map": {
       "title": "Prezzi dell'elettricità e flussi di energia adesso",
@@ -387,7 +393,7 @@
       "src_license": "I dati di ENTSO-E sono riutilizzati secondo le <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">condizioni d'uso</a> della ENTSO-E Transparency Platform (CC BY 4.0). Ogni risposta indica la fonte in <code>source</code>, e le risposte con prezzi convertiti hanno anche una <code>note</code>. Cita \"ENTSO-E Transparency Platform\" quando riutilizzi i dati, e indica che sono stati convertiti dove applicabile.",
       "processing_title": "Dati convertiti e calcolati",
       "processing_intro": "A meno che tu non chieda i prezzi grezzi in EUR, ciò che ricevi non corrisponde esattamente ai dati pubblicati da ENTSO-E. Ecco cosa fa spotweb con i dati:",
-      "proc_currency": "<strong>Valuta:</strong> i prezzi in qualsiasi valuta diversa dall'EUR sono convertiti da EUR/MWh con l'<em>ultimo</em> tasso di riferimento della BCE. Questo vale anche per i prezzi storici, quindi i prezzi passati ad esempio in PLN possono differire da quanto pagato allora. Chiedi EUR se ti servono i valori originali.",
+      "proc_currency": "<strong>Valuta:</strong> con <code>currency</code> ogni prezzo viene convertito da EUR/MWh al tasso di riferimento BCE del proprio giorno (quello dell'ultimo giorno lavorativo per fine settimana e festivi) prima del raggruppamento, quindi i prezzi storici corrispondono al tasso di allora. Oggi e domani usano l'ultimo tasso pubblicato. <code>rates=latest</code> converte tutto all'ultimo tasso, come prima. Chiedi EUR se ti servono i valori originali.",
       "proc_units": "<strong>Unità:</strong> <code>/api/v2/spot</code> e <code>/api/v2/cheapest</code> rispondono in valuta per MWh. <code>/api/v2/hass</code> risponde per kWh (diviso per 1000), in öre con <code>currency=ORE</code> (moltiplicato per 100), con <code>multiplier</code>, <code>extra</code> e <code>factor</code> applicati, arrotondato a <code>decimals</code> decimali e come testo.",
       "proc_grouping": "<strong>Medie:</strong> <code>daily</code>, <code>weekly</code>, <code>monthly</code>, <code>yearly</code> e <code>total</code>, e le medie in <code>/api/v2/hass</code> e <code>/api/v2/cheapest</code>, sono calcolate da spotweb come medie ponderate nel tempo dei prezzi degli intervalli, raggruppate nell'ora locale della zona di mercato. <code>min</code> e <code>max</code> sono il prezzo d'intervallo più basso e più alto. Il prezzo mensile di un fornitore è ponderato sul consumo e di solito è diverso.",
       "proc_resolution": "<strong>Risoluzione:</strong> senza <code>interval</code>, ogni giorno locale usa la risoluzione di mercato attuale della zona (15 o 60 minuti), o la risoluzione più fine disponibile per i giorni prima di un cambiamento. Con <code>interval=PT15M</code> o <code>PT60M</code> sono restituiti solo i prezzi salvati esattamente in quella risoluzione; nulla viene interpolato o mediato in un'altra risoluzione.",

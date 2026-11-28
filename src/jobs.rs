@@ -96,7 +96,7 @@ impl Job {
 
     fn timeout(&self) -> Duration {
         match self {
-            Job::Currency => Duration::from_secs(60),
+            Job::Currency => Duration::from_secs(180),
             Job::Outages => Duration::from_secs(3600),
             // The first run fetches the history since 2015, a year per request
             Job::Reservoirs => Duration::from_secs(1800),
@@ -113,7 +113,7 @@ impl Job {
     fn cache_realms(&self) -> &'static [&'static str] {
         match self {
             Job::Prices => &["spotprice"],
-            Job::Currency => &["exrate", "spotprice"],
+            Job::Currency => &["exrate", "spotprice", "spothist"],
             Job::Outages => &["outage"],
             Job::Load | Job::Production => &["load", "generation"],
             Job::Flows => &["flow"],
@@ -336,40 +336,88 @@ async fn run_inner(app: &App, job: Job, scheduled: bool) -> anyhow::Result<Outco
 }
 
 async fn update_currency(app: &App) -> anyhow::Result<Outcome> {
-    let rates = crate::ecb::fetch().await.context("fetching ECB rates")?;
-    let date = rates.date.clone();
-    // Stored at midnight UTC of the ECB date
-    let period = date
-        .parse::<Date>()
-        .context("bad ECB date")?
-        .to_zoned(TimeZone::UTC)?
-        .timestamp()
-        .as_millisecond();
-    let stored = app
+    // The whole history (since 1999) once, when the stored rates do not reach back to the start of the price
+    // history; then the last 90 days, which also fills days when spotweb was not running
+    // ECB's first rates are from 4 Jan 1999 (some currencies start later, so the check uses USD)
+    let start = utc_midnight(app.cfg.history_start.max(jiff::civil::date(1999, 1, 4)))?;
+    let complete = app
         .db
-        .run(move |c| Ok(queries::has_exchange_rates_for(c, period)?))
+        .run(move |c| Ok(queries::has_exchange_rate_history_from(c, start)?))
         .await?;
-    let message = if stored {
-        format!("rates for {date} already stored")
-    } else {
-        let n = rates.entries.len();
-        app.db
-            .run(move |c| {
-                Ok(queries::insert_exchange_rates(
-                    c,
-                    &rates.date,
-                    period,
-                    &rates.entries,
-                )?)
-            })
-            .await?;
-        format!("stored {n} rates for {date}")
+    let mut notes = Vec::new();
+    let mut days = None;
+    let mut full = false;
+    if !complete {
+        match crate::ecb::fetch_history().await {
+            Ok(d) => {
+                days = Some(d);
+                full = true;
+            }
+            Err(e) => {
+                tracing::warn!(error = %format!("{e:#}"), "fetching the ECB rate history failed");
+                notes.push(format!("history: {e:#}"));
+            }
+        }
+    }
+    let days = match days {
+        Some(d) => d,
+        None => crate::ecb::fetch().await.context("fetching ECB rates")?,
     };
+    let (first, latest) = (
+        days.first().map(|d| d.date.clone()).unwrap_or_default(),
+        days.last().map(|d| d.date.clone()).unwrap_or_default(),
+    );
+    let rows = days
+        .into_iter()
+        .map(|d| {
+            Ok((
+                utc_midnight(d.date.parse::<Date>().context("bad ECB date")?)?,
+                d,
+            ))
+        })
+        .collect::<anyhow::Result<Vec<_>>>()?;
+    let n_days = rows.len();
+    let (changed, removed) = app
+        .db
+        .run(move |c| {
+            let refs: Vec<_> = rows
+                .iter()
+                .map(|(p, d)| (d.date.as_str(), *p, &d.entries))
+                .collect();
+            let changed = queries::insert_exchange_rate_days(c, &refs)?;
+            // 1.x stored the rates at local midnight under the fetch date. ECB's own dates replace them.
+            let removed = match (full, rows.first()) {
+                (true, Some((p, _))) => queries::remove_v1_exchange_rates(c, *p)?,
+                _ => 0,
+            };
+            Ok((changed, removed))
+        })
+        .await?;
+    let mut message = if full {
+        format!(
+            "read ECB history {first}..{latest} ({n_days} days), {changed} rates added or changed"
+        )
+    } else if changed == 0 {
+        format!("rates up to {latest} already stored")
+    } else {
+        format!("{changed} rates added or changed, latest {latest}")
+    };
+    if removed > 0 {
+        message.push_str(&format!(", replaced {removed} rates imported from 1.x"));
+    }
+    for n in notes {
+        message.push_str(&format!("; {n}"));
+    }
     Ok(Outcome {
         message,
-        changed: !stored,
+        changed: changed + removed > 0,
         ..Default::default()
     })
+}
+
+/// Midnight UTC of `d` in ms, where the rate of an ECB date is stored
+fn utc_midnight(d: Date) -> anyhow::Result<i64> {
+    Ok(d.to_zoned(TimeZone::UTC)?.timestamp().as_millisecond())
 }
 
 /// One ENTSO-e request with retries for transient errors, followed by the configured pause.

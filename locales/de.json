@@ -45,11 +45,12 @@
       "title": "Informationen und Nutzungsbedingungen",
       "all_history": "Alle Statistiken stammen aus der",
       "currency_fetched_from": "Der aktuelle Wechselkurs stammt von der",
-      "all_values_from": "Alle Werte, auch historische, werden zum aktuellen Wechselkurs aus EUR umgerechnet",
+      "all_values_from": "Die Preise für heute und morgen werden zum aktuellen Kurs aus EUR umgerechnet",
       "disclaimer_and_private_use": "Die gezeigten Zahlen sollen der Realität entsprechen, werden aber ohne Gewähr geliefert. Die Website und die damit verbundenen Dienste werden für den privaten Gebrauch auf eigenes Risiko bereitgestellt.",
       "not_affiliated": "spotweb ist ein unabhängiges Projekt, das weder mit ENTSO-E verbunden ist noch von ENTSO-E unterstützt wird. Daten von ENTSO-E werden gemäß den Nutzungsbedingungen der Transparency Platform weiterverwendet.",
       "open_source_software": "Der Quellcode der Seite ist vollständig offen und verfügbar unter ",
-      "bugs_and_issues": "Fehler und Probleme werden über 'Issues' auf GitHub gemeldet. Kontakt kann auch per E-Mail an hexagon{a}56k.guru hergestellt werden."
+      "bugs_and_issues": "Fehler und Probleme werden über 'Issues' auf GitHub gemeldet. Kontakt kann auch per E-Mail an hexagon{a}56k.guru hergestellt werden.",
+      "history_converted": "Historische Preise werden mit dem EZB-Kurs des jeweiligen Tages umgerechnet."
     },
     "overview": {
       "thirty_day_chart": "30 Tage Verlauf",
@@ -177,7 +178,12 @@
       "priceFactorDescriptionPart2": "(Gebühren)) *",
       "priceFactorDescriptionPart3": "(Steuer). Dies wird entsprechend Ihren aktuellen Einstellungen angepasst.",
       "nonPriceFactorDescription": "Der Strompreis in der Tabelle repräsentiert den aktuellen Spotpreis. Beachten Sie, dass zusätzliche Gebühren und Steuern anfallen können. Sie können über die Einstellungen auf der Seite wählen, ob Sie den Spotpreis oder den tatsächlichen Preis anzeigen möchten.",
-      "month": "Monat"
+      "month": "Monat",
+      "currency_label": "Währung in der Tabelle",
+      "values_in": "Werte in",
+      "note_eur": "In EUR, wie die Preise veröffentlicht werden, ohne Umrechnung.",
+      "note_converted": "Aus EUR umgerechnet mit dem EZB-Kurs des jeweiligen Tages (EUR→{currency}), an Wochenenden und Feiertagen mit dem Kurs des letzten Bankarbeitstags.",
+      "note_no_fees": "Ihre Gebühren sind nicht enthalten, da sie in einer anderen Währung angegeben sind."
     },
     "map": {
       "title": "Strompreise und Lastflüsse aktuell",
@@ -387,7 +393,7 @@
       "src_license": "Die Daten von ENTSO-E werden gemäß den <a href=\"https://transparencyplatform.zendesk.com/hc/en-us/articles/40921911218961-Legal-Terms-and-Conditions\" rel=\"noopener\">Nutzungsbedingungen</a> der ENTSO-E Transparency Platform (CC BY 4.0) weiterverwendet. Jede Antwort nennt die Quelle in <code>source</code>, Antworten mit umgerechneten Preisen enthalten zusätzlich eine <code>note</code>. Nennen Sie bei der Weiterverwendung \"ENTSO-E Transparency Platform\" als Quelle und gegebenenfalls, dass die Daten umgerechnet wurden.",
       "processing_title": "Umgerechnete und berechnete Daten",
       "processing_intro": "Sofern Sie nicht Rohdaten in EUR abrufen, erhalten Sie nicht genau die Zahlen, die ENTSO-E veröffentlicht. So verarbeitet spotweb die Daten:",
-      "proc_currency": "<strong>Währung:</strong> Preise in einer anderen Währung als EUR werden mit dem <em>neuesten</em> EZB-Referenzkurs aus EUR/MWh umgerechnet. Das gilt auch für historische Preise, ältere Preise in z. B. SEK können also von dem abweichen, was damals bezahlt wurde. Rufen Sie EUR ab, wenn Sie die Originalwerte brauchen.",
+      "proc_currency": "<strong>Währung:</strong> mit <code>currency</code> wird jeder Preis vor dem Gruppieren mit dem EZB-Referenzkurs seines eigenen Tages aus EUR/MWh umgerechnet (an Wochenenden und Feiertagen mit dem Kurs des letzten Bankarbeitstags), historische Preise entsprechen also dem damaligen Kurs. Heute und morgen verwenden den zuletzt veröffentlichten Kurs. <code>rates=latest</code> rechnet wie bisher alles mit dem neuesten Kurs um. Fragen Sie EUR ab, wenn Sie die Originalwerte brauchen.",
       "proc_units": "<strong>Einheit:</strong> <code>/api/v2/spot</code> und <code>/api/v2/cheapest</code> antworten in Währung pro MWh. <code>/api/v2/hass</code> antwortet pro kWh (geteilt durch 1000), mit <code>currency=ORE</code> in Öre (mal 100), mit Ihren Werten für <code>multiplier</code>, <code>extra</code> und <code>factor</code>, auf <code>decimals</code> Nachkommastellen gerundet und als Text.",
       "proc_grouping": "<strong>Mittelwerte:</strong> <code>daily</code>, <code>weekly</code>, <code>monthly</code>, <code>yearly</code> und <code>total</code> sowie die Mittelwerte in <code>/api/v2/hass</code> und <code>/api/v2/cheapest</code> berechnet spotweb als zeitgewichtete Mittel der Intervallpreise, gruppiert in der Ortszeit der Gebotszone. <code>min</code> und <code>max</code> sind der niedrigste und höchste Intervallpreis. Monatspreise von Stromanbietern sind nach Verbrauch gewichtet und weichen meist ab.",
       "proc_resolution": "<strong>Auflösung:</strong> Ohne <code>interval</code> wird für jeden lokalen Tag die aktuelle Marktauflösung der Zone (15 oder 60 Minuten) verwendet, für Tage vor einer Umstellung die feinste vorhandene Auflösung. Mit <code>interval=PT15M</code> oder <code>PT60M</code> werden nur Preise in genau dieser Auflösung geliefert; nichts wird interpoliert oder in eine andere Auflösung umgerechnet.",

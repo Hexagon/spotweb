@@ -871,7 +871,7 @@ async fn grouped_split_at_current_group_matches_unsplit() {
         Grouping::Yearly,
     ] {
         let expected = group(&select_rows(&all, &mode, &tz), g, &tz);
-        let got = super::data::spot_grouped(&app, "SE1", from, to, g, &mode, tz.clone())
+        let got = super::data::spot_grouped(&app, "SE1", from, to, g, &mode, tz.clone(), None)
             .await
             .unwrap();
         assert_eq!(*got, expected, "{g:?}");
@@ -1290,4 +1290,58 @@ async fn planned_flows_api() {
     // The start page hands the plan to the map
     let (_, page, _) = get(&app, "/").await;
     assert!(page.contains(r#""plan":{"schedule""#));
+}
+
+#[tokio::test]
+async fn spot_api_converts_with_the_rate_of_each_day() {
+    let app = test_app();
+    let tz = crate::timeutil::stockholm();
+    let (yesterday, today) = (crate::timeutil::add_days(today(&tz), -1), today(&tz));
+    // SEK is 10 until today, 20 from today's ECB date
+    let mut er = BTreeMap::new();
+    er.insert("SEK".to_string(), 20.0);
+    let p = today
+        .to_zoned(jiff::tz::TimeZone::UTC)
+        .unwrap()
+        .timestamp()
+        .as_millisecond();
+    queries::insert_exchange_rates(&mut app.db.conn().unwrap(), &today.to_string(), p, &er)
+        .unwrap();
+    let data = |body: &str| -> Vec<f64> {
+        let v: Value = serde_json::from_str(body).unwrap();
+        v["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r["price"].as_f64().unwrap())
+            .collect()
+    };
+    let q = format!("/api/v2/spot?period=daily&area=SE1&startDate={yesterday}&endDate={today}");
+    let eur = data(&get(&app, &q).await.1);
+    let (_, body, _) = get(&app, &format!("{q}&currency=SEK")).await;
+    let v: Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["rates"], "daily");
+    assert_eq!(v["currency"], "SEK");
+    let daily = data(&body);
+    assert_eq!(eur.len(), 2);
+    assert!((daily[0] - eur[0] * 10.0).abs() < 1e-9, "{daily:?} {eur:?}");
+    assert!((daily[1] - eur[1] * 20.0).abs() < 1e-9);
+    // öre is SEK, and the old behaviour converts everything with the latest rate
+    assert_eq!(
+        data(&get(&app, &format!("{q}&currency=%C3%B6re")).await.1),
+        daily
+    );
+    let latest = data(&get(&app, &format!("{q}&currency=SEK&rates=latest")).await.1);
+    assert!((latest[0] - eur[0] * 20.0).abs() < 1e-9);
+    // A month across the change averages the converted prices
+    let m = format!(
+        "/api/v2/spot?period=total&area=SE1&startDate={yesterday}&endDate={today}&currency=SEK"
+    );
+    let total = data(&get(&app, &m).await.1)[0];
+    assert!(
+        (total - (daily[0] + daily[1]) / 2.0).abs() < 1e-6,
+        "{total}"
+    );
+    let (_, body, _) = get(&app, &format!("{q}&currency=SEK&rates=weekly")).await;
+    assert!(body.contains("error"), "{body}");
 }

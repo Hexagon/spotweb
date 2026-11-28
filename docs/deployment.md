@@ -67,8 +67,14 @@ All variables are listed in the README (*Configuration*). The ones most installa
   updates (see *Several instances*).
 - `SPOTWEB_ENTSOE_ENDPOINT` and `SPOTWEB_ECB_ENDPOINT`: replace the ENTSO-e API url
   (`https://web-api.tp.entsoe.eu/api`) and the ECB rates url
-  (`https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml`), e.g. for an outgoing proxy or a mock server.
-  Rarely needed.
+  (`https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist-90d.xml`), e.g. for an outgoing proxy or a mock server.
+  `SPOTWEB_ECB_HISTORY_ENDPOINT` replaces the url of the full history (`…/eurofxref-hist.xml`). Rarely needed.
+- Exchange rate history: the `currency` job reads ECB's full history since 1999 (a few MB) whenever the stored rates
+  do not reach back to `SPOTWEB_HISTORY_START`. That is the first run on a fresh database and the first run after
+  upgrading from 2.6 or earlier, both at startup. Later runs read only the last 90 days, which also fills days when
+  spotweb was down. If ECB cannot be reached, the history is tried again on the next run. Rates that 1.x stored
+  (under the fetch date at local midnight) are replaced by ECB's own dates. `spotweb run-job currency` does the same
+  by hand. A `--no-scheduler` node gets the rates with the database it copies.
 
 The unit runs with a strict sandbox (`ProtectSystem=strict`, no capabilities, syscall filter, only `/var/lib/spotweb`
 writable). `systemd-analyze security spotweb` should report a low exposure score.
