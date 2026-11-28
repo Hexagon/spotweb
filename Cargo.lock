@@ -1255,7 +1255,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a89832adb95bd6369b0bd49a854688cbb4053df4485b25b3faab3a4ede7ab86e"
 dependencies = [
  "r2d2",
- "rusqlite",
+ "rusqlite 0.42.0",
  "uuid",
 ]
 
@@ -1386,6 +1386,21 @@ name = "rusqlite"
 version = "0.42.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4edff0039f148731aee2fd80f76dbfeb12d204ab3d1c544838d34e02151049b"
+dependencies = [
+ "bitflags",
+ "fallible-iterator",
+ "fallible-streaming-iterator",
+ "hashlink",
+ "libsqlite3-sys",
+ "smallvec",
+ "sqlite-wasm-rs",
+]
+
+[[package]]
+name = "rusqlite"
+version = "0.43.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f172c4812a19b26d1c23cdb0070e69db335503dfa378b910eb857386e5b8beba"
 dependencies = [
  "bitflags",
  "fallible-iterator",
@@ -1657,7 +1672,7 @@ dependencies = [
  "r2d2",
  "r2d2_sqlite",
  "reqwest",
- "rusqlite",
+ "rusqlite 0.43.0",
  "rust-embed",
  "serde",
  "serde_json",

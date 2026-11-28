@@ -18,7 +18,7 @@ quick-xml = "0.42"
 r2d2 = "0.8"
 r2d2_sqlite = "0.37"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip"] }
-rusqlite = { version = "0.42", features = ["bundled", "backup"] }
+rusqlite = { version = "0.43", features = ["bundled", "backup"] }
 rust-embed = { version = "8", features = ["mime-guess"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
