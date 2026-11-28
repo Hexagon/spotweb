@@ -37,6 +37,7 @@
   <link rel="apple-touch-icon" href="/icon-192x192.png">
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="{{ asset('assets/spotweb.css') }}">
+  {%- block head %}{% endblock %}
   {%- if webpulse_id %}
   <script async src="https://track.webpulseanalytics.com/client/{{ webpulse_id }}" type="module" nonce="{{ nonce }}"></script>
   {%- endif %}

@@ -267,7 +267,10 @@ input:focus, select:focus, button:focus-visible { outline: 2px solid var(--prima
 .link-color-5 { color: rgb(var(--c5)); }
 .area-card .card-head h1, .area-card .card-head h2 { text-align: center; width: 100%; }
 .now-box { text-align: center; padding: 14px 10px 10px; background: var(--card-2); }
-.price-big { font-size: 4.2rem; line-height: 1.05; font-weight: 300; color: var(--price-text); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+/* Seven-segment digits (static/assets/fonts, declared in templates/partials/digits_font.html). They fill
+   the whole em, so a smaller size matches the cap height of the text font; the fixed line height
+   keeps the box the same while the font loads. All digits have the same advance (tabular). */
+.price-big { font-family: "Spotweb Digits", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 3rem; line-height: 4.4rem; font-weight: 400; font-synthesis: none; color: var(--price-text); font-variant-numeric: tabular-nums; letter-spacing: .04em; white-space: nowrap; }
 .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 10px; padding: 14px 16px; }
 .stats h3 { font-size: .85rem; color: var(--muted); font-weight: 500; margin: 0; }
 .stats .big { margin: 2px 0; }
