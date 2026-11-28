@@ -1,0 +1,4 @@
+{#- Seven-segment font of the big "right now" price (.price-big). Declared here and not in
+    spotweb.css so that its url carries the content hash and is cached as immutable. -#}
+  <link rel="preload" href="{{ asset('assets/fonts/spotweb-digits.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <style nonce="{{ nonce }}">@font-face { font-family: "Spotweb Digits"; src: url("{{ asset('assets/fonts/spotweb-digits.woff2') }}") format("woff2"); font-display: swap; unicode-range: U+20, U+2C-2E, U+30-39, U+2212; }</style>

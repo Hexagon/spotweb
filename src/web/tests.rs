@@ -966,6 +966,37 @@ async fn pages_send_nonce_csp() {
     assert!(h.get("content-security-policy").is_none());
 }
 
+/// The seven-segment font of the big price: self-hosted, linked by content hash from the pages
+/// that show it, cached for good
+#[tokio::test]
+async fn digits_font_is_self_hosted_and_versioned() {
+    let app = test_app();
+    let url = super::asset_url("assets/fonts/spotweb-digits.woff2");
+    assert!(url.contains("?v="), "{url}");
+    for page in ["/sv/SE1", "/sv"] {
+        let (s, body, _) = get(&app, page).await;
+        assert_eq!(s, StatusCode::OK);
+        assert!(
+            body.contains(&format!(
+                r#"<link rel="preload" href="{url}" as="font" type="font/woff2" crossorigin>"#
+            )),
+            "{page}"
+        );
+        assert!(body.contains(&format!(r#"src: url("{url}") format("woff2")"#)));
+        assert!(body.contains("font-display: swap"));
+        assert!(body.contains(r#"class="price-big""#));
+    }
+    // Only where the big price is shown
+    let (_, body, _) = get(&app, "/help").await;
+    assert!(!body.contains("spotweb-digits"));
+    let (s, body, h) = get(&app, &url).await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(h["content-type"], "font/woff2");
+    assert_eq!(h["cache-control"], "public, max-age=31536000, immutable");
+    assert!(body.len() < 8 * 1024, "subset font is {} bytes", body.len());
+    assert!(super::is_static("assets/fonts/spotweb-digits.LICENSE.txt"));
+}
+
 /// Language versions, titles, descriptions and structured data
 #[tokio::test]
 async fn search_engine_metadata() {

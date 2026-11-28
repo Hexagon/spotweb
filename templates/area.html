@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% import "macros.html" as m %}
+{% block head %}
+{% include "partials/digits_font.html" %}
+{%- endblock %}
 {% block content %}
 <div class="grid grid-area-top">
   {{ m.area_card(area, country, true) }}
